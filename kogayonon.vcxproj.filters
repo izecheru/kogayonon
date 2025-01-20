@@ -1363,5 +1363,10 @@
     <None Include="dependencies\glm\gtx\wrap.inl">
       <Filter>Header Files</Filter>
     </None>
+    <None Include="dependencies\GLFW\lib-vc2022\glfw3.dll" />
+    <None Include="cpp.hint" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="dependencies\GLFW\lib-vc2022\glfw3.lib" />
   </ItemGroup>
 </Project>

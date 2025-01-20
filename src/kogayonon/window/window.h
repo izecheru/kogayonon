@@ -1,31 +1,34 @@
 #pragma once
-#include <string>
 #include <glfw3.h>
-#include <functional>
 #include "../event/event.h"
+#include <functional>
 
-namespace kogayonon {
+namespace kogayonon
+{
   using EventCallbackFn = std::function<void(Event&)>;
 
-  struct WindowProps {
-    const char* Title;
-    uint32_t Width;
-    uint32_t Height;
-    bool VSync;
-    EventCallbackFn EventCallback;
+  struct WindowProps
+  {
+    const char* m_title;
+    uint32_t m_width;
+    uint32_t m_height;
+    bool m_vsync;
+    EventCallbackFn m_event_callback;
 
     WindowProps(const char* title = "kogayonon",
-                uint32_t width = 640,
-                uint32_t height = 480,
-                bool vsync = true)
-      : Title(title), Width(width), Height(height), VSync(vsync) {}
+      uint32_t width = 640,
+      uint32_t height = 480,
+      bool vsync = true)
+      : m_title(title), m_width(width), m_height(height), m_vsync(vsync)
+    {}
 
     ~WindowProps() = default;
   };
 
-  class Window {
+  class Window
+  {
   public:
-    Window(const WindowProps& props);
+    Window();
     virtual ~Window();
 
     void onUpdate();
@@ -36,6 +39,7 @@ namespace kogayonon {
     bool isVsync();
     void setEventCallbackFn(const EventCallbackFn& callback);
     GLFWwindow* getWindow();
+    WindowProps getWindowData();
 
   private:
     GLFWwindow* m_window;

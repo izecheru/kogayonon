@@ -113,12 +113,12 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>H:\Git\kogayonon\dependencies\GLAD\include;H:\Git\kogayonon\dependencies\GLFW\include;H:\Git\kogayonon\dependencies\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\repos\kogayonon\dependencies\glm;D:\repos\kogayonon\dependencies\GLFW\include;D:\repos\kogayonon\dependencies\GLAD\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>H:\Git\kogayonon\dependencies\GLFW\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\repos\kogayonon\dependencies\GLFW\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>glfw3.lib;user32.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -131,7 +131,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>H:\Git\kogayonon\dependencies\GLAD\include;H:\Git\kogayonon\dependencies\GLFW\include;H:\Git\kogayonon\dependencies\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>H:\Git\kogayonon\dependencies\GLAD\include;D:\repos\kogayonon\dependencies\GLFW\include;H:\Git\kogayonon\dependencies\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -457,6 +457,8 @@
     <ClInclude Include="src\kogayonon\window_handler\window_handler.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="cpp.hint" />
+    <None Include="dependencies\GLFW\lib-vc2022\glfw3.dll" />
     <None Include="dependencies\glm\detail\func_common.inl" />
     <None Include="dependencies\glm\detail\func_common_simd.inl" />
     <None Include="dependencies\glm\detail\func_exponential.inl" />
@@ -595,6 +597,9 @@
     <None Include="dependencies\glm\gtx\vector_angle.inl" />
     <None Include="dependencies\glm\gtx\vector_query.inl" />
     <None Include="dependencies\glm\gtx\wrap.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="dependencies\GLFW\lib-vc2022\glfw3.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

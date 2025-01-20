@@ -7,7 +7,6 @@ namespace kogayonon
   public:
     void mainLoop();
     void onEvent(Event& event);
-    void onWindowClose();
-    void onWindowResize(WindowResizeEvent& event);
+    bool onWindowResize(WindowResizeEvent& event);
   };
 }

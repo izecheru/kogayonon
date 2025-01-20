@@ -2,17 +2,13 @@
 #include <glfw3.h>
 #include <string>
 #include <functional>
+#include <string>
+
 namespace kogayonon
 {
 
 #define BIT(x) (1<<x)
-#define HZ_BIND_EVENT_FN3(fn) \
-[](auto&&... args) { \
-    std::cout << "Binding function " << #fn << std::endl; \
-    return fn(std::forward<decltype(args)>(args)...); \
-}
-#define HZ_BIND_EVENT_FN2(fn) std::bind(&fn, this, std::placeholders::_1)
-#define HZ_BIND_EVENT_FN(fn) [this](auto&&... args) -> decltype(auto) { return this->fn(std::forward<decltype(args)>(args)...); }
+
   enum class EventType
   {
     None = 0,
@@ -32,11 +28,14 @@ namespace kogayonon
     MouseButtonEventCategory = BIT(4)
   };
 
+
+#define EVENT_CLASS_CATEGORY(category) virtual int getCategoryFlags() const override { return category; }
+
+
 #define EVENT_CLASS_TYPE(type) static EventType getStaticType() { return EventType::type; }\
 								virtual EventType getEventType() const override { return getStaticType(); }\
 								virtual const char* getName() const override { return #type; }
 
-#define EVENT_CLASS_CATEGORY(category) virtual int getCategoryFlags() const override { return category; }
 
   class Event
   {
@@ -53,8 +52,6 @@ namespace kogayonon
 
   class EventDispatcher
   {
-    template<typename T>
-    using EventFn = std::function<void(T&)>;
   private:
     Event& m_event;
 
@@ -63,12 +60,11 @@ namespace kogayonon
     {}
 
     template<typename T, typename F>
-    bool Dispatch(const F& func)
+    bool dispatch(const F& func)
     {
       if (m_event.getEventType() == T::getStaticType())
       {
-        bool result = func(static_cast<T&>(m_event));
-        m_event.Handled |= result;
+        m_event.Handled |= func(static_cast<T&>(m_event));
         return true;
       }
       return false;

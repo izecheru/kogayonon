@@ -1,26 +1,35 @@
-#include "app.h" 
+#include <glfw3.h>
+#include <iostream>
+#include "app.h"
+#include "../event/event.h"
 #include "../event/mouse/mouse_events.h"
 #include "../window/window.h"
-#include "../event/event.h"
-#include <glfw3.h> 
-#include <iostream>
 using std::cout;
-
 
 namespace kogayonon
 {
 
   void kogayonon::App::mainLoop()
   {
-    WindowProps props;
-    Window* my_window = new kogayonon::Window(props);
+    Window* my_window = new kogayonon::Window();
+    my_window->setEventCallbackFn([this](Event& e) -> void { this->onEvent(e); });
 
-    glfwSetWindowUserPointer(my_window->getWindow(), &props);
 
-    my_window->setEventCallbackFn([this](Event& e)
-    {
-      this->onEvent(e);
-    });
+    glfwSetWindowSizeCallback(my_window->getWindow(), [](GLFWwindow* window, int width, int height)
+      {
+        WindowProps& data = *(WindowProps*)glfwGetWindowUserPointer(window);
+        data.m_width = width;
+        data.m_height = height;
+        WindowResizeEvent event(width, height);
+        data.m_event_callback(event);
+      });
+
+    glfwSetCursorPosCallback(my_window->getWindow(), [](GLFWwindow* window, double x_pos, double y_pos)
+      {
+        WindowProps& data = *(WindowProps*)glfwGetWindowUserPointer(window);
+        MouseMovedEvent event(x_pos, y_pos);
+        data.m_event_callback(event);
+      });
 
     while (!glfwWindowShouldClose(my_window->getWindow()))
     {
@@ -40,17 +49,16 @@ namespace kogayonon
 
   void App::onEvent(Event& event)
   {
-    std::cout << "onEvent called for event type: " << event.toString() << std::endl;
+    std::cout << event.toString() << std::endl;
     EventDispatcher dispatcher(event);
-    dispatcher.Dispatch<WindowResizeEvent>([this](WindowResizeEvent& e)
-    {
-      this->onWindowResize(e);
-    });
-    std::cout << "on event called";
+    dispatcher.dispatch<WindowResizeEvent>([this](WindowResizeEvent& e)->bool
+      {
+        return this->onWindowResize(e);
+      });
   }
-
-  void kogayonon::App::onWindowResize(WindowResizeEvent& event)
+  bool App::onWindowResize(WindowResizeEvent& event)
   {
-    std::cout << "on window resize";
+    std::cout << event.getWidth() << " " << event.getHeight() << "\n";
+    return true;
   }
-}
+}  // namespace kogayonon

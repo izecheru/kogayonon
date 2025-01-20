@@ -15,6 +15,7 @@ namespace kogayonon
     {
       return m_Width;
     }
+
     unsigned int getHeight() const
     {
       return m_Height;
