@@ -113,12 +113,12 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\repos\kogayonon\dependencies\glm;D:\repos\kogayonon\dependencies\GLFW\include;D:\repos\kogayonon\dependencies\GLAD\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>H:\Git\kogayonon\src\kogayonon;H:\Git\kogayonon\dependencies\glm;H:\Git\kogayonon\dependencies\GLFW\include;H:\Git\kogayonon\dependencies\GLAD\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\repos\kogayonon\dependencies\GLFW\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>H:\Git\kogayonon\dependencies\GLFW\lib-vc2022</AdditionalLibraryDirectories>
       <AdditionalDependencies>glfw3.lib;user32.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -131,14 +131,14 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>H:\Git\kogayonon\dependencies\GLAD\include;D:\repos\kogayonon\dependencies\GLFW\include;H:\Git\kogayonon\dependencies\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>H:\Git\kogayonon\src\kogayonon;H:\Git\kogayonon\dependencies\glm;H:\Git\kogayonon\dependencies\GLFW\include;H:\Git\kogayonon\dependencies\GLAD\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>H:\Git\kogayonon\dependencies\GLFW\lib-vc2022;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>H:\Git\kogayonon\dependencies\GLFW\lib-vc2022</AdditionalLibraryDirectories>
       <AdditionalDependencies>glfw3.lib;user32.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -146,9 +146,11 @@
     <ClCompile Include="dependencies\GLAD\src\glad.c" />
     <ClCompile Include="dependencies\glm\detail\glm.cpp" />
     <ClCompile Include="src\kogayonon\app\app.cpp" />
+    <ClCompile Include="src\kogayonon\core\logger\logger.cpp" />
+    <ClCompile Include="src\kogayonon\core\renderer\buffer.cpp" />
     <ClCompile Include="src\kogayonon\event\event.cpp" />
-    <ClCompile Include="src\kogayonon\event\mouse\mouse_events.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\kogayonon\core\renderer\renderer.cpp" />
     <ClCompile Include="src\kogayonon\shader\shader-loader.cpp" />
     <ClCompile Include="src\kogayonon\singleton\singleton.cpp" />
     <ClCompile Include="src\kogayonon\window\window.cpp" />
@@ -448,9 +450,15 @@
     <ClInclude Include="dependencies\glm\vec4.hpp" />
     <ClInclude Include="dependencies\glm\vector_relational.hpp" />
     <ClInclude Include="src\kogayonon\app\app.h" />
-    <ClInclude Include="src\kogayonon\event\applicationEvent.h" />
+    <ClInclude Include="src\kogayonon\core\key_codes.h" />
+    <ClInclude Include="src\kogayonon\core\logger\logger.h" />
+    <ClInclude Include="src\kogayonon\core\mouse_codes.h" />
+    <ClInclude Include="src\kogayonon\core\renderer\buffer.h" />
+    <ClInclude Include="src\kogayonon\event\app_event.h" />
     <ClInclude Include="src\kogayonon\event\event.h" />
+    <ClInclude Include="src\kogayonon\event\keyboard\keyboard_events.h" />
     <ClInclude Include="src\kogayonon\event\mouse\mouse_events.h" />
+    <ClInclude Include="src\kogayonon\core\renderer\renderer.h" />
     <ClInclude Include="src\kogayonon\shader\shader-loader.h" />
     <ClInclude Include="src\kogayonon\singleton\singleton.h" />
     <ClInclude Include="src\kogayonon\window\window.h" />

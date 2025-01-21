@@ -1,64 +1,57 @@
 #include <glfw3.h>
 #include <iostream>
 #include "app.h"
-#include "../event/event.h"
-#include "../event/mouse/mouse_events.h"
-#include "../window/window.h"
+#include <window/window.h>
+#include <event/keyboard/keyboard_events.h>
+#include <core/logger/logger.h>
+
 using std::cout;
 
 namespace kogayonon
 {
-
-  void kogayonon::App::mainLoop()
+  App::App()
   {
-    Window* my_window = new kogayonon::Window();
-    my_window->setEventCallbackFn([this](Event& e) -> void { this->onEvent(e); });
+    m_window = new Window();
+  }
 
-
-    glfwSetWindowSizeCallback(my_window->getWindow(), [](GLFWwindow* window, int width, int height)
-      {
-        WindowProps& data = *(WindowProps*)glfwGetWindowUserPointer(window);
-        data.m_width = width;
-        data.m_height = height;
-        WindowResizeEvent event(width, height);
-        data.m_event_callback(event);
-      });
-
-    glfwSetCursorPosCallback(my_window->getWindow(), [](GLFWwindow* window, double x_pos, double y_pos)
-      {
-        WindowProps& data = *(WindowProps*)glfwGetWindowUserPointer(window);
-        MouseMovedEvent event(x_pos, y_pos);
-        data.m_event_callback(event);
-      });
-
-    while (!glfwWindowShouldClose(my_window->getWindow()))
+  void App::run()
+  {
+    // TODO: i must setup the render::init here and the imgui layer
+    m_window->setEventCallbackFn([this](Event& e) -> void { this->onEvent(e); });
+    while (!glfwWindowShouldClose(m_window->getWindow()))
     {
-      int width = 0, height = 0;
-      glfwGetFramebufferSize(my_window->getWindow(), &width, &height);
-      glClear(GL_COLOR_BUFFER_BIT);
-
-      glViewport(0, 0, 640, 480);
-
-      glfwSwapBuffers(my_window->getWindow());
-      glfwPollEvents();
+      m_window->onUpdate();
     }
 
-    glfwDestroyWindow(my_window->getWindow());
-    glfwTerminate();
+    delete m_window;
   }
 
   void App::onEvent(Event& event)
   {
-    std::cout << event.toString() << std::endl;
+    Logger::logInfo(event.toString());
     EventDispatcher dispatcher(event);
     dispatcher.dispatch<WindowResizeEvent>([this](WindowResizeEvent& e)->bool
       {
+        Logger::logError("[dispatch updates on resize]\n");
         return this->onWindowResize(e);
       });
+
+    dispatcher.dispatch<WindowCloseEvent>([this](WindowCloseEvent& e)->bool
+      {
+        Logger::logInfo("[dispatch updates on close]\n");
+        return this->onWindowClose(e);
+      });
   }
+
   bool App::onWindowResize(WindowResizeEvent& event)
   {
-    std::cout << event.getWidth() << " " << event.getHeight() << "\n";
+    glViewport(0, 0, event.getWidth(), event.getHeight());
+    return true;
+  }
+
+  bool App::onWindowClose(WindowCloseEvent& event)
+  {
+    // TODO cleanup on window close
     return true;
   }
 }  // namespace kogayonon

@@ -1,22 +1,39 @@
 #include <glad/glad.h>
 #include <iostream>
-#include "../window/window.h" 
+#include <event/event.h>
+#include <event/mouse/mouse_events.h>
+#include <event/keyboard/keyboard_events.h>
+#include <window/window.h>
+#include <event/app_event.h>
 
 namespace kogayonon
 {
 
   Window::Window()
   {
-    setupWindow(m_data);
+    init(m_data);
     glfwSetWindowUserPointer(m_window, &m_data);
   }
 
-  Window::~Window() {}
+  Window::~Window()
+  {
+    if (m_window)
+    {
+      glfwDestroyWindow(m_window);
+    }
+    glfwTerminate();
+  }
 
-  void Window::onUpdate() {}
+  void Window::onUpdate()
+  {
+    glfwPollEvents();
+    glfwSwapBuffers(m_window);
+  }
 
   void Window::onClose()
-  {}
+  {
+    glfwDestroyWindow(m_window);
+  }
 
   unsigned int Window::getWidth() const
   {
@@ -28,7 +45,18 @@ namespace kogayonon
     return m_data.m_height;
   }
 
-  void Window::setVsync() {}
+  void Window::setVsync(bool enabled)
+  {
+    if (enabled)
+    {
+      glfwSwapInterval(1);
+    }
+    else
+    {
+      glfwSwapInterval(0);
+    }
+    m_data.m_vsync = enabled;
+  }
 
   bool Window::isVsync()
   {
@@ -37,10 +65,10 @@ namespace kogayonon
 
   void Window::setEventCallbackFn(const EventCallbackFn& callback)
   {
-    m_data.m_event_callback = callback;
+    m_data.eventCallback = callback;
   }
 
-  bool Window::setupWindow(const WindowProps& props)
+  bool kogayonon::Window::init(const WindowProps& props)
   {
 
     if (!glfwInit())
@@ -68,6 +96,68 @@ namespace kogayonon
       std::cout << "failed to load glad\n";
       return false;
     }
+
+
+    glfwSetWindowSizeCallback(m_window, [](GLFWwindow* window, int width, int height)
+      {
+        WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
+        WindowResizeEvent event(width, height);
+        props.eventCallback(event);
+      });
+
+    glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double x_pos, double y_pos)
+      {
+        WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
+        MouseMovedEvent event(x_pos, y_pos);
+        props.eventCallback(event);
+      });
+
+    glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int button, int action, int mods)
+      {
+        WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
+        MouseClickedEvent event(button, action, mods);
+        props.eventCallback(event);
+      });
+
+    glfwSetWindowCloseCallback(m_window, [](GLFWwindow* window)
+      {
+        WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
+        WindowCloseEvent event;
+        props.eventCallback(event);
+      });
+
+    glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int scan_code, int action, int mods)
+      {
+        WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
+
+        switch (action)
+        {
+          case GLFW_PRESS:
+            {
+              KeyPressedEvent event(key, 0);
+              props.eventCallback(event);
+              break;
+            }
+          case GLFW_RELEASE:
+            {
+              KeyReleasedEvent event(key);
+              props.eventCallback(event);
+              break;
+            }
+          case GLFW_REPEAT:
+            {
+              KeyPressedEvent event(key, 1);
+              props.eventCallback(event);
+            }
+        }
+      });
+
+    glfwSetCharCallback(m_window, [](GLFWwindow* window, unsigned int key_code)
+      {
+        WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
+        KeyTypedEvent event(key_code);
+        props.eventCallback(event);
+      });
 
     return true;
   }

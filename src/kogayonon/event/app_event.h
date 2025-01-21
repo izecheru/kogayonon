@@ -4,6 +4,22 @@
 
 namespace kogayonon
 {
+  class WindowCloseEvent :public Event
+  {
+  public:
+    WindowCloseEvent() = default;
+
+    std::string toString() const override
+    {
+      std::stringstream ss{};
+      ss << "WindowCloseEvent\n";
+      return ss.str();
+    }
+
+    EVENT_CLASS_TYPE(WindowClose)
+      EVENT_CLASS_CATEGORY(ApplicationEventCategory)
+  };
+
   class WindowResizeEvent : public Event
   {
   public:
@@ -29,8 +45,8 @@ namespace kogayonon
     }
 
     EVENT_CLASS_TYPE(WindowResize)
-
       EVENT_CLASS_CATEGORY(ApplicationEventCategory)
+
   private:
     unsigned int m_Width, m_Height;
   };

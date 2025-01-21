@@ -1,5 +1,7 @@
 #pragma once
+#include <sstream>
 #include "../event.h"
+#include "../../core/mouse_codes.h"
 
 namespace kogayonon
 {
@@ -7,18 +9,24 @@ namespace kogayonon
   class MouseMovedEvent : public Event
   {
   private:
-    float m_MouseX, m_MouseY;
+    double m_mouse_x, m_mouse_y;
 
   public:
-    MouseMovedEvent(float x, float y)
-      : m_MouseX(x)
-      , m_MouseY(y)
+    MouseMovedEvent(const double x, const double y)
+      : m_mouse_x(x)
+      , m_mouse_y(y)
     {}
 
-    float getX();
-    float getY();
+    double getX() { return m_mouse_x; }
+    double getY() { return m_mouse_y; }
 
-    std::string toString()const override;
+    std::string toString()const override
+    {
+      std::stringstream ss{};
+      ss << "MouseMovedEvent: " << m_mouse_x << ", " << m_mouse_y;
+      std::string result = ss.str();
+      return result;
+    }
 
     EVENT_CLASS_CATEGORY(MouseEventCategory)
       EVENT_CLASS_TYPE(MouseMoved)
@@ -27,15 +35,24 @@ namespace kogayonon
   class MouseClickedEvent :public Event
   {
   private:
-    float m_xpos, m_ypos;
+    //WARNING maybe i will somehow need the coordinates as well
+    MouseCode m_button;
+    MouseAction m_action;
+    MouseModifier m_mods;
 
   public:
-    MouseClickedEvent(float x_p, float y_p) :m_xpos(x_p), m_ypos(y_p) {}
+    MouseClickedEvent(const MouseCode button, const MouseAction action, const  MouseModifier mods) :m_button(button), m_action(action), m_mods(mods) {}
 
-    float getX();
-    float getY();
+    MouseCode getButton() const { return m_button; }
+    MouseAction getAction() const { return m_action; }
 
-    std::string toString() const override;
+    std::string toString() const override
+    {
+      std::stringstream ss{};
+      ss << "MouseClickedEvent: " << m_button << " " << m_action;
+      std::string result = ss.str();
+      return result;
+    }
 
     EVENT_CLASS_CATEGORY(MouseEventCategory)
       EVENT_CLASS_TYPE(MouseButtonPressed)

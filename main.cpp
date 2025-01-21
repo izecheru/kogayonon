@@ -5,8 +5,9 @@
 #include <iostream>
 #include "src/kogayonon/app/app.h"
 
-int main(void) {
+int main(void)
+{
   kogayonon::App app;
-  app.mainLoop();
+  app.run();
   return 0;
 }
