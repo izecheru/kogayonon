@@ -1,10 +1,11 @@
 #include <glad/glad.h>
-#include <iostream>
-#include <event/event.h>
-#include <event/mouse/mouse_events.h>
-#include <event/keyboard/keyboard_events.h>
-#include <window/window.h>
-#include <event/app_event.h>
+#include "events/event.h"
+#include "events/mouse_events.h"
+#include "events/keyboard_events.h"
+#include "window/window.h"
+#include "events/app_event.h"
+#include "core/logger.h"
+#include <glfw3.h>
 
 namespace kogayonon
 {
@@ -63,6 +64,16 @@ namespace kogayonon
     return m_data.m_vsync;
   }
 
+  void Window::setViewport(int width, int height)
+  {
+    glViewport(0, 0, width, height);
+  }
+
+  void Window::setViewport()
+  {
+    glViewport(0, 0, m_data.m_width, m_data.m_height);
+  }
+
   void Window::setEventCallbackFn(const EventCallbackFn& callback)
   {
     m_data.eventCallback = callback;
@@ -73,7 +84,7 @@ namespace kogayonon
 
     if (!glfwInit())
     {
-      std::cout << "failed to init glfw\n";
+      Logger::logError("failed to init glfw\n");
       return false;
     }
 
@@ -82,10 +93,9 @@ namespace kogayonon
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 
     m_window = glfwCreateWindow(props.m_width, props.m_height, props.m_title, NULL, NULL);
-    std::cout << "Window props:" << props.m_width << " " << props.m_height << " " << props.m_title << "\n";
     if (!m_window)
     {
-      std::cout << "failed to create window\n";
+      Logger::logError("failed to create window\n");
       return false;
     }
 
@@ -93,7 +103,7 @@ namespace kogayonon
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
-      std::cout << "failed to load glad\n";
+      Logger::logError("failed to load glad\n");
       return false;
     }
 
@@ -159,6 +169,9 @@ namespace kogayonon
         props.eventCallback(event);
       });
 
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+
+    setViewport();
     return true;
   }
 

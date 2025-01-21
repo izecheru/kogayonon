@@ -1,6 +1,6 @@
 #pragma once
-#include <window/window.h>
-#include <event/app_event.h>
+#include "window/window.h"
+#include "events/app_event.h"
 
 namespace kogayonon
 {

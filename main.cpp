@@ -3,7 +3,7 @@
 #include <glfw3.h>
 #include <trigonometric.hpp>
 #include <iostream>
-#include "src/kogayonon/app/app.h"
+#include "app/app.h"
 
 int main(void)
 {

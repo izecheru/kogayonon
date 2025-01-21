@@ -18,16 +18,10 @@
     <ClCompile Include="src\kogayonon\app\app.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\kogayonon\shader\shader-loader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\kogayonon\singleton\singleton.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\kogayonon\window\window.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\kogayonon\window_handler\window_handler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
@@ -42,36 +36,21 @@
     <ClCompile Include="src\kogayonon\event\event.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\kogayonon\core\logger\logger.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\kogayonon\core\renderer\renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\kogayonon\core\renderer\buffer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\kogayonon\core\logger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\kogayonon\shader\shader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\kogayonon\app\app.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\kogayonon\event\event.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\kogayonon\event\mouse\mouse_events.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\kogayonon\shader\shader-loader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\kogayonon\singleton\singleton.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\kogayonon\window\window.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\kogayonon\window_handler\window_handler.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="dependencies\GLAD\include\glad\glad.h">
@@ -950,25 +929,40 @@
     <ClInclude Include="dependencies\glm\vector_relational.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\kogayonon\core\mouse_codes.h">
+    <ClInclude Include="include\app\app.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\kogayonon\event\app_event.h">
+    <ClInclude Include="include\core\key_codes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\kogayonon\event\keyboard\keyboard_events.h">
+    <ClInclude Include="include\core\logger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\kogayonon\core\key_codes.h">
+    <ClInclude Include="include\core\mouse_codes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\kogayonon\core\logger\logger.h">
+    <ClInclude Include="include\renderer\buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\kogayonon\core\renderer\renderer.h">
+    <ClInclude Include="include\events\app_event.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\kogayonon\core\renderer\buffer.h">
+    <ClInclude Include="include\events\event.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\events\keyboard_events.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\events\mouse_events.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\renderer\renderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\shader\shader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\window\window.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1389,6 +1383,7 @@
     </None>
     <None Include="dependencies\GLFW\lib-vc2022\glfw3.dll" />
     <None Include="cpp.hint" />
+    <None Include="shaders\Basic.shader" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="dependencies\GLFW\lib-vc2022\glfw3.lib" />

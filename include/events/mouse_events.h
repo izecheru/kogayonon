@@ -1,7 +1,7 @@
 #pragma once
 #include <sstream>
-#include "../event.h"
-#include "../../core/mouse_codes.h"
+#include "event.h"
+#include "core/mouse_codes.h"
 
 namespace kogayonon
 {

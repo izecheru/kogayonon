@@ -1,6 +1,6 @@
 #pragma once
 #include <glfw3.h>
-#include <event/event.h>
+#include "events/event.h"
 #include <functional>
 
 namespace kogayonon
@@ -37,6 +37,8 @@ namespace kogayonon
     unsigned int getHeight() const;
     void setVsync(bool enabled);
     bool isVsync();
+    void setViewport(int width, int height);
+    void setViewport();
     void setEventCallbackFn(const EventCallbackFn& callback);
     GLFWwindow* getWindow();
     WindowProps getWindowData();

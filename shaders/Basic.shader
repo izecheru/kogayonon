@@ -1,15 +1,13 @@
 #shader vertex
-#version 440 core
-layout (location = 0) in vec3 position;
-
-void main()
-{
-    gl_Position = vec4(position, 1.0);
+#version 430
+in vec3 pos;
+void main() {
+    gl_Position = vec4(pos, 1);
 }
 
 #shader fragment
-#version 440 core
-out vec4 color;
+#version 430
+out vec4 FragColor;
 void main() {
-    color = vec4(1.0, 0.0, 0.0, 1.0);
+    FragColor = vec4(1, 0, 0, 1);
 }

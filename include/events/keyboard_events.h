@@ -1,6 +1,6 @@
 #pragma once
-#include <core/key_codes.h>
-#include <event/event.h>
+#include "core/key_codes.h"
+#include "events/event.h"
 #include <sstream>
 
 namespace kogayonon

@@ -1,7 +1,9 @@
-#include "event.h"
+#include "events/event.h"
 
-namespace kogayonon {
-  bool Event::isInCategory(EventCategory category) {
+namespace kogayonon
+{
+  bool Event::isInCategory(EventCategory category)
+  {
     return getCategoryFlags() & category;
   }
 }
