@@ -1,11 +1,11 @@
 #pragma once
 #include "window/window.h"
 #include "events/app_event.h"
+#include "renderer/renderer.h"
 
 namespace kogayonon
 {
-  class App
-  {
+  class App {
   public:
     App();
 
@@ -36,5 +36,6 @@ namespace kogayonon
 
   private:
     Window* m_window;
+    Renderer* m_renderer;
   };
 }

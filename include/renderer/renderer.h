@@ -1,28 +1,30 @@
 #pragma once
-#include <cstdint>
-#include <ext/matrix_float4x4.hpp>
+#include "core/logger.h"
+#include "renderer/vertex_array_buffer.h"
+#include "shader/shader.h"
+#include <map>
 
 namespace kogayonon
 {
 
-  class Renderer
-  {
+  class Renderer {
   public:
-    static void init();
-    static void shutdown();
+    Renderer() = default;
+    ~Renderer() = default;
 
-    static void onWindowResize(uint32_t width, uint32_t height);
+    void render();
+    void pushShader(const char* shader_file_path, const char* shader_name);
+    Shader getShader(const char* shader_name);
+    GLint getShaderId(const char* shader_name);
+    void bindShader(const char* shader_name);
+    void unbindShader(const char* shader_name);
 
-    static void beginScene();
-    static void endScene();
+    void bindShaders();
+    void unbindShaders();
 
   private:
-    struct SceneData
-    {
-      glm::mat4 view_projection_matrix;
-    };
-
-    static SceneData s_scene_data;
+    VertexArrayBuffer m_vao;
+    std::map<const char*, Shader> m_shaders_array;
   };
 
 }

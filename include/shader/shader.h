@@ -3,11 +3,9 @@
 namespace kogayonon
 {
 
-  class Shader
-  {
+  class Shader {
   public:
-    struct ShaderProgramSource
-    {
+    struct ShaderProgramSource {
       const char* vertex_source;
       const char* fragment_source;
     };
@@ -18,6 +16,7 @@ namespace kogayonon
     ShaderProgramSource parseShaderFile(const char* file_path);
     void bind() const;
     void unbind() const;
+    GLint getShaderId();
 
   private:
     static unsigned int compileShader(unsigned int shader_type, const char* source_data);
@@ -28,4 +27,4 @@ namespace kogayonon
     ShaderProgramSource m_shader_src;
   };
 
-}
+}  // namespace kogayonon

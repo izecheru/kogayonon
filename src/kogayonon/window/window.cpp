@@ -25,7 +25,7 @@ namespace kogayonon
     glfwTerminate();
   }
 
-  void Window::onUpdate()
+  void Window::update()
   {
     glfwPollEvents();
     glfwSwapBuffers(m_window);

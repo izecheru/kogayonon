@@ -31,7 +31,7 @@ namespace kogayonon
     Window();
     virtual ~Window();
 
-    void onUpdate();
+    void update();
     void onClose();
     unsigned int getWidth() const;
     unsigned int getHeight() const;
