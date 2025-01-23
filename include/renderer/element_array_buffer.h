@@ -4,21 +4,18 @@
 namespace kogayonon
 {
   class ElementArrayBuffer {
-
   public:
-    ElementArrayBuffer(GLuint* vertices, GLsizeiptr size);
-    ~ElementArrayBuffer();
+    ElementArrayBuffer(GLuint* indices, GLsizeiptr size);
 
-    void bind() const;
-    void unbind() const;
+    void bind()const;
+    void unbind()const;
     void delete_buffer() const;
 
-    void upload(GLuint* indices, GLsizeiptr size) const;
-
-    GLuint getId();
+    GLuint getId() const;
+    size_t getSize() const;
 
   private:
-    GLuint id;
-    bool bound = false;
+    GLuint m_id;
+    size_t m_size;
   };
 }

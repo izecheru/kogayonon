@@ -1,7 +1,7 @@
 #pragma once
+#include "renderer/renderer.h"
 #include "window/window.h"
 #include "events/app_event.h"
-#include "renderer/renderer.h"
 
 namespace kogayonon
 {
@@ -34,8 +34,11 @@ namespace kogayonon
     /// <returns></returns>
     bool onWindowClose(WindowCloseEvent& event);
 
+    static GLFWwindow* getWindow();
+    static void scrollCallback(GLFWwindow* window, double x, double y);
+
   private:
-    Window* m_window;
-    Renderer* m_renderer;
+    static inline Window* m_window = nullptr;
+    static inline Renderer* m_renderer = nullptr;
   };
 }

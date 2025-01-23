@@ -2,7 +2,6 @@
 
 namespace kogayonon
 {
-  void Renderer::render() {}
 
   void Renderer::pushShader(const char* shader_file_path, const char* shader_name) {
     Shader sh(shader_file_path);
@@ -26,7 +25,7 @@ namespace kogayonon
     }
   }
 
-  void kogayonon::Renderer::bindShader(const char* shader_name) {
+  void Renderer::bindShader(const char* shader_name) {
     for (auto it = m_shaders_array.begin(); it != m_shaders_array.end(); it++) {
       if (it->first == shader_name) {
         it->second.bind();
@@ -34,22 +33,35 @@ namespace kogayonon
     }
   }
 
-  void kogayonon::Renderer::unbindShader(const char* shader_name) {
+  void Renderer::unbindShader(const char* shader_name) {
     for (auto it = m_shaders_array.begin(); it != m_shaders_array.end(); it++) {
       if (it->first == shader_name) {
         it->second.unbind();
       }
     }
   }
+
   void Renderer::bindShaders() {
     for (auto& sh : m_shaders_array) {
       sh.second.bind();
     }
   }
+
   void Renderer::unbindShaders() {
     for (auto& sh : m_shaders_array) {
       sh.second.unbind();
     }
   }
-}
 
+  void Renderer::bindVao() {
+    m_vao.bind();
+  }
+
+  void Renderer::unbindVao() {
+    m_vao.unbind();
+  }
+
+  const VertexArrayBuffer& Renderer::getVao() const {
+    return m_vao;
+  }
+}

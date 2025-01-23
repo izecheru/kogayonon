@@ -1,89 +1,73 @@
 #include <glad/glad.h>
+#include <glfw3.h>
 #include "events/event.h"
 #include "events/mouse_events.h"
 #include "events/keyboard_events.h"
 #include "window/window.h"
 #include "events/app_event.h"
 #include "core/logger.h"
-#include <glfw3.h>
 
 namespace kogayonon
 {
 
-  Window::Window()
-  {
+  Window::Window() {
     init(m_data);
     glfwSetWindowUserPointer(m_window, &m_data);
   }
 
-  Window::~Window()
-  {
-    if (m_window)
-    {
+  Window::~Window() {
+    if (m_window) {
       glfwDestroyWindow(m_window);
     }
     glfwTerminate();
   }
 
-  void Window::update()
-  {
+  void Window::update() {
     glfwPollEvents();
     glfwSwapBuffers(m_window);
   }
 
-  void Window::onClose()
-  {
+  void Window::onClose() {
     glfwDestroyWindow(m_window);
   }
 
-  unsigned int Window::getWidth() const
-  {
+  unsigned int Window::getWidth() const {
     return m_data.m_width;
   }
 
-  unsigned int Window::getHeight() const
-  {
+  unsigned int Window::getHeight() const {
     return m_data.m_height;
   }
 
-  void Window::setVsync(bool enabled)
-  {
-    if (enabled)
-    {
+  void Window::setVsync(bool enabled) {
+    if (enabled) {
       glfwSwapInterval(1);
     }
-    else
-    {
+    else {
       glfwSwapInterval(0);
     }
     m_data.m_vsync = enabled;
   }
 
-  bool Window::isVsync()
-  {
+  bool Window::isVsync() {
     return m_data.m_vsync;
   }
 
-  void Window::setViewport(int width, int height)
-  {
+  void Window::setViewport(int width, int height) {
     glViewport(0, 0, width, height);
   }
 
-  void Window::setViewport()
-  {
+  void Window::setViewport() {
     glViewport(0, 0, m_data.m_width, m_data.m_height);
   }
 
-  void Window::setEventCallbackFn(const EventCallbackFn& callback)
-  {
+  void Window::setEventCallbackFn(const EventCallbackFn& callback) {
     m_data.eventCallback = callback;
   }
 
-  bool kogayonon::Window::init(const WindowProps& props)
-  {
+  bool kogayonon::Window::init(const WindowProps& props) {
 
-    if (!glfwInit())
-    {
+    if (!glfwInit()) {
       Logger::logError("failed to init glfw\n");
       return false;
     }
@@ -93,16 +77,14 @@ namespace kogayonon
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 
     m_window = glfwCreateWindow(props.m_width, props.m_height, props.m_title, NULL, NULL);
-    if (!m_window)
-    {
+    if (!m_window) {
       Logger::logError("failed to create window\n");
       return false;
     }
 
     glfwMakeContextCurrent(m_window);
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-    {
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
       Logger::logError("failed to load glad\n");
       return false;
     }
@@ -115,11 +97,16 @@ namespace kogayonon
         props.eventCallback(event);
       });
 
+
     glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double x_pos, double y_pos)
       {
         WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
         MouseMovedEvent event(x_pos, y_pos);
         props.eventCallback(event);
+      });
+
+    glfwSetScrollCallback(m_window, [](GLFWwindow* window, double xOff, double yOff)
+      {
       });
 
     glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int button, int action, int mods)
@@ -140,8 +127,7 @@ namespace kogayonon
       {
         WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
 
-        switch (action)
-        {
+        switch (action) {
           case GLFW_PRESS:
             {
               KeyPressedEvent event(key, 0);
@@ -175,13 +161,11 @@ namespace kogayonon
     return true;
   }
 
-  GLFWwindow* Window::getWindow()
-  {
+  GLFWwindow* Window::getWindow() {
     return m_window;
   }
 
-  WindowProps Window::getWindowData()
-  {
+  WindowProps Window::getWindowData() {
     return m_data;
   }
 }
