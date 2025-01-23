@@ -1,5 +1,5 @@
 #include <glad/glad.h>
-#include <glfw3.h>
+#include <glfw/glfw3.h>
 #include "events/event.h"
 #include "events/mouse_events.h"
 #include "events/keyboard_events.h"
@@ -16,7 +16,8 @@ namespace kogayonon
   }
 
   Window::~Window() {
-    if (m_window) {
+    if (m_window)
+    {
       glfwDestroyWindow(m_window);
     }
     glfwTerminate();
@@ -40,10 +41,12 @@ namespace kogayonon
   }
 
   void Window::setVsync(bool enabled) {
-    if (enabled) {
+    if (enabled)
+    {
       glfwSwapInterval(1);
     }
-    else {
+    else
+    {
       glfwSwapInterval(0);
     }
     m_data.m_vsync = enabled;
@@ -67,7 +70,8 @@ namespace kogayonon
 
   bool kogayonon::Window::init(const WindowProps& props) {
 
-    if (!glfwInit()) {
+    if (!glfwInit())
+    {
       Logger::logError("failed to init glfw\n");
       return false;
     }
@@ -77,14 +81,16 @@ namespace kogayonon
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 
     m_window = glfwCreateWindow(props.m_width, props.m_height, props.m_title, NULL, NULL);
-    if (!m_window) {
+    if (!m_window)
+    {
       Logger::logError("failed to create window\n");
       return false;
     }
 
     glfwMakeContextCurrent(m_window);
 
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
       Logger::logError("failed to load glad\n");
       return false;
     }
@@ -127,7 +133,8 @@ namespace kogayonon
       {
         WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
 
-        switch (action) {
+        switch (action)
+        {
           case GLFW_PRESS:
             {
               KeyPressedEvent event(key, 0);

@@ -1,5 +1,5 @@
 #pragma once
-#include <glfw3.h>
+#include <glfw/glfw3.h>
 #include "events/event.h"
 #include <functional>
 
@@ -19,8 +19,7 @@ namespace kogayonon
       uint32_t width = 640,
       uint32_t height = 480,
       bool vsync = true)
-      : m_title(title), m_width(width), m_height(height), m_vsync(vsync)
-    {}
+      : m_title(title), m_width(width), m_height(height), m_vsync(vsync) {}
 
     ~WindowProps() = default;
   };

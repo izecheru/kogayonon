@@ -1,11 +1,12 @@
 #pragma once
 #include <glad/glad.h>
-#include <glfw3.h>
+#include <glfw/glfw3.h>
 #include <vector>
 
 namespace kogayonon
 {
-  class VertexBuffer {
+  class VertexBuffer
+  {
   public:
     VertexBuffer(GLfloat* vertices, GLsizeiptr size);
 

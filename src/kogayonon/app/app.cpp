@@ -1,6 +1,6 @@
 #include "shader/shader.h"
 #include "renderer/vertex_array_buffer.h"
-#include <glfw3.h>
+#include <glfw/glfw3.h>
 #include "renderer/vertex_buffer.h"
 #include <iostream>
 #include "app/app.h"
@@ -8,9 +8,9 @@
 #include "events/keyboard_events.h"
 #include "core/logger.h"
 #include "renderer/renderer.h"
-#include <glm.hpp>
-#include <gtc/matrix_transform.hpp>
-#include <gtc/type_ptr.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include "renderer/element_array_buffer.h"
 
 using std::cout;
@@ -25,20 +25,14 @@ namespace kogayonon
   void App::run() {
 
 
+
     GLfloat vertices[] =
-    {
-      //     COORDINATES        /      COLORS         /   TexCoord  //
-      -0.5f, 0.0f,  0.5f,     0.83f, 0.70f, 0.44f,    0.0f, 0.0f,   // Triangle 1 (Color 1)
-      -0.5f, 0.0f, -0.5f,     0.99f, 0.44f, 0.33f,    5.0f, 0.0f,   // Triangle 1 (Color 1)
-       0.5f, 0.0f, -0.5f,     0.50f, 0.33f, 0.99f,    0.0f, 0.0f,   // Triangle 1 (Color 1)
-
-       0.5f, 0.0f,  0.5f,     0.33f, 0.83f, 0.44f,    5.0f, 0.0f,   // Triangle 2 (Color 2)
-       0.0f, 0.8f,  0.0f,     0.92f, 0.86f, 0.76f,    2.5f, 5.0f,   // Triangle 2 (Color 2)
-      -0.5f, 0.0f,  0.5f,     0.10f, 0.99f, 0.92f,    0.0f, 0.0f,   // Triangle 2 (Color 2)
-
-       0.5f, 0.0f, -0.5f,     0.70f, 0.44f, 0.83f,    0.0f, 0.0f,   // Triangle 3 (Color 3)
-       0.0f, 0.8f,  0.0f,     0.99f, 0.75f, 0.10f,    2.5f, 5.0f,   // Triangle 3 (Color 3)
-       0.5f, 0.0f,  0.5f,     0.10f, 0.50f, 0.99f,    5.0f, 0.0f,   // Triangle 3 (Color 3)
+    { //     COORDINATES     /        COLORS      /   TexCoord  //
+      -0.5f, 0.0f,  0.5f,     0.83f, 0.70f, 0.44f,	0.0f, 0.0f,
+      -0.5f, 0.0f, -0.5f,     0.83f, 0.70f, 0.44f,	5.0f, 0.0f,
+       0.5f, 0.0f, -0.5f,     0.83f, 0.70f, 0.44f,	0.0f, 0.0f,
+       0.5f, 0.0f,  0.5f,     0.83f, 0.70f, 0.44f,	5.0f, 0.0f,
+       0.0f, 0.8f,  0.0f,     0.92f, 0.86f, 0.76f,	2.5f, 5.0f
     };
     unsigned int indices[] =
     {
@@ -50,12 +44,12 @@ namespace kogayonon
       3, 0, 4
     };
 
-#define MYFUNC
+  #define MYFUNC
     glEnable(GL_DEPTH_TEST);
     m_window->setEventCallbackFn([this](Event& e) -> void { this->onEvent(e); });
-    m_renderer->pushShader("shaders/3d.shader", "3d_shader");
+    m_renderer->pushShader("D:\\repos\\kogayonon\\shaders\\3d.shader", "3d_shader");
 
-#ifdef MYFUNC
+  #ifdef MYFUNC
     m_renderer->bindVao();
     VertexBuffer vbo(vertices, sizeof(vertices));
     ElementArrayBuffer ebo(indices, sizeof(indices));
@@ -63,22 +57,23 @@ namespace kogayonon
 
     vao.linkAttrib(vbo, 0, 3, GL_FLOAT, 8 * sizeof(float), (void*)0);
     vao.linkAttrib(vbo, 1, 3, GL_FLOAT, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    vao.linkAttrib(vbo, 2, 2, GL_FLOAT, 8 * sizeof(float), (void*)(6 * sizeof(float)));
 
     vao.unbind();
     ebo.unbind();
     vbo.unbind();
-#endif
+  #endif
     GLuint uniID = glGetUniformLocation(m_renderer->getShaderId("3d_shader"), "scale");
     float rotation = 0.0f;
     double prevTime = glfwGetTime();
 
     glfwSwapInterval(1);
-    while (!glfwWindowShouldClose(m_window->getWindow())) {
+    while (!glfwWindowShouldClose(m_window->getWindow()))
+    {
       glClearColor(0.1f, 0.1f, 0.1f, 1.0f); // Dark gray background
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
       double crntTime = glfwGetTime();
-      if (crntTime - prevTime >= 1 / 60) {
+      if (crntTime - prevTime >= 1 / 60)
+      {
         rotation += 0.5f;
         prevTime = crntTime;
       }
@@ -86,6 +81,8 @@ namespace kogayonon
       glm::mat4 model = glm::mat4(1.0f);
       glm::mat4 view = glm::mat4(1.0f);
       glm::mat4 proj = glm::mat4(1.0f);
+      float scaleFactor = 2.0f; // Example scale factor
+      glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scaleFactor, scaleFactor, scaleFactor));
 
       // Assigns different transformations to each matrix
       model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -99,12 +96,13 @@ namespace kogayonon
       glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
       int projLoc = glGetUniformLocation(m_renderer->getShaderId("3d_shader"), "proj");
       glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(proj));
+      glUniform1f(uniID, 2.0f);
 
-#ifdef MYFUNC
+    #ifdef MYFUNC
       vao.bind();
       glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
       vao.unbind();
-#endif
+    #endif
       m_window->update();
     }
 

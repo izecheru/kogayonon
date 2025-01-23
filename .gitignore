@@ -34,8 +34,15 @@
 
 # Folders
 bin/
+out/
 dependencies/assimp-5.4.3
 .vs/
 *.vcxproj
 *.filters
 *.user
+
+
+*.html
+*.js
+*.png
+*.css

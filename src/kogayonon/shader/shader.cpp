@@ -14,46 +14,41 @@ namespace kogayonon
     m_program_id = createShader(m_shader_src);
   }
 
-  Shader::ShaderProgramSource Shader::parseShaderFile(const char* file_path) {
-    enum class ShaderType {
-      NONE = -1,
-      VERTEX = 0,
-      FRAGMENT = 1
-    };
-
-    std::ifstream f(file_path);
-    if (!f.is_open()) {
-      Logger::logError("Failed to open file", file_path);
-      return { "", "" };
+  ShaderProgramSource Shader::parseShaderFile(const std::string& file_path) {
+    std::ifstream stream(file_path);
+    if (!stream.is_open())
+    {
+      Logger::logError("Failed to open shader file: ", file_path);
+      std::string result = "";
+      return { result,result };
     }
+
+    std::stringstream ss[3]; // 0 for vertex, 1 for fragment
     std::string line;
-    std::stringstream ss[2];
     ShaderType type = ShaderType::NONE;
-    while (std::getline(f, line)) {
-      if (line.find("#shader") != std::string::npos) {
-        if (line.find("vertex") != std::string::npos) {
+
+    while (getline(stream, line))
+    {
+      if (line.find("#shader") != std::string::npos)
+      {
+        if (line.find("vertex") != std::string::npos)
+        {
           type = ShaderType::VERTEX;
         }
-        else if (line.find("fragment") != std::string::npos) {
+        else if (line.find("fragment") != std::string::npos)
+        {
           type = ShaderType::FRAGMENT;
         }
       }
-      else {
+      else if (type != ShaderType::NONE)
+      {
         ss[(int)type] << line << '\n';
       }
     }
-    std::string vertex_s = ss[0].str();
-    std::string fragment_s = ss[1].str();
-
-    const char* vertex = _strdup(vertex_s.c_str());
-    const char* fragment = _strdup(fragment_s.c_str());
-
-    //printf("vertex \n%s\nfragment\n%s\n", vertex, fragment);
-    Logger::logInfo(vertex);
-    Logger::logInfo(fragment);
-    return { vertex, fragment };
+    Logger::logInfo(ss[1].str());
+    Logger::logInfo(ss[2].str());
+    return { ss[1].str(), ss[2].str() };
   }
-
   void Shader::bind() const {
     glUseProgram(m_program_id);
   }
@@ -66,21 +61,25 @@ namespace kogayonon
     return m_program_id;
   }
 
-  unsigned int Shader::compileShader(unsigned int shader_type, const char* source_data) {
+  unsigned int Shader::compileShader(unsigned int shader_type, std::string& source_data) {
     unsigned int id = glCreateShader(shader_type);
-    glShaderSource(id, 1, &source_data, nullptr);
+    const char* src = source_data.c_str();
+    glShaderSource(id, 1, &src, nullptr);
     glCompileShader(id);
     int result;
     glGetShaderiv(id, GL_COMPILE_STATUS, &result);
-    if (result == GL_FALSE) {
+    if (result == GL_FALSE)
+    {
       int length;
       glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
       char* message = (char*)_malloca(length * sizeof(char));
       glGetShaderInfoLog(id, length, &length, message);
-      if (shader_type == GL_VERTEX_SHADER) {
+      if (shader_type == GL_VERTEX_SHADER)
+      {
         Logger::logError("Failed to compile vertex shader:\n", message, '\n');
       }
-      else if (shader_type == GL_FRAGMENT_SHADER) {
+      else if (shader_type == GL_FRAGMENT_SHADER)
+      {
         Logger::logError("Failed to compile fragment shader:\n", message, '\n');
       }
       glDeleteShader(id);
@@ -101,7 +100,8 @@ namespace kogayonon
     glLinkProgram(program);
     int result;
     glGetProgramiv(program, GL_LINK_STATUS, &result);
-    if (result == GL_FALSE) {
+    if (result == GL_FALSE)
+    {
       int length;
       glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
       char* message = (char*)malloc(length * sizeof(char));

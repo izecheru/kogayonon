@@ -1,5 +1,5 @@
 #pragma once
-#include <glfw3.h>
+#include <glfw/glfw3.h>
 #include <string>
 #include <functional>
 #include <string>
@@ -56,12 +56,10 @@ namespace kogayonon
     Event& m_event;
 
   public:
-    EventDispatcher(Event& event) : m_event(event)
-    {}
+    EventDispatcher(Event& event) : m_event(event) {}
 
     template<typename T, typename F>
-    bool dispatch(const F& func)
-    {
+    bool dispatch(const F& func) {
       if (m_event.getEventType() == T::getStaticType())
       {
         m_event.Handled |= func(static_cast<T&>(m_event));
