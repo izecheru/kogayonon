@@ -88,7 +88,7 @@ namespace kogayonon
       glm::mat4 proj = glm::mat4(1.0f);
 
       // Assigns different transformations to each matrix
-      model = glm::rotate(model, glm::radians(rotation), glm::vec3(1.0f, 0.0f, 1.0f));
+      model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 1.0f, 0.0f));
       view = glm::translate(view, glm::vec3(0.0f, -0.5f, -2.0f));
       proj = glm::perspective(glm::radians(60.0f), (float)m_window->getWidth() / (float)m_window->getHeight(), 0.1f, 100.0f);
 
