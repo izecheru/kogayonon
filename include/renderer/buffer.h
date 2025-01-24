@@ -13,6 +13,8 @@ class VertexBufferObject
 public:
   VertexBufferObject(const std::vector<Vertex>& vertices);
 
+  VertexBufferObject() {}
+
   void bind();
   void unbind();
 
@@ -23,6 +25,8 @@ private:
 class ElementsBufferObject
 {
 public:
+  ElementsBufferObject() {}
+
   ElementsBufferObject(const std::vector<unsigned int>& indices);
 
   void bind();

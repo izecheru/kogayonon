@@ -1,5 +1,6 @@
 #pragma once
-#include "core/logger.h"
+#include <core/logger.h>
+#include <renderer/mesh.h>
 
 #include <map>
 #include <optional>
@@ -11,9 +12,10 @@ public:
   Renderer() = default;
   ~Renderer() = default;
 
-  void render(const char* object_name) {}
+  void render(const char* mesh_name);
 
-  void pushShader(const char* shader_file_path, const char* shader_name);
+  void pushShader(const char* vertex_shader, const char* fragment_shader, const char* shader_name);
+  void pushMesh(const char* mesh_name, const Mesh& mesh);
 
   Shader getShader(const char* shader_name);
   GLint getShaderId(const char* shader_name);
@@ -23,5 +25,6 @@ public:
 
 private:
   std::map<const char*, Shader> m_shaders_array;
+  std::map<const char*, Mesh> m_mesh_array;
 };
 

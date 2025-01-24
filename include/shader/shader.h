@@ -20,10 +20,10 @@ class Shader
 {
 public:
 
-  Shader(const char* shader_path);
+  Shader(const char* vert_path, const char* frag_path);
   ~Shader() = default;
 
-  ShaderProgramSource parseShaderFile(const std::string& file_path);
+  ShaderProgramSource parseShaderFile(const std::string& vert_path, const std::string& frag_path);
   void bind() const;
   void unbind() const;
   GLint getShaderId();

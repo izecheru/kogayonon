@@ -7,46 +7,45 @@
 #include <string>
 #include <sstream>
 
-Shader::Shader(const char* shader_path) {
-  m_shader_src = parseShaderFile(shader_path);
+Shader::Shader(const char* vert_path, const char* frag_path) {
+  m_shader_src = parseShaderFile(vert_path, frag_path);
   m_program_id = createShader(m_shader_src);
 }
 
-ShaderProgramSource Shader::parseShaderFile(const std::string& file_path) {
-  std::ifstream stream(file_path);
-  if (!stream.is_open())
+ShaderProgramSource Shader::parseShaderFile(const std::string& vert_path, const std::string& frag_path) {
+  std::ifstream vertex_stream(vert_path);
+  if (!vertex_stream.is_open())
   {
-    Logger::logError("Failed to open shader file: ", file_path);
+    Logger::logError("Failed to open shader file: ", vert_path);
     std::string result = "";
     return { result,result };
   }
 
-  std::stringstream ss[3]; // 0 for vertex, 1 for fragment
+  std::stringstream vertex_ss; // 0 for vertex, 1 for fragment
   std::string line;
-  ShaderType type = ShaderType::NONE;
 
-  while (getline(stream, line))
+  while (getline(vertex_stream, line))
   {
-    if (line.find("#shader") != std::string::npos)
-    {
-      if (line.find("vertex") != std::string::npos)
-      {
-        type = ShaderType::VERTEX;
-      }
-      else if (line.find("fragment") != std::string::npos)
-      {
-        type = ShaderType::FRAGMENT;
-      }
-    }
-    else if (type != ShaderType::NONE)
-    {
-      ss[(int)type] << line << '\n';
-    }
+    vertex_ss << line << '\n';
   }
-  Logger::logInfo(ss[1].str());
-  Logger::logInfo(ss[2].str());
-  return { ss[1].str(), ss[2].str() };
+
+  std::ifstream fragment_stream(frag_path);
+  if (!fragment_stream.is_open())
+  {
+    Logger::logError("Failed to open shader file: ", frag_path);
+    std::string result = "";
+    return { result,result };
+  }
+
+  std::stringstream fragment_ss; // 0 for vertex, 1 for fragment
+  line = "";
+  while (getline(fragment_stream, line))
+  {
+    fragment_ss << line << '\n';
+  }
+  return { vertex_ss.str(), fragment_ss.str() };
 }
+
 void Shader::bind() const {
   glUseProgram(m_program_id);
 }

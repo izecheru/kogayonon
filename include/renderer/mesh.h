@@ -5,12 +5,14 @@
 class Mesh
 {
 public:
+  Mesh() {}
   Mesh(const std::vector<Vertex>& vertices, std::vector<unsigned int>& indices) :m_vbo(vertices), m_vao(), m_ebo(indices) {
+    // here the vao is set up and we just bin and draw and unbind after
     m_vao.bind();
     m_vbo.bind();
 
     m_vao.attribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0); // Vertex positions
-    m_vao.attribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, colors)); // Vertex positions
+    m_vao.attribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, colors)); // Vertex colors 
 
     m_ebo.bind();
 
