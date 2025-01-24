@@ -1,7 +1,7 @@
 #include "shader/shader.h"
-#include "renderer/vertex_array_buffer.h"
+#include <renderer/mesh.h>
+#include "renderer/buffer.h"
 #include <glfw/glfw3.h>
-#include "renderer/vertex_buffer.h"
 #include <iostream>
 #include "app/app.h"
 #include "window/window.h"
@@ -11,7 +11,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "renderer/element_array_buffer.h"
 
 using std::cout;
 
@@ -23,18 +22,15 @@ namespace kogayonon
   }
 
   void App::run() {
-
-
-
-    GLfloat vertices[] =
-    { //     COORDINATES     /        COLORS      /   TexCoord  //
-      -0.5f, 0.0f,  0.5f,     0.83f, 0.70f, 0.44f,	0.0f, 0.0f,
-      -0.5f, 0.0f, -0.5f,     0.83f, 0.70f, 0.44f,	5.0f, 0.0f,
-       0.5f, 0.0f, -0.5f,     0.83f, 0.70f, 0.44f,	0.0f, 0.0f,
-       0.5f, 0.0f,  0.5f,     0.83f, 0.70f, 0.44f,	5.0f, 0.0f,
-       0.0f, 0.8f,  0.0f,     0.92f, 0.86f, 0.76f,	2.5f, 5.0f
+    std::vector<Vertex> vertices = {
+     { glm::vec3(-0.5f, 0.0f, 0.5f), glm::vec3(0.83f, 0.70f, 0.44f)},
+     { glm::vec3(-0.5f, 0.0f, -0.5f), glm::vec3(0.83f, 0.70f, 0.44f)},
+     { glm::vec3(0.5f, 0.0f, -0.5f), glm::vec3(0.83f, 0.70f, 0.44f)},
+     { glm::vec3(0.5f, 0.0f, 0.5f), glm::vec3(0.83f, 0.70f, 0.44f)},
+     { glm::vec3(0.0f, 0.8f, 0.0f), glm::vec3(0.92f, 0.86f, 0.76f)}
     };
-    unsigned int indices[] =
+
+    std::vector<unsigned int >indices
     {
       0, 1, 2,
       0, 2, 3,
@@ -44,27 +40,15 @@ namespace kogayonon
       3, 0, 4
     };
 
-  #define MYFUNC
     glEnable(GL_DEPTH_TEST);
     m_window->setEventCallbackFn([this](Event& e) -> void { this->onEvent(e); });
     m_renderer->pushShader("D:\\repos\\kogayonon\\shaders\\3d.shader", "3d_shader");
 
-  #ifdef MYFUNC
-    m_renderer->bindVao();
-    VertexBuffer vbo(vertices, sizeof(vertices));
-    ElementArrayBuffer ebo(indices, sizeof(indices));
-    VertexArrayBuffer vao = m_renderer->getVao();
-
-    vao.linkAttrib(vbo, 0, 3, GL_FLOAT, 8 * sizeof(float), (void*)0);
-    vao.linkAttrib(vbo, 1, 3, GL_FLOAT, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-
-    vao.unbind();
-    ebo.unbind();
-    vbo.unbind();
-  #endif
     GLuint uniID = glGetUniformLocation(m_renderer->getShaderId("3d_shader"), "scale");
     float rotation = 0.0f;
     double prevTime = glfwGetTime();
+
+    Mesh piramid(vertices, indices);
 
     glfwSwapInterval(1);
     while (!glfwWindowShouldClose(m_window->getWindow()))
@@ -98,16 +82,12 @@ namespace kogayonon
       glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(proj));
       glUniform1f(uniID, 2.0f);
 
-    #ifdef MYFUNC
-      vao.bind();
-      glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
-      vao.unbind();
-    #endif
+      piramid.draw();
       m_window->update();
     }
 
     // Cleanup
-    m_renderer->unbindShaders();
+
     delete m_window;
   }
 
