@@ -7,7 +7,7 @@
 
 #undef main
 int main(void) {
-  kogayonon::App app;
+  App app;
   app.run();
   return 0;
 }

@@ -3,15 +3,12 @@
 #include "core/mouse_codes.h"
 #include <glm/ext/vector_float2.hpp>
 
-namespace kogayonon
+class Input
 {
-  class Input
-  {
-  public:
-    bool isKeyPressed(KeyCode key);
-    bool isMouseButtonPressed(MouseCode button);
-    glm::vec2 getMousePos();
-    float getMouseX();
-    float getMouseY();
-  };
-}
+public:
+  bool isKeyPressed(KeyCode key);
+  bool isMouseButtonPressed(MouseCode button);
+  glm::vec2 getMousePos();
+  float getMouseX();
+  float getMouseY();
+};

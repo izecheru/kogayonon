@@ -3,77 +3,67 @@
 #include "events/event.h"
 #include <sstream>
 
-namespace kogayonon
+class KeyEvent :public Event
 {
+public:
+  KeyEvent(const KeyCode code) :m_key_code(code) {}
 
-  class KeyEvent :public Event
-  {
-  public:
-    KeyEvent(const KeyCode code) :m_key_code(code) {}
+  EVENT_CLASS_CATEGORY(KeyboardEventCategory | InputEventCategory)
+protected:
+  KeyCode getKeyCode() const { return m_key_code; }
+  KeyCode m_key_code;
 
-    EVENT_CLASS_CATEGORY(KeyboardEventCategory | InputEventCategory)
-  protected:
-    KeyCode getKeyCode() const { return m_key_code; }
-    KeyCode m_key_code;
+};
 
-  };
+class KeyPressedEvent : public KeyEvent
+{
+public:
+  KeyPressedEvent(int keycode, int repeatCount)
+    : KeyEvent(keycode), m_RepeatCount(repeatCount) {}
 
-  class KeyPressedEvent : public KeyEvent
-  {
-  public:
-    KeyPressedEvent(int keycode, int repeatCount)
-      : KeyEvent(keycode), m_RepeatCount(repeatCount)
-    {}
+  inline int GetRepeatCount() const { return m_RepeatCount; }
 
-    inline int GetRepeatCount() const { return m_RepeatCount; }
+  std::string toString() const override {
+    std::stringstream ss{};
+    ss << "KeyPressedEvent: " << m_key_code << " (" << m_RepeatCount << " repeats)";
+    std::string result = ss.str();
+    return result;
+  }
 
-    std::string toString() const override
-    {
-      std::stringstream ss{};
-      ss << "KeyPressedEvent: " << m_key_code << " (" << m_RepeatCount << " repeats)";
-      std::string result = ss.str();
-      return result;
-    }
+  EVENT_CLASS_TYPE(KeyPressed)
+private:
+  int m_RepeatCount;
+};
 
-    EVENT_CLASS_TYPE(KeyPressed)
-  private:
-    int m_RepeatCount;
-  };
+class KeyReleasedEvent : public KeyEvent
+{
+public:
+  KeyReleasedEvent(int keycode)
+    : KeyEvent(keycode) {}
 
-  class KeyReleasedEvent : public KeyEvent
-  {
-  public:
-    KeyReleasedEvent(int keycode)
-      : KeyEvent(keycode)
-    {}
+  std::string toString() const override {
+    std::stringstream ss;
+    ss << "KeyReleasedEvent: " << static_cast<char>(m_key_code);
+    std::string result = ss.str();
+    return result;
+  }
 
-    std::string toString() const override
-    {
-      std::stringstream ss;
-      ss << "KeyReleasedEvent: " << static_cast<char>(m_key_code);
-      std::string result = ss.str();
-      return result;
-    }
+  EVENT_CLASS_TYPE(KeyReleased)
+};
 
-    EVENT_CLASS_TYPE(KeyReleased)
-  };
+class KeyTypedEvent : public KeyEvent
+{
+public:
+  KeyTypedEvent(int keycode)
+    : KeyEvent(keycode) {}
 
-  class KeyTypedEvent : public KeyEvent
-  {
-  public:
-    KeyTypedEvent(int keycode)
-      : KeyEvent(keycode)
-    {}
+  std::string toString() const override {
+    std::stringstream ss;
+    ss << "KeyTypedEvent: " << static_cast<char>(m_key_code);
+    std::string result = ss.str();
+    return ss.str();
+  }
 
-    std::string toString() const override
-    {
-      std::stringstream ss;
-      ss << "KeyTypedEvent: " << static_cast<char>(m_key_code);
-      std::string result = ss.str();
-      return ss.str();
-    }
+  EVENT_CLASS_TYPE(KeyTyped)
+};
 
-    EVENT_CLASS_TYPE(KeyTyped)
-  };
-
-}

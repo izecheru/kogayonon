@@ -7,172 +7,169 @@
 #include "events/app_event.h"
 #include "core/logger.h"
 
-namespace kogayonon
-{
 
-  Window::Window() {
-    init(m_data);
-    glfwSetWindowUserPointer(m_window, &m_data);
-  }
+Window::Window() {
+  init(m_data);
+  glfwSetWindowUserPointer(m_window, &m_data);
+}
 
-  Window::~Window() {
-    if (m_window)
-    {
-      glfwDestroyWindow(m_window);
-    }
-    glfwTerminate();
-  }
-
-  void Window::update() {
-    glfwPollEvents();
-    glfwSwapBuffers(m_window);
-  }
-
-  void Window::onClose() {
+Window::~Window() {
+  if (m_window)
+  {
     glfwDestroyWindow(m_window);
   }
+  glfwTerminate();
+}
 
-  unsigned int Window::getWidth() const {
-    return m_data.m_width;
+void Window::update() {
+  glfwPollEvents();
+  glfwSwapBuffers(m_window);
+}
+
+void Window::onClose() {
+  glfwDestroyWindow(m_window);
+}
+
+unsigned int Window::getWidth() const {
+  return m_data.m_width;
+}
+
+unsigned int Window::getHeight() const {
+  return m_data.m_height;
+}
+
+void Window::setVsync(bool enabled) {
+  if (enabled)
+  {
+    glfwSwapInterval(1);
+  }
+  else
+  {
+    glfwSwapInterval(0);
+  }
+  m_data.m_vsync = enabled;
+}
+
+bool Window::isVsync() {
+  return m_data.m_vsync;
+}
+
+void Window::setViewport(int width, int height) {
+  glViewport(0, 0, width, height);
+}
+
+void Window::setViewport() {
+  glViewport(0, 0, m_data.m_width, m_data.m_height);
+}
+
+void Window::setEventCallbackFn(const EventCallbackFn& callback) {
+  m_data.eventCallback = callback;
+}
+
+bool Window::init(const WindowProps& props) {
+
+  if (!glfwInit())
+  {
+    Logger::logError("failed to init glfw\n");
+    return false;
   }
 
-  unsigned int Window::getHeight() const {
-    return m_data.m_height;
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+
+  m_window = glfwCreateWindow(props.m_width, props.m_height, props.m_title, NULL, NULL);
+  if (!m_window)
+  {
+    Logger::logError("failed to create window\n");
+    return false;
   }
 
-  void Window::setVsync(bool enabled) {
-    if (enabled)
+  glfwMakeContextCurrent(m_window);
+
+  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+  {
+    Logger::logError("failed to load glad\n");
+    return false;
+  }
+
+
+  glfwSetWindowSizeCallback(m_window, [](GLFWwindow* window, int width, int height)
     {
-      glfwSwapInterval(1);
-    }
-    else
+      WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
+      WindowResizeEvent event(width, height);
+      props.eventCallback(event);
+    });
+
+
+  glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double x_pos, double y_pos)
     {
-      glfwSwapInterval(0);
-    }
-    m_data.m_vsync = enabled;
-  }
+      WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
+      MouseMovedEvent event(x_pos, y_pos);
+      props.eventCallback(event);
+    });
 
-  bool Window::isVsync() {
-    return m_data.m_vsync;
-  }
-
-  void Window::setViewport(int width, int height) {
-    glViewport(0, 0, width, height);
-  }
-
-  void Window::setViewport() {
-    glViewport(0, 0, m_data.m_width, m_data.m_height);
-  }
-
-  void Window::setEventCallbackFn(const EventCallbackFn& callback) {
-    m_data.eventCallback = callback;
-  }
-
-  bool kogayonon::Window::init(const WindowProps& props) {
-
-    if (!glfwInit())
+  glfwSetScrollCallback(m_window, [](GLFWwindow* window, double xOff, double yOff)
     {
-      Logger::logError("failed to init glfw\n");
-      return false;
-    }
+    });
 
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-
-    m_window = glfwCreateWindow(props.m_width, props.m_height, props.m_title, NULL, NULL);
-    if (!m_window)
+  glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int button, int action, int mods)
     {
-      Logger::logError("failed to create window\n");
-      return false;
-    }
+      WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
+      MouseClickedEvent event(button, action, mods);
+      props.eventCallback(event);
+    });
 
-    glfwMakeContextCurrent(m_window);
-
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+  glfwSetWindowCloseCallback(m_window, [](GLFWwindow* window)
     {
-      Logger::logError("failed to load glad\n");
-      return false;
-    }
+      WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
+      WindowCloseEvent event;
+      props.eventCallback(event);
+    });
 
+  glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int scan_code, int action, int mods)
+    {
+      WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
 
-    glfwSetWindowSizeCallback(m_window, [](GLFWwindow* window, int width, int height)
+      switch (action)
       {
-        WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
-        WindowResizeEvent event(width, height);
-        props.eventCallback(event);
-      });
+        case GLFW_PRESS:
+          {
+            KeyPressedEvent event(key, 0);
+            props.eventCallback(event);
+            break;
+          }
+        case GLFW_RELEASE:
+          {
+            KeyReleasedEvent event(key);
+            props.eventCallback(event);
+            break;
+          }
+        case GLFW_REPEAT:
+          {
+            KeyPressedEvent event(key, 1);
+            props.eventCallback(event);
+          }
+      }
+    });
 
+  glfwSetCharCallback(m_window, [](GLFWwindow* window, unsigned int key_code)
+    {
+      WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
+      KeyTypedEvent event(key_code);
+      props.eventCallback(event);
+    });
 
-    glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double x_pos, double y_pos)
-      {
-        WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
-        MouseMovedEvent event(x_pos, y_pos);
-        props.eventCallback(event);
-      });
+  glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
-    glfwSetScrollCallback(m_window, [](GLFWwindow* window, double xOff, double yOff)
-      {
-      });
+  setViewport();
+  return true;
+}
 
-    glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int button, int action, int mods)
-      {
-        WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
-        MouseClickedEvent event(button, action, mods);
-        props.eventCallback(event);
-      });
+GLFWwindow* Window::getWindow() {
+  return m_window;
+}
 
-    glfwSetWindowCloseCallback(m_window, [](GLFWwindow* window)
-      {
-        WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
-        WindowCloseEvent event;
-        props.eventCallback(event);
-      });
-
-    glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int scan_code, int action, int mods)
-      {
-        WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
-
-        switch (action)
-        {
-          case GLFW_PRESS:
-            {
-              KeyPressedEvent event(key, 0);
-              props.eventCallback(event);
-              break;
-            }
-          case GLFW_RELEASE:
-            {
-              KeyReleasedEvent event(key);
-              props.eventCallback(event);
-              break;
-            }
-          case GLFW_REPEAT:
-            {
-              KeyPressedEvent event(key, 1);
-              props.eventCallback(event);
-            }
-        }
-      });
-
-    glfwSetCharCallback(m_window, [](GLFWwindow* window, unsigned int key_code)
-      {
-        WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
-        KeyTypedEvent event(key_code);
-        props.eventCallback(event);
-      });
-
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-
-    setViewport();
-    return true;
-  }
-
-  GLFWwindow* Window::getWindow() {
-    return m_window;
-  }
-
-  WindowProps Window::getWindowData() {
-    return m_data;
-  }
+WindowProps Window::getWindowData() {
+  return m_data;
 }
