@@ -1,13 +1,15 @@
 #pragma once
-#include "renderer/renderer.h"
-#include "window/window.h"
-#include "events/app_event.h"
+#include <core/renderer/renderer.h>
+#include <window/window.h>
+#include <events/app_event.h>
+#include <events/mouse_events.h>
 
 class App
 {
 public:
   App();
-
+  // HAVING VOID TYPE FUNCTIONS WE CAN CHOOSE TO NOT PROPAGATE ANY FURTHER EVENTS //
+  //
   /// <summary>
   /// The main loop is here at the moment
   /// </summary>
@@ -33,8 +35,11 @@ public:
   /// <returns></returns>
   bool onWindowClose(WindowCloseEvent& event);
 
+  bool onMouseMove(MouseMovedEvent& event);
+
+  bool onScroll();
+
   static GLFWwindow* getWindow();
-  static void scrollCallback(GLFWwindow* window, double x, double y);
 
 private:
   static inline Window* m_window = nullptr;

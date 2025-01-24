@@ -1,10 +1,10 @@
 #pragma once
 #include <core/logger.h>
-#include <renderer/mesh.h>
-
+#include <core/renderer/mesh.h>
 #include <map>
 #include <optional>
 #include <shader/shader.h>
+#include <core/renderer/camera.h>
 
 class Renderer
 {

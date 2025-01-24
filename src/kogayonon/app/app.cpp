@@ -1,16 +1,17 @@
-#include "shader/shader.h"
-#include <renderer/mesh.h>
-#include "renderer/buffer.h"
+#include <shader/shader.h>
+#include <core/renderer/mesh.h>
+#include <core/renderer/buffer.h>
 #include <glfw/glfw3.h>
 #include <iostream>
-#include "app/app.h"
-#include "window/window.h"
-#include "events/keyboard_events.h"
-#include "core/logger.h"
-#include "renderer/renderer.h"
+#include <app/app.h>
+#include <window/window.h>
+#include <events/keyboard_events.h>
+#include <core/logger.h>
+#include <core/renderer/renderer.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <events/mouse_events.h>
 
 using std::cout;
 
@@ -63,7 +64,7 @@ void App::run() {
 
   Mesh piramid(vertices, indices);
   m_renderer->pushMesh("piramid", piramid);
-
+  Camera& camera = Camera::getInstance();
   glfwSwapInterval(1);
   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   while (!glfwWindowShouldClose(m_window->getWindow()))
@@ -85,14 +86,14 @@ void App::run() {
 
     // Assigns different transformations to each matrix
     model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 1.0f, 0.0f));
-    view = glm::translate(view, glm::vec3(0.0f, -0.5f, -2.0f));
+    view = glm::translate(view, glm::vec3(0.8f, -0.5f, -2.0f));
     proj = glm::perspective(glm::radians(45.0f), (float)m_window->getWidth() / (float)m_window->getHeight(), 0.1f, 100.0f);
 
     // Outputs the matrices into the Vertex Shader
     int modelLoc = glGetUniformLocation(m_renderer->getShaderId("3d_shader"), "model");
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
     int viewLoc = glGetUniformLocation(m_renderer->getShaderId("3d_shader"), "view");
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(camera.getViewMatrix()));
     int projLoc = glGetUniformLocation(m_renderer->getShaderId("3d_shader"), "proj");
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(proj));
     int scaleLoc = glGetUniformLocation(m_renderer->getShaderId("3d_shader"), "scaleMatrix");
@@ -108,7 +109,6 @@ void App::run() {
 }
 
 void App::onEvent(Event& event) {
-  //Logger::logInfo(event.toString());
   EventDispatcher dispatcher(event);
   dispatcher.dispatch<WindowResizeEvent>([this](WindowResizeEvent& e)->bool
     {
@@ -121,6 +121,13 @@ void App::onEvent(Event& event) {
       Logger::logError("[dispatch updates on close]\n");
       return this->onWindowClose(e);
     });
+
+  dispatcher.dispatch <MouseMovedEvent>([this](MouseMovedEvent& e)->bool
+    {
+      Camera& camera = Camera::getInstance();
+      camera.processMouseMoved(e.getX(), e.getY());
+      return this->onMouseMove(e);
+    });
 }
 
 bool App::onWindowResize(WindowResizeEvent& event) {
@@ -132,7 +139,14 @@ bool App::onWindowClose(WindowCloseEvent& event) {
   return true;
 }
 
+bool App::onMouseMove(MouseMovedEvent& event) {
+  return true;
+}
+
 GLFWwindow* App::getWindow() {
   return m_window->getWindow();
 }
-void App::scrollCallback(GLFWwindow* window, double x, double y) {}
+
+bool App::onScroll() {
+  return true;
+}

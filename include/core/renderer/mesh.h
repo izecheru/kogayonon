@@ -1,5 +1,5 @@
 #pragma once
-#include <renderer/buffer.h>
+#include <core/renderer/buffer.h>
 #include <glad/glad.h>
 
 class Mesh
@@ -11,6 +11,7 @@ public:
     m_vao.bind();
     m_vbo.bind();
 
+    // TODO must add textures as well
     m_vao.attribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0); // Vertex positions
     m_vao.attribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, colors)); // Vertex colors 
 

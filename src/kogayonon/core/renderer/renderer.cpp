@@ -1,4 +1,4 @@
-#include "renderer/renderer.h"
+#include <core/renderer/renderer.h>
 
 void Renderer::render(const char* mesh_name) {
   m_mesh_array[mesh_name].draw();

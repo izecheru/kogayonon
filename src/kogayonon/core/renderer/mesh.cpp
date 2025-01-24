@@ -1,4 +1,4 @@
-#include <renderer/mesh.h>
+#include <core/renderer/mesh.h>
 
 void Mesh::draw() {
   m_vao.bind();

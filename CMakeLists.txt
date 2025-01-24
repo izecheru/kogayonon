@@ -11,6 +11,7 @@ endif()
 
 project ("kogayonon")
 
+
 file(GLOB_RECURSE MY_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 add_executable(kogayonon main.cpp ${SOURCES})
 target_sources("${CMAKE_PROJECT_NAME}" PRIVATE ${MY_SOURCES} )

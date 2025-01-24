@@ -1,4 +1,4 @@
-#include "renderer/buffer.h"
+#include <core/renderer/buffer.h>
 #include <glad/glad.h>
 
 VertexBufferObject::VertexBufferObject(const std::vector<Vertex>& vertices) {
