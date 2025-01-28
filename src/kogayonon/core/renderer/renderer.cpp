@@ -1,31 +1,34 @@
 #include <core/renderer/renderer.h>
 
+Renderer::Renderer() {
+  is_poly = false;
+}
+
 void Renderer::render(const char* mesh_name) {
-  m_mesh_array[mesh_name].draw();
+  meshes[mesh_name].draw();
 }
 
 void Renderer::pushShader(const char* vertex_shader, const char* fragment_shader, const char* shader_name) {
   Shader sh(vertex_shader, fragment_shader);
-  m_shaders_array.insert(std::pair<const char*, Shader>(shader_name, sh));
+  shaders.insert(std::pair<const char*, Shader>(shader_name, sh));
 }
 
 void Renderer::pushMesh(const char* mesh_name, const Mesh& mesh) {
-  m_mesh_array[mesh_name] = mesh;
+  meshes[mesh_name] = mesh;
 }
 
 Shader Renderer::getShader(const char* shader_name) {
-  for (auto it = m_shaders_array.begin(); it != m_shaders_array.end(); it++)
+  for (auto it = shaders.begin(); it != shaders.end(); it++)
   {
     if (it->first == shader_name)
     {
       return it->second;
     }
   }
-  Logger::logError("Shader does not exist");
 }
 
 GLint Renderer::getShaderId(const char* shader_name) {
-  for (auto it = m_shaders_array.begin(); it != m_shaders_array.end(); it++)
+  for (auto it = shaders.begin(); it != shaders.end(); it++)
   {
     if (it->first == shader_name)
     {
@@ -35,7 +38,7 @@ GLint Renderer::getShaderId(const char* shader_name) {
 }
 
 void Renderer::bindShader(const char* shader_name) {
-  for (auto it = m_shaders_array.begin(); it != m_shaders_array.end(); it++)
+  for (auto it = shaders.begin(); it != shaders.end(); it++)
   {
     if (it->first == shader_name)
     {
@@ -45,12 +48,28 @@ void Renderer::bindShader(const char* shader_name) {
 }
 
 void Renderer::unbindShader(const char* shader_name) {
-  for (auto it = m_shaders_array.begin(); it != m_shaders_array.end(); it++)
+  for (auto it = shaders.begin(); it != shaders.end(); it++)
   {
     if (it->first == shader_name)
     {
       it->second.unbind();
     }
   }
+}
+
+bool Renderer::getPolyMode() {
+  return is_poly;
+}
+
+void Renderer::togglePolyMode() {
+  if (is_poly)
+  {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  }
+  else
+  {
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  }
+  is_poly = !is_poly;
 }
 

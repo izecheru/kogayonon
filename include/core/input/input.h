@@ -1,14 +1,17 @@
 #pragma once
+#include <glm/ext/vector_float2.hpp>
+
 #include "core/key_codes.h"
 #include "core/mouse_codes.h"
-#include <glm/ext/vector_float2.hpp>
+
+#include <unordered_set>
 
 class Input
 {
 public:
-  bool isKeyPressed(KeyCode key);
-  bool isMouseButtonPressed(MouseCode button);
-  glm::vec2 getMousePos();
-  float getMouseX();
-  float getMouseY();
+  static bool isKeyPressed(KeyCode key);
+  static bool isMouseButtonPressed(MouseCode button);
+  static glm::vec2 getMousePos();
+  static float getMouseX();
+  static float getMouseY();
 };

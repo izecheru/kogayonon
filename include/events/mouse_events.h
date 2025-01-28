@@ -1,7 +1,29 @@
 #pragma once
 #include <sstream>
-#include "event.h"
-#include "core/mouse_codes.h"
+#include <events/event.h>
+#include <core/mouse_codes.h>
+#include <string>
+
+
+class MouseEnteredEvent :public Event
+{
+public:
+  MouseEnteredEvent(const int entered) :m_entered(entered) {}
+
+  int hasEntered() const { return m_entered; }
+
+  std::string toString()const override {
+    std::stringstream ss{};
+    ss << "MouseEnteredEvent: " << m_entered;
+    std::string result = ss.str();
+    return result;
+  }
+
+  EVENT_CLASS_CATEGORY(MouseEventCategory)
+    EVENT_CLASS_TYPE(MouseEntered)
+private:
+  int m_entered;
+};
 
 class MouseMovedEvent : public Event
 {

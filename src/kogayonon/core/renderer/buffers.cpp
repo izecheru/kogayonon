@@ -1,5 +1,5 @@
-#include <core/renderer/buffer.h>
 #include <glad/glad.h>
+#include <core/renderer/buffer.h>
 
 VertexBufferObject::VertexBufferObject(const std::vector<Vertex>& vertices) {
   glGenBuffers(1, &m_id);
@@ -33,7 +33,6 @@ void ElementsBufferObject::unbind() {
 const std::vector<unsigned int> ElementsBufferObject::getIndices() const {
   return indices;
 }
-
 
 VertexArrayObject::VertexArrayObject() {
   glGenVertexArrays(1, &m_id);

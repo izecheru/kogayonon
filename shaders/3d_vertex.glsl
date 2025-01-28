@@ -1,4 +1,3 @@
-//#shader vertex
 #version 460 core
 
 // Positions/Coordinates
@@ -13,7 +12,7 @@ out vec3 vertexColor; // Pass color to fragment shader
 uniform mat4 scaleMatrix;
 uniform mat4 model;
 uniform mat4 view;
-uniform mat4 proj;
+uniform mat4 projection;
 
 void main()
 {
@@ -21,7 +20,7 @@ void main()
     vec4 scaledPosition = vec4(aPos , 1.0) * scaleMatrix;
 
     // Transform the positions with model, view, and projection matrices
-    gl_Position = proj * view * model * scaledPosition;
+    gl_Position = projection * view * model * scaledPosition;
 
     // Pass the vertex color to the fragment shader
     vertexColor = aColor;

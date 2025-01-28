@@ -1,7 +1,4 @@
 #pragma once
-#include <glfw/glfw3.h>
-#include <string>
-#include <functional>
 #include <string>
 
 #define BIT(x) (1<<x)
@@ -12,7 +9,7 @@ enum class EventType
   WindowClose, WindowResize, WindowFocus, WindowLostFocus, WindowMinimzed,
   AppTick, AppUpdate, AppRender,
   KeyPressed, KeyReleased, KeyTyped,
-  MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled
+  MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled, MouseEntered
 };
 
 enum EventCategory

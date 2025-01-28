@@ -1,24 +1,24 @@
 #pragma once
+#include <sstream>
+
 #include "core/key_codes.h"
 #include "events/event.h"
-#include <sstream>
 
 class KeyEvent :public Event
 {
 public:
   KeyEvent(const KeyCode code) :m_key_code(code) {}
+  KeyCode getKeyCode() const { return m_key_code; }
 
   EVENT_CLASS_CATEGORY(KeyboardEventCategory | InputEventCategory)
 protected:
-  KeyCode getKeyCode() const { return m_key_code; }
   KeyCode m_key_code;
-
 };
 
 class KeyPressedEvent : public KeyEvent
 {
 public:
-  KeyPressedEvent(int keycode, int repeatCount)
+  KeyPressedEvent(KeyCode keycode, int repeatCount)
     : KeyEvent(keycode), m_RepeatCount(repeatCount) {}
 
   inline int GetRepeatCount() const { return m_RepeatCount; }
@@ -38,7 +38,7 @@ private:
 class KeyReleasedEvent : public KeyEvent
 {
 public:
-  KeyReleasedEvent(int keycode)
+  KeyReleasedEvent(KeyCode keycode)
     : KeyEvent(keycode) {}
 
   std::string toString() const override {
@@ -54,7 +54,7 @@ public:
 class KeyTypedEvent : public KeyEvent
 {
 public:
-  KeyTypedEvent(int keycode)
+  KeyTypedEvent(KeyCode keycode)
     : KeyEvent(keycode) {}
 
   std::string toString() const override {

@@ -1,27 +1,14 @@
 #pragma once
-#include <core/singleton/singleton.h>
-#include <glm/matrix.hpp>
+#include "core/singleton/singleton.h"
+#include <glm/ext/matrix_float4x4.hpp>
+#include "core/key_codes.h"
+#include <GLFW/glfw3.h>
 
 // https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/camera.h
-enum CameraMovement
-{
-  FORWARD,
-  BACKWARD,
-  LEFT,
-  RIGHT
-};
-
-// Default camera values
-#define YAW  -90.0f;
-#define PITCH  0.0f;
-#define SPEED  2.5f;
-#define SENSITIVITY  0.1f;
-#define ZOOM  45.0f;
-
 struct CameraProps
 {
-  glm::vec3 camera_pos;
-  glm::vec3 camera_front;
+  glm::vec3 position;
+  glm::vec3 direction;
   glm::vec3 camera_up;
   glm::vec3 world_up;
   glm::vec3 right;
@@ -49,11 +36,11 @@ public:
   const glm::mat4& getViewMatrix()const;
 
   void processMouseMoved(float x, float y, bool constrain_pitch = true);
+  void processKeyboard(GLFWwindow* window, float delta_time);
 
   void updateCameraVectors();
 
 private:
-  // kind of ugly but i think it gets the job done for the moment
   CameraProps m_props;
   bool first_move = false;
 };

@@ -1,12 +1,18 @@
+#ifndef GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_NONE
+#endif // !GLFW_INCLUDE_NONE
+
 #include <glad/glad.h>
 #include <glfw/glfw3.h>
-#include "events/event.h"
-#include "events/mouse_events.h"
-#include "events/keyboard_events.h"
-#include "window/window.h"
-#include "events/app_event.h"
-#include "core/logger.h"
 
+#include "window/window.h"
+#include "core/input/input.h"
+#include "core/logger.h"
+#include "events/app_event.h"
+#include "events/keyboard_events.h"
+#include "events/mouse_events.h"
+
+std::unordered_set<KeyCode> keys_pressed;
 
 Window::Window() {
   init(m_data);
@@ -26,17 +32,11 @@ void Window::update() {
   glfwSwapBuffers(m_window);
 }
 
-void Window::onClose() {
-  glfwDestroyWindow(m_window);
-}
+void Window::onClose() { glfwDestroyWindow(m_window); }
 
-unsigned int Window::getWidth() const {
-  return m_data.m_width;
-}
+unsigned int Window::getWidth() const { return m_data.m_width; }
 
-unsigned int Window::getHeight() const {
-  return m_data.m_height;
-}
+unsigned int Window::getHeight() const { return m_data.m_height; }
 
 void Window::setVsync(bool enabled) {
   if (enabled)
@@ -50,9 +50,7 @@ void Window::setVsync(bool enabled) {
   m_data.m_vsync = enabled;
 }
 
-bool Window::isVsync() {
-  return m_data.m_vsync;
-}
+bool Window::isVsync() { return m_data.m_vsync; }
 
 void Window::setViewport(int width, int height) {
   glViewport(0, 0, width, height);
@@ -67,7 +65,6 @@ void Window::setEventCallbackFn(const EventCallbackFn& callback) {
 }
 
 bool Window::init(const WindowProps& props) {
-
   if (!glfwInit())
   {
     Logger::logError("failed to init glfw\n");
@@ -78,7 +75,8 @@ bool Window::init(const WindowProps& props) {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 
-  m_window = glfwCreateWindow(props.m_width, props.m_height, props.m_title, NULL, NULL);
+  m_window = glfwCreateWindow(props.m_width, props.m_height, props.m_title,
+    NULL, NULL);
   if (!m_window)
   {
     Logger::logError("failed to create window\n");
@@ -93,25 +91,30 @@ bool Window::init(const WindowProps& props) {
     return false;
   }
 
-
-  glfwSetWindowSizeCallback(m_window, [](GLFWwindow* window, int width, int height)
+  glfwSetWindowSizeCallback(
+    m_window, [](GLFWwindow* window, int width, int height)
     {
       WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
       WindowResizeEvent event(width, height);
       props.eventCallback(event);
     });
 
-
-  glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double x_pos, double y_pos)
+  glfwSetCursorPosCallback(
+    m_window, [](GLFWwindow* window, double x_pos, double y_pos)
     {
       WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
       MouseMovedEvent event(x_pos, y_pos);
       props.eventCallback(event);
     });
 
-  glfwSetScrollCallback(m_window, [](GLFWwindow* window, double xOff, double yOff)
+  glfwSetCursorEnterCallback(m_window, [](GLFWwindow* window, int entered)
     {
+      WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
+      MouseEnteredEvent event(entered);
+      props.eventCallback(event);
     });
+
+  glfwSetScrollCallback(m_window, [](GLFWwindow* window, double xOff, double yOff) {});
 
   glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int button, int action, int mods)
     {
@@ -135,19 +138,19 @@ bool Window::init(const WindowProps& props) {
       {
         case GLFW_PRESS:
           {
-            KeyPressedEvent event(key, 0);
+            KeyPressedEvent event((KeyCode)key, 0);
             props.eventCallback(event);
             break;
           }
         case GLFW_RELEASE:
           {
-            KeyReleasedEvent event(key);
+            KeyReleasedEvent event((KeyCode)key);
             props.eventCallback(event);
             break;
           }
         case GLFW_REPEAT:
           {
-            KeyPressedEvent event(key, 1);
+            KeyPressedEvent event((KeyCode)key, 1);
             props.eventCallback(event);
           }
       }
@@ -156,7 +159,7 @@ bool Window::init(const WindowProps& props) {
   glfwSetCharCallback(m_window, [](GLFWwindow* window, unsigned int key_code)
     {
       WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
-      KeyTypedEvent event(key_code);
+      KeyTypedEvent event((KeyCode)key_code);
       props.eventCallback(event);
     });
 
@@ -166,10 +169,6 @@ bool Window::init(const WindowProps& props) {
   return true;
 }
 
-GLFWwindow* Window::getWindow() {
-  return m_window;
-}
+GLFWwindow* Window::getWindow() { return m_window; }
 
-WindowProps Window::getWindowData() {
-  return m_data;
-}
+WindowProps Window::getWindowData() { return m_data; }

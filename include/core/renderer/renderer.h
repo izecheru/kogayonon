@@ -1,15 +1,12 @@
 #pragma once
-#include <core/logger.h>
-#include <core/renderer/mesh.h>
+#include "core/renderer/mesh.h"
 #include <map>
-#include <optional>
-#include <shader/shader.h>
-#include <core/renderer/camera.h>
+#include "shader/shader.h"
 
 class Renderer
 {
 public:
-  Renderer() = default;
+  Renderer();
   ~Renderer() = default;
 
   void render(const char* mesh_name);
@@ -23,8 +20,12 @@ public:
   void bindShader(const char* shader_name);
   void unbindShader(const char* shader_name);
 
+  bool getPolyMode();
+  void togglePolyMode();
+
 private:
-  std::map<const char*, Shader> m_shaders_array;
-  std::map<const char*, Mesh> m_mesh_array;
+  bool is_poly;
+  std::map<const char*, Shader> shaders;
+  std::map<const char*, Mesh> meshes;
 };
 

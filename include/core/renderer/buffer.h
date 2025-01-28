@@ -13,7 +13,7 @@ class VertexBufferObject
 public:
   VertexBufferObject(const std::vector<Vertex>& vertices);
 
-  VertexBufferObject() {}
+  VertexBufferObject() = default;
 
   void bind();
   void unbind();
@@ -25,7 +25,7 @@ private:
 class ElementsBufferObject
 {
 public:
-  ElementsBufferObject() {}
+  ElementsBufferObject() = default;
 
   ElementsBufferObject(const std::vector<unsigned int>& indices);
 

@@ -1,7 +1,15 @@
 #pragma once
+
+#ifndef GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_NONE
+#endif // !GLFW_INCLUDE_NONE
+
 #include <glfw/glfw3.h>
-#include "events/event.h"
+#include <unordered_set>
 #include <functional>
+#include <events/event.h>
+#include <cstdint>
+#include <core/key_codes.h>
 
 using EventCallbackFn = std::function<void(Event&)>;
 
