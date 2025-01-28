@@ -4,9 +4,13 @@
 layout (location = 0) in vec3 aPos;
 // Colors
 layout (location = 1) in vec3 aColor;
+// Texture
+layout (location = 2) in vec2 aTex;
+
 
 // Outputs to the Fragment Shader
 out vec3 vertexColor; // Pass color to fragment shader
+out vec2 texCoord;
 
 // Uniforms for transformation
 uniform mat4 scaleMatrix;
@@ -24,5 +28,6 @@ void main()
 
     // Pass the vertex color to the fragment shader
     vertexColor = aColor;
+    texCoord = aTex;
 }
 

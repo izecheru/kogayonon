@@ -1,7 +1,8 @@
 #pragma once
 #include "core/singleton/singleton.h"
-#include <glm/ext/matrix_float4x4.hpp>
-#include "core/key_codes.h"
+#include <glm/glm.hpp>
+
+#define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
 // https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/camera.h
@@ -26,7 +27,6 @@ public:
   //friend class Singleton<Camera>;
   Camera();
 
-  void updateView();
   void setView();
 
   const CameraProps& getCamera();
@@ -39,6 +39,8 @@ public:
   void processKeyboard(GLFWwindow* window, float delta_time);
 
   void updateCameraVectors();
+
+  void cameraUniform(unsigned int shader_id, const char* uniform);
 
 private:
   CameraProps m_props;

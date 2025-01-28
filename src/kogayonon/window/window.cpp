@@ -1,9 +1,9 @@
+#include <glad/glad.h>
+
 #ifndef GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_NONE
-#endif // !GLFW_INCLUDE_NONE
+#endif
 
-#include <glad/glad.h>
-#include <glfw/glfw3.h>
 
 #include "window/window.h"
 #include "core/input/input.h"

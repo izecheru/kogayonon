@@ -1,5 +1,5 @@
 #pragma once
-#include <glm/ext/vector_float2.hpp>
+#include <glm/glm.hpp>
 
 #include "core/key_codes.h"
 #include "core/mouse_codes.h"

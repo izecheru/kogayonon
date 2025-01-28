@@ -1,10 +1,9 @@
 #pragma once
-
+#include <glad/glad.h>
 #ifndef GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_NONE
-#endif // !GLFW_INCLUDE_NONE
-
-#include <glfw/glfw3.h>
+#endif
+#include <GLFW/glfw3.h>
 #include <unordered_set>
 #include <functional>
 #include <events/event.h>

@@ -1,9 +1,9 @@
 #pragma once
-#include <core/renderer/renderer.h>
-#include <window/window.h>
-#include <events/app_event.h>
-#include <events/mouse_events.h>
-#include <events/keyboard_events.h>
+#include "core/renderer/renderer.h"
+#include "window/window.h"
+#include "events/app_event.h"
+#include "events/mouse_events.h"
+#include "events/keyboard_events.h"
 
 class App
 {
