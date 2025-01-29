@@ -1,12 +1,12 @@
-#include <core/renderer/renderer.h>
+#include "core/renderer/renderer.h"
 
 Renderer::Renderer() {
   is_poly = false;
 }
 
-void Renderer::render(const char* mesh_name) {
-  meshes[mesh_name].draw();
-}
+//void Renderer::render(const char* mesh_name) {
+//  meshes[mesh_name].draw();
+//}
 
 void Renderer::pushShader(const char* vertex_shader, const char* fragment_shader, const char* shader_name) {
   Shader sh(vertex_shader, fragment_shader);

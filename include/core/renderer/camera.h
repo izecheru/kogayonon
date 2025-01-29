@@ -41,6 +41,7 @@ public:
   void updateCameraVectors();
 
   void cameraUniform(unsigned int shader_id, const char* uniform);
+  glm::vec3 getCameraPos()const;
 
 private:
   CameraProps m_props;

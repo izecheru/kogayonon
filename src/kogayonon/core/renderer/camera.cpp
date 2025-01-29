@@ -20,7 +20,7 @@ void Camera::setView() {
   m_props.world_up = glm::vec3(0.0f, 1.0f, 0.0f);
   m_props.yaw = -90.0f;
   m_props.pitch = 0.0f;
-  m_props.mouse_sens = 0.5f;
+  m_props.mouse_sens = 0.2f;
   m_props.movement_speed = 0.1f;
 }
 
@@ -123,5 +123,10 @@ void Camera::updateCameraVectors() {
 void Camera::cameraUniform(unsigned int shader_id, const char* uniform) {
   int view_location = glGetUniformLocation(shader_id, uniform);
   glUniformMatrix4fv(view_location, 1, GL_FALSE, glm::value_ptr(getViewMatrix()));
+}
+
+glm::vec3 Camera::getCameraPos() const {
+  glm::vec3 pos = glm::vec3(m_props.position.x, m_props.position.y, m_props.position.z);
+  return pos;
 }
 

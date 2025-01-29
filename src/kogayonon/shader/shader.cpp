@@ -43,7 +43,11 @@ ShaderProgramSource Shader::parseShaderFile(const std::string& vert_path, const 
   {
     fragment_ss << line << '\n';
   }
-  return { vertex_ss.str(), fragment_ss.str() };
+  std::string vertex = vertex_ss.str();
+  std::string fragment = fragment_ss.str();
+
+  ShaderProgramSource source(vertex, fragment);
+  return source;
 }
 
 void Shader::bind() const {

@@ -20,6 +20,7 @@ Window::Window() {
 }
 
 Window::~Window() {
+  Logger::logInfo("~Window destroyed");
   if (m_window)
   {
     glfwDestroyWindow(m_window);
@@ -38,16 +39,17 @@ unsigned int Window::getWidth() const { return m_data.m_width; }
 
 unsigned int Window::getHeight() const { return m_data.m_height; }
 
-void Window::setVsync(bool enabled) {
-  if (enabled)
+void Window::setVsync() {
+  if (!m_data.m_vsync)
   {
+    m_data.m_vsync = true;
     glfwSwapInterval(1);
   }
   else
   {
+    m_data.m_vsync = false;
     glfwSwapInterval(0);
   }
-  m_data.m_vsync = enabled;
 }
 
 bool Window::isVsync() { return m_data.m_vsync; }
@@ -91,16 +93,14 @@ bool Window::init(const WindowProps& props) {
     return false;
   }
 
-  glfwSetWindowSizeCallback(
-    m_window, [](GLFWwindow* window, int width, int height)
+  glfwSetWindowSizeCallback(m_window, [](GLFWwindow* window, int width, int height)
     {
       WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
       WindowResizeEvent event(width, height);
       props.eventCallback(event);
     });
 
-  glfwSetCursorPosCallback(
-    m_window, [](GLFWwindow* window, double x_pos, double y_pos)
+  glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double x_pos, double y_pos)
     {
       WindowProps& props = *(WindowProps*)glfwGetWindowUserPointer(window);
       MouseMovedEvent event(x_pos, y_pos);

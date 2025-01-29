@@ -1,10 +1,10 @@
 
 #include "core/renderer/texture.h"
-#define STB_IMAGE_IMPLEMENTATION
 #include "stbi/stb_image.h"
 #include "core/logger.h"
 
-Texture::Texture(const char* image_path) {
+Texture::Texture(const char* image_path, const char* texture_type, unsigned int slot) {
+  m_type = texture_type;
   int w_image, h_image, num_col_ch;
 
   // Flip image vertically for correct orientation
@@ -12,6 +12,8 @@ Texture::Texture(const char* image_path) {
 
   // Generate texture
   glGenTextures(1, &m_id);
+  glActiveTexture(GL_TEXTURE0 + slot);
+  m_unit = slot;
   bind();
 
   // Set texture parameters (wrap and filter modes)
@@ -27,14 +29,47 @@ Texture::Texture(const char* image_path) {
     Logger::logError("Failed to load texture from:", image_path);
     return; // Exit if image loading fails
   }
-
-  Logger::logInfo("Successfully loaded texture from:", image_path);
-
-  // Determine format based on the number of channels
-  GLenum format = (num_col_ch == 3) ? GL_RGB : GL_RGBA;
-
+  if (num_col_ch == 4)
+    glTexImage2D
+    (
+    GL_TEXTURE_2D,
+    0,
+    GL_RGBA,
+    w_image,
+    h_image,
+    0,
+    GL_RGBA,
+    GL_UNSIGNED_BYTE,
+    image_data
+    );
+  else if (num_col_ch == 3)
+    glTexImage2D
+    (
+    GL_TEXTURE_2D,
+    0,
+    GL_RGBA,
+    w_image,
+    h_image,
+    0,
+    GL_RGB,
+    GL_UNSIGNED_BYTE,
+    image_data
+    );
+  else if (num_col_ch == 1)
+    glTexImage2D
+    (
+    GL_TEXTURE_2D,
+    0,
+    GL_RGBA,
+    w_image,
+    h_image,
+    0,
+    GL_RED,
+    GL_UNSIGNED_BYTE,
+    image_data
+    );
   // Upload image to OpenGL
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w_image, h_image, 0, format, GL_UNSIGNED_BYTE, image_data);
+  //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w_image, h_image, 0, GL_RED, GL_UNSIGNED_BYTE, image_data);
   glGenerateMipmap(GL_TEXTURE_2D);
 
   // Free the loaded image memory
@@ -49,4 +84,16 @@ void Texture::bind() {
 
 void Texture::unbind() {
   glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+const char* Texture::getType() const {
+  return m_type;
+}
+
+unsigned int Texture::getId() const {
+  return m_id;
+}
+
+unsigned int Texture::getUnit() const {
+  return m_unit;
 }

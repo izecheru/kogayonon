@@ -1,6 +1,7 @@
 #pragma once
 #include <glad/glad.h>
 #include <string>
+
 enum  ShaderType
 {
   NONE = 0,
@@ -24,8 +25,10 @@ public:
   ~Shader() = default;
 
   ShaderProgramSource parseShaderFile(const std::string& vert_path, const std::string& frag_path);
+
   void bind() const;
   void unbind() const;
+
   GLint getShaderId();
 
 private:

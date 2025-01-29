@@ -39,7 +39,7 @@ public:
   void onClose();
   unsigned int getWidth() const;
   unsigned int getHeight() const;
-  void setVsync(bool enabled);
+  void setVsync();
   bool isVsync();
   void setViewport(int width, int height);
   void setViewport();
