@@ -1,6 +1,7 @@
 #pragma once
 #include <glad/glad.h>
 #include "shader/shader.h"
+#include <assimp/types.h>
 
 class Texture
 {
@@ -19,6 +20,7 @@ public:
 
 private:
   unsigned int m_id;
+  aiString m_path;
   const char* m_type;
   unsigned int m_unit;
 };

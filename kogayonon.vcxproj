@@ -20,9 +20,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{2F278362-A1A0-499E-A28A-F05247770571}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{92cdb058-4a96-4278-ade1-8e0fc31c620c}</ProjectGuid>
-    <RootNamespace>kogayonon</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -30,27 +29,21 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -70,82 +63,103 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>H:\Git\kogayonon\include;H:\Git\kogayonon\dependencies\stbi\include;H:\Git\kogayonon\dependencies\glm\include;H:\Git\kogayonon\dependencies\glfw\include;H:\Git\kogayonon\dependencies\glad\include;H:\Git\kogayonon\dependencies\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)dependencies\glfw\include;$(SolutionDir)dependencies\glm\include;$(SolutionDir)dependencies\glad\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>H:\Git\kogayonon\dependencies\glfw\lib;H:\Git\kogayonon\dependencies\assimp;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(SolutionDir)dependencies\assimp\assimp-vc143-mtd.lib;$(SolutionDir)dependencies\glfw\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
+      <AdditionalLibraryDirectories>H:\Git\kogayonon\dependencies\assimp;H:\Git\kogayonon\dependencies\glfw\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>H:\Git\kogayonon\include;H:\Git\kogayonon\dependencies\stbi\include;H:\Git\kogayonon\dependencies\glm\include;H:\Git\kogayonon\dependencies\glfw\include;H:\Git\kogayonon\dependencies\glad\include;H:\Git\kogayonon\dependencies\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)dependencies\glfw\include;$(SolutionDir)dependencies\glm\include;$(SolutionDir)dependencies\glad\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>H:\Git\kogayonon\dependencies\glfw\lib;H:\Git\kogayonon\dependencies\assimp;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>$(SolutionDir)dependencies\assimp\assimp-vc143-mtd.lib;$(SolutionDir)dependencies\glfw\lib\glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>H:\Git\kogayonon\dependencies\assimp;H:\Git\kogayonon\dependencies\glfw\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);glfw3.lib;</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include=".gitattributes" />
-    <None Include=".gitignore" />
-    <None Include="assimp-vc143-mtd.dll" />
+    <ClCompile Include="dependencies\glad\src\glad.c" />
+    <ClCompile Include="dependencies\glm\include\glm\detail\glm.cpp" />
+    <ClCompile Include="dependencies\stbi\include\stbi\stb_image.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\app\app.cpp" />
+    <ClCompile Include="src\core\input\input.cpp" />
+    <ClCompile Include="src\core\logger.cpp" />
+    <ClCompile Include="src\core\renderer\camera.cpp" />
+    <ClCompile Include="src\core\renderer\ebo.cpp" />
+    <ClCompile Include="src\core\renderer\mesh.cpp" />
+    <ClCompile Include="src\core\renderer\model.cpp" />
+    <ClCompile Include="src\core\renderer\renderer.cpp" />
+    <ClCompile Include="src\core\renderer\texture.cpp" />
+    <ClCompile Include="src\core\renderer\vao.cpp" />
+    <ClCompile Include="src\core\renderer\vbo.cpp" />
+    <ClCompile Include="src\event\event.cpp" />
+    <ClCompile Include="src\shader\shader.cpp" />
+    <ClCompile Include="src\window\window.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="dependencies\assimp\include\assimp\color4.inl" />
+    <None Include="dependencies\assimp\include\assimp\material.inl" />
+    <None Include="dependencies\assimp\include\assimp\matrix3x3.inl" />
+    <None Include="dependencies\assimp\include\assimp\matrix4x4.inl" />
+    <None Include="dependencies\assimp\include\assimp\quaternion.inl" />
+    <None Include="dependencies\assimp\include\assimp\SmoothingGroups.inl" />
+    <None Include="dependencies\assimp\include\assimp\vector2.inl" />
+    <None Include="dependencies\assimp\include\assimp\vector3.inl" />
     <None Include="dependencies\glm\include\glm\detail\func_common.inl" />
     <None Include="dependencies\glm\include\glm\detail\func_common_simd.inl" />
     <None Include="dependencies\glm\include\glm\detail\func_exponential.inl" />
@@ -284,47 +298,96 @@
     <None Include="dependencies\glm\include\glm\gtx\vector_angle.inl" />
     <None Include="dependencies\glm\include\glm\gtx\vector_query.inl" />
     <None Include="dependencies\glm\include\glm\gtx\wrap.inl" />
-    <None Include="glfw3.dll" />
-    <None Include="LICENSE" />
-    <None Include="models\cottage_blender.gltf" />
-    <None Include="README.md" />
-    <None Include="shaders\3d_fragment.glsl" />
-    <None Include="shaders\3d_vertex.glsl" />
-    <None Include="shaders\red.shader" />
-    <None Include="shaders\white.shader" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dependencies\glad\src\glad.c" />
-    <ClCompile Include="dependencies\glm\include\glm\detail\glm.cpp" />
-    <ClCompile Include="dependencies\glm\include\glm\glm.cppm" />
-    <ClCompile Include="dependencies\stbi\stb_image.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="src\kogayonon\app\app.cpp" />
-    <ClCompile Include="src\kogayonon\core\input\input.cpp" />
-    <ClCompile Include="src\kogayonon\core\logger.cpp" />
-    <ClCompile Include="src\kogayonon\core\renderer\camera.cpp" />
-    <ClCompile Include="src\kogayonon\core\renderer\ebo.cpp" />
-    <ClCompile Include="src\kogayonon\core\renderer\mesh.cpp" />
-    <ClCompile Include="src\kogayonon\core\renderer\model.cpp" />
-    <ClCompile Include="src\kogayonon\core\renderer\renderer.cpp" />
-    <ClCompile Include="src\kogayonon\core\renderer\texture.cpp" />
-    <ClCompile Include="src\kogayonon\core\renderer\vao.cpp" />
-    <ClCompile Include="src\kogayonon\core\renderer\vbo.cpp" />
-    <ClCompile Include="src\kogayonon\event\event.cpp" />
-    <ClCompile Include="src\kogayonon\shader\shader.cpp" />
-    <ClCompile Include="src\kogayonon\window\window.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="image\piramida.png" />
-    <Image Include="textures\pintea.png" />
-    <Image Include="textures\pintea2.PNG" />
-    <Image Include="textures\pintea3.PNG" />
-  </ItemGroup>
-  <ItemGroup>
+    <ClInclude Include="dependencies\assimp\include\assimp\aabb.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\ai_assert.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\anim.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\AssertHandler.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\Base64.hpp" />
+    <ClInclude Include="dependencies\assimp\include\assimp\BaseImporter.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\Bitmap.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\BlobIOSystem.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\ByteSwapper.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\camera.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\cexport.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\cfileio.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\cimport.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\ColladaMetaData.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\color4.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\commonMetaData.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\compiler\poppack1.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\compiler\pstdint.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\compiler\pushpack1.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\config.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\CreateAnimMesh.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\DefaultIOStream.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\DefaultIOSystem.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\DefaultLogger.hpp" />
+    <ClInclude Include="dependencies\assimp\include\assimp\defs.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\Exceptional.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\Exporter.hpp" />
+    <ClInclude Include="dependencies\assimp\include\assimp\fast_atof.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\GenericProperty.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\GltfMaterial.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\Hash.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\Importer.hpp" />
+    <ClInclude Include="dependencies\assimp\include\assimp\importerdesc.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\IOStream.hpp" />
+    <ClInclude Include="dependencies\assimp\include\assimp\IOStreamBuffer.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\IOSystem.hpp" />
+    <ClInclude Include="dependencies\assimp\include\assimp\light.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\LineSplitter.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\LogAux.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\Logger.hpp" />
+    <ClInclude Include="dependencies\assimp\include\assimp\LogStream.hpp" />
+    <ClInclude Include="dependencies\assimp\include\assimp\material.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\MathFunctions.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\matrix3x3.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\matrix4x4.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\MemoryIOWrapper.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\mesh.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\metadata.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\NullLogger.hpp" />
+    <ClInclude Include="dependencies\assimp\include\assimp\ObjMaterial.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\ParsingUtils.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\pbrmaterial.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\port\androidjni\AndroidJNIIOSystem.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\port\androidjni\BundledAssetIOSystem.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\postprocess.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\Profiler.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\ProgressHandler.hpp" />
+    <ClInclude Include="dependencies\assimp\include\assimp\qnan.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\quaternion.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\RemoveComments.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\revision.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\scene.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\SceneCombiner.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\SGSpatialSort.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\SkeletonMeshBuilder.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\SmallVector.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\SmoothingGroups.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\SpatialSort.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\StandardShapes.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\StreamReader.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\StreamWriter.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\StringComparison.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\StringUtils.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\Subdivision.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\texture.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\TinyFormatter.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\types.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\vector2.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\vector3.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\version.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\Vertex.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\XmlParser.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\XMLTools.h" />
+    <ClInclude Include="dependencies\assimp\include\assimp\ZipArchiveIOSystem.h" />
     <ClInclude Include="dependencies\glad\include\glad\glad.h" />
-    <ClInclude Include="dependencies\glad\include\KHR\khrplatform.h" />
-    <ClInclude Include="dependencies\glfw\include\GLFW\glfw3.h" />
-    <ClInclude Include="dependencies\glfw\include\GLFW\glfw3native.h" />
+    <ClInclude Include="dependencies\glad\include\khr\khrplatform.h" />
+    <ClInclude Include="dependencies\glfw\include\glfw\glfw3.h" />
+    <ClInclude Include="dependencies\glfw\include\glfw\glfw3native.h" />
     <ClInclude Include="dependencies\glm\include\glm\common.hpp" />
     <ClInclude Include="dependencies\glm\include\glm\detail\compute_common.hpp" />
     <ClInclude Include="dependencies\glm\include\glm\detail\compute_vector_decl.hpp" />
@@ -613,7 +676,7 @@
     <ClInclude Include="dependencies\glm\include\glm\vec3.hpp" />
     <ClInclude Include="dependencies\glm\include\glm\vec4.hpp" />
     <ClInclude Include="dependencies\glm\include\glm\vector_relational.hpp" />
-    <ClInclude Include="dependencies\stbi\stb_image.h" />
+    <ClInclude Include="dependencies\stbi\include\stbi\stb_image.h" />
     <ClInclude Include="include\app\app.h" />
     <ClInclude Include="include\core\input\input.h" />
     <ClInclude Include="include\core\key_codes.h" />
@@ -628,9 +691,14 @@
     <ClInclude Include="include\core\renderer\vao.h" />
     <ClInclude Include="include\core\renderer\vbo.h" />
     <ClInclude Include="include\core\singleton\singleton.h" />
+    <ClInclude Include="include\events\app_event.h" />
+    <ClInclude Include="include\events\event.h" />
+    <ClInclude Include="include\events\keyboard_events.h" />
+    <ClInclude Include="include\events\mouse_events.h" />
+    <ClInclude Include="include\shader\shader.h" />
+    <ClInclude Include="include\window\window.h" />
   </ItemGroup>
   <ItemGroup>
-    <Library Include="dependencies\assimp\assimp-vc143-mtd.lib" />
     <Library Include="dependencies\glfw\lib\glfw3.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
