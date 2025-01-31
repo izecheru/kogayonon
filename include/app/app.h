@@ -5,11 +5,6 @@
 #include "events/mouse_events.h"
 #include "events/keyboard_events.h"
 
-struct LastMousePos
-{
-  float x, y;
-};
-
 class App
 {
 public:
@@ -26,13 +21,10 @@ public:
   bool onKeyPress(KeyPressedEvent& event);
   bool onScroll();
 
-  void setCaptureMouse();
-
   static GLFWwindow* getWindow();
 
 private:
 
-  static inline LastMousePos last_pos;
   static inline bool capture_mouse = true;
   static inline float delta_time;
   static inline Window* m_window = nullptr;

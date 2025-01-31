@@ -2,4 +2,4 @@
 
 Model::Model(const char* path) {}
 
-void Model::draw(Shader& shader, Camera& camera) {}
+void Model::draw(Shader& shader) {}

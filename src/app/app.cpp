@@ -19,8 +19,7 @@
 #include "events/mouse_events.h"
 #include "window/window.h"
 #include "core/renderer/model.h"
-
-using std::cout;
+#include "core/model_loader/model_loader.h"
 
 App::App() {
   m_window = new Window();
@@ -35,34 +34,21 @@ void App::run() {
 
   glEnable(GL_DEPTH_TEST);
   m_window->setEventCallbackFn([this](Event& e) -> void { this->onEvent(e); });
-  m_renderer->pushShader("H:/Git/kogayonon/shaders/3d_vertex.glsl", "H:/Git/kogayonon/shaders/3d_fragment.glsl", "3d_shader");
 
   double prev_time = glfwGetTime();
 
-  Camera& camera = Camera::getInstance();
-  Model model("H:/Git/kogayonon/models/cottage_blender.gltf");
-  float rotation = 0.0f;
+  ModelLoader loader;
+  loader.importAsset("models/cat/cat.glb");
   while (!glfwWindowShouldClose(m_window->getWindow()))
   {
-    camera.processKeyboard(m_window->getWindow(), delta_time);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);  // Dark gray background
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     float current_time = glfwGetTime();
     delta_time = current_time - prev_time;
     prev_time = current_time;
-    if (current_time - prev_time >= 1 / 60)
-    {
-      rotation += 0.5f;
-      prev_time = current_time;
-    }
 
-    m_renderer->bindShader("3d_shader");
-    //model.draw(m_renderer->getShader("3d_shader"), _placeholder_);
     m_window->update();
   }
-
-  // Cleanup
-
 }
 
 void App::onEvent(Event& event) {
@@ -81,8 +67,8 @@ void App::onEvent(Event& event) {
 
   dispatcher.dispatch<MouseMovedEvent>([this](MouseMovedEvent& e) -> bool
     {
-      Camera& camera = Camera::getInstance();
-      camera.processMouseMoved(e.getX(), e.getY());
+      //Camera& camera = Camera::getInstance();
+      //camera.processMouseMoved(e.getX(), e.getY());
       return this->onMouseMove(e);
     });
 
@@ -109,14 +95,14 @@ void App::onEvent(Event& event) {
 
   dispatcher.dispatch<MouseEnteredEvent>([this](MouseEnteredEvent& e) -> bool
     {
-      if (e.hasEntered())
-      {
-        glfwSetInputMode(m_window->getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-      }
-      else
-      {
-        glfwSetInputMode(m_window->getWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-      }
+      //if (e.hasEntered())
+      //{
+      //  glfwSetInputMode(m_window->getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+      //}
+      //else
+      //{
+      //  glfwSetInputMode(m_window->getWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+      //}
       return this->onMouseEnter(e);
     });
 }
@@ -137,7 +123,3 @@ bool App::onKeyPress(KeyPressedEvent& event) { return true; }
 GLFWwindow* App::getWindow() { return m_window->getWindow(); }
 
 bool App::onScroll() { return true; }
-
-void App::setCaptureMouse() {
-  capture_mouse = !capture_mouse;
-}

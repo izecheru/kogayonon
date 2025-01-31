@@ -12,8 +12,6 @@
 #include "events/keyboard_events.h"
 #include "events/mouse_events.h"
 
-std::unordered_set<KeyCode> keys_pressed;
-
 Window::Window() {
   init(m_data);
   glfwSetWindowUserPointer(m_window, &m_data);

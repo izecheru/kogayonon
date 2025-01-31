@@ -71,9 +71,9 @@ void Camera::processMouseMoved(float x, float y, bool constrain_pitch) {
     if (m_props.pitch < -89.0f) m_props.pitch = -89.0f;
   }
 
-  // Wrap yaw within [-180, 180]
-  if (m_props.yaw > 170.0f) m_props.yaw -= 360.0f;
-  if (m_props.yaw < -170.0f) m_props.yaw += 360.0f;
+  // wrap yaw within [-180, 180]
+  if (m_props.yaw > 180.0f) m_props.yaw -= 360.0f;
+  if (m_props.yaw < -180.0f) m_props.yaw += 360.0f;
 
   updateCameraVectors();
 }
