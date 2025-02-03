@@ -13,14 +13,8 @@ public:
   Mesh() {}
   Mesh(const std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures);
 
-  void draw(
-    Shader& shader,
-    Camera& camera,
-    glm::mat4 matrix,
-    glm::vec3 translation,
-    glm::quat rotation,
-    glm::vec3 scale
-  );
+  void setupMesh();
+  void draw();
 
 private:
   VertexArrayObject m_vao;

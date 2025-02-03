@@ -12,5 +12,5 @@ public:
 
   void attribPointer(unsigned int index, int size, unsigned int type, bool normalized, unsigned int stride, const void* offset);
 private:
-  unsigned int m_id;
+  unsigned int m_id = 0;
 };

@@ -14,7 +14,7 @@ void VertexArrayObject::unbind() {
 }
 
 void VertexArrayObject::attribPointer(unsigned int index, int size, unsigned int type, bool normalized, unsigned int stride, const void* offset) {
-  glEnableVertexAttribArray(index);
   glVertexAttribPointer(index, size, type, normalized, stride, offset);
+  glEnableVertexAttribArray(index);
 }
 

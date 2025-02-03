@@ -3,16 +3,16 @@
 #include "shader/shader.h"
 #include "core/renderer/mesh.h"
 
-
 class Model
 {
 public:
-  Model(const char* path);
+  Model(const char* path, std::vector<Mesh>& meshes) :path_to_model(path), m_meshes(meshes) {}
   ~Model() = default;
-  Model() {}
+  Model() = default;
 
   void draw(Shader& shader);
 
 private:
   std::vector<Mesh> m_meshes;
+  const char* path_to_model;
 };

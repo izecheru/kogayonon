@@ -4,7 +4,9 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "core/renderer/camera.h"
 
-Mesh::Mesh(const std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures) {
+Mesh::Mesh(const std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures) {}
+
+void Mesh::setupMesh() {
   m_vao.bind();
 
   m_vao.attribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0); // Vertex positions
