@@ -14,7 +14,6 @@ class VertexBufferObject
 {
 public:
   VertexBufferObject(const std::vector<Vertex>& vertices);
-  VertexBufferObject() = default;
   ~VertexBufferObject() { if (m_id != 0)glDeleteBuffers(1, &m_id); }
 
   void bind();

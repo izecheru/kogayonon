@@ -5,7 +5,6 @@
 class ElementsBufferObject
 {
 public:
-  ElementsBufferObject() = default;
   ElementsBufferObject(const std::vector<unsigned int>& indices);
   ~ElementsBufferObject() { if (m_id != 0)glDeleteBuffers(1, &m_id); }
 

@@ -37,7 +37,9 @@ void App::run() {
 
   double prev_time = glfwGetTime();
 
-  Model cat("models/cat/cat.obj");
+  Model my_model("models/monster.obj");
+  Model my_cube("models/cube.glb");
+  Model my_cat("models/cat/cat.obj");
   m_renderer->pushShader("shaders/3d_vertex.glsl", "shaders/3d_fragment.glsl", "3d_shader");
   Camera& camera = Camera::getInstance();
   while (!glfwWindowShouldClose(m_window->getWindow()))
@@ -75,7 +77,9 @@ void App::run() {
     delta_time = current_time - prev_time;
     prev_time = current_time;
 
-    cat.draw(m_renderer->getShader("3d_shader"));
+    my_model.draw(m_renderer->getShader("3d_shader"));
+    my_cube.draw(m_renderer->getShader("3d_shader"));
+    my_cat.draw(m_renderer->getShader("3d_shader"));
 
     m_window->update();
     m_renderer->unbindShader("3d_shader");
@@ -107,7 +111,7 @@ void App::onEvent(Event& event) {
     {
       if (e.getKeyCode() == KeyCode::Escape)
       {
-        m_renderer->togglePolyMode();
+        glfwSetWindowShouldClose(m_window->getWindow(), true);
       }
       // TODO must implement some switch to capture mouse or not
       if (e.getKeyCode() == KeyCode::M)
@@ -117,10 +121,10 @@ void App::onEvent(Event& event) {
       {
         m_window->setVsync();
       }
-      //if (e.getKeyCode() == KeyCode::F1)
-      //{
-      //  glfwSetWindowShouldClose(m_window->getWindow(), true);
-      //}
+      if (e.getKeyCode() == KeyCode::F1)
+      {
+        m_renderer->togglePolyMode();
+      }
       return this->onKeyPress(e);
     });
 

@@ -9,10 +9,10 @@ public:
   Renderer();
   ~Renderer() = default;
 
+  // TODO probably this should take a model to draw
   void render(const char* mesh_name);
 
   void pushShader(const char* vertex_shader, const char* fragment_shader, const char* shader_name);
-  void pushMesh(const char* mesh_name, const Mesh& mesh);
 
   Shader getShader(const char* shader_name);
   GLint getShaderId(const char* shader_name);

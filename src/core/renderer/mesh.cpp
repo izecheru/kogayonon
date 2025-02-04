@@ -15,8 +15,8 @@ void Mesh::setupMesh() {
   mesh_buffers.ebo->bind();
 
   mesh_buffers.vao->attribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0); // Vertex positions
-  //mesh_buffers.vao.attribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal)); // Vertex normal
-  //mesh_buffers.vao.attribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texture)); // Vertex textures 
+  //mesh_buffers.vao->attribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal)); // Vertex normal
+  //mesh_buffers.vao->attribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texture)); // Vertex textures 
 
   mesh_buffers.vbo->unbind();
   mesh_buffers.ebo->unbind();

@@ -1,6 +1,7 @@
 #version 460 core
 
 layout (location = 0) in vec3 aPos; // Vertex positions
+layout (location = 1) in vec3 aTex; // Vertex positions
 
 // Uniforms for transformation
 uniform mat4 model;

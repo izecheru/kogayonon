@@ -21,7 +21,7 @@ void Camera::setView() {
   m_props.yaw = -90.0f;
   m_props.pitch = 0.0f;
   m_props.mouse_sens = 0.2f;
-  m_props.movement_speed = 0.1f;
+  m_props.movement_speed = 0.8f;
 }
 
 const CameraProps& Camera::getCamera() {

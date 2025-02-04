@@ -1,8 +1,11 @@
+
 #version 460 core
 
-out vec4 FragColor;
+in vec2 TexCoord; // Texture coordinate passed from vertex shader
+out vec4 FragColor; // Output color
 
 void main()
 {
-    FragColor = vec4(1.0, 0.0, 0.0, 1.0); // Solid red color
+    // Output a simple green color
+    FragColor = vec4(0.0f, 1.0f, 0.0f, 1.0f); // RGBA (Green color)
 }

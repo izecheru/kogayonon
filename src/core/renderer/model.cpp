@@ -7,9 +7,9 @@ Model::Model(const char* path_to_model) {
 }
 
 void Model::draw(Shader& shader) {
-  for (auto& it : m_meshes)
+  for (auto& mesh : m_meshes)
   {
-    it.draw();
+    mesh.draw();
   }
 }
 

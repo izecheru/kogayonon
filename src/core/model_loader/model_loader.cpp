@@ -19,6 +19,7 @@ const aiScene* ModelLoader::getScene(const char* path_to_asset) {
 
 Mesh ModelLoader::processMesh(const aiMesh* mesh) {
   std::vector<Vertex> vertices;
+  std::vector<Texture> textures;
   std::vector<unsigned int> indices;
 
   for (unsigned int i = 0; i < mesh->mNumVertices; i++)
