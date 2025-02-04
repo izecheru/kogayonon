@@ -1,18 +1,20 @@
 #pragma once
 #include <vector>
+#include <assimp/scene.h>
 #include "shader/shader.h"
 #include "core/renderer/mesh.h"
 
 class Model
 {
 public:
-  Model(const char* path, std::vector<Mesh>& meshes) :path_to_model(path), m_meshes(meshes) {}
+  Model(const char* path_to_model);
   ~Model() = default;
-  Model() = default;
 
   void draw(Shader& shader);
 
+  void loadModel(const char* path);
+
 private:
   std::vector<Mesh> m_meshes;
-  const char* path_to_model;
+  const char* path;
 };

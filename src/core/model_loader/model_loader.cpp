@@ -4,50 +4,62 @@
 #include "core/logger.h"
 #include "core/renderer/model.h"
 
-bool ModelLoader::importAsset(const char* path_to_asset) {
-  m_scene = importer.ReadFile(path_to_asset,
+const aiScene* ModelLoader::getScene(const char* path_to_asset) {
+  const aiScene* scene = importer.ReadFile(path_to_asset,
     aiProcess_CalcTangentSpace |
     aiProcess_Triangulate |
-    aiProcess_JoinIdenticalVertices |
     aiProcess_SortByPType);
-  if (m_scene == nullptr || m_scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !m_scene->mRootNode)
+  if (scene == nullptr || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
   {
     Logger::logError("Could not load object from [", path_to_asset, "]");
-    return false;
+    return nullptr;
   }
-  Logger::logInfo("Loaded model ", path_to_asset);
-  sceneProcess();
-  return true;
+  return scene;
 }
 
-bool ModelLoader::sceneProcess() {
-  if (!m_scene->HasMeshes())
+Mesh ModelLoader::processMesh(const aiMesh* mesh) {
+  std::vector<Vertex> vertices;
+  std::vector<unsigned int> indices;
+
+  for (unsigned int i = 0; i < mesh->mNumVertices; i++)
   {
-    Logger::logError("No meshes present in the scene!!!");
-  }
-  else
-  {
-    Logger::logInfo("meshes:", m_scene->mNumMeshes);
-    Logger::logInfo("animations:", m_scene->mNumAnimations);
-    Logger::logInfo("materials:", m_scene->mNumMaterials);
-    Logger::logInfo("textures:", m_scene->mNumTextures);
-    for (int i = 0; i < m_scene->mNumMeshes; i++)
+    Vertex vertex;
+    vertex.position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
+    vertex.normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+
+    if (mesh->mTextureCoords[0])
     {
-      for (int j = 0; j < m_scene->mMeshes[i]->mNumBones; j++)
-      {
-        Logger::logInfo("name of bone for mesh ", i, ", bone number :", j, " ", m_scene->mMeshes[i]->mBones[j]->mName.C_Str());
-      }
+      vertex.texture = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
+    }
+    else
+    {
+      vertex.texture = glm::vec2(0.0f, 0.0f);
+    }
+
+    vertices.push_back(vertex);
+  }
+
+  for (unsigned int i = 0; i < mesh->mNumFaces; i++)
+  {
+    aiFace face = mesh->mFaces[i];
+    for (unsigned int j = 0; j < face.mNumIndices; j++)
+    {
+      indices.push_back(face.mIndices[j]);
     }
   }
-  return false;
+  Logger::logInfo("processed ", vertices.size(), " vertices and ", indices.size(), " indices");
+  return Mesh(vertices, indices);
 }
 
-Model ModelLoader::processModel() {
-  std::vector<Mesh> meshes(m_scene->mNumMeshes);
-  Mesh temp_mesh;
-  for (int i = 0; i < m_scene->mNumMeshes; i++)
+void ModelLoader::processNode(std::vector<Mesh>& meshes, aiNode* node, const aiScene* scene) {
+  for (unsigned int i = 0; i < node->mNumMeshes; i++)
   {
-    meshes.push_back();
+    aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+    meshes.push_back(processMesh(mesh));
   }
-  return Model("path", m_scene->mMeshes);
+
+  for (unsigned int i = 0; i < node->mNumChildren; i++)
+  {
+    processNode(meshes, node->mChildren[i], scene);
+  }
 }

@@ -26,7 +26,7 @@ public:
 private:
 
   static inline bool capture_mouse = true;
-  static inline float delta_time;
+  static inline double delta_time;
   static inline Window* m_window = nullptr;
   static inline Renderer* m_renderer = nullptr;
 };

@@ -19,8 +19,8 @@ public:
   unsigned int getUnit()const;
 
 private:
-  unsigned int m_id;
+  unsigned int m_id = 0;
   aiString m_path;
-  const char* m_type;
-  unsigned int m_unit;
+  const char* m_type = nullptr;
+  unsigned int m_unit = 0;
 };

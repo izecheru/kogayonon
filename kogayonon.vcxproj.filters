@@ -524,6 +524,7 @@
     <None Include="models\cat\12221_Cat_v1_l3.mtl" />
     <None Include="models\cat\cat.glb" />
     <None Include="models\cat\cat.mtl" />
+    <None Include="models\cube.glb" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dependencies\include\assimp\aabb.h">

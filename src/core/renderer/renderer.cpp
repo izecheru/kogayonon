@@ -13,10 +13,6 @@ void Renderer::pushShader(const char* vertex_shader, const char* fragment_shader
   shaders.insert(std::pair<const char*, Shader>(shader_name, sh));
 }
 
-void Renderer::pushMesh(const char* mesh_name, const Mesh& mesh) {
-  meshes[mesh_name] = mesh;
-}
-
 Shader Renderer::getShader(const char* shader_name) {
   for (auto it = shaders.begin(); it != shaders.end(); it++)
   {
