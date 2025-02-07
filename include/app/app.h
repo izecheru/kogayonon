@@ -5,28 +5,32 @@
 #include "events/mouse_events.h"
 #include "events/keyboard_events.h"
 
-class App
+namespace kogayonon
 {
-public:
-  App();
-  ~App();
-  void run();
 
-  void onEvent(Event& event);
 
-  bool onWindowResize(WindowResizeEvent& event);
-  bool onWindowClose(WindowCloseEvent& event);
-  bool onMouseMove(MouseMovedEvent& event);
-  bool onMouseEnter(MouseEnteredEvent& event);
-  bool onKeyPress(KeyPressedEvent& event);
-  bool onScroll();
+  class App
+  {
+  public:
+    App();
+    ~App() = default;
+    void run();
 
-  static GLFWwindow* getWindow();
+    void onEvent(Event& event);
 
-private:
+    bool onWindowResize(WindowResizeEvent& event);
+    bool onWindowClose(WindowCloseEvent& event);
+    bool onMouseMove(MouseMovedEvent& event);
+    bool onMouseEnter(MouseEnteredEvent& event);
+    bool onKeyPress(KeyPressedEvent& event);
+    bool onScroll();
 
-  static inline bool capture_mouse = true;
-  static inline double delta_time;
-  static inline Window* m_window = nullptr;
-  static inline Renderer* m_renderer = nullptr;
-};
+    static GLFWwindow* getWindow();
+
+  private:
+    static inline bool capture_mouse = true;
+    static inline double delta_time;
+    static inline std::unique_ptr<Window> m_window;
+    static inline std::unique_ptr<Renderer> m_renderer;
+  };
+}

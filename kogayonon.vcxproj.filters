@@ -39,9 +39,6 @@
     <ClCompile Include="src\core\renderer\camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\core\renderer\ebo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\core\renderer\mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -49,15 +46,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\core\renderer\renderer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\core\renderer\texture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\core\renderer\vao.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\core\renderer\vbo.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\event\event.cpp">
@@ -524,7 +512,6 @@
     <None Include="models\cat\12221_Cat_v1_l3.mtl" />
     <None Include="models\cat\cat.glb" />
     <None Include="models\cat\cat.mtl" />
-    <None Include="models\cube.glb" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dependencies\include\assimp\aabb.h">
@@ -1676,9 +1663,6 @@
     <ClInclude Include="include\core\renderer\camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\core\renderer\ebo.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\core\renderer\mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -1686,15 +1670,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\core\renderer\renderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\core\renderer\texture.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\core\renderer\vao.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\core\renderer\vbo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\core\singleton\singleton.h">

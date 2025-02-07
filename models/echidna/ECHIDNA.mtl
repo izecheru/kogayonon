@@ -1,0 +1,49 @@
+# Exported by Open Cascade CAD Assistant [www.opencascade.com]
+newmtl mat8
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ns 0.000000
+map_Kd ECHIDNA_textures/mn_sden_00_dress2_d.png
+newmtl mat1
+Ka 1.000000 1.000000 1.000000
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ns 0.000000
+map_Kd ECHIDNA_textures/mn_sden_00_face_d.png
+newmtl mat2
+Ka 0.537099 0.537099 0.537099
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ns 0.000000
+map_Kd ECHIDNA_textures/mn_sden_00_basebody_upper_d.png
+newmtl mat3
+Ka 0.537099 0.537099 0.537099
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ns 0.000000
+map_Kd ECHIDNA_textures/mn_sden_00_basebody_lower_d.png
+newmtl mat4
+Ka 0.537099 0.537099 0.537099
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ns 250.000000
+map_Kd ECHIDNA_textures/mn_sden_00_hair_d.png
+newmtl mat5
+Ka 0.537099 0.537099 0.537099
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ns 0.000000
+map_Kd ECHIDNA_textures/mn_sden_00_dress_d.png
+newmtl mat6
+Ka 0.537099 0.537099 0.537099
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ns 0.000000
+map_Kd ECHIDNA_textures/mn_sden_00_dress1_d.png
+newmtl mat7
+Ka 0.537099 0.537099 0.537099
+Kd 1.000000 1.000000 1.000000
+Ks 1.000000 1.000000 1.000000
+Ns 0.000000
+map_Kd ECHIDNA_textures/mn_sden_00_dress1_d.png

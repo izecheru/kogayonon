@@ -1,5 +1,8 @@
 #include "events/event.h"
 
-bool Event::isInCategory(EventCategory category) {
-  return getCategoryFlags() & category;
+namespace kogayonon
+{
+  bool Event::isInCategory(EventCategory category) {
+    return getCategoryFlags() & category;
+  }
 }

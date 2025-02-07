@@ -6,12 +6,18 @@
 
 #include <unordered_set>
 
-class Input
+namespace kogayonon
 {
-public:
-  static bool isKeyPressed(KeyCode key);
-  static bool isMouseButtonPressed(MouseCode button);
-  static glm::vec2 getMousePos();
-  static float getMouseX();
-  static float getMouseY();
-};
+
+
+  class Input
+  {
+  public:
+    static bool isKeyPressed(KeyCode key);
+    static bool isMouseButtonPressed(MouseCode button);
+    static glm::vec2 getMousePos();
+    static float getMouseX();
+    static float getMouseY();
+  };
+}
+

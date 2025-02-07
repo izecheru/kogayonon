@@ -3,15 +3,30 @@
 #include "core/renderer/model.h"
 // Use the #aiProcess_FlipUVs flag to get UV coordinates with the upper-left corner as origin.
 
-class ModelLoader
+namespace kogayonon
 {
-public:
-  static const aiScene* getScene(const char* path_to_asset);
+  class ModelLoader
+  {
+  public:
 
-  static Mesh processMesh(const aiMesh* mesh);
-  static void processNode(std::vector<Mesh>& meshes, aiNode* node, const aiScene* scene);
+    static void buildModel(std::string& path, std::vector<Mesh>& meshes, std::vector<Texture>& textures_loaded, Shader& shader);
 
-private:
-  // assimp importer member variable to load objects into the game
-  inline static Assimp::Importer importer;
-};
+    static void getScene(std::string& path);
+
+    static Mesh processMesh(const aiMesh* mesh, std::vector<Texture>& textures_loaded, Shader& shader);
+    static void processNode(std::vector<Mesh>& meshes, aiNode* node, std::vector<Texture>& loaded_textures, Shader& shader);
+    static unsigned int textureFromFile(std::string& path, const std::string& directory, bool gamma);
+    static std::vector<Texture> loadMaterialTextures(std::vector<Texture>& textures_loaded, aiMaterial* material, aiTextureType type, std::string type_name);
+
+    static std::vector<Texture> getTextures(const aiMesh* mesh, std::vector<Texture>& textures_loaded);
+    static bool textureAlreadyLoaded(const std::string& path, const std::vector<Texture>& loaded_textures);
+    static std::vector<Vertex> getVertices(const aiMesh* mesh);
+    static std::vector<unsigned int> getIndices(const aiMesh* mesh);
+
+  private:
+    // assimp importer member variable to load objects into the game
+    inline static Assimp::Importer m_importer;
+    inline static const aiScene* m_scene = nullptr;
+    inline static std::string m_current_model_path;
+  };
+}

@@ -3,29 +3,31 @@
 #include <map>
 #include "shader/shader.h"
 
-class Renderer
+namespace kogayonon
 {
-public:
-  Renderer();
-  ~Renderer() = default;
+  class Renderer
+  {
+  public:
+    Renderer();
+    ~Renderer() = default;
 
-  // TODO probably this should take a model to draw
-  void render(const char* mesh_name);
+    // TODO probably this should take a model to draw
+    void render(const char* mesh_name);
 
-  void pushShader(const char* vertex_shader, const char* fragment_shader, const char* shader_name);
+    void pushShader(const char* vertex_shader, const char* fragment_shader, const char* shader_name);
 
-  Shader getShader(const char* shader_name);
-  GLint getShaderId(const char* shader_name);
+    Shader getShader(const char* shader_name);
+    GLint getShaderId(const char* shader_name);
 
-  void bindShader(const char* shader_name);
-  void unbindShader(const char* shader_name);
+    void bindShader(const char* shader_name);
+    void unbindShader(const char* shader_name);
 
-  bool getPolyMode();
-  void togglePolyMode();
+    bool getPolyMode();
+    void togglePolyMode();
 
-private:
-  bool is_poly;
-  std::map<const char*, Shader> shaders;
-  std::map<const char*, Mesh> meshes;
-};
-
+  private:
+    bool is_poly;
+    std::map<const char*, Shader> shaders;
+    std::map<const char*, Mesh> meshes;
+  };
+}

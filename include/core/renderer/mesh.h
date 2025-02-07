@@ -1,53 +1,43 @@
 #pragma once
-#include <memory>
-#include "core/renderer/vao.h"
-#include "core/renderer/vbo.h"
-#include "core/renderer/ebo.h"
 #include <glad/glad.h>
-#include "texture.h"
+#include <vector>
 #include "shader/shader.h"
 #include "core/renderer/camera.h"
 #include "core/logger.h"
 
-class Mesh
+#include <assimp\types.h>
+namespace kogayonon
 {
-private:
-  struct MeshBuffers
+  struct Vertex
   {
-    std::unique_ptr<VertexArrayObject> vao;
-    std::unique_ptr<VertexBufferObject> vbo;
-    std::unique_ptr<ElementsBufferObject> ebo;
-
-    void bindBuffers() {
-      this->vao->bind();
-      this->vbo->bind();
-      this->ebo->bind();
-    }
-
-    void unbindBuffers() {
-      this->vao->unbind();
-      this->vbo->unbind();
-      this->ebo->unbind();
-    }
-
-
-    MeshBuffers(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices) {
-      this->ebo = std::make_unique<ElementsBufferObject>(indices);
-      this->vbo = std::make_unique<VertexBufferObject>(vertices);
-      this->vao = std::make_unique<VertexArrayObject>();
-    }
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec2 texture;
+    glm::vec3 tangent;
+    glm::vec3 bitangent;
   };
 
-public:
-  Mesh() = default;
-  Mesh(const std::vector<Vertex>& vertices, std::vector<unsigned int>& indices);
+  struct Texture
+  {
+    unsigned int id;
+    std::string type;
+    std::string path;
+  };
 
-  void setupMesh();
-  void draw();
+  class Mesh
+  {
+  public:
+    Mesh() = default;
+    Mesh(const std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures);
 
-private:
-  std::vector<Vertex> m_vertices;
-  std::vector<Texture> m_textures;
-  std::vector<unsigned int> m_indices;
-  MeshBuffers mesh_buffers;
-};
+    void setupMesh();
+    void render(Shader& shader);
+  private:
+    std::vector<Vertex> m_vertices;
+    std::vector<Texture> m_textures;
+    std::vector<unsigned int> m_indices;
+
+  private:
+    unsigned int m_vao, m_vbo, m_ebo;
+  };
+}

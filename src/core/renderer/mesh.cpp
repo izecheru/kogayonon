@@ -1,30 +1,81 @@
 #include <core/renderer/mesh.h>
+
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include "core/renderer/camera.h"
+
 #include "core/logger.h"
+#include "core/renderer/camera.h"
 
-Mesh::Mesh(const std::vector<Vertex>& vertices, std::vector<unsigned int>& indices) :mesh_buffers(vertices, indices), m_vertices(vertices), m_indices(indices) {
-  setupMesh();
-}
+namespace kogayonon
+{
+  Mesh::Mesh(const std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures) : m_vertices(vertices), m_indices(indices), m_textures(textures) {
+    Logger::logInfo("Mesh vertices ", vertices.size(), ", indices ", indices.size(), ", textures ", textures.size());
+    this->setupMesh();
+  }
 
-void Mesh::setupMesh() {
-  mesh_buffers.vao->bind();
-  mesh_buffers.vbo->bind();
-  mesh_buffers.ebo->bind();
+  void Mesh::setupMesh() {
+    //Create buffers
+    glGenVertexArrays(1, &m_vao);
+    glGenBuffers(1, &m_vbo);
+    glGenBuffers(1, &m_ebo);
 
-  mesh_buffers.vao->attribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0); // Vertex positions
-  //mesh_buffers.vao->attribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal)); // Vertex normal
-  //mesh_buffers.vao->attribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texture)); // Vertex textures 
+    glBindVertexArray(m_vao);
 
-  mesh_buffers.vbo->unbind();
-  mesh_buffers.ebo->unbind();
-  mesh_buffers.vao->unbind();
-}
+    // now we load the data into the vbo buffer
+    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+    glBufferData(GL_ARRAY_BUFFER, m_vertices.size() * sizeof(Vertex), m_vertices.data(), GL_STATIC_DRAW);
 
-void Mesh::draw() {
-  mesh_buffers.bindBuffers();
-  glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(mesh_buffers.ebo->getCount()), GL_UNSIGNED_INT, 0);
-  mesh_buffers.unbindBuffers();
+    // now we do the indices buffer
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(unsigned int), m_indices.data(), GL_STATIC_DRAW);
+
+    // now we take care of the pointers
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), static_cast<void*>(0));
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texture));
+
+    // unbind the vao
+    glBindVertexArray(0);
+  }
+
+  void Mesh::render(Shader& shader) {
+    unsigned int diffuseNr = 1;
+    unsigned int specularNr = 1;
+    unsigned int normalNr = 1;
+    unsigned int heightNr = 1;
+    for (unsigned int i = 0; i < m_textures.size(); i++)
+    {
+      glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
+      // retrieve texture number (the N in diffuse_textureN)
+      std::string number;
+      std::string name = m_textures[i].type;
+      if (name == "texture_diffuse")
+        number = std::to_string(diffuseNr++);
+      else if (name == "texture_specular")
+        number = std::to_string(specularNr++); // transfer unsigned int to string
+      else if (name == "texture_normal")
+        number = std::to_string(normalNr++); // transfer unsigned int to string
+      else if (name == "texture_height")
+        number = std::to_string(heightNr++); // transfer unsigned int to string
+
+      // now set the sampler to the correct texture unit
+      glUniform1i(glGetUniformLocation(shader.getShaderId(), (name + number).c_str()), i);
+      // and finally bind the texture
+      glBindTexture(GL_TEXTURE_2D, m_textures[i].id);
+    }
+
+    // draw mesh
+    glBindVertexArray(m_vao);
+    glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(m_indices.size()), GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+
+    // always good practice to set everything back to defaults once configured.
+    glActiveTexture(GL_TEXTURE0);
+  }
 }

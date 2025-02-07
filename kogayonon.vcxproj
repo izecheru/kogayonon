@@ -141,13 +141,9 @@
     <ClCompile Include="src\core\logger.cpp" />
     <ClCompile Include="src\core\model_loader\model_loader.cpp" />
     <ClCompile Include="src\core\renderer\camera.cpp" />
-    <ClCompile Include="src\core\renderer\ebo.cpp" />
     <ClCompile Include="src\core\renderer\mesh.cpp" />
     <ClCompile Include="src\core\renderer\model.cpp" />
     <ClCompile Include="src\core\renderer\renderer.cpp" />
-    <ClCompile Include="src\core\renderer\texture.cpp" />
-    <ClCompile Include="src\core\renderer\vao.cpp" />
-    <ClCompile Include="src\core\renderer\vbo.cpp" />
     <ClCompile Include="src\event\event.cpp" />
     <ClCompile Include="src\shader\shader.cpp" />
     <ClCompile Include="src\window\window.cpp" />
@@ -306,7 +302,6 @@
     <None Include="models\cat\12221_Cat_v1_l3.mtl" />
     <None Include="models\cat\cat.glb" />
     <None Include="models\cat\cat.mtl" />
-    <None Include="models\cube.glb" />
     <None Include="README.md" />
     <None Include="shaders\3d_fragment.glsl" />
     <None Include="shaders\3d_vertex.glsl" />
@@ -698,13 +693,9 @@
     <ClInclude Include="include\core\model_loader\model_loader.h" />
     <ClInclude Include="include\core\mouse_codes.h" />
     <ClInclude Include="include\core\renderer\camera.h" />
-    <ClInclude Include="include\core\renderer\ebo.h" />
     <ClInclude Include="include\core\renderer\mesh.h" />
     <ClInclude Include="include\core\renderer\model.h" />
     <ClInclude Include="include\core\renderer\renderer.h" />
-    <ClInclude Include="include\core\renderer\texture.h" />
-    <ClInclude Include="include\core\renderer\vao.h" />
-    <ClInclude Include="include\core\renderer\vbo.h" />
     <ClInclude Include="include\core\singleton\singleton.h" />
     <ClInclude Include="include\events\app_event.h" />
     <ClInclude Include="include\events\event.h" />

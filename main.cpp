@@ -3,7 +3,7 @@
 #undef main
 
 int main() {
-  App app;
+  kogayonon::App app;
   app.run();
   return 0;
 }
