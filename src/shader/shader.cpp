@@ -6,6 +6,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <glm\gtc\type_ptr.hpp>
 namespace kogayonon
 {
   Shader::Shader(const char* vert_path, const char* frag_path) {
@@ -69,6 +70,18 @@ namespace kogayonon
     else
     {
       glUniform1i(location, value);  // Set the uniform value
+    }
+  }
+
+  void Shader::setMat4(const char* uniform, glm::mat4 mat) {
+    int location = glGetUniformLocation(m_program_id, uniform);
+    if (location == -1)
+    {
+      Logger::logError("Uniform not found: ", uniform);
+    }
+    else
+    {
+      glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(mat));
     }
   }
 

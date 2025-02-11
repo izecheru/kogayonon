@@ -1,16 +1,14 @@
+#include <glad/glad.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+#include <stbi\stb_image.h>
 #include "core/model_loader/model_loader.h"
 #include "core/logger.h"
 #include "core/renderer/model.h"
-#include <stbi\stb_image.h>
 
 namespace kogayonon
 {
-
-
   void ModelLoader::buildModel(std::string& path, std::vector<Mesh>& meshes, std::vector<Texture>& textures_loaded, Shader& shader) {
-    // we init the m_scene member variable
     m_current_model_path = path.substr(0, path.find_last_of('/'));
     getScene(path);
 
@@ -23,6 +21,7 @@ namespace kogayonon
       | aiProcess_OptimizeMeshes
       | aiProcess_JoinIdenticalVertices
       | aiProcess_CalcTangentSpace
+      | aiProcess_FlipUVs
       ;
     m_scene = m_importer.ReadFile(path, importOptions);
     if (m_scene == nullptr || m_scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !m_scene->mRootNode)
@@ -62,9 +61,6 @@ namespace kogayonon
     filename = directory + '/' + filename;
 
     unsigned int texture_id;
-    glGenTextures(1, &texture_id);
-    // Flip image vertically for correct orientation
-    stbi_set_flip_vertically_on_load(true);
     int width, height, num_components;
     unsigned char* data = stbi_load(filename.c_str(), &width, &height, &num_components, 0);
     if (data)
@@ -77,7 +73,9 @@ namespace kogayonon
       else if (num_components == 4)
         format = GL_RGBA;
 
+      glGenTextures(1, &texture_id);
       glBindTexture(GL_TEXTURE_2D, texture_id);
+      //glCreateTextures(GL_TEXTURE_2D, 1, &texture_id);
       glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
       glGenerateMipmap(GL_TEXTURE_2D);
 
@@ -110,19 +108,19 @@ namespace kogayonon
         if (std::strcmp(textures_loaded[j].path.data(), str.C_Str()) == 0)
         {
           textures.push_back(textures_loaded[j]);
-          skip = true; // a texture with the same filepath has already been loaded, continue to next one. (optimization)
+          skip = true;
           break;
         }
       }
       if (!skip)
-      {   // if texture hasn't been loaded already, load it
+      {
         Texture texture;
         std::string st = str.C_Str();
         texture.id = textureFromFile(st, m_current_model_path);
         texture.type = type_name;
         texture.path = str.C_Str();
         textures.push_back(texture);
-        textures_loaded.push_back(texture);  // store it as texture loaded for entire model, to ensure we won't unnecessary load duplicate textures.
+        textures_loaded.push_back(texture);
       }
     }
     return textures;
@@ -131,23 +129,13 @@ namespace kogayonon
   std::vector<Texture> ModelLoader::getTextures(const aiMesh* mesh, std::vector<Texture>& textures_loaded) {
     aiMaterial* material = m_scene->mMaterials[mesh->mMaterialIndex];
     std::vector<Texture> textures;
-    // we assume a convention for sampler names in the shaders. Each diffuse texture should be named
-    // as 'texture_diffuseN' where N is a sequential number ranging from 1 to MAX_SAMPLER_NUMBER. 
-    // Same applies to other texture as the following list summarizes:
-    // diffuse: texture_diffuseN
-    // specular: texture_specularN
-    // normal: texture_normalN
 
-    // 1. diffuse maps
     std::vector<Texture> diffuseMaps = loadMaterialTextures(textures_loaded, material, aiTextureType_DIFFUSE, "texture_diffuse");
     textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
-    // 2. specular maps
     std::vector<Texture> specularMaps = loadMaterialTextures(textures_loaded, material, aiTextureType_SPECULAR, "texture_specular");
     textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
-    // 3. normal maps
     std::vector<Texture> normalMaps = loadMaterialTextures(textures_loaded, material, aiTextureType_HEIGHT, "texture_normal");
     textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
-    // 4. height maps
     std::vector<Texture> heightMaps = loadMaterialTextures(textures_loaded, material, aiTextureType_AMBIENT, "texture_height");
     textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());    return textures;
   }

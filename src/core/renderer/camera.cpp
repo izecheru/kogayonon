@@ -5,6 +5,7 @@
 #include <glad/glad.h>
 #include "core/logger.h"
 #include "core/input/input.h"
+#include "shader/shader.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 

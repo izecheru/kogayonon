@@ -21,7 +21,6 @@ namespace kogayonon
     glGenBuffers(1, &m_ebo);
 
     glBindVertexArray(m_vao);
-
     // now we load the data into the vbo buffer
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, m_vertices.size() * sizeof(Vertex), m_vertices.data(), GL_STATIC_DRAW);
@@ -32,12 +31,11 @@ namespace kogayonon
 
     // now we take care of the pointers
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), static_cast<void*>(0));
-
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-
     glEnableVertexAttribArray(2);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), static_cast<void*>(0));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texture));
 
     // unbind the vao
@@ -51,8 +49,6 @@ namespace kogayonon
     unsigned int heightNr = 1;
     for (unsigned int i = 0; i < m_textures.size(); i++)
     {
-      glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
-      // retrieve texture number (the N in diffuse_textureN)
       std::string number;
       std::string name = m_textures[i].type;
       if (name == "texture_diffuse")
@@ -64,10 +60,8 @@ namespace kogayonon
       else if (name == "texture_height")
         number = std::to_string(heightNr++); // transfer unsigned int to string
 
-      // now set the sampler to the correct texture unit
+      glActiveTexture(GL_TEXTURE0 + i);       glBindTexture(GL_TEXTURE_2D, m_textures[i].id);
       glUniform1i(glGetUniformLocation(shader.getShaderId(), (name + number).c_str()), i);
-      // and finally bind the texture
-      glBindTexture(GL_TEXTURE_2D, m_textures[i].id);
     }
 
     // draw mesh

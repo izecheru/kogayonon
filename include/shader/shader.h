@@ -1,6 +1,9 @@
 #pragma once
 #include <glad/glad.h>
 #include <string>
+#include <glm\ext\matrix_float4x4.hpp>
+#include "core/singleton/singleton.h"
+
 namespace kogayonon
 {
   enum  ShaderType
@@ -31,6 +34,7 @@ namespace kogayonon
     void unbind() const;
 
     void setInt(const char* uniform, int value);
+    void setMat4(const char* uniform, glm::mat4 mat);
 
     GLint getShaderId();
 
