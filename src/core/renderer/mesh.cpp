@@ -15,31 +15,34 @@ namespace kogayonon
   }
 
   void Mesh::setupMesh() {
-    //Create buffers
-    glGenVertexArrays(1, &m_vao);
-    glGenBuffers(1, &m_vbo);
-    glGenBuffers(1, &m_ebo);
+    // Now we are using Direct State Access
+    glCreateVertexArrays(1, &m_vao);
+    glCreateBuffers(1, &m_vbo);
+    glCreateBuffers(1, &m_ebo);
 
-    glBindVertexArray(m_vao);
-    // now we load the data into the vbo buffer
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, m_vertices.size() * sizeof(Vertex), m_vertices.data(), GL_STATIC_DRAW);
+    // Upload vertex data directly to VBO
+    glNamedBufferData(m_vbo, m_vertices.size() * sizeof(Vertex), m_vertices.data(), GL_STATIC_DRAW);
 
-    // now we do the indices buffer
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(unsigned int), m_indices.data(), GL_STATIC_DRAW);
+    // Upload vertex data directly to EBO
+    glNamedBufferData(m_ebo, m_indices.size() * sizeof(unsigned int), m_indices.data(), GL_STATIC_DRAW);
 
-    // now we take care of the pointers
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
+    // Now we link the VBO to the VAO
+    glVertexArrayVertexBuffer(m_vao, 0, m_vbo, 0, sizeof(Vertex));
+    // Associate the EBO to the VAO
+    glVertexArrayElementBuffer(m_vao, m_ebo);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), static_cast<void*>(0));
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, texture));
+    // We define the attributes directly on VAO
+    glEnableVertexArrayAttrib(m_vao, 0);
+    glVertexArrayAttribFormat(m_vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, position));
+    glVertexArrayAttribBinding(m_vao, 0, 0);
 
-    // unbind the vao
-    glBindVertexArray(0);
+    glEnableVertexArrayAttrib(m_vao, 1);
+    glVertexArrayAttribFormat(m_vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, normal));
+    glVertexArrayAttribBinding(m_vao, 1, 0);
+
+    glEnableVertexArrayAttrib(m_vao, 2);
+    glVertexArrayAttribFormat(m_vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, texture));
+    glVertexArrayAttribBinding(m_vao, 2, 0);
   }
 
   void Mesh::render(Shader& shader) {
@@ -51,6 +54,7 @@ namespace kogayonon
     {
       std::string number;
       std::string name = m_textures[i].type;
+
       if (name == "texture_diffuse")
         number = std::to_string(diffuseNr++);
       else if (name == "texture_specular")
@@ -60,16 +64,24 @@ namespace kogayonon
       else if (name == "texture_height")
         number = std::to_string(heightNr++); // transfer unsigned int to string
 
-      glActiveTexture(GL_TEXTURE0 + i);       glBindTexture(GL_TEXTURE_2D, m_textures[i].id);
-      glUniform1i(glGetUniformLocation(shader.getShaderId(), (name + number).c_str()), i);
+      std::string uniformName = name + number;
+      int location = glGetUniformLocation(shader.getShaderId(), uniformName.c_str());
+      if (location == -1)
+      {
+        Logger::logError("Uniform not found: ", uniformName);
+      }
+      else
+      {
+        glUniform1i(location, i);
+      }
+
+      glBindTextureUnit(i, m_textures[i].id);
     }
 
     // draw mesh
     glBindVertexArray(m_vao);
     glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(m_indices.size()), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
-
-    // always good practice to set everything back to defaults once configured.
-    glActiveTexture(GL_TEXTURE0);
+    glBindTextureUnit(0, 0);
   }
 }

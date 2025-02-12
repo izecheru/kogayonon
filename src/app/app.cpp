@@ -36,7 +36,7 @@ namespace kogayonon
     double prev_time = glfwGetTime();
 
     m_renderer->pushShader("shaders/3d_vertex.glsl", "shaders/3d_fragment.glsl", "3d_shader");
-    std::string my_model_path = "models/untitled2.obj";
+    std::string my_model_path = "models/untitled.obj";
     Model my_model(my_model_path, m_renderer->getShader("3d_shader"));
     Camera& camera = Camera::getInstance();
     Shader& shader = m_renderer->getShader("3d_shader");

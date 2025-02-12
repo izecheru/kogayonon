@@ -61,10 +61,14 @@ namespace kogayonon
     filename = directory + '/' + filename;
 
     unsigned int texture_id;
+    Logger::logOpenGLErr(__FILE__, __LINE__);
+    Logger::logOpenGLErr(__FILE__, __LINE__);
     int width, height, num_components;
     unsigned char* data = stbi_load(filename.c_str(), &width, &height, &num_components, 0);
     if (data)
     {
+      Logger::logInfo("Loading texture from ", filename, " (", width, "x", height, ", components: ", num_components, ")");
+
       GLenum format;
       if (num_components == 1)
         format = GL_RED;
@@ -72,18 +76,28 @@ namespace kogayonon
         format = GL_RGB;
       else if (num_components == 4)
         format = GL_RGBA;
+      else
+      {
+        // Fallback in case of an unexpected number of components
+        format = GL_RGB;
+      }
 
-      glGenTextures(1, &texture_id);
-      glBindTexture(GL_TEXTURE_2D, texture_id);
-      //glCreateTextures(GL_TEXTURE_2D, 1, &texture_id);
-      glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-      glGenerateMipmap(GL_TEXTURE_2D);
+      glCreateTextures(GL_TEXTURE_2D, 1, &texture_id);
+      // We allocate immutable storage for the texture
+      int levels = static_cast<int>(std::floor(std::log2(std::max(width, height)))) + 1;
+      glTextureStorage2D(texture_id, levels, GL_RGBA8, width, height);
 
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // Or GL_MIRRORED_REPEAT, GL_CLAMP_TO_EDGE, etc.
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); // For the T coordinate
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      glGenerateMipmap(GL_TEXTURE_2D);
+      // Upload the image data to the texture
+      glTextureSubImage2D(texture_id, 0, 0, 0, width, height, format, GL_UNSIGNED_BYTE, data);
+
+      // Generate mipmaps
+      glGenerateTextureMipmap(texture_id);
+
+      glTextureParameteri(texture_id, GL_TEXTURE_WRAP_S, GL_REPEAT); // Or GL_MIRRORED_REPEAT, GL_CLAMP_TO_EDGE, etc.
+      glTextureParameteri(texture_id, GL_TEXTURE_WRAP_T, GL_REPEAT); // For the T coordinate
+      glTextureParameteri(texture_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+      glTextureParameteri(texture_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
       stbi_image_free(data);
     }
     else
@@ -91,7 +105,7 @@ namespace kogayonon
       Logger::logError("Failed to load image from ", path);
       stbi_image_free(data);
     }
-
+    Logger::logInfo("texture_id ", texture_id);
     return texture_id;
   }
 
