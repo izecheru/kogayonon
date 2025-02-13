@@ -11,7 +11,7 @@ namespace kogayonon
 
   bool Input::isMouseButtonPressed(MouseCode button) {
     auto* window = static_cast<GLFWwindow*>(App::getWindow());
-    auto state = glfwGetKey(window, static_cast<int32_t>(button));
+    auto state = glfwGetMouseButton(window, static_cast<int32_t>(button));
     return state == GLFW_PRESS;
   }
 

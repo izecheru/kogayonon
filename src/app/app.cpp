@@ -11,7 +11,9 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+
 #include "app/app.h"
+#include "core/input/input.h"
 #include "core/logger.h"
 #include "core/renderer/camera.h"
 #include "core/renderer/mesh.h"
@@ -21,6 +23,7 @@
 #include "window/window.h"
 #include "core/renderer/model.h"
 #include "core/model_loader/model_loader.h"
+#include "core/ui/imgui_interface.h"
 
 namespace kogayonon
 {
@@ -36,16 +39,30 @@ namespace kogayonon
     double prev_time = glfwGetTime();
 
     m_renderer->pushShader("shaders/3d_vertex.glsl", "shaders/3d_fragment.glsl", "3d_shader");
-    std::string my_model_path = "models/untitled.obj";
+    std::string my_model_path = "models/cyberdemon/untitled.gltf";
     Model my_model(my_model_path, m_renderer->getShader("3d_shader"));
     Camera& camera = Camera::getInstance();
     Shader& shader = m_renderer->getShader("3d_shader");
+
+    MyImguiInterface interface(m_window->getWindow());
+    interface.createWindow("Pula mea", 0.0f, 0.0f);
+
     while (!glfwWindowShouldClose(m_window->getWindow()))
     {
-      glClearColor(0.95f, 0.95f, 0.95f, 1.0f);
+      glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
       camera.processKeyboard(m_window->getWindow(), delta_time);
+      if (Input::isMouseButtonPressed(MouseCode::BUTTON_1))
+      {
+        glfwSetInputMode(m_window->getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        camera.processMouseMoved(Input::getMouseX(), Input::getMouseY());
+        camera.cameraUniform(m_renderer->getShaderId("3d_shader"), "view");
+      }
+      else
+      {
+        glfwSetInputMode(m_window->getWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+      }
       glm::mat4 model = glm::mat4(1.0f);
       glm::mat4 proj = glm::mat4(1.0f);
       float scaleFactor = 1.0f;
@@ -59,7 +76,7 @@ namespace kogayonon
       camera.cameraUniform(m_renderer->getShaderId("3d_shader"), "view");
       my_model.render(m_renderer->getShader("3d_shader"));
       m_renderer->unbindShader("3d_shader");
-
+      interface.draw();
       double current_time = glfwGetTime();
       delta_time = current_time - prev_time;
       prev_time = current_time;
@@ -83,9 +100,9 @@ namespace kogayonon
 
     dispatcher.dispatch<MouseMovedEvent>([this](MouseMovedEvent& e) -> bool
       {
-        Camera& camera = Camera::getInstance();
-        camera.processMouseMoved(e.getX(), e.getY());
-        camera.cameraUniform(m_renderer->getShaderId("3d_shader"), "view");
+        //Camera& camera = Camera::getInstance();
+        //camera.processMouseMoved(e.getX(), e.getY());
+        //camera.cameraUniform(m_renderer->getShaderId("3d_shader"), "view");
         return this->onMouseMove(e);
       });
 
@@ -112,14 +129,14 @@ namespace kogayonon
 
     dispatcher.dispatch<MouseEnteredEvent>([this](MouseEnteredEvent& e) -> bool
       {
-        if (e.hasEntered())
-        {
-          glfwSetInputMode(m_window->getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        }
-        else
-        {
-          glfwSetInputMode(m_window->getWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        }
+        //if (e.hasEntered())
+        //{
+        //  glfwSetInputMode(m_window->getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        //}
+        //else
+        //{
+        //  glfwSetInputMode(m_window->getWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        //}
         return this->onMouseEnter(e);
       });
   }

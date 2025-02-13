@@ -53,13 +53,12 @@ namespace kogayonon
   class MouseClickedEvent :public Event
   {
   private:
-    //WARNING maybe i will somehow need the coordinates as well
     MouseCode m_button;
     MouseAction m_action;
     MouseModifier m_mods;
 
   public:
-    MouseClickedEvent(const MouseCode button, const MouseAction action, const  MouseModifier mods) :m_button(button), m_action(action), m_mods(mods) {}
+    MouseClickedEvent(MouseCode button, MouseAction action, MouseModifier mods) :m_button(button), m_action(action), m_mods(mods) {}
 
     MouseCode getButton() const { return m_button; }
     MouseAction getAction() const { return m_action; }

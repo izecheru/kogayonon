@@ -3,6 +3,7 @@
 #include <assimp/scene.h>
 #include "shader/shader.h"
 #include "mesh.h"
+#include <map>
 
 namespace kogayonon
 {
@@ -17,7 +18,7 @@ namespace kogayonon
 
   private:
     std::vector<Mesh> m_meshes;
-    std::vector<Texture> m_textures_loaded;
+    std::map<std::string, Texture> m_textures_loaded;
     std::string path;
   };
 }

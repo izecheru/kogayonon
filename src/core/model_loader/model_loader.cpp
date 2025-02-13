@@ -5,10 +5,12 @@
 #include "core/model_loader/model_loader.h"
 #include "core/logger.h"
 #include "core/renderer/model.h"
+#include <chrono>
+#include <map>
 
 namespace kogayonon
 {
-  void ModelLoader::buildModel(std::string& path, std::vector<Mesh>& meshes, std::vector<Texture>& textures_loaded, Shader& shader) {
+  void kogayonon::ModelLoader::buildModel(std::string& path, std::vector<Mesh>& meshes, std::map<std::string, Texture>& textures_loaded, Shader& shader) {
     m_current_model_path = path.substr(0, path.find_last_of('/'));
     getScene(path);
 
@@ -17,12 +19,13 @@ namespace kogayonon
   }
 
   void ModelLoader::getScene(std::string& path) {
+
     unsigned int importOptions = aiProcess_Triangulate
       | aiProcess_OptimizeMeshes
       | aiProcess_JoinIdenticalVertices
       | aiProcess_CalcTangentSpace
-      | aiProcess_FlipUVs
-      ;
+      | aiProcess_FlipUVs;
+
     m_scene = m_importer.ReadFile(path, importOptions);
     if (m_scene == nullptr || m_scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !m_scene->mRootNode)
     {
@@ -30,18 +33,20 @@ namespace kogayonon
     }
   }
 
-  Mesh ModelLoader::processMesh(const aiMesh* mesh, std::vector<Texture>& textures_loaded, Shader& shader) {
-    return Mesh(std::move(getVertices(mesh)), std::move(getIndices(mesh)), std::move(getTextures(mesh, textures_loaded)));
+  Mesh kogayonon::ModelLoader::processMesh(const aiMesh* mesh, std::map<std::string, Texture>& textures_loaded, Shader& shader) {
+#ifdef DEBUG
+    auto start = std::chrono::high_resolution_clock::now();
+    Mesh& r_mesh = Mesh(std::move(getVertices(mesh)), std::move(getIndices(mesh)), std::move(getTextures(mesh, textures_loaded)));
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = end - start;
+    Logger::logInfo("mesh process time -> ", duration.count());
+#else
+    Mesh& r_mesh = Mesh(std::move(getVertices(mesh)), std::move(getIndices(mesh)), getTextures(mesh, textures_loaded));
+#endif
+    return r_mesh;
   }
 
-  /// <summary>
-  ///  Process the current node from the mesh
-  /// </summary>
-  /// <param name="meshes">Meshes array reference to fill the Model array</param>
-  /// <param name="node">Current node we are at</param>
-  /// <param name="scene">The scene we get from reading the model file</param>
-  /// <param name="loaded_textures">Vector of loaded textures</param>
-  void ModelLoader::processNode(std::vector<Mesh>& meshes, aiNode* node, std::vector<Texture>& loaded_textures, Shader& shader) {
+  void kogayonon::ModelLoader::processNode(std::vector<Mesh>& meshes, aiNode* node, std::map<std::string, Texture>& loaded_textures, Shader& shader) {
     // get all the meshes from this current node
     for (unsigned int i = 0; i < node->mNumMeshes; i++)
     {
@@ -60,15 +65,11 @@ namespace kogayonon
     std::string filename = std::string(path);
     filename = directory + '/' + filename;
 
-    unsigned int texture_id;
-    Logger::logOpenGLErr(__FILE__, __LINE__);
-    Logger::logOpenGLErr(__FILE__, __LINE__);
+    unsigned int texture_id = 0;
     int width, height, num_components;
     unsigned char* data = stbi_load(filename.c_str(), &width, &height, &num_components, 0);
     if (data)
     {
-      Logger::logInfo("Loading texture from ", filename, " (", width, "x", height, ", components: ", num_components, ")");
-
       GLenum format;
       if (num_components == 1)
         format = GL_RED;
@@ -84,8 +85,8 @@ namespace kogayonon
 
       glCreateTextures(GL_TEXTURE_2D, 1, &texture_id);
       // We allocate immutable storage for the texture
-      int levels = static_cast<int>(std::floor(std::log2(std::max(width, height)))) + 1;
-      glTextureStorage2D(texture_id, levels, GL_RGBA8, width, height);
+      //int levels = static_cast<int>(std::floor(std::log2(std::max(width, height)))) + 1;
+      glTextureStorage2D(texture_id, 1, GL_RGBA8, width, height);
 
       // Upload the image data to the texture
       glTextureSubImage2D(texture_id, 0, 0, 0, width, height, format, GL_UNSIGNED_BYTE, data);
@@ -105,42 +106,39 @@ namespace kogayonon
       Logger::logError("Failed to load image from ", path);
       stbi_image_free(data);
     }
-    Logger::logInfo("texture_id ", texture_id);
     return texture_id;
   }
 
-  std::vector<Texture> ModelLoader::loadMaterialTextures(std::vector<Texture>& textures_loaded, aiMaterial* material, aiTextureType type, std::string type_name) {
+  std::vector<Texture> kogayonon::ModelLoader::loadMaterialTextures(std::map<std::string, Texture>& textures_loaded, aiMaterial* material, aiTextureType type, std::string type_name) {
     std::vector<Texture> textures;
     for (unsigned int i = 0; i < material->GetTextureCount(type); i++)
     {
       aiString str;
       material->GetTexture(type, i, &str);
-      // check if texture was loaded before and if so, continue to next iteration: skip loading a new texture
-      bool skip = false;
-      for (unsigned int j = 0; j < textures_loaded.size(); j++)
+      std::string texture_path = str.C_Str();
+
+      // Check if the texture is already loaded before trying to load it
+      if (textureAlreadyLoaded(texture_path, textures_loaded))
       {
-        if (std::strcmp(textures_loaded[j].path.data(), str.C_Str()) == 0)
-        {
-          textures.push_back(textures_loaded[j]);
-          skip = true;
-          break;
-        }
+        Logger::logError("Texture already loaded from -> ", texture_path);
+        // we retrieve the already loaded texture in here
+        textures.push_back(textures_loaded[texture_path]);
       }
-      if (!skip)
+      else
       {
-        Texture texture;
-        std::string st = str.C_Str();
-        texture.id = textureFromFile(st, m_current_model_path);
+        Texture texture; texture.id = textureFromFile(texture_path, m_current_model_path);
         texture.type = type_name;
-        texture.path = str.C_Str();
+        texture.path = texture_path;
+        // TODO might need to make the mesh textures vector hold paths instead of actual texture objects
+        // and just modify the render function from Model to have a texture path parameter and get it from the map
         textures.push_back(texture);
-        textures_loaded.push_back(texture);
+        textures_loaded[texture.path] = texture;
       }
     }
     return textures;
   }
 
-  std::vector<Texture> ModelLoader::getTextures(const aiMesh* mesh, std::vector<Texture>& textures_loaded) {
+  std::vector<Texture> kogayonon::ModelLoader::getTextures(const aiMesh* mesh, std::map<std::string, Texture>& textures_loaded) {
     aiMaterial* material = m_scene->mMaterials[mesh->mMaterialIndex];
     std::vector<Texture> textures;
 
@@ -151,22 +149,25 @@ namespace kogayonon
     std::vector<Texture> normalMaps = loadMaterialTextures(textures_loaded, material, aiTextureType_HEIGHT, "texture_normal");
     textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
     std::vector<Texture> heightMaps = loadMaterialTextures(textures_loaded, material, aiTextureType_AMBIENT, "texture_height");
-    textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());    return textures;
+    textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
+
+    return textures;
   }
 
-  bool ModelLoader::textureAlreadyLoaded(const std::string& path, const std::vector<Texture>& loaded_textures) {
+  bool kogayonon::ModelLoader::textureAlreadyLoaded(const std::string& path, const std::map<std::string, Texture>& loaded_textures) {
     for (const auto& texture : loaded_textures)
     {
-      if (texture.path == path)
+      if (texture.first == path)
       {
-        return true; // Texture is already loaded
+        return true;
       }
     }
     return false;
   }
 
   std::vector<Vertex> ModelLoader::getVertices(const aiMesh* mesh) {
-    std::vector<Vertex> vertices(mesh->mNumVertices);
+    std::vector<Vertex> vertices;
+    vertices.resize(mesh->mNumVertices);
 
     // fill vertices directly
     for (unsigned int i = 0; i < mesh->mNumVertices; i++)
@@ -203,7 +204,8 @@ namespace kogayonon
 
   std::vector<unsigned int> ModelLoader::getIndices(const aiMesh* mesh) {
     // a vertex has 3 points so a face has 3*faces amount of indices
-    std::vector<unsigned int> indices(mesh->mNumFaces * 3);
+    std::vector<unsigned int> indices;
+    indices.resize(mesh->mNumFaces * 3);
     // fill indices directly
     size_t index = 0;
     for (unsigned int i = 0; i < mesh->mNumFaces; i++)

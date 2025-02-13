@@ -1,11 +1,7 @@
 #pragma once
 namespace kogayonon
 {
-
-
-  using MouseCode = uint16_t;
-
-  enum : MouseCode
+  enum  MouseCode
   {
     BUTTON_1 = 0,
     BUTTON_2 = 1,
@@ -21,15 +17,13 @@ namespace kogayonon
     BUTTON_MIDDLE = BUTTON_3,
   };
 
-  using MouseAction = uint16_t;
-  enum :MouseAction
+  enum MouseAction
   {
     Release = 0,
     Press = 1,
   };
 
-  using MouseModifier = uint16_t;
-  enum :MouseModifier
+  enum MouseModifier
   {
     Shift = 1,
     Control = 2,

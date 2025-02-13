@@ -2,8 +2,6 @@
 
 namespace kogayonon
 {
-
-
   enum KeyCode
   {
     Space = 32,

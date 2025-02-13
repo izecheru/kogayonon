@@ -8,8 +8,6 @@
 
 namespace kogayonon
 {
-
-
   class Input
   {
   public:
