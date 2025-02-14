@@ -3,27 +3,33 @@
 
 using namespace kogayonon;
 
-void kogayonon::LayerStack::pushLayer(std::unique_ptr<Layer> layer) {
+void LayerStack::pushLayer(std::unique_ptr<Layer> layer) {
   m_layers.push_back(std::move(layer));
 }
 
-bool LayerStack::handleEvent(Event& event) {
+//bool LayerStack::handleEvent(Event& event) const {
+//  for (auto& it = m_layers.begin(); it != m_layers.end(); it++)
+//  {
+//    if ((*it->get()).onKeyPressed(KeyPressedEvent))
+//    {
+//      // it got handled
+//      return true;
+//    }
+//  }
+//  return false;
+//}
+
+void LayerStack::render() const {
   for (auto& it = m_layers.begin(); it != m_layers.end(); it++)
   {
-    if ((*it->get()).onEvent(event))
+    if (!(*it->get()).isVisible())
     {
-      // it got handled
-      return true;
+      // if the layer is disabled dont render it
+      continue;
+    }
+    else
+    {
+      it->get()->onRender();
     }
   }
-  return false;
 }
-
-//TODO implement layer rendering somehow
-void LayerStack::render() {
-  for (auto& it = m_layers.begin(); it != m_layers.end(); it++)
-  {
-    it->get()->onRender();
-  }
-}
-

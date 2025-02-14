@@ -2,6 +2,7 @@
 
 #include "layer.h"
 #include "core/ui/imgui_interface.h"
+#include "events/keyboard_events.h"
 
 namespace kogayonon
 {
@@ -11,7 +12,7 @@ namespace kogayonon
     ImguiLayer(GLFWwindow* window);
 
     bool initLayer(GLFWwindow* window);
-    bool onEvent(Event& event) override;
+    bool onKeyPressed(KeyPressedEvent& event);
     void onRender() override;
     void onUpdate() override;
 

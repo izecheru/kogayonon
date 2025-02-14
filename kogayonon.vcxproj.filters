@@ -1773,6 +1773,12 @@
     <ClInclude Include="include\core\layer\imgui_layer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\events\event_dispatcher.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\events\event_listener.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Library Include="dependencies\lib\glfw3.lib" />

@@ -8,9 +8,13 @@ namespace kogayonon
   public:
     Layer() = default;
     virtual ~Layer() {};
-    virtual bool onEvent(Event& event) = 0;
     virtual void onRender() = 0;
     virtual void onUpdate() = 0;
+
+    void setVisible(bool state) { m_visible = state; }
+    bool isVisible() const { return m_visible; }
+
+  protected:
+    bool m_visible = true;
   };
 }
-

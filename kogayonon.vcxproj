@@ -726,6 +726,8 @@
     <ClInclude Include="include\core\ui\imgui_window.h" />
     <ClInclude Include="include\events\app_event.h" />
     <ClInclude Include="include\events\event.h" />
+    <ClInclude Include="include\events\event_dispatcher.h" />
+    <ClInclude Include="include\events\event_listener.h" />
     <ClInclude Include="include\events\keyboard_events.h" />
     <ClInclude Include="include\events\mouse_events.h" />
     <ClInclude Include="include\shader\shader.h" />

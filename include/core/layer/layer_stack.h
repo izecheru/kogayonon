@@ -10,12 +10,9 @@ namespace kogayonon
   {
   public:
     void pushLayer(std::unique_ptr<Layer> layer);
-
     void popLayer(const std::unique_ptr<Layer>& layer);
-
-    bool handleEvent(Event& event);
-
-    void render();
+    //bool handleEvent(Event& event) const;
+    void render() const;
 
   private:
     std::vector<std::unique_ptr<Layer>> m_layers;

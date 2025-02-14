@@ -23,7 +23,7 @@ void Camera::setView() {
   m_props.world_up = glm::vec3(0.0f, 1.0f, 0.0f);
   m_props.yaw = -90.0f;
   m_props.pitch = 0.0f;
-  m_props.mouse_sens = 0.2f;
+  m_props.mouse_sens = 0.15f;
   m_props.movement_speed = 0.8f;
 }
 

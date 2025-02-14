@@ -11,8 +11,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-
 #include "app/app.h"
+#include "events/event_listener.h"
 #include "core/input/input.h"
 #include "core/logger.h"
 #include "core/renderer/camera.h"
@@ -36,13 +36,14 @@ App::App() {
 
 void App::run() {
   glEnable(GL_DEPTH_TEST);
+  // all the events from the window are sent to the app.onEvent function and from there
+  // to all the layers in the layer stack
   m_window->setEventCallbackFn([this](Event& e) -> void { this->onEvent(e); });
 
   double prev_time = glfwGetTime();
 
   m_renderer->pushShader("shaders/3d_vertex.glsl", "shaders/3d_fragment.glsl", "3d_shader");
-  std::string my_model_path = "models/cyberdemon/untitled.gltf";
-  Model my_model(my_model_path, m_renderer->getShader("3d_shader"));
+  Model my_model(std::string("models/cyberdemon/untitled.gltf"), m_renderer->getShader("3d_shader"));
   Camera& camera = Camera::getInstance();
   Shader& shader = m_renderer->getShader("3d_shader");
 
@@ -71,9 +72,8 @@ void App::run() {
     shader.setMat4("scaleMatrix", scaleMatrix);
     camera.cameraUniform(m_renderer->getShaderId("3d_shader"), "view");
 
-    // i will need to see how the events are propagated
-    my_model.render(m_renderer->getShader("3d_shader"));
     m_renderer->render();
+    my_model.render(m_renderer->getShader("3d_shader"));
 
     m_renderer->unbindShader("3d_shader");
     double current_time = glfwGetTime();
@@ -84,74 +84,7 @@ void App::run() {
 }
 
 void App::onEvent(Event& event) {
-  EventDispatcher dispatcher(event);
-
-  // we check if the layer stack handles the event or not and return accordingly
-  LayerStack& layers = m_renderer->getLayerStack();
-  if (layers.handleEvent(event))
-  {
-    // we exit cause the event got handled in the layer stack and we dont
-    // propagate it further thown the line to the app
-    return;
-  }
-
-  dispatcher.dispatch<WindowResizeEvent>([this](WindowResizeEvent& e) -> bool
-    {
-      Logger::logError("[dispatch updates on resize]\n");
-      return this->onWindowResize(e);
-    });
-
-  dispatcher.dispatch<WindowCloseEvent>([this](WindowCloseEvent& e) -> bool
-    {
-      Logger::logError("[dispatch updates on close]\n");
-      return this->onWindowClose(e);
-    });
-
-  dispatcher.dispatch<MouseMovedEvent>([this](MouseMovedEvent& e) -> bool
-    {
-      //Camera& camera = Camera::getInstance();
-      //camera.processMouseMoved(e.getX(), e.getY());
-      //camera.cameraUniform(m_renderer->getShaderId("3d_shader"), "view");
-      return this->onMouseMove(e);
-    });
-
-  dispatcher.dispatch<KeyPressedEvent>([this](KeyPressedEvent& e) -> bool
-    {
-      if (e.getKeyCode() == KeyCode::Escape)
-      {
-        glfwSetWindowShouldClose(m_window->getWindow(), true);
-      }
-      // TODO must implement some switch to capture mouse or not
-      if (e.getKeyCode() == KeyCode::M)
-      {
-      }
-      if (e.getKeyCode() == KeyCode::V)
-      {
-        m_window->setVsync();
-      }
-      if (e.getKeyCode() == KeyCode::F1)
-      {
-        m_renderer->togglePolyMode();
-      }
-      return this->onKeyPress(e);
-    });
-
-  dispatcher.dispatch<MouseClickedEvent>([this](MouseClickedEvent& e)->bool
-    {
-      return this->onMouseClicked(e);
-    });
-  dispatcher.dispatch<MouseEnteredEvent>([this](MouseEnteredEvent& e) -> bool
-    {
-      //if (e.hasEntered())
-      //{
-      //  glfwSetInputMode(m_window->getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-      //}
-      //else
-      //{
-      //  glfwSetInputMode(m_window->getWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-      //}
-      return this->onMouseEnter(e);
-    });
+  EventListener::getInstance().publish(event);
 }
 
 bool App::onMouseEnter(MouseEnteredEvent& event) { return true; }

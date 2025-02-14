@@ -1,12 +1,13 @@
-
 #include "core/layer/imgui_layer.h"
 #include "core/logger.h"
 #include "events/keyboard_events.h"
+#include "events/event_listener.h"
 
 using namespace kogayonon;
 
 ImguiLayer::ImguiLayer(GLFWwindow* window) {
   initLayer(window);
+  EventListener::getInstance().subscribe<KeyPressedEvent>([this](Event& e) { this->onKeyPressed(static_cast<KeyPressedEvent&>(e)); });
 }
 
 bool ImguiLayer::initLayer(GLFWwindow* window) {
@@ -19,15 +20,20 @@ bool ImguiLayer::initLayer(GLFWwindow* window) {
   return true;
 }
 
-bool ImguiLayer::onEvent(Event& event) {
-  if (event.getEventType() == EventType::KeyPressed)
+bool ImguiLayer::onKeyPressed(KeyPressedEvent& event) {
+  if (event.getKeyCode() == KeyCode::Escape)
   {
-    KeyPressedEvent& key_event = static_cast<KeyPressedEvent&>(event);
-    if (key_event.getKeyCode() == KeyCode::Escape)
+    Logger::logInfo("escaped from imgui ", m_visible);
+    switch (m_visible)
     {
-      Logger::logInfo("escaped from imgui");
-      return true; // we handled the event here
+      case true:
+        setVisible(false);
+        break;
+      case false:
+        setVisible(true);
+        break;
     }
+    return true; // we handled the event here
   }
   Logger::logInfo("event received in imgui layer but not processed here");
   return false;
