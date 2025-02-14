@@ -146,6 +146,8 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\app\app.cpp" />
     <ClCompile Include="src\core\input\input.cpp" />
+    <ClCompile Include="src\core\layer\imgui_layer.cpp" />
+    <ClCompile Include="src\core\layer\layer_stack.cpp" />
     <ClCompile Include="src\core\logger.cpp" />
     <ClCompile Include="src\core\model_loader\model_loader.cpp" />
     <ClCompile Include="src\core\renderer\camera.cpp" />
@@ -709,6 +711,9 @@
     <ClInclude Include="include\app\app.h" />
     <ClInclude Include="include\core\input\input.h" />
     <ClInclude Include="include\core\key_codes.h" />
+    <ClInclude Include="include\core\layer\imgui_layer.h" />
+    <ClInclude Include="include\core\layer\layer.h" />
+    <ClInclude Include="include\core\layer\layer_stack.h" />
     <ClInclude Include="include\core\logger.h" />
     <ClInclude Include="include\core\model_loader\model_loader.h" />
     <ClInclude Include="include\core\mouse_codes.h" />

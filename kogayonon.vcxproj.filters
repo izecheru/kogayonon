@@ -87,6 +87,12 @@
     <ClCompile Include="dependencies\include\imgui-1.91.8\imgui_widgets.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\core\layer\layer_stack.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\layer\imgui_layer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="dependencies\include\assimp\color4.inl">
@@ -1756,6 +1762,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="dependencies\include\imgui-1.91.8\imstb_truetype.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\core\layer\layer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\core\layer\layer_stack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\core\layer\imgui_layer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

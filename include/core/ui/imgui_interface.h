@@ -13,6 +13,9 @@ namespace kogayonon
   class MyImguiInterface
   {
   public:
+    MyImguiInterface() = default;
+    ~MyImguiInterface() = default;
+
     MyImguiInterface(GLFWwindow* window);
 
     bool initImgui(GLFWwindow* window);

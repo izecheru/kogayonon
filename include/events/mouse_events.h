@@ -58,7 +58,7 @@ namespace kogayonon
     MouseModifier m_mods;
 
   public:
-    MouseClickedEvent(MouseCode button, MouseAction action, MouseModifier mods) :m_button(button), m_action(action), m_mods(mods) {}
+    MouseClickedEvent(int button, int action, int mods) :m_button(MouseCode(button)), m_action(MouseAction(action)), m_mods(MouseModifier(mods)) {}
 
     MouseCode getButton() const { return m_button; }
     MouseAction getAction() const { return m_action; }

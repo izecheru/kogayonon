@@ -20,6 +20,7 @@ namespace kogayonon
 
     bool onWindowResize(WindowResizeEvent& event);
     bool onWindowClose(WindowCloseEvent& event);
+    bool onMouseClicked(MouseClickedEvent& event);
     bool onMouseMove(MouseMovedEvent& event);
     bool onMouseEnter(MouseEnteredEvent& event);
     bool onKeyPress(KeyPressedEvent& event);

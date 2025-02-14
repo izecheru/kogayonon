@@ -39,7 +39,7 @@ namespace kogayonon
     const glm::mat4& getViewMatrix()const;
 
     void processMouseMoved(float x, float y, bool constrain_pitch = true);
-    void processKeyboard(GLFWwindow* window, float delta_time);
+    void processKeyboard(GLFWwindow* window, double delta_time);
 
     void updateCameraVectors();
 
