@@ -1,75 +1,59 @@
 #include "core/renderer/renderer.h"
 
-namespace kogayonon
-{
+using namespace kogayonon;
 
+Renderer::Renderer() {
+  is_poly = false;
+}
 
-  Renderer::Renderer() {
-    is_poly = false;
-  }
+void Renderer::render() {
+  m_layer_stack.render();
+}
 
-  //void Renderer::render(const char* mesh_name) {
-  //  meshes[mesh_name].draw();
-  //}
+LayerStack& kogayonon::Renderer::getLayerStack() {
+  return m_layer_stack;
+}
 
-  void Renderer::pushShader(const char* vertex_shader, const char* fragment_shader, const char* shader_name) {
-    Shader sh(vertex_shader, fragment_shader);
-    shaders.insert(std::pair<const char*, Shader>(shader_name, sh));
-  }
+void Renderer::pushShader(const char* vertex_shader, const char* fragment_shader, const char* shader_name) {
+  Shader sh(vertex_shader, fragment_shader);
+  m_shaders.insert(std::pair<const char*, Shader>(shader_name, sh));
+}
 
-  Shader Renderer::getShader(const char* shader_name) {
-    for (auto it = shaders.begin(); it != shaders.end(); it++)
-    {
-      if (it->first == shader_name)
-      {
-        return it->second;
-      }
-    }
-  }
+void kogayonon::Renderer::pushLayer(std::unique_ptr<Layer> layer) {
+  m_layer_stack.pushLayer(std::move(layer));
+}
 
-  GLint Renderer::getShaderId(const char* shader_name) {
-    for (auto it = shaders.begin(); it != shaders.end(); it++)
-    {
-      if (it->first == shader_name)
-      {
-        return it->second.getShaderId();
-      }
-    }
-  }
+Shader Renderer::getShader(const char* shader_name) {
+  return m_shaders[shader_name];
+}
 
-  void Renderer::bindShader(const char* shader_name) {
-    for (auto it = shaders.begin(); it != shaders.end(); it++)
-    {
-      if (it->first == shader_name)
-      {
-        it->second.bind();
-      }
-    }
-  }
+GLint Renderer::getShaderId(const char* shader_name) {
+  return m_shaders[shader_name].getShaderId();
+}
 
-  void Renderer::unbindShader(const char* shader_name) {
-    for (auto it = shaders.begin(); it != shaders.end(); it++)
-    {
-      if (it->first == shader_name)
-      {
-        it->second.unbind();
-      }
-    }
-  }
+void Renderer::bindShader(const char* shader_name) {
+  m_shaders[shader_name].bind();
+}
 
-  bool Renderer::getPolyMode() {
-    return is_poly;
-  }
+void Renderer::unbindShader(const char* shader_name) {
+  m_shaders[shader_name].unbind();
+}
 
-  void Renderer::togglePolyMode() {
-    if (is_poly)
-    {
+bool Renderer::getPolyMode() {
+  return is_poly;
+}
+
+void Renderer::togglePolyMode() {
+  switch (is_poly)
+  {
+    case true:
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    }
-    else
-    {
+      break;
+
+    case false:
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    }
-    is_poly = !is_poly;
+      break;
   }
+
+  is_poly = !is_poly;
 }

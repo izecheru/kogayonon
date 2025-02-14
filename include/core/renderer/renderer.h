@@ -1,6 +1,7 @@
 #pragma once
-#include "core/renderer/mesh.h"
 #include <map>
+#include "core/renderer/mesh.h"
+#include "core/layer/layer_stack.h"
 #include "shader/shader.h"
 
 namespace kogayonon
@@ -11,10 +12,12 @@ namespace kogayonon
     Renderer();
     ~Renderer() = default;
 
-    // TODO probably this should take a model to draw
-    void render(const char* mesh_name);
+    void render();
+
+    LayerStack& getLayerStack();
 
     void pushShader(const char* vertex_shader, const char* fragment_shader, const char* shader_name);
+    void pushLayer(std::unique_ptr<Layer> layer);
 
     Shader getShader(const char* shader_name);
     GLint getShaderId(const char* shader_name);
@@ -27,7 +30,7 @@ namespace kogayonon
 
   private:
     bool is_poly;
-    std::map<const char*, Shader> shaders;
-    std::map<const char*, Mesh> meshes;
+    LayerStack m_layer_stack;
+    std::map<const char*, Shader> m_shaders;
   };
 }

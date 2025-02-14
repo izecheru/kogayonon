@@ -46,15 +46,12 @@ void App::run() {
   Camera& camera = Camera::getInstance();
   Shader& shader = m_renderer->getShader("3d_shader");
 
-  LayerStack layer_stack;
-  layer_stack.pushLayer(std::make_unique<ImguiLayer>(m_window->getWindow()));
+  m_renderer->pushLayer(std::make_unique<ImguiLayer>(m_window->getWindow()));
 
   while (!glfwWindowShouldClose(m_window->getWindow()))
   {
     glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    layer_stack.render();
 
     camera.processKeyboard(m_window->getWindow(), delta_time);
     if (Input::isMouseButtonPressed(MouseCode::BUTTON_1))
@@ -73,7 +70,11 @@ void App::run() {
     shader.setMat4("projection", proj);
     shader.setMat4("scaleMatrix", scaleMatrix);
     camera.cameraUniform(m_renderer->getShaderId("3d_shader"), "view");
+
+    // i will need to see how the events are propagated
     my_model.render(m_renderer->getShader("3d_shader"));
+    m_renderer->render();
+
     m_renderer->unbindShader("3d_shader");
     double current_time = glfwGetTime();
     delta_time = current_time - prev_time;
@@ -84,6 +85,16 @@ void App::run() {
 
 void App::onEvent(Event& event) {
   EventDispatcher dispatcher(event);
+
+  // we check if the layer stack handles the event or not and return accordingly
+  LayerStack& layers = m_renderer->getLayerStack();
+  if (layers.handleEvent(event))
+  {
+    // we exit cause the event got handled in the layer stack and we dont
+    // propagate it further thown the line to the app
+    return;
+  }
+
   dispatcher.dispatch<WindowResizeEvent>([this](WindowResizeEvent& e) -> bool
     {
       Logger::logError("[dispatch updates on resize]\n");

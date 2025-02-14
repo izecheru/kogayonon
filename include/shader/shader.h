@@ -24,9 +24,10 @@ namespace kogayonon
   class Shader
   {
   public:
+    ~Shader() = default;
+    Shader() = default;
 
     Shader(const char* vert_path, const char* frag_path);
-    ~Shader() = default;
 
     ShaderProgramSource parseShaderFile(const std::string& vert_path, const std::string& frag_path);
 
