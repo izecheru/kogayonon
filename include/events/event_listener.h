@@ -8,28 +8,25 @@ namespace kogayonon
   class EventListener :public Singleton<EventListener>
   {
   public:
-
     EventListener() {}
-    using EventCallback = std::function<void(Event&)>;
+    using EventCallback = std::function<bool(Event&)>;
 
     template<typename T>
-    void subscribe(EventCallback callback) {
+    void addCallback(EventCallback callback) {
       auto type = T::getStaticType();
-      m_listeners[type].push_back(callback);
+      m_callbacks[type].push_back(callback);
     }
 
-    void publish(Event& event) {
-      auto type = event.getEventType();
-      if (m_listeners.find(type) != m_listeners.end())
-      {
-        for (auto& callback : m_listeners[type])
-        {
-          callback(event);
+    void dispatch(Event& event) {
+      auto it = m_callbacks.find(event.getEventType());
+      if (it != m_callbacks.end()) {
+        for (const auto& callback : it->second) {
+          event.m_handled |= callback(event);
         }
       }
     }
 
   private:
-    std::unordered_map<EventType, std::vector<EventCallback>> m_listeners;
+    std::unordered_map<EventType, std::vector<EventCallback>> m_callbacks;
   };
 }

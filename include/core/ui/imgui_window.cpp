@@ -5,8 +5,11 @@ namespace kogayonon
 {
   void ImguiWindow::draw() {
     ImGui::Begin(m_name.c_str());
-    ImGui::Text("Hello manca-mi-ai pula");
+    ImGui::Text("Acum ca i-ai dat push ionute ai belit-o, cuvintele urate raman :(");
     ImGui::End();
   }
-}
 
+  bool ImguiWindow::isHovered() {
+    return m_is_hovered;
+  }
+}

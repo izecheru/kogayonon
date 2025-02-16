@@ -544,9 +544,9 @@
     <None Include="shaders\white.shader" />
     <None Include="models\cat\12221_Cat_v1_l3.mtl" />
     <None Include="models\cat\cat.glb" />
-    <None Include="models\cat\cat.mtl" />
     <None Include="shaders\crosshair_vertex.glsl" />
     <None Include="shaders\crosshair_fragment.glsl" />
+    <None Include="imgui_config.ini" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dependencies\include\assimp\aabb.h">
@@ -1783,22 +1783,5 @@
   <ItemGroup>
     <Library Include="dependencies\lib\glfw3.lib" />
     <Library Include="dependencies\lib\assimp-vc143-mtd.lib" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="textures\pintea.png">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="textures\pintea2.PNG">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="textures\pintea3.PNG">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="models\cat\Cat_bump.jpg">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="models\cat\Cat_diffuse.jpg">
-      <Filter>Resource Files</Filter>
-    </Image>
   </ItemGroup>
 </Project>

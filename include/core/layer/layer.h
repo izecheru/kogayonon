@@ -8,7 +8,7 @@ namespace kogayonon
   public:
     Layer() = default;
     virtual ~Layer() {};
-    virtual void onRender() = 0;
+    virtual void render() = 0;
     virtual void onUpdate() = 0;
 
     void setVisible(bool state) { m_visible = state; }

@@ -1,13 +1,14 @@
 #pragma once
 #include "core/singleton/singleton.h"
 #include <glm/glm.hpp>
+#include "events/mouse_events.h"
+#include "events/keyboard_events.h"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 
 namespace kogayonon
 {
-
   // https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/camera.h
   struct CameraProps
   {
@@ -24,10 +25,10 @@ namespace kogayonon
     float mouse_sens;
   };
 
+  // TODO camera snaps when i leave imgui window
   class Camera :public Singleton<Camera>
   {
   public:
-    //friend class Singleton<Camera>;
     Camera();
 
     void setView();
@@ -38,8 +39,10 @@ namespace kogayonon
     void setFirstMove();
     const glm::mat4& getViewMatrix()const;
 
+    bool onMouseMoved(MouseMovedEvent& event);
+
     void processMouseMoved(float x, float y, bool constrain_pitch = true);
-    void processKeyboard(GLFWwindow* window, double delta_time);
+    void processKeyboard(double delta_time);
 
     void updateCameraVectors();
 

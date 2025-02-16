@@ -10,21 +10,21 @@
 
 namespace kogayonon
 {
-  class MyImguiInterface
+  class ImguiInterface
   {
   public:
-    MyImguiInterface() = default;
-    ~MyImguiInterface() = default;
+    ImguiInterface() = default;
+    ~ImguiInterface() = default;
 
-    MyImguiInterface(GLFWwindow* window);
+    ImguiInterface(GLFWwindow* window);
 
     bool initImgui(GLFWwindow* window);
     void draw();
 
     bool createWindow(std::string window_name, double x_pos, double y_pos, bool docked = false, bool visible = true);
+    std::vector<ImguiWindow>& getWindows();
 
   private:
-    std::vector<ImguiWindow> m_imgui_windows;
+    std::vector<ImguiWindow> m_windows;
   };
 }
-

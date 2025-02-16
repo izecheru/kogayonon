@@ -2,6 +2,7 @@
 
 #include "layer.h"
 #include "core/ui/imgui_interface.h"
+#include "events/mouse_events.h"
 #include "events/keyboard_events.h"
 
 namespace kogayonon
@@ -13,10 +14,12 @@ namespace kogayonon
 
     bool initLayer(GLFWwindow* window);
     bool onKeyPressed(KeyPressedEvent& event);
-    void onRender() override;
+    bool onMouseMoved(MouseMovedEvent& event);
+    bool onMouseClicked(MouseClickedEvent& event);
+    void render() override;
     void onUpdate() override;
 
   private:
-    MyImguiInterface m_interface;
+    ImguiInterface m_interface;
   };
 }

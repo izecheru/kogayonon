@@ -41,5 +41,7 @@ namespace kogayonon
     virtual int getCategoryFlags() const = 0;
     virtual std::string toString() const = 0;
     bool isInCategory(EventCategory category);
+    bool isHandled() { return m_handled == true; }
+    void setHandled() { m_handled = true; }
   };
 }

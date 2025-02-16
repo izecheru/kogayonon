@@ -309,10 +309,10 @@
     <None Include="dependencies\include\glm\gtx\vector_angle.inl" />
     <None Include="dependencies\include\glm\gtx\vector_query.inl" />
     <None Include="dependencies\include\glm\gtx\wrap.inl" />
+    <None Include="imgui_config.ini" />
     <None Include="LICENSE" />
     <None Include="models\cat\12221_Cat_v1_l3.mtl" />
     <None Include="models\cat\cat.glb" />
-    <None Include="models\cat\cat.mtl" />
     <None Include="README.md" />
     <None Include="shaders\3d_fragment.glsl" />
     <None Include="shaders\3d_vertex.glsl" />
@@ -736,13 +736,6 @@
   <ItemGroup>
     <Library Include="dependencies\lib\assimp-vc143-mtd.lib" />
     <Library Include="dependencies\lib\glfw3.lib" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="models\cat\Cat_bump.jpg" />
-    <Image Include="models\cat\Cat_diffuse.jpg" />
-    <Image Include="textures\pintea.png" />
-    <Image Include="textures\pintea2.PNG" />
-    <Image Include="textures\pintea3.PNG" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
