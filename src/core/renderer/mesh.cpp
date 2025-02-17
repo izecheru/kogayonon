@@ -45,7 +45,7 @@ namespace kogayonon
     glVertexArrayAttribBinding(m_vao, 2, 0);
   }
 
-  void Mesh::render(Shader& shader) {
+  void Mesh::draw(Shader& shader) {
     unsigned int diffuseNr = 1;
     unsigned int specularNr = 1;
     unsigned int normalNr = 1;

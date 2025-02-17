@@ -7,14 +7,14 @@ namespace kogayonon
     m_layers.push_back(std::move(layer));
   }
 
-  void LayerStack::render() const {
+  void LayerStack::draw() const {
     for (auto& layer : m_layers) {
       if (!layer->isVisible()) {
         // if the layer is disabled, dont render it
         continue;
       }
       else {
-        layer->render();
+        layer->draw();
       }
     }
   }

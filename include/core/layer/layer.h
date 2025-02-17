@@ -3,13 +3,12 @@
 
 namespace kogayonon
 {
-  class Layer
-  {
+  class Layer {
   public:
     Layer() = default;
     virtual ~Layer() {};
-    virtual void render() = 0;
-    virtual void onUpdate() = 0;
+
+    virtual void draw() = 0;
 
     void setVisible(bool state) { m_visible = state; }
     bool isVisible() const { return m_visible; }

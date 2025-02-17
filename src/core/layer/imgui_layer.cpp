@@ -16,10 +16,10 @@ namespace kogayonon
   }
 
   bool ImguiLayer::initLayer(GLFWwindow* window) {
-    if (!m_interface.initImgui(window))
-      return false;
+    // if this is false, abort
+    assert(m_interface.initImgui(window) == true);
 
-    m_interface.createWindow("Test from layer", 10.0f, 20.0f);
+    m_interface.createWindow("Camera settings", 10.0f, 20.0f);
 
     Logger::logInfo("ImGui layer initialised");
     return true;
@@ -35,7 +35,6 @@ namespace kogayonon
 
   bool ImguiLayer::onMouseMoved(MouseMovedEvent& event) {
     if (!m_visible) return false;
-    if (event.isHandled() == true) return false;
 
     if (ImGui::GetIO().WantCaptureMouse) {
       return true;
@@ -48,11 +47,7 @@ namespace kogayonon
     return true;
   }
 
-  void ImguiLayer::render() {
+  void ImguiLayer::draw() {
     m_interface.draw();
-  }
-
-  void ImguiLayer::onUpdate() {
-    Logger::logInfo("on update...");
   }
 }

@@ -12,7 +12,7 @@ namespace kogayonon
     Renderer();
     ~Renderer() = default;
 
-    void render();
+    void draw();
 
     LayerStack& getLayerStack();
 

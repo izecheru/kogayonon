@@ -29,7 +29,7 @@ namespace kogayonon
   public:
     Camera();
 
-    void setView();
+    void setupCamera();
 
     const CameraProps& getCamera();
     const bool getFirstMove();
@@ -47,8 +47,10 @@ namespace kogayonon
     void cameraUniform(unsigned int shader_id, const char* uniform);
     glm::vec3 getCameraPos()const;
 
+    CameraProps& getProps();
+
   private:
-    CameraProps m_props;
+    CameraProps m_props{};
     bool first_move = false;
     unsigned int m_camera_listener_id = 2;
   };

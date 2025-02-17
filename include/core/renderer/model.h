@@ -13,7 +13,7 @@ namespace kogayonon
     Model(std::string& path_to_model, Shader& shader);
     ~Model() = default;
 
-    void render(Shader& shader);
+    void draw(Shader& shader);
     void init(std::string& path, Shader& shader);
 
   private:

@@ -20,6 +20,7 @@ namespace kogayonon
     if (!vertex_stream.is_open()) {
       Logger::logError("Failed to open shader file: ", vert_path);
       std::string result = "";
+      assert(result.size() > 0);
       return { result,result };
     }
 
@@ -34,6 +35,8 @@ namespace kogayonon
     if (!fragment_stream.is_open()) {
       Logger::logError("Failed to open shader file: ", frag_path);
       std::string result = "";
+
+      assert(result.size() > 0);
       return { result,result };
     }
 
@@ -60,6 +63,7 @@ namespace kogayonon
   void Shader::setInt(const char* uniform, int value) {
     int location = glGetUniformLocation(m_program_id, uniform);
     if (location == -1) {
+
       // Uniform not found, print a warning or error message
       Logger::logError("Uniform not found: ", uniform);
     }
@@ -68,7 +72,7 @@ namespace kogayonon
     }
   }
 
-  void Shader::setMat4(const char* uniform, glm::mat4 mat) {
+  void Shader::setMat4(const char* uniform, glm::mat4& mat) {
     int location = glGetUniformLocation(m_program_id, uniform);
     if (location == -1) {
       Logger::logError("Uniform not found: ", uniform);

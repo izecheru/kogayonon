@@ -75,8 +75,8 @@ namespace kogayonon
       shader.setMat4("scaleMatrix", scaleMatrix);
       camera.cameraUniform(m_renderer->getShaderId("3d_shader"), "view");
 
-      my_model.render(m_renderer->getShader("3d_shader"));
-      m_renderer->render();
+      my_model.draw(m_renderer->getShader("3d_shader"));
+      m_renderer->draw();
 
       m_renderer->unbindShader("3d_shader");
       double current_time = glfwGetTime();

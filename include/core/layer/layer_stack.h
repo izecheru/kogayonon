@@ -10,7 +10,7 @@ namespace kogayonon
   {
   public:
     void pushLayer(Layer* layer);
-    void render() const;
+    void draw() const;
 
   private:
     std::vector<Layer*> m_layers{};

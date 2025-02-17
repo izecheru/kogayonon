@@ -31,7 +31,7 @@ namespace kogayonon
     Mesh(const std::vector<Vertex>& vertices, std::vector<unsigned int>& indices, std::vector<Texture>& textures);
 
     void setupMesh();
-    void render(Shader& shader);
+    void draw(Shader& shader);
   private:
     std::vector<Vertex> m_vertices;
     std::vector<Texture> m_textures;

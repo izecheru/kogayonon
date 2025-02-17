@@ -16,10 +16,10 @@ namespace kogayonon
 {
   Camera::Camera() {
     EventListener::getInstance().addCallback<MouseMovedEvent>([this](Event& e) { return this->onMouseMoved(static_cast<MouseMovedEvent&>(e)); });
-    setView();
+    setupCamera();
   }
 
-  void Camera::setView() {
+  void Camera::setupCamera() {
     m_props.position = glm::vec3(0.0f, 0.0f, 3.0f);
     m_props.direction = glm::vec3(0.0f, 0.0f, -1.0f);
     m_props.camera_up = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -133,5 +133,8 @@ namespace kogayonon
   glm::vec3 Camera::getCameraPos() const {
     glm::vec3 pos = glm::vec3(m_props.position.x, m_props.position.y, m_props.position.z);
     return pos;
+  }
+  CameraProps& Camera::getProps() {
+    return m_props;
   }
 }

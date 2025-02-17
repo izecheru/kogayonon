@@ -7,7 +7,7 @@
 
 namespace kogayonon
 {
-  ImguiInterface::ImguiInterface(GLFWwindow* window) {
+  ImGuiInterface::ImGuiInterface(GLFWwindow* window) {
     if (initImgui(window)) {
       Logger::logInfo("Imgui initialised");
     }
@@ -16,12 +16,14 @@ namespace kogayonon
     }
   }
 
-  bool ImguiInterface::initImgui(GLFWwindow* window) {
+  bool ImGuiInterface::initImgui(GLFWwindow* window) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
+
+    io.ConfigFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
     io.IniFilename = "imgui_config.ini";
-    (void)io;
+
     ImGui::StyleColorsDark();
     if (!ImGui_ImplGlfw_InitForOpenGL(window, true)) {
       Logger::logError("error init imgui");
@@ -34,7 +36,7 @@ namespace kogayonon
     return true;
   }
 
-  void ImguiInterface::draw() {
+  void ImGuiInterface::draw() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -47,13 +49,12 @@ namespace kogayonon
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
   }
 
-  bool ImguiInterface::createWindow(std::string window_name, double x_pos, double y_pos, bool docked, bool visible) {
-    ImguiWindow window(window_name, x_pos, y_pos, visible, docked);
-    m_windows.push_back(window);
+  bool ImGuiInterface::createWindow(std::string window_name, double x_pos, double y_pos) {
+    m_windows.push_back(ImguiWindow(window_name));
     return true;
   }
 
-  std::vector<ImguiWindow>& ImguiInterface::getWindows() {
+  std::vector<ImguiWindow>& ImGuiInterface::getWindows() {
     return m_windows;
   }
 }

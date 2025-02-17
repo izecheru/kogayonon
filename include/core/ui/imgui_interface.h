@@ -5,26 +5,28 @@
 #endif  // !GLFW_INCLUDE_NONE
 
 #include "imgui_window.h"
+#include "core/singleton/singleton.h"
+
 #include <GLFW/glfw3.h>
 #include <vector>
 
 namespace kogayonon
 {
-  class ImguiInterface
-  {
+  class ImGuiInterface : public Singleton<ImGuiInterface> {
   public:
-    ImguiInterface() = default;
-    ~ImguiInterface() = default;
+    ImGuiInterface() = default;
+    ~ImGuiInterface() = default;
 
-    ImguiInterface(GLFWwindow* window);
+    ImGuiInterface(GLFWwindow* window);
 
     bool initImgui(GLFWwindow* window);
     void draw();
 
-    bool createWindow(std::string window_name, double x_pos, double y_pos, bool docked = false, bool visible = true);
+    bool createWindow(std::string window_name, double x_pos, double y_pos);
+
     std::vector<ImguiWindow>& getWindows();
 
   private:
-    std::vector<ImguiWindow> m_windows;
+    std::vector<ImguiWindow> m_windows{};
   };
 }

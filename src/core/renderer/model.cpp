@@ -10,10 +10,10 @@ namespace kogayonon
     init(path_to_model, shader);
   }
 
-  void Model::render(Shader& shader) {
+  void Model::draw(Shader& shader) {
     for (auto& mesh : m_meshes)
     {
-      mesh.render(shader);
+      mesh.draw(shader);
     }
   }
 

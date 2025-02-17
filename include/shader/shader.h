@@ -6,23 +6,20 @@
 
 namespace kogayonon
 {
-  enum  ShaderType
-  {
+  enum  ShaderType {
     NONE = 0,
     VERTEX = 1,
     FRAGMENT = 2
   };
 
-  struct ShaderProgramSource
-  {
+  struct ShaderProgramSource {
     ShaderProgramSource(std::string& vert, std::string& frag) :vertex_source(vert), fragment_source(frag) {}
     ShaderProgramSource() = default;
     std::string vertex_source;
     std::string fragment_source;
   };
 
-  class Shader
-  {
+  class Shader {
   public:
     ~Shader() = default;
     Shader() = default;
@@ -35,7 +32,7 @@ namespace kogayonon
     void unbind() const;
 
     void setInt(const char* uniform, int value);
-    void setMat4(const char* uniform, glm::mat4 mat);
+    void setMat4(const char* uniform, glm::mat4& mat);
 
     GLint getShaderId();
 

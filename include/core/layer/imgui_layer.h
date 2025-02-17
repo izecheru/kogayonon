@@ -7,8 +7,7 @@
 
 namespace kogayonon
 {
-  class ImguiLayer :public Layer
-  {
+  class ImguiLayer :public Layer {
   public:
     ImguiLayer(GLFWwindow* window);
 
@@ -16,11 +15,10 @@ namespace kogayonon
     bool onKeyPressed(KeyPressedEvent& event);
     bool onMouseMoved(MouseMovedEvent& event);
     bool onMouseClicked(MouseClickedEvent& event);
-    void render() override;
-    void onUpdate() override;
+    void draw() override;
 
   private:
-    ImguiInterface m_interface;
+    ImGuiInterface m_interface;
     unsigned int m_imgui_layer_listener_id = 1;
   };
 }

@@ -6,8 +6,8 @@ namespace kogayonon
     is_poly = false;
   }
 
-  void Renderer::render() {
-    m_layer_stack.render();
+  void Renderer::draw() {
+    m_layer_stack.draw();
   }
 
   LayerStack& kogayonon::Renderer::getLayerStack() {
