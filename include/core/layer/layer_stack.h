@@ -13,6 +13,6 @@ namespace kogayonon
     void render() const;
 
   private:
-    std::vector<Layer*> m_layers;
+    std::vector<Layer*> m_layers{};
   };
 }

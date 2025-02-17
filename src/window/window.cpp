@@ -31,8 +31,6 @@ namespace kogayonon
     glfwSwapBuffers(m_window);
   }
 
-  void Window::onClose() { glfwDestroyWindow(m_window); }
-
   unsigned int Window::getWidth() const { return m_data.m_width; }
 
   unsigned int Window::getHeight() const { return m_data.m_height; }
@@ -50,12 +48,12 @@ namespace kogayonon
 
   bool Window::isVsync() { return m_data.m_vsync; }
 
-  void Window::setViewport(int width, int height) {
-    glViewport(0, 0, width, height);
-  }
-
   void Window::setViewport() {
-    glViewport(0, 0, m_data.m_width, m_data.m_height);
+    int width, height;
+    glfwGetFramebufferSize(m_window, &width, &height);
+    m_data.m_width = width;
+    m_data.m_height = height;
+    glViewport(0, 0, width, height);
   }
 
   void Window::setEventCallbackFn(const EventCallbackFn& callback) {
@@ -157,7 +155,7 @@ namespace kogayonon
 
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
-    setViewport();
+    glViewport(0, 0, props.m_width, props.m_height);
     return true;
   }
 

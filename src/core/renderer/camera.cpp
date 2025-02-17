@@ -16,7 +16,6 @@ namespace kogayonon
 {
   Camera::Camera() {
     EventListener::getInstance().addCallback<MouseMovedEvent>([this](Event& e) { return this->onMouseMoved(static_cast<MouseMovedEvent&>(e)); });
-    m_props = {};
     setView();
   }
 
@@ -110,6 +109,7 @@ namespace kogayonon
     if (KeyboardState::getKeyState(KeyCode::LeftControl)) {
       m_props.position.y -= 1.4f * velocity;
     }  // this is for later when i add jump mechanic
+
   //m_props.position.y = 0.0f;
     updateCameraVectors();
   }

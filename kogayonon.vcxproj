@@ -142,7 +142,7 @@
     <ClCompile Include="dependencies\include\imgui-1.91.8\imgui_tables.cpp" />
     <ClCompile Include="dependencies\include\imgui-1.91.8\imgui_widgets.cpp" />
     <ClCompile Include="dependencies\include\stbi\stb_image.cpp" />
-    <ClCompile Include="include\core\ui\imgui_window.cpp" />
+    <ClCompile Include="src\core\ui\imgui_window.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\app\app.cpp" />
     <ClCompile Include="src\core\input\input.cpp" />

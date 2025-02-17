@@ -53,7 +53,7 @@ namespace kogayonon
     return true;
   }
 
-  std::vector<ImguiWindow>& kogayonon::ImguiInterface::getWindows() {
+  std::vector<ImguiWindow>& ImguiInterface::getWindows() {
     return m_windows;
   }
 }

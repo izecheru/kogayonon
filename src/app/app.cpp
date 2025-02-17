@@ -45,6 +45,7 @@ namespace kogayonon
 
   void App::run() {
     glEnable(GL_DEPTH_TEST);
+
     // all the events from the window are sent to the app.onEvent function and from there
     // to all the layers in the layer stack
     m_window->setEventCallbackFn([this](Event& e) -> void { this->onEvent(e); });
@@ -86,6 +87,7 @@ namespace kogayonon
 
       if (glfwWindowShouldClose(m_window->getWindow())) {
         WindowCloseEvent close_event;
+
         // we publish the close event so if we need to do some cleanup we can now
         EventListener::getInstance().dispatch(close_event);
         break;
@@ -99,8 +101,9 @@ namespace kogayonon
 
   bool App::onMouseEnter(MouseEnteredEvent& event) { return true; }
 
+  //TODO things look stretched if I resize because i don't update the projection matrix i think
   bool App::onWindowResize(WindowResizeEvent& event) {
-    m_window->setViewport(event.getWidth(), event.getHeight());
+    m_window->setViewport();
     return true;
   }
 

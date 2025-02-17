@@ -21,5 +21,6 @@ namespace kogayonon
 
   private:
     ImguiInterface m_interface;
+    unsigned int m_imgui_layer_listener_id = 1;
   };
 }

@@ -14,8 +14,7 @@ namespace kogayonon
 {
   using EventCallbackFn = std::function<void(Event&)>;
 
-  struct WindowProps
-  {
+  struct WindowProps {
     const char* m_title;
     uint32_t m_width;
     uint32_t m_height;
@@ -26,24 +25,22 @@ namespace kogayonon
       uint32_t width = 640,
       uint32_t height = 480,
       bool vsync = true)
-      : m_title(title), m_width(width), m_height(height), m_vsync(vsync) {}
+      : m_title(title), m_width(width), m_height(height), m_vsync(vsync) {
+    }
 
     ~WindowProps() = default;
   };
 
-  class Window
-  {
+  class Window {
   public:
     Window();
     virtual ~Window();
 
     void update();
-    void onClose();
     unsigned int getWidth() const;
     unsigned int getHeight() const;
     void setVsync();
     bool isVsync();
-    void setViewport(int width, int height);
     void setViewport();
     void setEventCallbackFn(const EventCallbackFn& callback);
     GLFWwindow* getWindow();

@@ -10,8 +10,7 @@
 namespace kogayonon
 {
   // https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/camera.h
-  struct CameraProps
-  {
+  struct CameraProps {
     glm::vec3 position;
     glm::vec3 direction;
     glm::vec3 camera_up;
@@ -26,8 +25,7 @@ namespace kogayonon
   };
 
   // TODO camera snaps when i leave imgui window
-  class Camera :public Singleton<Camera>
-  {
+  class Camera :public Singleton<Camera> {
   public:
     Camera();
 
@@ -52,5 +50,6 @@ namespace kogayonon
   private:
     CameraProps m_props;
     bool first_move = false;
+    unsigned int m_camera_listener_id = 2;
   };
 }

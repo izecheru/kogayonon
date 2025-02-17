@@ -7,8 +7,6 @@
 
 namespace kogayonon
 {
-
-
   class App
   {
   public:
@@ -33,5 +31,7 @@ namespace kogayonon
     static inline double delta_time;
     static inline std::unique_ptr<Window> m_window;
     static inline std::unique_ptr<Renderer> m_renderer;
+    // this is 0 because this is the first thing we send events to
+    static inline unsigned int m_app_listener_id = 0;
   };
 }
