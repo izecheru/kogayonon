@@ -39,9 +39,8 @@ namespace kogayonon
     }
 
   private:
-    std::unordered_map < EventType, std::vector<std::pair<unsigned char, EventCallback>>> m_callbacks;
-
+    std::unordered_map <EventType, std::vector<std::pair<unsigned char, EventCallback>>> m_callbacks;
     // don't think we need more than 255 ids
-    unsigned char m_id;
+    unsigned char m_id = 0;
   };
 }

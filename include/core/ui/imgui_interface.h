@@ -12,21 +12,21 @@
 
 namespace kogayonon
 {
+  using Windows = std::vector<ImguiWindow*>;
   class ImGuiInterface : public Singleton<ImGuiInterface> {
   public:
     ImGuiInterface() = default;
-    ~ImGuiInterface() = default;
+    ~ImGuiInterface();
 
     ImGuiInterface(GLFWwindow* window);
-
     bool initImgui(GLFWwindow* window);
+    bool initWindows();
     void draw();
 
-    bool createWindow(std::string window_name, double x_pos, double y_pos);
-
-    std::vector<ImguiWindow>& getWindows();
+  private:
+    Windows& getWindows();
 
   private:
-    std::vector<ImguiWindow> m_windows{};
+    Windows m_windows{};
   };
 }

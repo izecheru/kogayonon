@@ -63,9 +63,6 @@
     <ClCompile Include="src\core\ui\imgui_interface.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\core\ui\imgui_window.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="dependencies\include\imgui-1.91.8\imgui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -91,6 +88,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\core\layer\imgui_layer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\ui\win_camera_settings.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1777,6 +1777,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\events\event_listener.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\core\ui\win_camera_settings.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

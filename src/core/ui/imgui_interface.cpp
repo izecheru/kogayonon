@@ -1,12 +1,19 @@
-#include "core/ui/imgui_interface.h"
-#include "core/logger.h"
-
 #include <imgui-1.91.8/imgui.h>
 #include <imgui-1.91.8/imgui_impl_glfw.h>
 #include <imgui-1.91.8/imgui_impl_opengl3.h>
 
+#include "core/ui/win_camera_settings.h"
+#include "core/ui/imgui_interface.h"
+#include "core/logger.h"
+
 namespace kogayonon
 {
+  ImGuiInterface::~ImGuiInterface() {
+    for (int i = 0; i < m_windows.size(); i++) {
+      delete m_windows[i];
+    }
+  }
+
   ImGuiInterface::ImGuiInterface(GLFWwindow* window) {
     if (initImgui(window)) {
       Logger::logInfo("Imgui initialised");
@@ -42,19 +49,24 @@ namespace kogayonon
     ImGui::NewFrame();
 
     for (auto& window : m_windows) {
-      window.draw();
+      window->draw();
     }
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
   }
 
-  bool ImGuiInterface::createWindow(std::string window_name, double x_pos, double y_pos) {
-    m_windows.push_back(ImguiWindow(window_name));
+  /// <summary>
+  /// Initializes all the ImGui windows prepared for the engine and pushes them to
+  /// the m_windows vector
+  /// </summary>
+  /// <returns></returns>
+  bool ImGuiInterface::initWindows() {
+    m_windows.push_back(new CameraSettingsWindow("Camera settings"));
     return true;
   }
 
-  std::vector<ImguiWindow>& ImGuiInterface::getWindows() {
+  Windows& ImGuiInterface::getWindows() {
     return m_windows;
   }
 }

@@ -19,7 +19,7 @@ namespace kogayonon
     // if this is false, abort
     assert(m_interface.initImgui(window) == true);
 
-    m_interface.createWindow("Camera settings", 10.0f, 20.0f);
+    m_interface.initWindows();
 
     Logger::logInfo("ImGui layer initialised");
     return true;

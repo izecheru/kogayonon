@@ -15,7 +15,7 @@ namespace kogayonon
     m_program_id = createShader(m_shader_src);
   }
 
-  ShaderProgramSource Shader::parseShaderFile(const std::string& vert_path, const std::string& frag_path) {
+  shader_source Shader::parseShaderFile(const std::string& vert_path, const std::string& frag_path) {
     std::ifstream vertex_stream(vert_path);
     if (!vertex_stream.is_open()) {
       Logger::logError("Failed to open shader file: ", vert_path);
@@ -48,7 +48,7 @@ namespace kogayonon
     std::string vertex = vertex_ss.str();
     std::string fragment = fragment_ss.str();
 
-    ShaderProgramSource source(vertex, fragment);
+    shader_source source(vertex, fragment);
     return source;
   }
 
@@ -111,7 +111,7 @@ namespace kogayonon
     return id;
   }
 
-  int Shader::createShader(ShaderProgramSource& src) {
+  int Shader::createShader(shader_source& src) {
     unsigned int program = glCreateProgram();
     unsigned int vs = compileShader(GL_VERTEX_SHADER, src.vertex_source);
     unsigned int fs = compileShader(GL_FRAGMENT_SHADER, src.fragment_source);

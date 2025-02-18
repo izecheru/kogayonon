@@ -11,19 +11,19 @@ namespace kogayonon
   // params good enough to create any window i might need
   class ImguiWindow {
   public:
-    ImguiWindow() = default;
-    ~ImguiWindow() = default;
+    explicit ImguiWindow(std::string name) { m_props = new imgui_props(name); }
+    virtual ~ImguiWindow() { delete m_props; }
 
-    ImguiWindow(std::string name) :m_props(std::move(name)) {}
+    // Default implementations for all property functions
+    virtual void setDocked(bool status) { m_props->m_docked = status; }
+    virtual void setVisible(bool status) { m_props->m_visible = status; }
+    virtual void setX(double x) { m_props->m_x = x; }
+    virtual void setY(double y) { m_props->m_y = y; }
 
-    void setDocked(bool status);
-    void setVisible(bool status);
-    void setX(double x);
-    void setY(double y);
-    void draw();
+    virtual void draw() = 0;
 
-  private:
-    struct ImGuiProps {
+  protected:
+    struct imgui_props {
       std::string m_name;
       double m_x = 0.0;
       double m_y = 0.0;
@@ -33,12 +33,12 @@ namespace kogayonon
       bool m_is_hovered = false;
       ImGuiWindowFlags m_flags;
 
-      ImGuiProps(std::string t_name)
+      imgui_props(std::string t_name)
         : m_name(std::move(t_name)), m_x(0.0), m_y(0.0),
-        m_docked(false), m_visible(true), m_is_hovered(false), m_can_move(true), m_flags(ImGuiWindowFlags_NoCollapse) {
+        m_docked(false), m_visible(true), m_is_hovered(false), m_can_move(true), m_flags(0) {
       }
     };
 
-    ImGuiProps m_props;
+    imgui_props* m_props;
   };
 }

@@ -12,9 +12,9 @@ namespace kogayonon
     FRAGMENT = 2
   };
 
-  struct ShaderProgramSource {
-    ShaderProgramSource(std::string& vert, std::string& frag) :vertex_source(vert), fragment_source(frag) {}
-    ShaderProgramSource() = default;
+  struct shader_source {
+    shader_source(std::string& vert, std::string& frag) :vertex_source(vert), fragment_source(frag) {}
+    shader_source() = default;
     std::string vertex_source;
     std::string fragment_source;
   };
@@ -26,7 +26,7 @@ namespace kogayonon
 
     Shader(const char* vert_path, const char* frag_path);
 
-    ShaderProgramSource parseShaderFile(const std::string& vert_path, const std::string& frag_path);
+    shader_source parseShaderFile(const std::string& vert_path, const std::string& frag_path);
 
     void bind() const;
     void unbind() const;
@@ -38,10 +38,10 @@ namespace kogayonon
 
   private:
     static unsigned int compileShader(unsigned int shader_type, std::string& source_data);
-    static int createShader(ShaderProgramSource& src);
+    static int createShader(shader_source& src);
 
   private:
     GLint m_program_id;
-    ShaderProgramSource m_shader_src;
+    shader_source m_shader_src;
   };
 }

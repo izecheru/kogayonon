@@ -14,21 +14,21 @@ namespace kogayonon
 {
   using EventCallbackFn = std::function<void(Event&)>;
 
-  struct WindowProps {
-    const char* m_title;
-    uint32_t m_width;
-    uint32_t m_height;
-    bool m_vsync;
+  struct window_props {
+    const char* title;
+    unsigned short width;
+    unsigned short height;
+    bool vsync;
     EventCallbackFn eventCallback;
 
-    WindowProps(const char* title = "kogayonon",
-      uint32_t width = 640,
-      uint32_t height = 480,
-      bool vsync = true)
-      : m_title(title), m_width(width), m_height(height), m_vsync(vsync) {
+    window_props(const char* t_title = "kogayonon",
+      unsigned short t_width = 1800,
+      unsigned short t_height = 900,
+      bool t_vsync = true)
+      : title(t_title), width(t_width), height(t_height), vsync(t_vsync) {
     }
 
-    ~WindowProps() = default;
+    ~window_props() = default;
   };
 
   class Window {
@@ -37,18 +37,20 @@ namespace kogayonon
     virtual ~Window();
 
     void update();
-    unsigned int getWidth() const;
-    unsigned int getHeight() const;
+    unsigned short getWidth() const;
+    unsigned short getHeight() const;
     void setVsync();
     bool isVsync();
     void setViewport();
     void setEventCallbackFn(const EventCallbackFn& callback);
     GLFWwindow* getWindow();
-    WindowProps getWindowData();
+    window_props& getWindowData();
 
   private:
-    GLFWwindow* m_window;
-    WindowProps m_data;
-    bool init(const WindowProps& props);
+    bool init(const window_props& props);
+
+  private:
+    GLFWwindow* m_window{};
+    window_props m_data{};
   };
 }

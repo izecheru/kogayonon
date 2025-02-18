@@ -142,7 +142,6 @@
     <ClCompile Include="dependencies\include\imgui-1.91.8\imgui_tables.cpp" />
     <ClCompile Include="dependencies\include\imgui-1.91.8\imgui_widgets.cpp" />
     <ClCompile Include="dependencies\include\stbi\stb_image.cpp" />
-    <ClCompile Include="src\core\ui\imgui_window.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\app\app.cpp" />
     <ClCompile Include="src\core\input\input.cpp" />
@@ -155,6 +154,7 @@
     <ClCompile Include="src\core\renderer\model.cpp" />
     <ClCompile Include="src\core\renderer\renderer.cpp" />
     <ClCompile Include="src\core\ui\imgui_interface.cpp" />
+    <ClCompile Include="src\core\ui\win_camera_settings.cpp" />
     <ClCompile Include="src\event\event.cpp" />
     <ClCompile Include="src\shader\shader.cpp" />
     <ClCompile Include="src\window\window.cpp" />
@@ -722,6 +722,7 @@
     <ClInclude Include="include\core\renderer\model.h" />
     <ClInclude Include="include\core\renderer\renderer.h" />
     <ClInclude Include="include\core\singleton\singleton.h" />
+    <ClInclude Include="include\core\ui\win_camera_settings.h" />
     <ClInclude Include="include\core\ui\imgui_interface.h" />
     <ClInclude Include="include\core\ui\imgui_window.h" />
     <ClInclude Include="include\events\app_event.h" />
