@@ -14,8 +14,8 @@ namespace kogayonon
     return m_layer_stack;
   }
 
-  void Renderer::pushShader(const char* vertex_shader, const char* fragment_shader, const char* shader_name) {
-    Shader sh(vertex_shader, fragment_shader);
+  void Renderer::pushShader(std::string& vertex_shader, std::string& fragment_shader, const char* shader_name) {
+    Shader sh(vertex_shader.c_str(), fragment_shader.c_str());
     m_shaders.insert(std::pair<const char*, Shader>(shader_name, sh));
   }
 

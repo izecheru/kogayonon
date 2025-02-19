@@ -21,7 +21,7 @@ namespace kogayonon
     bool vsync;
     EventCallbackFn eventCallback;
 
-    window_props(const char* t_title = "kogayonon",
+    explicit window_props(const char* t_title = "kogayonon",
       unsigned short t_width = 1800,
       unsigned short t_height = 900,
       bool t_vsync = true)
@@ -34,7 +34,7 @@ namespace kogayonon
   class Window {
   public:
     Window();
-    virtual ~Window();
+    ~Window();
 
     void update();
     unsigned short getWidth() const;

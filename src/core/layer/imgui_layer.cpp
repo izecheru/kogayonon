@@ -2,9 +2,10 @@
 #include "core/logger.h"
 #include "events/keyboard_events.h"
 #include "events/event_listener.h"
-#include <imgui-1.91.8/imgui.h>
-#include <imgui-1.91.8/imgui_impl_glfw.h>
-#include <imgui-1.91.8/imgui_impl_opengl3.h>
+
+#include <imgui/imgui.h>
+#include <imgui/backends/imgui_impl_glfw.h>
+#include <imgui/backends/imgui_impl_opengl3.h>
 
 namespace kogayonon
 {

@@ -39,6 +39,8 @@ namespace kogayonon
     }
 
   private:
+    // TODO rethink event system so that i can easely subscribe and unsubscribe the correct way and at
+    // the correct time from a specific event inside a specific class listener
     std::unordered_map <EventType, std::vector<std::pair<unsigned char, EventCallback>>> m_callbacks;
     // don't think we need more than 255 ids
     unsigned char m_id = 0;

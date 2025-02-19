@@ -1,20 +1,18 @@
 #pragma once
-#include <assimp\Importer.hpp>
-#include "core/renderer/model.h"
-// Use the #aiProcess_FlipUVs flag to get UV coordinates with the upper-left corner as origin.
+#include <assimp/Importer.hpp>
+#include "core/model_loader/model.h"
 
 namespace kogayonon
 {
-  class ModelLoader
-  {
+  class ModelLoader :public Singleton<ModelLoader> {
   public:
 
-      static void buildModel(std::string& path, std::vector<Mesh>& meshes, std::map<std::string, Texture>& textures_loaded, Shader& shader);
+      static void buildModel(std::string path, std::vector<Mesh>& meshes, std::map<std::string, Texture>& textures_loaded);
 
     static void getScene(std::string& path);
 
-    static Mesh processMesh(const aiMesh* mesh, std::map<std::string, Texture>& textures_loaded, Shader& shader);
-    static void processNode(std::vector<Mesh>& meshes, aiNode* node, std::map<std::string, Texture>& loaded_textures, Shader& shader);
+    static Mesh processMesh(const aiMesh* mesh, std::map<std::string, Texture>& textures_loaded);
+    static void processNode(std::vector<Mesh>& meshes, aiNode* node, std::map<std::string, Texture>& loaded_textures);
     static unsigned int textureFromFile(std::string& path, const std::string& directory, bool gamma);
     static std::vector<Texture> loadMaterialTextures(std::map<std::string, Texture>& textures_loaded, aiMaterial* material, aiTextureType type, std::string type_name);
 

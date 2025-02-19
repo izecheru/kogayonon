@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <imgui-1.91.8\imgui.h>
+#include <imgui\imgui.h>
 
 namespace kogayonon
 {
@@ -15,8 +15,8 @@ namespace kogayonon
     virtual ~ImguiWindow() { delete m_props; }
 
     // Default implementations for all property functions
-    virtual void setDocked(bool status) { m_props->m_docked = status; }
-    virtual void setVisible(bool status) { m_props->m_visible = status; }
+    virtual void setDocked(bool status) { m_props->is_docked = status; }
+    virtual void setVisible(bool status) { m_props->visible = status; }
     virtual void setX(double x) { m_props->m_x = x; }
     virtual void setY(double y) { m_props->m_y = y; }
 
@@ -27,15 +27,16 @@ namespace kogayonon
       std::string m_name;
       double m_x = 0.0;
       double m_y = 0.0;
-      bool m_docked = false;
-      bool m_can_move = true;
-      bool m_visible = true;
-      bool m_is_hovered = false;
+      bool is_docked = false;
+      bool can_move = true;
+      bool visible = true;
+      bool is_hovered = false;
+      bool can_resize = false;
       ImGuiWindowFlags m_flags;
 
-      imgui_props(std::string t_name)
+      explicit imgui_props(std::string t_name)
         : m_name(std::move(t_name)), m_x(0.0), m_y(0.0),
-        m_docked(false), m_visible(true), m_is_hovered(false), m_can_move(true), m_flags(0) {
+        is_docked(false), visible(true), is_hovered(false), can_move(true), can_resize(false), m_flags(0) {
       }
     };
 

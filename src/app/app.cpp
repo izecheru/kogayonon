@@ -6,6 +6,8 @@
 #define GLFW_INCLUDE_NONE
 #endif  // !GLFW_INCLUDE_NONE
 
+#include <filesystem>
+
 #include <glad/glad.h>
 
 #include <glm/gtc/type_ptr.hpp>
@@ -16,15 +18,15 @@
 #include "core/input/input.h"
 #include "core/logger.h"
 #include "core/renderer/camera.h"
-#include "core/renderer/mesh.h"
+#include "core/model_loader/mesh.h"
 #include "core/renderer/renderer.h"
 #include "events/keyboard_events.h"
 #include "events/mouse_events.h"
 #include "window/window.h"
-#include "core/renderer/model.h"
+#include "core/model_loader/model.h"
 #include "core/model_loader/model_loader.h"
 #include "core/ui/imgui_interface.h"
-
+#include "core/model_loader/model_manager.h"
 #include "core/layer/layer_stack.h"
 #include "core/layer/imgui_layer.h"
 
@@ -52,31 +54,35 @@ namespace kogayonon
 
     double prev_time = glfwGetTime();
 
-    m_renderer->pushShader("shaders/3d_vertex.glsl", "shaders/3d_fragment.glsl", "3d_shader");
-    Model my_model(std::string("models/stairs/scene.gltf"), m_renderer->getShader("3d_shader"));
+#define GET_ABS(x) std::filesystem::absolute(x).string()
+    m_renderer->pushShader(std::string("shaders/3d_vertex.glsl"), std::string("shaders/3d_fragment.glsl"), "3d_shader");
 
     Camera& camera = Camera::getInstance();
 
     Shader& shader = m_renderer->getShader("3d_shader");
 
+    ModelManager::getInstance().pushModel(std::string("models/stairs/scene.gltf"));
+    ModelManager::getInstance().setupModels();
+    Model& model = ModelManager::getInstance().getModel(std::string("models/stairs/scene.gltf"));
+
     while (!glfwWindowShouldClose(m_window->getWindow())) {
       glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-      glm::mat4 model = glm::mat4(1.0f);
       glm::mat4 proj = glm::mat4(1.0f);
       float scaleFactor = 0.08f;
-      glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(scaleFactor, scaleFactor, scaleFactor));
+      glm::mat4 model_mat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
+      glm::mat4 scale_mat = glm::scale(glm::mat4(1.0f), glm::vec3(0.08f));
       proj = glm::perspective(glm::radians(45.0f), (float)m_window->getWidth() / (float)m_window->getHeight(), 0.1f, 200.0f);
 
       m_renderer->bindShader("3d_shader");
-      shader.setMat4("model", model);
+      shader.setMat4("model", model_mat);
       shader.setMat4("projection", proj);
-      shader.setMat4("scaleMatrix", scaleMatrix);
+      shader.setMat4("scaleMatrix", scale_mat);
       camera.cameraUniform(m_renderer->getShaderId("3d_shader"), "view");
 
-      my_model.draw(m_renderer->getShader("3d_shader"));
       m_renderer->draw();
+      model.draw(m_renderer->getShader("3d_shader"));
 
       m_renderer->unbindShader("3d_shader");
       double current_time = glfwGetTime();
@@ -101,7 +107,6 @@ namespace kogayonon
 
   bool App::onMouseEnter(MouseEnteredEvent& event) { return true; }
 
-  //TODO things look stretched if I resize because i don't update the projection matrix i think
   bool App::onWindowResize(WindowResizeEvent& event) {
     m_window->setViewport();
     return true;
@@ -128,6 +133,9 @@ namespace kogayonon
         break;
       case KeyCode::Escape:
         glfwSetWindowShouldClose(m_window->getWindow(), true);
+        break;
+      case KeyCode::C:
+        glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
         break;
       default:
         return false;

@@ -10,7 +10,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "events/event_listener.h"
 #include "events/keyboard_events.h"
-#include <imgui-1.91.8\imgui.h>
+#include <imgui\imgui.h>
 
 namespace kogayonon
 {

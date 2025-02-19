@@ -1,13 +1,12 @@
 #pragma once
 #include <map>
-#include "core/renderer/mesh.h"
+#include "core/model_loader/mesh.h"
 #include "core/layer/layer_stack.h"
 #include "shader/shader.h"
 
 namespace kogayonon
 {
-  class Renderer
-  {
+  class Renderer {
   public:
     Renderer();
     ~Renderer() = default;
@@ -16,7 +15,7 @@ namespace kogayonon
 
     LayerStack& getLayerStack();
 
-    void pushShader(const char* vertex_shader, const char* fragment_shader, const char* shader_name);
+    void pushShader(std::string& vertex_shader, std::string& fragment_shader, const char* shader_name);
     void pushLayer(Layer* layer);
 
     Shader getShader(const char* shader_name);

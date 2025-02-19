@@ -18,7 +18,7 @@ namespace kogayonon
     ImGuiInterface() = default;
     ~ImGuiInterface();
 
-    ImGuiInterface(GLFWwindow* window);
+    explicit ImGuiInterface(GLFWwindow* window);
     bool initImgui(GLFWwindow* window);
     bool initWindows();
     void draw();

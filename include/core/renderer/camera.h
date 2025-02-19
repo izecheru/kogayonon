@@ -49,6 +49,10 @@ namespace kogayonon
 
     CameraProps& getProps();
 
+    float getX() { return m_props.position.x; }
+    float getY() { return m_props.position.y; }
+    float getZ() { return m_props.position.z; }
+
   private:
     CameraProps m_props{};
     bool first_move = false;

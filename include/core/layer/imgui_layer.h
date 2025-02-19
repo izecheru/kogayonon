@@ -9,7 +9,7 @@ namespace kogayonon
 {
   class ImguiLayer :public Layer {
   public:
-    ImguiLayer(GLFWwindow* window);
+    explicit ImguiLayer(GLFWwindow* window);
 
     bool initLayer(GLFWwindow* window);
     bool onKeyPressed(KeyPressedEvent& event);
