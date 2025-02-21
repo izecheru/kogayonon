@@ -4,19 +4,21 @@
 #include "events/event_listener.h"
 
 #include <imgui/imgui.h>
-#include <imgui/backends/imgui_impl_glfw.h>
-#include <imgui/backends/imgui_impl_opengl3.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_opengl3.h>
 
 namespace kogayonon
 {
-  ImguiLayer::ImguiLayer(GLFWwindow* window) {
+  ImguiLayer::ImguiLayer(GLFWwindow* window)
+  {
     initLayer(window);
     EventListener::getInstance().addCallback<KeyPressedEvent>([this](Event& e) { return this->onKeyPressed(static_cast<KeyPressedEvent&>(e)); });
     EventListener::getInstance().addCallback<MouseClickedEvent>([this](Event& e) { return this->onMouseClicked(static_cast<MouseClickedEvent&>(e)); });
     EventListener::getInstance().addCallback<MouseMovedEvent>([this](Event& e) { return this->onMouseMoved(static_cast<MouseMovedEvent&>(e)); });
   }
 
-  bool ImguiLayer::initLayer(GLFWwindow* window) {
+  bool ImguiLayer::initLayer(GLFWwindow* window)
+  {
     // if this is false, abort
     assert(m_interface.initImgui(window) == true);
 
@@ -26,29 +28,35 @@ namespace kogayonon
     return true;
   }
 
-  bool ImguiLayer::onKeyPressed(KeyPressedEvent& event) {
-    if (event.getKeyCode() == KeyCode::F2) {
+  bool ImguiLayer::onKeyPressed(KeyPressedEvent& event)
+  {
+    if (event.getKeyCode() == KeyCode::F2)
+    {
       m_visible = !m_visible;
       return true;
     }
     return false;
   }
 
-  bool ImguiLayer::onMouseMoved(MouseMovedEvent& event) {
+  bool ImguiLayer::onMouseMoved(MouseMovedEvent& event)
+  {
     if (!m_visible) return false;
 
-    if (ImGui::GetIO().WantCaptureMouse) {
+    if (ImGui::GetIO().WantCaptureMouse)
+    {
       return true;
     }
 
     return false;
   }
 
-  bool ImguiLayer::onMouseClicked(MouseClickedEvent& event) {
+  bool ImguiLayer::onMouseClicked(MouseClickedEvent& event)
+  {
     return true;
   }
 
-  void ImguiLayer::draw() {
+  void ImguiLayer::draw()
+  {
     m_interface.draw();
   }
 }

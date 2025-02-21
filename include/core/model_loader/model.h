@@ -7,7 +7,8 @@
 
 namespace kogayonon
 {
-  class Model {
+  class Model
+  {
   public:
     explicit Model(const std::string& path_to_model);
     Model() = default;
@@ -15,9 +16,11 @@ namespace kogayonon
 
     void draw(Shader& shader);
     void init(const std::string path);
+
     std::vector<Mesh>& getMeshes();
 
     void operator=(const Model& other);
+    bool isLoaded() { return m_loaded; }
 
   private:
     std::vector<Mesh> m_meshes;

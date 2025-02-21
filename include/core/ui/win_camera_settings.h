@@ -5,9 +5,10 @@
 
 namespace kogayonon
 {
-  class CameraSettingsWindow : public ImguiWindow {
+  class CameraSettingsWindow : public ImguiWindow
+  {
   public:
-    explicit CameraSettingsWindow(std::string name) :ImguiWindow(std::move(name)) {}
+    explicit CameraSettingsWindow(std::string name, bool can_move = false) :ImguiWindow(std::move(name)) { m_props->can_move = can_move; }
 
   private:
     bool initCameraWindow();

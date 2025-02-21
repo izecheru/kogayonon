@@ -13,20 +13,24 @@
 
 namespace kogayonon
 {
-  Window::Window() {
+  Window::Window()
+  {
     init(m_data);
     glfwSetWindowUserPointer(m_window, &m_data);
   }
 
-  Window::~Window() {
+  Window::~Window()
+  {
     Logger::logInfo("~Window destroyed");
-    if (m_window) {
+    if (m_window)
+    {
       glfwDestroyWindow(m_window);
     }
     glfwTerminate();
   }
 
-  void Window::update() {
+  void Window::update()
+  {
     glfwPollEvents();
     glfwSwapBuffers(m_window);
   }
@@ -35,12 +39,15 @@ namespace kogayonon
 
   unsigned short Window::getHeight() const { return m_data.height; }
 
-  void Window::setVsync() {
-    if (!m_data.vsync) {
+  void Window::setVsync()
+  {
+    if (!m_data.vsync)
+    {
       m_data.vsync = true;
       glfwSwapInterval(1);
     }
-    else {
+    else
+    {
       m_data.vsync = false;
       glfwSwapInterval(0);
     }
@@ -48,7 +55,8 @@ namespace kogayonon
 
   bool Window::isVsync() { return m_data.vsync; }
 
-  void Window::setViewport() {
+  void Window::setViewport()
+  {
     int width, height;
     glfwGetFramebufferSize(m_window, &width, &height);
     m_data.width = width;
@@ -56,12 +64,15 @@ namespace kogayonon
     glViewport(0, 0, width, height);
   }
 
-  void Window::setEventCallbackFn(const EventCallbackFn& callback) {
+  void Window::setEventCallbackFn(const EventCallbackFn& callback)
+  {
     m_data.eventCallback = callback;
   }
 
-  bool Window::init(const window_props& props) {
-    if (!glfwInit()) {
+  bool Window::init(const window_props& props)
+  {
+    if (!glfwInit())
+    {
       Logger::logError("failed to init glfw\n");
       return false;
     }
@@ -79,6 +90,50 @@ namespace kogayonon
 
     // continue only if glad can load
     assert(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress));
+
+    //glEnable(GL_DEBUG_OUTPUT);
+   /* glDebugMessageCallback([](GLenum source, GLenum type, GLuint id, GLenum severity,
+      GLsizei length, const GLchar* message, const void* userParam)
+      {
+        auto const src_str = [source]()
+          {
+            switch (source)
+            {
+              case GL_DEBUG_SOURCE_API: return "API";
+              case GL_DEBUG_SOURCE_WINDOW_SYSTEM: return "WINDOW SYSTEM";
+              case GL_DEBUG_SOURCE_SHADER_COMPILER: return "SHADER COMPILER";
+              case GL_DEBUG_SOURCE_THIRD_PARTY: return "THIRD PARTY";
+              case GL_DEBUG_SOURCE_APPLICATION: return "APPLICATION";
+              case GL_DEBUG_SOURCE_OTHER: return "OTHER";
+            }
+          }();
+
+        auto const type_str = [type]()
+          {
+            switch (type)
+            {
+              case GL_DEBUG_TYPE_ERROR: return "ERROR";
+              case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: return "DEPRECATED_BEHAVIOR";
+              case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: return "UNDEFINED_BEHAVIOR";
+              case GL_DEBUG_TYPE_PORTABILITY: return "PORTABILITY";
+              case GL_DEBUG_TYPE_PERFORMANCE: return "PERFORMANCE";
+              case GL_DEBUG_TYPE_MARKER: return "MARKER";
+              case GL_DEBUG_TYPE_OTHER: return "OTHER";
+            }
+          }();
+
+        auto const severity_str = [severity]()
+          {
+            switch (severity)
+            {
+              case GL_DEBUG_SEVERITY_NOTIFICATION: return "NOTIFICATION";
+              case GL_DEBUG_SEVERITY_LOW: return "LOW";
+              case GL_DEBUG_SEVERITY_MEDIUM: return "MEDIUM";
+              case GL_DEBUG_SEVERITY_HIGH: return "HIGH";
+            }
+          }();
+        std::cout << src_str << ", " << type_str << ", " << severity_str << ", " << id << ": " << message << '\n';
+      }, nullptr);*/
 
     glfwSetWindowSizeCallback(m_window, [](GLFWwindow* window, int width, int height)
       {
@@ -121,7 +176,8 @@ namespace kogayonon
       {
         window_props& props = *(window_props*)glfwGetWindowUserPointer(window);
 
-        switch (action) {
+        switch (action)
+        {
           case GLFW_PRESS:
             {
               KeyPressedEvent event((KeyCode)key, 0);

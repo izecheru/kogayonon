@@ -6,7 +6,8 @@
 
 namespace kogayonon
 {
-  class Renderer {
+  class Renderer
+  {
   public:
     Renderer();
     ~Renderer() = default;
@@ -15,10 +16,10 @@ namespace kogayonon
 
     LayerStack& getLayerStack();
 
-    void pushShader(std::string& vertex_shader, std::string& fragment_shader, const char* shader_name);
+    void pushShader(const std::string& vertex_shader, const std::string& fragment_shader, const std::string& shader_name);
     void pushLayer(Layer* layer);
 
-    Shader getShader(const char* shader_name);
+    Shader& getShader(const char* shader_name);
     GLint getShaderId(const char* shader_name);
 
     void bindShader(const char* shader_name);
@@ -30,6 +31,6 @@ namespace kogayonon
   private:
     bool is_poly;
     LayerStack m_layer_stack;
-    std::map<const char*, Shader> m_shaders;
+    std::map<const std::string, Shader> m_shaders;
   };
 }
