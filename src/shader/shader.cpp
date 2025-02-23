@@ -54,7 +54,6 @@ namespace kogayonon
     std::string vertex = vertex_ss.str();
     std::string fragment = fragment_ss.str();
 
-    Logger::logInfo(vertex, '\n', fragment);
     shader_source source(vertex, fragment);
     return source;
   }

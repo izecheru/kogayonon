@@ -33,7 +33,6 @@ namespace kogayonon
       :type(t), path(p), width(w), height(h), num_components(n), data(d), gamma(g)
     {
       if (data == nullptr) Logger::logError("data is null");
-      Logger::logInfo("t-", type, " w-", width, " h-", height, " n-", num_components);
     }
   };
 

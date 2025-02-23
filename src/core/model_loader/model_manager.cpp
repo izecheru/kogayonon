@@ -1,29 +1,24 @@
 #include "core/model_loader/model_manager.h"
+#include "core/task/task_manager.h"
 #include <future>
 #include <filesystem>
 
 namespace kogayonon
 {
-  static void createModel(std::unordered_map<std::string, Model>* models, const std::string& path, std::atomic<bool>* done)
-  {
-    Model model(path);
-    (*models)[path] = model; // Dereference pointer to modify the map
-    done->store(false);
-  }
-
   bool ModelManager::pushModel(const std::string& path)
   {
+    // make sure file exists otherwise bad luck
     assert(std::filesystem::exists(path) != false);
 
-    if (isLoaded(path) || m_loading_in_progress.load())
+    if (isLoaded(path))
       return false;
 
-    m_loading_in_progress.store(true);
-
-    m_future = std::async(std::launch::async, [this, path]() {
-      createModel(&m_models, path, &m_loading_in_progress);
-      m_loading_in_progress.store(false);
-      });
+    TaskManager::getInstance().pushTask([this, path]()
+      {
+        std::lock_guard<std::mutex> lock(m_model_manager_mutex);
+        m_models[path] = Model(path);
+      }
+    );
 
     return true;
   }

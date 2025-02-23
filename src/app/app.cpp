@@ -29,46 +29,17 @@
 #include "core/model_loader/model_manager.h"
 #include "core/layer/layer_stack.h"
 #include "core/layer/imgui_layer.h"
+#include "core/task/task_manager.h"
 
 namespace kogayonon
 {
-  void checkPermissions(const std::filesystem::path& filePath)
-  {
-    try
-    {
-      auto perms = std::filesystem::status(filePath).permissions();
-
-      std::cout << "Checking permissions for: " << filePath << std::endl;
-
-      if ((perms & std::filesystem::perms::owner_read) != std::filesystem::perms::none)
-        std::cout << "Owner has read permission.\n";
-      else
-        std::cout << "Owner does NOT have read permission.\n";
-
-      if ((perms & std::filesystem::perms::owner_write) != std::filesystem::perms::none)
-        std::cout << "Owner has write permission.\n";
-      else
-        std::cout << "Owner does NOT have write permission.\n";
-
-      if ((perms & std::filesystem::perms::owner_exec) != std::filesystem::perms::none)
-        std::cout << "Owner has execute permission.\n";
-      else
-        std::cout << "Owner does NOT have execute permission.\n";
-
-    }
-    catch (const std::filesystem::filesystem_error& e)
-    {
-      std::cerr << "Filesystem error: " << e.what() << std::endl;
-    }
-  }
   App::App()
   {
     m_window = std::make_unique<Window>();
     m_renderer = std::make_unique<Renderer>();
 
     // create layers here and push them
-    ImguiLayer* imgui = new ImguiLayer(m_window->getWindow());
-    m_renderer->pushLayer(imgui);
+    m_renderer->pushLayer(std::make_unique<ImguiLayer>(m_window->getWindow()));
 
     EventListener::getInstance().addCallback<WindowResizeEvent>([this](Event& e) { return this->onWindowResize(static_cast<WindowResizeEvent&>(e)); });
     EventListener::getInstance().addCallback<WindowCloseEvent>([this](Event& e) { return this->onWindowClose(static_cast<WindowCloseEvent&>(e)); });
@@ -96,6 +67,8 @@ namespace kogayonon
     Camera& camera = Camera::getInstance();
     Shader& shader = m_renderer->getShader("3d_shader");
     ModelManager::getInstance().pushModel("resources/models/scene.gltf");
+    ModelManager::getInstance().pushModel("resources/models/test.obj");
+    TaskManager::getInstance().executeTasks();
 
     while (!glfwWindowShouldClose(m_window->getWindow()))
     {
@@ -114,10 +87,9 @@ namespace kogayonon
       shader.setMat4("projection", proj);
       shader.setMat4("scaleMatrix", scale_mat);
       camera.cameraUniform(m_renderer->getShaderId("3d_shader"), "view");
+      ModelManager::getInstance().drawModels(m_renderer->getShader("3d_shader"));
       m_renderer->draw();
       m_renderer->unbindShader("3d_shader");
-
-      ModelManager::getInstance().drawModels(m_renderer->getShader("3d_shader"));
 
       double current_time = glfwGetTime();
       delta_time = current_time - prev_time;

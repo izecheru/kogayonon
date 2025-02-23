@@ -23,7 +23,7 @@ namespace kogayonon
     m_shaders.insert(std::pair<const std::string, Shader>(shader_name, sh));
   }
 
-  void Renderer::pushLayer(Layer* layer)
+  void Renderer::pushLayer(std::unique_ptr<Layer> layer)
   {
     m_layer_stack.pushLayer(std::move(layer));
   }

@@ -15,11 +15,7 @@ namespace kogayonon
   Mesh::Mesh(std::vector<Vertex>& vertices, std::vector<uint32_t >& indices, std::vector<Texture>& textures) :
     m_vertices(vertices), m_indices(indices), m_textures(textures),
     m_ebo(0), m_vao(0), m_vbo(0)
-  {
-    //unsigned int max_index = *std::max_element(m_indices.begin(), m_indices.end());
-    //Logger::logError("Max index value: ", max_index);
-    Logger::logError("v[", vertices.size(), "]", " i[", indices.size(), "] ", "t[", textures.size(), "]");
-  }
+  { }
 
   // Setup textures on main thread since opengl functions are not thread safe
   void Mesh::setupTextures()
@@ -135,7 +131,6 @@ namespace kogayonon
       }
       else
       {
-        Logger::logInfo("Uniform set:", uniformName);
         glUniform1i(location, i);
       }
 
@@ -144,7 +139,7 @@ namespace kogayonon
 
     // draw mesh
     glBindVertexArray(m_vao);
-    glDrawElements(GL_TRIANGLES, static_cast<uint32_t>(m_indices.size()), GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
     glBindTextureUnit(0, 0);
   }

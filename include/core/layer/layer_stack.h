@@ -9,10 +9,11 @@ namespace kogayonon
   class LayerStack
   {
   public:
-    void pushLayer(Layer* layer);
+    ~LayerStack();
+    void pushLayer(std::unique_ptr<Layer> layer);
     void draw() const;
 
   private:
-    std::vector<Layer*> m_layers{};
+    std::vector<std::unique_ptr<Layer>> m_layers{};
   };
 }

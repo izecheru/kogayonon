@@ -154,6 +154,7 @@
     <ClCompile Include="src\core\model_loader\model_manager.cpp" />
     <ClCompile Include="src\core\renderer\camera.cpp" />
     <ClCompile Include="src\core\renderer\renderer.cpp" />
+    <ClCompile Include="src\core\task\task_manager.cpp" />
     <ClCompile Include="src\core\ui\imgui_interface.cpp" />
     <ClCompile Include="src\core\ui\win_camera_settings.cpp" />
     <ClCompile Include="src\event\event.cpp" />
@@ -736,6 +737,7 @@
     <ClInclude Include="include\events\keyboard_events.h" />
     <ClInclude Include="include\events\mouse_events.h" />
     <ClInclude Include="include\shader\shader.h" />
+    <ClInclude Include="include\core\task\task_manager.h" />
     <ClInclude Include="include\window\window.h" />
   </ItemGroup>
   <ItemGroup>

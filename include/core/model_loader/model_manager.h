@@ -18,13 +18,9 @@ namespace kogayonon
     // Retrieve the model once it's loaded
     Model* getModel(const std::string& path);
     void drawModels(Shader& shader);
-    bool stillLoading() { return m_loading_in_progress; }
-
-    void initModel();
 
   private:
-    std::atomic<bool> m_loading_in_progress{ false };
+    std::mutex m_model_manager_mutex;
     std::unordered_map<std::string, Model> m_models;
-    std::future<void> m_future;
   };
 }

@@ -17,28 +17,34 @@ namespace kogayonon
     static void reset();
 
     template <typename T>
-    static void appendToStream(std::stringstream& stream, const T& value) {
+    static void appendToStream(std::stringstream& stream, const T& value)
+    {
       stream << value;
     }
 
     template <typename T, typename... Args>
-    static void appendToStream(std::stringstream& stream, const T& value, const Args&... args) {
+    static void appendToStream(std::stringstream& stream, const T& value, const Args&... args)
+    {
       stream << value;
       appendToStream(stream, args...);
     }
 
   public:
     template <typename... Args>
-    static void logError(const Args&... args) {
+    static void logError(const Args&... args)
+    {
+#ifdef _DEBUG
       red();
       std::stringstream stream;
       appendToStream(stream, args...);
       std::cerr << "[ERROR]: " << stream.str() << std::endl;
       reset();
+#endif
     }
 
 
-    static std::string getOpenGLErrorString(GLenum error) {
+    static std::string getOpenGLErrorString(GLenum error)
+    {
       switch (error)
       {
         case GL_NO_ERROR:          return "GL_NO_ERROR";
@@ -53,7 +59,9 @@ namespace kogayonon
       }
     }
 
-    static bool logOpenGLErr(const std::string& file, const int line) {
+    static bool logOpenGLErr(const std::string& file, const int line)
+    {
+#ifdef _DEBUG
       red();
       auto error = glGetError();
       if (error)
@@ -63,15 +71,19 @@ namespace kogayonon
         return true;
       }
       return false;
+#endif
     }
 
     template <typename... Args>
-    static void logInfo(const Args&... args) {
+    static void logInfo(const Args&... args)
+    {
+#ifdef _DEBUG
       green();
       std::stringstream stream;
       appendToStream(stream, args...);
       std::cout << "[INFO]: " << stream.str() << std::endl;
       reset();
+#endif
     }
   };
 }

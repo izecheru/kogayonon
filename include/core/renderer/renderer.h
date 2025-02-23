@@ -17,7 +17,7 @@ namespace kogayonon
     LayerStack& getLayerStack();
 
     void pushShader(const std::string& vertex_shader, const std::string& fragment_shader, const std::string& shader_name);
-    void pushLayer(Layer* layer);
+    void pushLayer(std::unique_ptr<Layer> layer);
 
     Shader& getShader(const char* shader_name);
     GLint getShaderId(const char* shader_name);
