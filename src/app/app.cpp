@@ -30,6 +30,7 @@
 #include "core/layer/layer_stack.h"
 #include "core/layer/imgui_layer.h"
 #include "core/task/task_manager.h"
+#include "core/time_tracker/time_tracker.h"
 
 namespace kogayonon
 {
@@ -60,18 +61,19 @@ namespace kogayonon
 
     GLint maxVertices;
     glGetIntegerv(GL_MAX_ELEMENTS_VERTICES, &maxVertices);
-    std::cout << "Max vertices per draw call: " << maxVertices << std::endl;
+    Logger::logInfo("Max vertices per draw call: ", maxVertices);
 
     m_renderer->pushShader("resources/shaders/3d_vertex.glsl", "resources/shaders/3d_fragment.glsl", "3d_shader");
 
     Camera& camera = Camera::getInstance();
     Shader& shader = m_renderer->getShader("3d_shader");
+    Timer::getInstance().startCount("tasks");
     ModelManager::getInstance().pushModel("resources/models/scene.gltf");
-    ModelManager::getInstance().pushModel("resources/models/test.obj");
-    TaskManager::getInstance().executeTasks();
-
+    ModelManager::getInstance().pushModel("resources/models/RETARD.obj");
     while (!glfwWindowShouldClose(m_window->getWindow()))
     {
+      TaskManager::getInstance().completed();
+
       glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -79,7 +81,7 @@ namespace kogayonon
       float scaleFactor = 0.08f;
       glm::mat4 model_mat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
       glm::mat4 scale_mat = glm::scale(glm::mat4(6.0f), glm::vec3(10.08f));
-      proj = glm::perspective(glm::radians(45.0f), (float)m_window->getWidth() / (float)m_window->getHeight(), 0.1f, 200.0f);
+      proj = glm::perspective(glm::radians(45.0f), (float)m_window->getWidth() / (float)m_window->getHeight(), 0.1f, 20000.0f);
 
       m_renderer->bindShader("3d_shader");
 

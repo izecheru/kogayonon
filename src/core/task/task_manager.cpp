@@ -1,22 +1,30 @@
 #include "core/task/task_manager.h"
+#include "core/time_tracker/time_tracker.h"
 
 namespace kogayonon
 {
   bool TaskManager::completed()
   {
-    return m_tasks_done;
+    if (m_tasks_done) return false;
+
+    m_tasks_done = std::all_of(m_tasks.begin(), m_tasks.end(), [](std::future<void>& f) { return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready; });
+
+    if (m_tasks_done)
+    {
+      Logger::logInfo("Tasks done");
+      clearTasks();
+      return true;
+    }
+
+    return false;
   }
 
-  void TaskManager::executeTasks()
+  void TaskManager::clearTasks()
   {
-    if (!m_tasks.empty())
+    if (m_tasks_done)
     {
-      if (m_tasks.front().wait_for(std::chrono::milliseconds(0)) == std::future_status::ready)
-      {
-        m_tasks.pop();
-        Logger::logInfo("Task done, onto the next one");
-      }
+      return;
     }
-    m_tasks_done = true;
+    m_tasks.clear();
   }
 }

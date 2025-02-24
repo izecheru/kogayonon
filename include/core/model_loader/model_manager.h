@@ -15,12 +15,11 @@ namespace kogayonon
     // Method to check if a model is loaded
     bool isLoaded(const std::string& path);
 
-    // Retrieve the model once it's loaded
     Model* getModel(const std::string& path);
     void drawModels(Shader& shader);
 
   private:
-    std::mutex m_model_manager_mutex;
+    std::mutex m_mutex;
     std::unordered_map<std::string, Model> m_models;
   };
 }

@@ -42,6 +42,9 @@ namespace kogayonon
   {
     if (!m_visible) return false;
 
+    //TODO get the window the imgui wants to capture mouse on to enable/ disable mouse
+    // capture, if i set a bool flag of flalse in a window, game should take input even
+    // after hovering that specific window
     if (ImGui::GetIO().WantCaptureMouse)
     {
       return true;

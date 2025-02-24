@@ -99,6 +99,9 @@
     <ClCompile Include="src\core\task\task_manager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\core\time_tracker\time_tracker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="dependencies\include\assimp\color4.inl">
@@ -1796,6 +1799,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\core\task\task_manager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\core\time_tracker\time_tracker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

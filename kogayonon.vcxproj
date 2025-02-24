@@ -155,6 +155,7 @@
     <ClCompile Include="src\core\renderer\camera.cpp" />
     <ClCompile Include="src\core\renderer\renderer.cpp" />
     <ClCompile Include="src\core\task\task_manager.cpp" />
+    <ClCompile Include="src\core\time_tracker\time_tracker.cpp" />
     <ClCompile Include="src\core\ui\imgui_interface.cpp" />
     <ClCompile Include="src\core\ui\win_camera_settings.cpp" />
     <ClCompile Include="src\event\event.cpp" />
@@ -727,6 +728,7 @@
     <ClInclude Include="include\core\renderer\camera.h" />
     <ClInclude Include="include\core\renderer\renderer.h" />
     <ClInclude Include="include\core\singleton\singleton.h" />
+    <ClInclude Include="include\core\time_tracker\time_tracker.h" />
     <ClInclude Include="include\core\ui\imgui_interface.h" />
     <ClInclude Include="include\core\ui\imgui_window.h" />
     <ClInclude Include="include\core\ui\win_camera_settings.h" />

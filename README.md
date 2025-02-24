@@ -1,12 +1,26 @@
-# kogayonon
- ![Piramida baaaaa Image](https://github.com/izecheru/kogayonon/blob/main/image/piramida.png)
- ## Here i managed to render wireframes and load objects from blender
- ![Red monster](https://github.com/izecheru/kogayonon/blob/main/image/red_monster.png)
- ![Monster and cat](https://github.com/izecheru/kogayonon/blob/main/image/monster_and_cat.png)
+# kogayonon game engine
 
- ## This is where it gets interesting
- You can find the models here [Slayer](https://sketchfab.com/3d-models/doom-eternal-slayer-bd2e6094f85041798066ee4824313e4d) and [Echidna](https://sketchfab.com/3d-models/echidna-from-lost-ark-6f0ccd1bdc424f5ab59623733952a865)
+This is a game engine im currently working on.
+It is written in c++ having c++17 as standard.
+- [x] Model loading with assimp[^2]
+- [x] ImGui[^1]
+- [x] Layer based rendering
+- [x] Event system(keyboard, mouse ...) 
+    - [x] Event listener and dispatcher
+    - [ ] Ingame events
+    - [ ] Unsubscribe mechanism (eg. if inventory is open close it with escape, not open main menu)
+- [ ] Multiple shaders 
+- [ ] Phisics
+- [ ] Lightning
+- [ ] Map
+  - [ ] Entities (eg. place them somewhere in the map)
+  - [ ] Level editor
 
+## Changelog I guess 
+This is going to start from today (23/02/2025) because i want to keep track of my changes and improvements
 
- ![Echidna](https://github.com/izecheru/kogayonon/blob/main/image/echidna.png)
- ![Slayer](https://github.com/izecheru/kogayonon/blob/main/image/slayer.png)
+ - 23/02/2025
+   - async loading of models
+
+[^1]: [ImGui repo](https://github.com/ocornut/imgui)
+[^2]: [Assimp repo](https://github.com/assimp/assimp)

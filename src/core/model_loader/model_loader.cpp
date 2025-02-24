@@ -13,8 +13,6 @@ namespace kogayonon
   void ModelLoader::buildModel(std::string path, std::vector<Mesh>& meshes, std::map<std::string, Texture>& textures_loaded)
   {
     m_current_model_path = path.substr(0, path.find_last_of('/'));
-    // since i place the models in the models folder i'll do this
-    assert(m_current_model_path.size() > 6);
     Logger::logInfo("Loading model file:", path);
     getScene(path);
 
@@ -24,10 +22,11 @@ namespace kogayonon
 
   void ModelLoader::getScene(std::string& path)
   {
-    unsigned int importOptions = aiProcess_Triangulate
-      | aiProcess_OptimizeMeshes
-      | aiProcess_JoinIdenticalVertices
-      | aiProcess_CalcTangentSpace;
+    unsigned int importOptions = aiProcess_Triangulate |
+      aiProcess_JoinIdenticalVertices |
+      aiProcess_ImproveCacheLocality |
+      aiProcess_RemoveRedundantMaterials |
+      aiProcess_FindDegenerates;
 
     m_scene = m_importer.ReadFile(path, importOptions);
     assert(m_scene != nullptr);

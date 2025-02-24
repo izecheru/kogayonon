@@ -405,3 +405,13 @@ FodyWeavers.xsd
 bin/
 out/
 .vs/
+resources/models/material_0_baseColor.png
+resources/models/RETARD.mtl
+resources/models/stres.bin
+resources/models/stres.gltf
+resources/models/stress.mtl
+resources/models/untitled.bin
+resources/models/untitled.gltf
+resources/models/untitled.mtl
+resources/models/untitled2.bin
+resources/models/untitled2.gltf

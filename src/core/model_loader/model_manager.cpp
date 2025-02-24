@@ -13,16 +13,16 @@ namespace kogayonon
     if (isLoaded(path))
       return false;
 
-    TaskManager::getInstance().pushTask([this, path]()
+    TaskManager::getInstance().runTask([this, path]()
       {
-        std::lock_guard<std::mutex> lock(m_model_manager_mutex);
-        m_models[path] = Model(path);
+        std::unique_lock<std::mutex> lock(m_mutex);
+        Model model(path);
+        m_models[path] = std::move(model);
       }
     );
 
     return true;
   }
-
 
   bool ModelManager::isLoaded(const std::string& path)
   {
@@ -57,5 +57,4 @@ namespace kogayonon
     }
     shader.unbind();
   }
-
 }

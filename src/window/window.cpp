@@ -156,7 +156,7 @@ namespace kogayonon
         props.eventCallback(event);
       });
 
-    glfwSetScrollCallback(m_window, [](GLFWwindow* window, double xOff, double yOff) {});
+    glfwSetScrollCallback(m_window, [](GLFWwindow* window, double xOff, double yOff) { });
 
     glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int button, int action, int mods)
       {

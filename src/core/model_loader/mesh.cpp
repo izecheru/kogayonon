@@ -8,8 +8,7 @@
 #include "core/logger.h"
 #include "core/renderer/camera.h"
 #include <stb\stb_image.h>
-#define CHECK_GL_ERROR() \
-    { GLenum err; while ((err = glGetError()) != GL_NO_ERROR) { Logger::logError("OpenGL Error: ", err); }}
+
 namespace kogayonon
 {
   Mesh::Mesh(std::vector<Vertex>& vertices, std::vector<uint32_t >& indices, std::vector<Texture>& textures) :
