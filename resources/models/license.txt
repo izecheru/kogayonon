@@ -1,8 +1,0 @@
-Model Information:
-* title:	Cute Retro Robot - 3D Model
-* source:	https://sketchfab.com/3d-models/cute-retro-robot-3d-model-d07e625339fb444dac01e6bf512310e2
-* author:	3D Next Level Gen (https://sketchfab.com/3dnextlevelgen)
-
-Model License:
-* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
-* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works

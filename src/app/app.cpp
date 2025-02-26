@@ -68,8 +68,8 @@ namespace kogayonon
     Camera& camera = Camera::getInstance();
     Shader& shader = m_renderer->getShader("3d_shader");
     Timer::getInstance().startCount("tasks");
-    ModelManager::getInstance().pushModel("resources/models/scene.gltf");
-    ModelManager::getInstance().pushModel("resources/models/RETARD.obj");
+    //ModelManager::getInstance().pushModel("resources/models/stres_real.obj");
+    ModelManager::getInstance().pushSerializedModel("resources/models/serialized/out.bin");
     while (!glfwWindowShouldClose(m_window->getWindow()))
     {
       TaskManager::getInstance().completed();

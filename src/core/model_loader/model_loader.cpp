@@ -1,181 +1,118 @@
 #include <glad/glad.h>
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
-#include <stb/stb_image.h>
 #include "core/model_loader/model_loader.h"
 #include "core/logger.h"
 #include "core/model_loader/model.h"
-#include <chrono>
-#include <map>
+#include <fstream>
+#include <regex>
 
 namespace kogayonon
 {
-  void ModelLoader::buildModel(std::string path, std::vector<Mesh>& meshes, std::map<std::string, Texture>& textures_loaded)
+  void ModelLoader::buildModel(const std::string& path, std::vector<Mesh>& meshes)
   {
-    m_current_model_path = path.substr(0, path.find_last_of('/'));
-    Logger::logInfo("Loading model file:", path);
-    getScene(path);
-
-    // we start processing mesh nodes one by one recursively
-    processNode(meshes, m_scene->mRootNode, textures_loaded);
-  }
-
-  void ModelLoader::getScene(std::string& path)
-  {
-    unsigned int importOptions = aiProcess_Triangulate |
-      aiProcess_JoinIdenticalVertices |
-      aiProcess_ImproveCacheLocality |
-      aiProcess_RemoveRedundantMaterials |
-      aiProcess_FindDegenerates;
-
-    m_scene = m_importer.ReadFile(path, importOptions);
-    assert(m_scene != nullptr);
-  }
-
-  Mesh ModelLoader::processMesh(const aiMesh* mesh, std::map<std::string, Texture>& textures_loaded)
-  {
-    return Mesh(std::move(getVertices(mesh)), std::move(getIndices(mesh)), std::move(getTextures(mesh, textures_loaded)));
-  }
-
-  void ModelLoader::processNode(std::vector<Mesh>& meshes, aiNode* node, std::map<std::string, Texture>& loaded_textures)
-  {
-    // get all the meshes from this current node
-    if (node->mNumMeshes > 0 && node->mMeshes)
-    {
-      for (unsigned int i = 0; i < node->mNumMeshes; i++)
-      {
-        aiMesh* mesh = m_scene->mMeshes[node->mMeshes[i]];
-        meshes.push_back(processMesh(mesh, loaded_textures));
-      }
-    }
-    else
-    {
-      Logger::logError("Node had no meshes...");
-    }
-
-    // recursively go to the next node and process those meshes too
-    for (unsigned int i = 0; i < node->mNumChildren; i++)
-    {
-      processNode(meshes, node->mChildren[i], loaded_textures);
-    }
-  }
-
-  std::vector<Texture> ModelLoader::loadMaterialTextures(std::map<std::string, Texture>& textures_loaded, aiMaterial* material, aiTextureType type, std::string type_name)
-  {
-    std::vector<Texture> textures;
-    for (unsigned int i = 0; i < material->GetTextureCount(type); i++)
-    {
-      aiString str;
-      material->GetTexture(type, i, &str);
-      std::string texture_path = str.C_Str();
-
-      // Check if the texture is already loaded before trying to load it
-      if (textureAlreadyLoaded(texture_path, textures_loaded))
-      {
-        Logger::logError("Texture already loaded from -> ", texture_path);
-        // we retrieve the already loaded texture in here
-        textures.push_back(textures_loaded[texture_path]);
-      }
-      else
-      {
-        std::string filename = std::string(texture_path);
-        filename = m_current_model_path + '/' + filename;
-
-        int width, height, num_components;
-        stbi_set_flip_vertically_on_load(true);
-        unsigned char* data = stbi_load(filename.c_str(), &width, &height, &num_components, 0);
-        if (!data)
-        {
-          Logger::logError("Failed to load texture at path: ", filename);
-        }
-        else
-        {
-          Logger::logInfo("Loaded texture ", filename, " [", width, "x", height, "] with ", num_components, " components");
-        }
-        Texture texture(type_name, texture_path, width, height, num_components, data, true);
-        textures.push_back(texture);
-        Logger::logInfo("Loaded texture from ", texture.path);
-        textures_loaded[texture.path] = texture;
-      }
-    }
-    return textures;
-  }
-
-  std::vector<Texture> ModelLoader::getTextures(const aiMesh* mesh, std::map<std::string, Texture>& textures_loaded)
-  {
-    aiMaterial* material = m_scene->mMaterials[mesh->mMaterialIndex];
+    std::vector<Vertex> final_vertices;
+    std::vector<uint32_t> indices;
     std::vector<Texture> textures;
 
-    std::vector<Texture> diffuseMaps = loadMaterialTextures(textures_loaded, material, aiTextureType_DIFFUSE, "texture_diffuse");
-    textures.insert(textures.end(), diffuseMaps.begin(), diffuseMaps.end());
-    std::vector<Texture> specularMaps = loadMaterialTextures(textures_loaded, material, aiTextureType_SPECULAR, "texture_specular");
-    textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
-    std::vector<Texture> normalMaps = loadMaterialTextures(textures_loaded, material, aiTextureType_HEIGHT, "texture_normal");
-    textures.insert(textures.end(), normalMaps.begin(), normalMaps.end());
-    std::vector<Texture> heightMaps = loadMaterialTextures(textures_loaded, material, aiTextureType_AMBIENT, "texture_height");
-    textures.insert(textures.end(), heightMaps.begin(), heightMaps.end());
+    std::vector<glm::vec3> vertices;
+    std::vector<glm::vec2> tex_coords;
+    std::vector<glm::vec3> normals;
+    std::map<std::string, uint32_t> unique_vertices; // Persist across faces
 
-    return textures;
-  }
+    std::ifstream in(path);
+    assert(in.is_open());
+    std::string buffer;
 
-  bool ModelLoader::textureAlreadyLoaded(const std::string& path, const std::map<std::string, Texture>& loaded_textures)
-  {
-    return loaded_textures.find(path) != loaded_textures.end();
-  }
-
-  std::vector<Vertex> ModelLoader::getVertices(const aiMesh* mesh)
-  {
-    std::vector<Vertex> vertices;
-    vertices.resize(mesh->mNumVertices);
-
-    // fill vertices directly
-    for (unsigned int i = 0; i < mesh->mNumVertices; i++)
+    while (std::getline(in, buffer))
     {
-      vertices[i].position.x = mesh->mVertices[i].x;
-      vertices[i].position.y = mesh->mVertices[i].y;
-      vertices[i].position.z = mesh->mVertices[i].z;
+      buffer.erase(std::remove(buffer.begin(), buffer.end(), '\r'), buffer.end());
+      std::string current_mesh_name;
 
-      if (mesh->HasNormals())
+      if (buffer.rfind("o ", 0) == 0)
       {
-        vertices[i].normal.x = mesh->mNormals[i].x;
-        vertices[i].normal.y = mesh->mNormals[i].y;
-        vertices[i].normal.z = mesh->mNormals[i].z;
-      }
-      if (mesh->mTextureCoords[0])
-      {
-        vertices[i].texture.x = mesh->mTextureCoords[0][i].x;
-        vertices[i].texture.y = mesh->mTextureCoords[0][i].y;
-
-        if (mesh->HasTangentsAndBitangents())
+        std::istringstream iss(buffer.substr(2));
+        iss >> current_mesh_name;
+        if (!final_vertices.empty() && !indices.empty())
         {
-          vertices[i].bitangent.x = mesh->mBitangents[i].x;
-          vertices[i].bitangent.y = mesh->mBitangents[i].y;
+          meshes.push_back(Mesh(final_vertices, indices, textures));
+        }
+        final_vertices.clear();
+        indices.clear();
+        unique_vertices.clear();
+      }
 
-          vertices[i].tangent.x = mesh->mTangents[i].x;
-          vertices[i].tangent.y = mesh->mTangents[i].y;
+      if (buffer.rfind("v ", 0) == 0)
+      {
+        std::istringstream iss(buffer.substr(2));
+        float x, y, z;
+        iss >> x >> y >> z;
+        vertices.push_back({ x, y, z });
+      }
+
+      if (buffer.rfind("vt ", 0) == 0)
+      {
+        std::istringstream iss(buffer.substr(3));
+        float u, v;
+        iss >> u >> v;
+        tex_coords.push_back({ u, v });
+      }
+
+      if (buffer.rfind("vn ", 0) == 0)
+      {
+        std::istringstream iss(buffer.substr(3));
+        float x, y, z;
+        iss >> x >> y >> z;
+        normals.push_back({ x, y, z });
+      }
+
+      if (buffer.rfind("f ", 0) == 0)
+      {
+        std::istringstream iss(buffer.substr(2));
+        std::vector<uint32_t> face_indices;
+
+        std::string face_element;
+        while (iss >> face_element)
+        {
+          std::istringstream face_stream(face_element);
+          std::string vertex_index, tex_index, normal_index;
+          std::getline(face_stream, vertex_index, '/');
+          std::getline(face_stream, tex_index, '/');
+          std::getline(face_stream, normal_index, '/');
+
+          uint32_t v_idx = std::stoi(vertex_index) - 1;
+          uint32_t t_idx = (tex_index.empty() || std::stoi(tex_index) - 1 >= tex_coords.size()) ? 0 : std::stoi(tex_index) - 1;
+          uint32_t n_idx = (normal_index.empty() || std::stoi(normal_index) - 1 >= normals.size()) ? 0 : std::stoi(normal_index) - 1;
+
+          std::string key = vertex_index + "/" + tex_index + "/" + normal_index;
+          if (unique_vertices.find(key) == unique_vertices.end())
+          {
+            Vertex final_vertex;
+            final_vertex.position = vertices[v_idx];
+            final_vertex.texture = tex_coords[t_idx];
+            final_vertex.normal = normals[n_idx];
+
+            final_vertices.push_back(final_vertex);
+            unique_vertices[key] = final_vertices.size() - 1;
+          }
+
+          face_indices.push_back(unique_vertices[key]);
         }
 
-      }
-      else
-      {
-        vertices[i].texture.x = 0.0f;
-        vertices[i].texture.y = 0.0f;
+        // Triangulate faces
+        for (size_t i = 1; i + 1 < face_indices.size(); ++i)
+        {
+          indices.push_back(face_indices[0]);
+          indices.push_back(face_indices[i]);
+          indices.push_back(face_indices[i + 1]);
+        }
       }
     }
-    return vertices;
-  }
 
-  std::vector<unsigned int> ModelLoader::getIndices(const aiMesh* mesh)
-  {
-    std::vector<unsigned int> indices;
-    for (unsigned int i = 0; i < mesh->mNumFaces; i++)
+    // Push last mesh if exists
+    if (!final_vertices.empty() && !indices.empty())
     {
-      aiFace& face = mesh->mFaces[i];
-      for (unsigned int j = 0; j < face.mNumIndices; j++)
-      {
-        indices.push_back(face.mIndices[j]);
-      }
+      meshes.push_back(Mesh(final_vertices, indices, textures));
     }
-    return indices;
+
+    in.close();
   }
 }

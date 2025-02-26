@@ -11,10 +11,11 @@
 
 namespace kogayonon
 {
-  Mesh::Mesh(std::vector<Vertex>& vertices, std::vector<uint32_t >& indices, std::vector<Texture>& textures) :
+  Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices, std::vector<Texture> textures) :
     m_vertices(vertices), m_indices(indices), m_textures(textures),
     m_ebo(0), m_vao(0), m_vbo(0)
-  { }
+  {
+  }
 
   // Setup textures on main thread since opengl functions are not thread safe
   void Mesh::setupTextures()
@@ -141,5 +142,20 @@ namespace kogayonon
     glDrawElements(GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
     glBindTextureUnit(0, 0);
+  }
+
+  Mesh::vertice_vec& Mesh::getVertices()
+  {
+    return m_vertices;
+  }
+
+  Mesh::indices_vec& Mesh::getIndices()
+  {
+    return m_indices;
+  }
+
+  Mesh::texture_vec& Mesh::getTextures()
+  {
+    return m_textures;
   }
 }

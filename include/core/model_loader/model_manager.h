@@ -12,6 +12,8 @@ namespace kogayonon
     // Method to load a model in a separate thread
     bool pushModel(const std::string& path);
 
+    bool pushSerializedModel(const std::string& path);
+
     // Method to check if a model is loaded
     bool isLoaded(const std::string& path);
 

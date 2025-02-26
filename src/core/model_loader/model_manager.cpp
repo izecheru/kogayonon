@@ -1,5 +1,6 @@
 #include "core/model_loader/model_manager.h"
 #include "core/task/task_manager.h"
+#include "core/serialize/mesh_serializer.h"
 #include <future>
 #include <filesystem>
 
@@ -21,6 +22,19 @@ namespace kogayonon
       }
     );
 
+    return true;
+  }
+
+  bool ModelManager::pushSerializedModel(const std::string& path)
+  {
+    TaskManager::getInstance().runTask([this, path]()
+      {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        Model model;
+        model.deserializeMeshes(path);
+        m_models[path] = std::move(model);
+      }
+    );
     return true;
   }
 

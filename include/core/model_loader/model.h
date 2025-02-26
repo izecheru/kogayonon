@@ -1,6 +1,5 @@
 #pragma once
 #include <vector>
-#include <assimp/scene.h>
 #include "shader/shader.h"
 #include "mesh.h"
 #include <map>
@@ -16,6 +15,9 @@ namespace kogayonon
 
     void draw(Shader& shader);
     void init(const std::string path);
+
+    void serializeMeshes(const std::string& path);
+    void deserializeMeshes(const std::string& path);
 
     std::vector<Mesh>& getMeshes();
 
