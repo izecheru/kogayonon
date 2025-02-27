@@ -132,6 +132,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="dependencies\include\cgltf\cgltf.c" />
     <ClCompile Include="dependencies\include\glad.c" />
     <ClCompile Include="dependencies\include\glm\detail\glm.cpp" />
     <ClCompile Include="dependencies\include\imgui\imgui.cpp" />
@@ -142,6 +143,7 @@
     <ClCompile Include="dependencies\include\imgui\imgui_tables.cpp" />
     <ClCompile Include="dependencies\include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="dependencies\include\stb_image.cpp" />
+    <ClCompile Include="src\core\asset_manager\asset_manager.cpp" />
     <ClCompile Include="src\core\serialize\mesh_serializer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\app\app.cpp" />
@@ -149,10 +151,10 @@
     <ClCompile Include="src\core\layer\imgui_layer.cpp" />
     <ClCompile Include="src\core\layer\layer_stack.cpp" />
     <ClCompile Include="src\core\logger.cpp" />
-    <ClCompile Include="src\core\model_loader\mesh.cpp" />
-    <ClCompile Include="src\core\model_loader\model.cpp" />
-    <ClCompile Include="src\core\model_loader\model_loader.cpp" />
-    <ClCompile Include="src\core\model_loader\model_manager.cpp" />
+    <ClCompile Include="src\core\asset_manager\model_loader\mesh.cpp" />
+    <ClCompile Include="src\core\asset_manager\model_loader\model.cpp" />
+    <ClCompile Include="src\core\asset_manager\model_loader\model_loader.cpp" />
+    <ClCompile Include="src\core\asset_manager\model_loader\model_manager.cpp" />
     <ClCompile Include="src\core\renderer\camera.cpp" />
     <ClCompile Include="src\core\renderer\renderer.cpp" />
     <ClCompile Include="src\core\task\task_manager.cpp" />
@@ -321,6 +323,8 @@
     <None Include="resources\shaders\white.shader" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="dependencies\include\cgltf\cgltf.h" />
+    <ClInclude Include="dependencies\include\cgltf\cgltf_write.h" />
     <ClInclude Include="dependencies\include\glad\glad.h" />
     <ClInclude Include="dependencies\include\glfw\glfw3.h" />
     <ClInclude Include="dependencies\include\glfw\glfw3native.h" />
@@ -625,20 +629,22 @@
     <ClInclude Include="dependencies\include\khr\khrplatform.h" />
     <ClInclude Include="dependencies\include\stb\stb_image.h" />
     <ClInclude Include="include\app\app.h" />
+    <ClInclude Include="include\core\asset_manager\asset_manager.h" />
     <ClInclude Include="include\core\input\input.h" />
     <ClInclude Include="include\core\key_codes.h" />
     <ClInclude Include="include\core\layer\imgui_layer.h" />
     <ClInclude Include="include\core\layer\layer.h" />
     <ClInclude Include="include\core\layer\layer_stack.h" />
     <ClInclude Include="include\core\logger.h" />
-    <ClInclude Include="include\core\model_loader\mesh.h" />
-    <ClInclude Include="include\core\model_loader\model.h" />
-    <ClInclude Include="include\core\model_loader\model_loader.h" />
-    <ClInclude Include="include\core\model_loader\model_manager.h" />
+    <ClInclude Include="include\core\asset_manager\model_loader\mesh.h" />
+    <ClInclude Include="include\core\asset_manager\model_loader\model.h" />
+    <ClInclude Include="include\core\asset_manager\model_loader\model_loader.h" />
+    <ClInclude Include="include\core\asset_manager\model_loader\model_manager.h" />
     <ClInclude Include="include\core\mouse_codes.h" />
     <ClInclude Include="include\core\renderer\camera.h" />
     <ClInclude Include="include\core\renderer\renderer.h" />
     <ClInclude Include="include\core\serialize\mesh_serializer.h" />
+    <ClInclude Include="include\core\serialize\serializer.h" />
     <ClInclude Include="include\core\singleton\singleton.h" />
     <ClInclude Include="include\core\time_tracker\time_tracker.h" />
     <ClInclude Include="include\core\ui\imgui_interface.h" />

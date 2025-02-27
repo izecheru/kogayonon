@@ -1,6 +1,6 @@
 #pragma once
 #include <map>
-#include "core/model_loader/mesh.h"
+#include "core/asset_manager/model_loader/mesh.h"
 #include "core/layer/layer_stack.h"
 #include "shader/shader.h"
 

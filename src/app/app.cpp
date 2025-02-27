@@ -14,19 +14,16 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "app/app.h"
+#include "core/asset_manager/asset_manager.h"
 #include "events/event_listener.h"
 #include "core/input/input.h"
 #include "core/logger.h"
 #include "core/renderer/camera.h"
-#include "core/model_loader/mesh.h"
 #include "core/renderer/renderer.h"
 #include "events/keyboard_events.h"
 #include "events/mouse_events.h"
 #include "window/window.h"
-#include "core/model_loader/model.h"
-#include "core/model_loader/model_loader.h"
 #include "core/ui/imgui_interface.h"
-#include "core/model_loader/model_manager.h"
 #include "core/layer/layer_stack.h"
 #include "core/layer/imgui_layer.h"
 #include "core/task/task_manager.h"
@@ -65,11 +62,41 @@ namespace kogayonon
 
     m_renderer->pushShader("resources/shaders/3d_vertex.glsl", "resources/shaders/3d_fragment.glsl", "3d_shader");
 
+    AssetManager& assets = AssetManager::getInstance();
     Camera& camera = Camera::getInstance();
     Shader& shader = m_renderer->getShader("3d_shader");
-    Timer::getInstance().startCount("tasks");
-    //ModelManager::getInstance().pushModel("resources/models/stres_real.obj");
-    ModelManager::getInstance().pushSerializedModel("resources/models/serialized/out.bin");
+
+#define MODEL "resources/models/untitled.gltf"
+
+    assets.addModel(MODEL);
+    GLint numUniforms = 0;
+    GLuint shaderID = shader.getShaderId();
+
+    // Check if shader ID is valid
+    if (shaderID == 0)
+    {
+      Logger::logError("Shader program ID is invalid!");
+      return;
+    }
+
+    // Get the number of active uniforms
+    glGetProgramiv(shaderID, GL_ACTIVE_UNIFORMS, &numUniforms);
+    Logger::logInfo("Number of active uniforms: ", numUniforms);
+
+    for (GLint i = 0; i < numUniforms; i++)
+    {
+      char name[256] = { 0 }; // Ensure buffer is cleared
+      GLsizei length = 0;
+      GLenum type;
+      GLint size = 0;
+
+      glGetActiveUniform(shaderID, i, sizeof(name) - 1, &length, &size, &type, name);
+      name[length] = '\0'; // Null-terminate manually
+
+      Logger::logInfo("Active Uniform: ", name);
+    }
+
+
     while (!glfwWindowShouldClose(m_window->getWindow()))
     {
       TaskManager::getInstance().completed();
@@ -84,12 +111,13 @@ namespace kogayonon
       proj = glm::perspective(glm::radians(45.0f), (float)m_window->getWidth() / (float)m_window->getHeight(), 0.1f, 20000.0f);
 
       m_renderer->bindShader("3d_shader");
-
+      Model& test = assets.getModel(MODEL);
+      test.draw(m_renderer->getShader("3d_shader"));
       shader.setMat4("model", model_mat);
       shader.setMat4("projection", proj);
       shader.setMat4("scaleMatrix", scale_mat);
       camera.cameraUniform(m_renderer->getShaderId("3d_shader"), "view");
-      ModelManager::getInstance().drawModels(m_renderer->getShader("3d_shader"));
+
       m_renderer->draw();
       m_renderer->unbindShader("3d_shader");
 

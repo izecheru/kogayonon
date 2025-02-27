@@ -63,16 +63,16 @@
     <ClCompile Include="src\core\layer\layer_stack.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\core\model_loader\mesh.cpp">
+    <ClCompile Include="src\core\asset_manager\model_loader\mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\core\model_loader\model.cpp">
+    <ClCompile Include="src\core\asset_manager\model_loader\model.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\core\model_loader\model_loader.cpp">
+    <ClCompile Include="src\core\asset_manager\model_loader\model_loader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\core\model_loader\model_manager.cpp">
+    <ClCompile Include="src\core\asset_manager\model_loader\model_manager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\core\renderer\camera.cpp">
@@ -103,6 +103,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\core\serialize\mesh_serializer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dependencies\include\cgltf\cgltf.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\asset_manager\asset_manager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1475,16 +1481,16 @@
     <ClInclude Include="include\core\layer\layer_stack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\core\model_loader\mesh.h">
+    <ClInclude Include="include\core\asset_manager\model_loader\mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\core\model_loader\model.h">
+    <ClInclude Include="include\core\asset_manager\model_loader\model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\core\model_loader\model_loader.h">
+    <ClInclude Include="include\core\asset_manager\model_loader\model_loader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\core\model_loader\model_manager.h">
+    <ClInclude Include="include\core\asset_manager\model_loader\model_manager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\core\renderer\camera.h">
@@ -1536,6 +1542,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\core\serialize\mesh_serializer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\core\serialize\serializer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\include\cgltf\cgltf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dependencies\include\cgltf\cgltf_write.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\core\asset_manager\asset_manager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
