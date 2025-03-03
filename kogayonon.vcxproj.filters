@@ -63,16 +63,10 @@
     <ClCompile Include="src\core\layer\layer_stack.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\core\asset_manager\model_loader\mesh.cpp">
+    <ClCompile Include="src\core\asset_manager\loader\mesh.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\core\asset_manager\model_loader\model.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\core\asset_manager\model_loader\model_loader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\core\asset_manager\model_loader\model_manager.cpp">
+    <ClCompile Include="src\core\asset_manager\loader\model.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\core\renderer\camera.cpp">
@@ -109,6 +103,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\core\asset_manager\asset_manager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\asset_manager\loader\model_loader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\asset_manager\loader\texture_loader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\asset_manager\manager\texture_manager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\asset_manager\manager\model_manager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -542,7 +548,6 @@
     <None Include="resources\shaders\crosshair_vertex.glsl" />
     <None Include="resources\shaders\red.shader" />
     <None Include="resources\shaders\white.shader" />
-    <None Include="assimp-vc143-mtd.dll" />
     <None Include="imgui_config.ini" />
     <None Include="resources\models\clock-008.mtl" />
     <None Include="resources\models\model.mtl" />
@@ -1481,16 +1486,10 @@
     <ClInclude Include="include\core\layer\layer_stack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\core\asset_manager\model_loader\mesh.h">
+    <ClInclude Include="include\core\asset_manager\loader\mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\core\asset_manager\model_loader\model.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\core\asset_manager\model_loader\model_loader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\core\asset_manager\model_loader\model_manager.h">
+    <ClInclude Include="include\core\asset_manager\loader\model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\core\renderer\camera.h">
@@ -1554,6 +1553,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\core\asset_manager\asset_manager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\core\asset_manager\loader\model_loader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\core\asset_manager\loader\texture_loader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\core\asset_manager\manager\texture_manager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\core\asset_manager\manager\model_manager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

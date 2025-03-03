@@ -7,7 +7,15 @@ namespace kogayonon
   {
     if (m_tasks_done) return false;
 
-    m_tasks_done = std::all_of(m_tasks.begin(), m_tasks.end(), [](std::future<void>& f) { return f.wait_for(std::chrono::seconds(0)) == std::future_status::ready; });
+    m_tasks_done = std::all_of(m_tasks.begin(), m_tasks.end(), [](std::future<void>& f)
+      {
+        if (f.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+        {
+          f.get();
+          return true;
+        }
+        return false;
+      });
 
     if (m_tasks_done)
     {

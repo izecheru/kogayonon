@@ -144,6 +144,10 @@
     <ClCompile Include="dependencies\include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="dependencies\include\stb_image.cpp" />
     <ClCompile Include="src\core\asset_manager\asset_manager.cpp" />
+    <ClCompile Include="src\core\asset_manager\loader\model_loader.cpp" />
+    <ClCompile Include="src\core\asset_manager\loader\texture_loader.cpp" />
+    <ClCompile Include="src\core\asset_manager\manager\model_manager.cpp" />
+    <ClCompile Include="src\core\asset_manager\manager\texture_manager.cpp" />
     <ClCompile Include="src\core\serialize\mesh_serializer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\app\app.cpp" />
@@ -151,10 +155,8 @@
     <ClCompile Include="src\core\layer\imgui_layer.cpp" />
     <ClCompile Include="src\core\layer\layer_stack.cpp" />
     <ClCompile Include="src\core\logger.cpp" />
-    <ClCompile Include="src\core\asset_manager\model_loader\mesh.cpp" />
-    <ClCompile Include="src\core\asset_manager\model_loader\model.cpp" />
-    <ClCompile Include="src\core\asset_manager\model_loader\model_loader.cpp" />
-    <ClCompile Include="src\core\asset_manager\model_loader\model_manager.cpp" />
+    <ClCompile Include="src\core\asset_manager\loader\mesh.cpp" />
+    <ClCompile Include="src\core\asset_manager\loader\model.cpp" />
     <ClCompile Include="src\core\renderer\camera.cpp" />
     <ClCompile Include="src\core\renderer\renderer.cpp" />
     <ClCompile Include="src\core\task\task_manager.cpp" />
@@ -168,7 +170,6 @@
   <ItemGroup>
     <None Include=".gitattributes" />
     <None Include=".gitignore" />
-    <None Include="assimp-vc143-mtd.dll" />
     <None Include="dependencies\include\glm\detail\func_common.inl" />
     <None Include="dependencies\include\glm\detail\func_common_simd.inl" />
     <None Include="dependencies\include\glm\detail\func_exponential.inl" />
@@ -630,16 +631,18 @@
     <ClInclude Include="dependencies\include\stb\stb_image.h" />
     <ClInclude Include="include\app\app.h" />
     <ClInclude Include="include\core\asset_manager\asset_manager.h" />
+    <ClInclude Include="include\core\asset_manager\loader\model_loader.h" />
+    <ClInclude Include="include\core\asset_manager\loader\texture_loader.h" />
+    <ClInclude Include="include\core\asset_manager\manager\model_manager.h" />
+    <ClInclude Include="include\core\asset_manager\manager\texture_manager.h" />
     <ClInclude Include="include\core\input\input.h" />
     <ClInclude Include="include\core\key_codes.h" />
     <ClInclude Include="include\core\layer\imgui_layer.h" />
     <ClInclude Include="include\core\layer\layer.h" />
     <ClInclude Include="include\core\layer\layer_stack.h" />
     <ClInclude Include="include\core\logger.h" />
-    <ClInclude Include="include\core\asset_manager\model_loader\mesh.h" />
-    <ClInclude Include="include\core\asset_manager\model_loader\model.h" />
-    <ClInclude Include="include\core\asset_manager\model_loader\model_loader.h" />
-    <ClInclude Include="include\core\asset_manager\model_loader\model_manager.h" />
+    <ClInclude Include="include\core\asset_manager\loader\mesh.h" />
+    <ClInclude Include="include\core\asset_manager\loader\model.h" />
     <ClInclude Include="include\core\mouse_codes.h" />
     <ClInclude Include="include\core\renderer\camera.h" />
     <ClInclude Include="include\core\renderer\renderer.h" />

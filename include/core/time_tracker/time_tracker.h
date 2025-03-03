@@ -28,8 +28,12 @@ namespace kogayonon
 
     duration getDuration(const std::string& reason) const;
 
+    inline void setDelta(double d) { delta_time = d; }
+    inline double getDelta()const { return delta_time; }
+
   private:
     mutable std::mutex m_mutex{};
     duration_map m_duration_map{};
+    float delta_time = 0;
   };
 }

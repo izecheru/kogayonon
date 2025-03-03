@@ -37,7 +37,7 @@ namespace kogayonon
     io.ConfigFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
     io.IniFilename = "imgui_config.ini";
 
-    ImGui::StyleColorsDark();
+    ImGui::StyleColorsLight();
     if (!ImGui_ImplGlfw_InitForOpenGL(window, true))
     {
       Logger::logError("error init imgui");

@@ -1,7 +1,7 @@
 #pragma once
 #include <fstream>
 #include "core/singleton/singleton.h"
-#include "core/asset_manager/model_loader/mesh.h"
+#include "core/asset_manager/loader/mesh.h"
 #include "serializer.h"
 
 namespace kogayonon

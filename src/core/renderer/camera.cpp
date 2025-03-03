@@ -10,13 +10,14 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "events/event_listener.h"
 #include "events/keyboard_events.h"
+#include "core/time_tracker/time_tracker.h"
 #include <imgui\imgui.h>
 
 namespace kogayonon
 {
   Camera::Camera()
   {
-    EventListener::getInstance().addCallback<MouseMovedEvent>([this](Event& e) { return this->onMouseMoved(static_cast<MouseMovedEvent&>(e)); });
+    EventListener::getInstance().addCallback<MouseScrolledEvent>([this](Event& e) { return this->onMouseScrolled(static_cast<MouseScrolledEvent&>(e)); });
     setupCamera();
   }
 
@@ -29,7 +30,7 @@ namespace kogayonon
     m_props.yaw = -90.0f;
     m_props.pitch = 0.0f;
     m_props.mouse_sens = 0.2f;
-    m_props.movement_speed = 5.8f;
+    m_props.movement_speed = 90.0f;
   }
 
   const CameraProps& Camera::getCamera()
@@ -52,6 +53,20 @@ namespace kogayonon
     static glm::mat4 view;
     view = glm::lookAt(m_props.position, m_props.position + m_props.direction, m_props.camera_up);
     return view;
+  }
+
+  bool Camera::onMouseScrolled(MouseScrolledEvent& event)
+  {
+    if (event.isHandled()) return false;
+    processMouseScrolled(event.getXOff(), event.getYOff());
+    return true;
+  }
+
+  void Camera::processMouseScrolled(double x_offset, double y_offset)
+  {
+    float velocity = m_props.movement_speed * Timer::getInstance().getDelta() * 100.0f;
+    m_props.position.z -= y_offset * velocity;
+    updateCameraVectors();
   }
 
   bool Camera::onMouseMoved(MouseMovedEvent& event)
@@ -98,9 +113,9 @@ namespace kogayonon
     updateCameraVectors();
   }
 
-  void Camera::processKeyboard(double delta_time)
+  void Camera::processKeyboard()
   {
-    float velocity = m_props.movement_speed * delta_time * 20.0f;
+    float velocity = m_props.movement_speed * Timer::getInstance().getDelta() * 30.0f;
 
     if (KeyboardState::getKeyState(KeyCode::W))
     {

@@ -1,6 +1,6 @@
 
 #include "core/serialize/mesh_serializer.h"
-#include "core/asset_manager/model_loader/mesh.h"
+#include "core/asset_manager/loader/mesh.h"
 #include "core/logger.h"
 
 namespace kogayonon
@@ -42,7 +42,6 @@ namespace kogayonon
 
     for (const Texture& tex : textures)
     {
-      Logger::logInfo(tex.type);
       m_out.write(reinterpret_cast<const char*>(&tex.id), sizeof(tex.id));
       size_t type_size = tex.type.size() + 1;
       m_out.write(reinterpret_cast<const char*>(&type_size), sizeof(type_size));

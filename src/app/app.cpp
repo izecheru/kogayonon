@@ -14,6 +14,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "app/app.h"
+#include "core/time_tracker/time_tracker.h"
 #include "core/asset_manager/asset_manager.h"
 #include "events/event_listener.h"
 #include "core/input/input.h"
@@ -54,6 +55,7 @@ namespace kogayonon
     // to all the layers in the layer stack
     m_window->setEventCallbackFn([this](Event& e) -> void { this->onEvent(e); });
 
+    // should probably handle this with Timer class or something
     double prev_time = glfwGetTime();
 
     GLint maxVertices;
@@ -66,49 +68,22 @@ namespace kogayonon
     Camera& camera = Camera::getInstance();
     Shader& shader = m_renderer->getShader("3d_shader");
 
-#define MODEL "resources/models/untitled.gltf"
+#define MODEL std::string("resources/models/cube.gltf")
 
     assets.addModel(MODEL);
-    GLint numUniforms = 0;
-    GLuint shaderID = shader.getShaderId();
-
-    // Check if shader ID is valid
-    if (shaderID == 0)
-    {
-      Logger::logError("Shader program ID is invalid!");
-      return;
-    }
-
-    // Get the number of active uniforms
-    glGetProgramiv(shaderID, GL_ACTIVE_UNIFORMS, &numUniforms);
-    Logger::logInfo("Number of active uniforms: ", numUniforms);
-
-    for (GLint i = 0; i < numUniforms; i++)
-    {
-      char name[256] = { 0 }; // Ensure buffer is cleared
-      GLsizei length = 0;
-      GLenum type;
-      GLint size = 0;
-
-      glGetActiveUniform(shaderID, i, sizeof(name) - 1, &length, &size, &type, name);
-      name[length] = '\0'; // Null-terminate manually
-
-      Logger::logInfo("Active Uniform: ", name);
-    }
-
 
     while (!glfwWindowShouldClose(m_window->getWindow()))
     {
       TaskManager::getInstance().completed();
 
-      glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+      glClearColor(0.3f, 0.0f, 1.0f, 0.3f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
       glm::mat4 proj = glm::mat4(1.0f);
       float scaleFactor = 0.08f;
-      glm::mat4 model_mat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.0f));
+      glm::mat4 model_mat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -200.0f));
       glm::mat4 scale_mat = glm::scale(glm::mat4(6.0f), glm::vec3(10.08f));
-      proj = glm::perspective(glm::radians(45.0f), (float)m_window->getWidth() / (float)m_window->getHeight(), 0.1f, 20000.0f);
+      proj = glm::perspective(glm::radians(45.0f), (float)m_window->getWidth() / (float)m_window->getHeight(), 0.1f, 4000.0f);
 
       m_renderer->bindShader("3d_shader");
       Model& test = assets.getModel(MODEL);
@@ -122,15 +97,14 @@ namespace kogayonon
       m_renderer->unbindShader("3d_shader");
 
       double current_time = glfwGetTime();
-      delta_time = current_time - prev_time;
-      camera.processKeyboard(delta_time);
+      Timer::getInstance().setDelta(current_time - prev_time);
+      camera.processKeyboard();
       prev_time = current_time;
       m_window->update();
 
       if (glfwWindowShouldClose(m_window->getWindow()))
       {
         WindowCloseEvent close_event;
-
         // we dispatch the close event so if we need to do some cleanup we can now
         EventListener::getInstance().dispatch(close_event);
         break;

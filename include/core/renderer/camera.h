@@ -10,7 +10,8 @@
 namespace kogayonon
 {
   // https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/camera.h
-  struct CameraProps {
+  struct CameraProps
+  {
     glm::vec3 position;
     glm::vec3 direction;
     glm::vec3 camera_up;
@@ -24,8 +25,8 @@ namespace kogayonon
     float mouse_sens;
   };
 
-  // TODO camera snaps when i leave imgui window
-  class Camera :public Singleton<Camera> {
+  class Camera :public Singleton<Camera>
+  {
   public:
     Camera();
 
@@ -37,11 +38,13 @@ namespace kogayonon
     void setFirstMove();
     const glm::mat4& getViewMatrix()const;
 
+    bool onMouseScrolled(MouseScrolledEvent& event);
+    void processMouseScrolled(double x_offset, double y_offset);
+
     bool onMouseMoved(MouseMovedEvent& event);
-
     void processMouseMoved(float x, float y, bool constrain_pitch = true);
-    void processKeyboard(double delta_time);
 
+    void processKeyboard();
     void updateCameraVectors();
 
     void cameraUniform(unsigned int shader_id, const char* uniform);
@@ -49,9 +52,9 @@ namespace kogayonon
 
     CameraProps& getProps();
 
-    float getX() { return m_props.position.x; }
-    float getY() { return m_props.position.y; }
-    float getZ() { return m_props.position.z; }
+    inline float getX() { return m_props.position.x; }
+    inline float getY() { return m_props.position.y; }
+    inline float getZ() { return m_props.position.z; }
 
   private:
     CameraProps m_props{};
