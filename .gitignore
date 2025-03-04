@@ -416,3 +416,6 @@ resources/models/untitled.mtl
 resources/models/untitled2.bin
 resources/models/untitled2.gltf
 resources/models/serialized/out.bin
+*.gbl
+*.scor
+*.t0000

@@ -13,28 +13,35 @@ namespace kogayonon
     init(path_to_model);
   }
 
-  void Model::draw(Shader& shader)
+  Model::Model(Model&& other)
   {
-    if (!m_loaded)
+    m_loaded = other.m_loaded;
+    m_meshes = other.m_meshes;
+    m_path = other.m_path;
+  }
+
+  void Model::draw(const Shader& shader)
+  {
+    if(!m_loaded)
     {
       return;
     }
 
-    if (m_meshes.empty())
+    if(m_meshes.empty())
     {
       Logger::logError("No meshes found! Something went wrong with loading.");
       return;
     }
 
-    for (auto& mesh : m_meshes)
+    for(auto& mesh : m_meshes)
     {
       mesh.draw(shader);
     }
   }
 
-  void Model::init(const std::string path)
+  void Model::init(const std::string& path)const
   {
-    ModelLoader::getInstance().parseGltf(path, m_meshes);
+    AssetManager::getInstance().initializeModel(path);
   }
 
   void Model::serializeMeshes(const std::string& path)
@@ -72,6 +79,5 @@ namespace kogayonon
   {
     this->m_loaded = other.m_loaded;
     this->m_meshes = other.m_meshes;
-    this->m_textures_loaded = other.m_textures_loaded;
   }
 }

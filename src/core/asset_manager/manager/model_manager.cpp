@@ -5,16 +5,17 @@
 
 namespace kogayonon
 {
-  void ModelManager::addModel(const std::string& path)
+  void ModelManager::addModel(const cgltf_data* data, const std::string& model_path)
   {
-    Timer::getInstance().startCount("model");
+    TimeTracker::getInstance().startCount("model");
     ModelLoader::getInstance().pushModel(
-      path,
+      data,
+      model_path,
       [](Model& model)// called after loading the model
       {
         model.setLoaded();
-        Timer::getInstance().stopCount("model");
-        Logger::logInfo("Model loaded in:", Timer::getInstance().getDuration("model").count());
+        TimeTracker::getInstance().stopCount("model");
+        Logger::logInfo("Model loaded in:", TimeTracker::getInstance().getDuration("model").count());
       },
       m_mutex,
       m_models

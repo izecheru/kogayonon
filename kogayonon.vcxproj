@@ -148,6 +148,7 @@
     <ClCompile Include="src\core\asset_manager\loader\texture_loader.cpp" />
     <ClCompile Include="src\core\asset_manager\manager\model_manager.cpp" />
     <ClCompile Include="src\core\asset_manager\manager\texture_manager.cpp" />
+    <ClCompile Include="src\core\layer\world_layer.cpp" />
     <ClCompile Include="src\core\serialize\mesh_serializer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="src\app\app.cpp" />
@@ -640,6 +641,7 @@
     <ClInclude Include="include\core\layer\imgui_layer.h" />
     <ClInclude Include="include\core\layer\layer.h" />
     <ClInclude Include="include\core\layer\layer_stack.h" />
+    <ClInclude Include="include\core\layer\world_layer.h" />
     <ClInclude Include="include\core\logger.h" />
     <ClInclude Include="include\core\asset_manager\loader\mesh.h" />
     <ClInclude Include="include\core\asset_manager\loader\model.h" />

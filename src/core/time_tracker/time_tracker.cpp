@@ -5,7 +5,7 @@
 namespace kogayonon
 {
 
-  Timer::duration Timer::getDuration(const std::string& reason) const
+  TimeTracker::duration TimeTracker::getDuration(const std::string& reason) const
   {
     std::lock_guard<std::mutex> lock(m_mutex);
     auto it = m_duration_map.find(reason);

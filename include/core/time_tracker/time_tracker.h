@@ -5,7 +5,7 @@
 
 namespace kogayonon
 {
-  class Timer :public Singleton<Timer>
+  class TimeTracker :public Singleton<TimeTracker>
   {
   private:
     using clock = std::chrono::steady_clock;

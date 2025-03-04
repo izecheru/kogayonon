@@ -9,9 +9,14 @@ namespace kogayonon
   class MouseEnteredEvent :public Event
   {
   public:
-    MouseEnteredEvent(const int entered) :m_entered(entered) { }
+    explicit MouseEnteredEvent(const int entered) :m_entered(entered)
+    {
+    }
 
-    int hasEntered() const { return m_entered; }
+    int hasEntered() const
+    {
+      return m_entered;
+    }
 
     std::string toString()const override
     {
@@ -30,7 +35,8 @@ namespace kogayonon
   class MouseMovedEvent : public Event
   {
   private:
-    double m_mouse_x, m_mouse_y;
+    double m_mouse_x;
+    double m_mouse_y;
 
   public:
     MouseMovedEvent(const double x, const double y)
@@ -39,8 +45,14 @@ namespace kogayonon
     {
     }
 
-    double getX() { return m_mouse_x; }
-    double getY() { return m_mouse_y; }
+    inline double getX()const
+    {
+      return m_mouse_x;
+    }
+    inline double getY()const
+    {
+      return m_mouse_y;
+    }
 
     std::string toString()const override
     {
@@ -62,10 +74,18 @@ namespace kogayonon
     MouseModifier m_mods;
 
   public:
-    MouseClickedEvent(int button, int action, int mods) :m_button(MouseCode(button)), m_action(MouseAction(action)), m_mods(MouseModifier(mods)) { }
+    MouseClickedEvent(int button, int action, int mods) :m_button(MouseCode(button)), m_action(MouseAction(action)), m_mods(MouseModifier(mods))
+    {
+    }
 
-    MouseCode getButton() const { return m_button; }
-    MouseAction getAction() const { return m_action; }
+    MouseCode getButton() const
+    {
+      return m_button;
+    }
+    MouseAction getAction() const
+    {
+      return m_action;
+    }
 
     std::string toString() const override
     {
@@ -86,10 +106,18 @@ namespace kogayonon
     double m_y_offset = 0;
 
   public:
-    MouseScrolledEvent(double t_x_offset, double t_y_offset) :m_x_offset(t_x_offset), m_y_offset(t_y_offset) { }
+    MouseScrolledEvent(double t_x_offset, double t_y_offset) :m_x_offset(t_x_offset), m_y_offset(t_y_offset)
+    {
+    }
 
-    inline double getXOff() const { return m_x_offset; }
-    inline double getYOff() const { return m_y_offset; }
+    inline double getXOff() const
+    {
+      return m_x_offset;
+    }
+    inline double getYOff() const
+    {
+      return m_y_offset;
+    }
 
     std::string toString() const override
     {

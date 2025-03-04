@@ -12,17 +12,17 @@ namespace kogayonon
   public:
     App();
     ~App() = default;
-    void run();
+    void run() const;
 
-    void onEvent(Event& event);
+    void onEvent(Event& event) const;
 
-    bool onWindowResize(WindowResizeEvent& event);
-    bool onWindowClose(WindowCloseEvent& event);
-    bool onMouseClicked(MouseClickedEvent& event);
-    bool onMouseMove(MouseMovedEvent& event);
-    bool onMouseEnter(MouseEnteredEvent& event);
-    bool onKeyPress(KeyPressedEvent& event);
-    bool onScroll();
+    bool onWindowResize(const WindowResizeEvent& event) const;
+    bool onWindowClose(const WindowCloseEvent& event) const;
+    bool onMouseClicked(const MouseClickedEvent& event) const;
+    bool onMouseMove(const MouseMovedEvent& event) const;
+    bool onMouseEnter(const MouseEnteredEvent& event) const;
+    bool onKeyPress(const KeyPressedEvent& event) const;
+    bool onScroll() const;
 
     static GLFWwindow* getWindow();
 
@@ -31,7 +31,5 @@ namespace kogayonon
     static inline double delta_time;
     static inline std::unique_ptr<Window> m_window;
     static inline std::unique_ptr<Renderer> m_renderer;
-    // this is 0 because this is the first thing we send events to
-    static inline unsigned int m_app_listener_id = 0;
   };
 }

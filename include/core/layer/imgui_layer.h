@@ -7,7 +7,8 @@
 
 namespace kogayonon
 {
-  class ImguiLayer :public Layer {
+  class ImguiLayer :public Layer
+  {
   public:
     explicit ImguiLayer(GLFWwindow* window);
 
@@ -19,6 +20,5 @@ namespace kogayonon
 
   private:
     ImGuiInterface m_interface;
-    unsigned int m_imgui_layer_listener_id = 1;
   };
 }

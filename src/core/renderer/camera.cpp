@@ -64,7 +64,7 @@ namespace kogayonon
 
   void Camera::processMouseScrolled(double x_offset, double y_offset)
   {
-    float velocity = m_props.movement_speed * Timer::getInstance().getDelta() * 100.0f;
+    float velocity = m_props.movement_speed * TimeTracker::getInstance().getDelta() * 100.0f;
     m_props.position.z -= y_offset * velocity;
     updateCameraVectors();
   }
@@ -115,7 +115,7 @@ namespace kogayonon
 
   void Camera::processKeyboard()
   {
-    float velocity = m_props.movement_speed * Timer::getInstance().getDelta() * 30.0f;
+    float velocity = m_props.movement_speed * TimeTracker::getInstance().getDelta() * 30.0f;
 
     if (KeyboardState::getKeyState(KeyCode::W))
     {

@@ -12,7 +12,7 @@ namespace kogayonon
   {
     glm::vec3 position;
     glm::vec3 normal;
-    glm::vec2 texture;
+    glm::vec2 tex_coords;
   };
 
   struct Texture
@@ -39,17 +39,21 @@ namespace kogayonon
   class Mesh
   {
   private:
-    using texture_vec = std::vector<Texture>;
+    using texture_vec = std::vector<std::string>;
     using indices_vec = std::vector<uint32_t>;
     using vertice_vec = std::vector<Vertex>;
 
   public:
     Mesh() = default;
-    explicit Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices, std::vector<Texture> textures);
+    explicit Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<std::string>& textures);
+    explicit Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
 
     void setupMesh();
-    void draw(Shader& shader);
-    inline bool isInit() { return m_init; }
+    void draw(const Shader& shader);
+    inline bool isInit() const
+    {
+      return m_init;
+    }
     vertice_vec& getVertices();
     indices_vec& getIndices();
     texture_vec& getTextures();
@@ -62,11 +66,9 @@ namespace kogayonon
     texture_vec m_textures;
     indices_vec m_indices;
 
-  private:
     uint32_t m_vao = 0;
     uint32_t m_vbo = 0;
     uint32_t m_ebo = 0;
-    uint32_t m_num_indices = 0;
     bool m_init = false;
   };
 }

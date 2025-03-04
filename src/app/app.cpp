@@ -29,6 +29,7 @@
 #include "core/layer/imgui_layer.h"
 #include "core/task/task_manager.h"
 #include "core/time_tracker/time_tracker.h"
+#include "core/layer/world_layer.h"
 
 namespace kogayonon
 {
@@ -37,15 +38,27 @@ namespace kogayonon
     m_window = std::make_unique<Window>();
     m_renderer = std::make_unique<Renderer>();
 
-    // create layers here and push them
-    m_renderer->pushLayer(std::make_unique<ImguiLayer>(m_window->getWindow()));
+    // TODO this should be done in the renderer not here
+    m_renderer->pushShader("resources/shaders/3d_vertex.glsl", "resources/shaders/3d_fragment.glsl", "3d_shader");
+    // the order you push layers here is the order of rendering from 
+    m_renderer->pushLayer(std::make_unique<WorldLayer>(m_renderer->getShader("3d_shader")));//0
+    m_renderer->pushLayer(std::make_unique<ImguiLayer>(m_window->getWindow()));//1
 
-    EventListener::getInstance().addCallback<WindowResizeEvent>([this](Event& e) { return this->onWindowResize(static_cast<WindowResizeEvent&>(e)); });
-    EventListener::getInstance().addCallback<WindowCloseEvent>([this](Event& e) { return this->onWindowClose(static_cast<WindowCloseEvent&>(e)); });
-    EventListener::getInstance().addCallback<KeyPressedEvent>([this](Event& e) { return this->onKeyPress(static_cast<KeyPressedEvent&>(e)); });
+    EventListener::getInstance().addCallback<WindowResizeEvent>([this](const Event& e)
+      {
+        return this->onWindowResize((const WindowResizeEvent&)(e));
+      });
+    EventListener::getInstance().addCallback<WindowCloseEvent>([this](const Event& e)
+      {
+        return this->onWindowClose((const WindowCloseEvent&)(e));
+      });
+    EventListener::getInstance().addCallback<KeyPressedEvent>([this](const Event& e)
+      {
+        return this->onKeyPress((const KeyPressedEvent&)(e));
+      });
   }
 
-  void App::run()
+  void App::run()const
   {
     const GLubyte* version = glGetString(GL_VERSION);
     Logger::logInfo("OpenGL Version: ", version);
@@ -53,7 +66,10 @@ namespace kogayonon
 
     // all the events from the window are sent to the app.onEvent function and from there
     // to all the layers in the layer stack
-    m_window->setEventCallbackFn([this](Event& e) -> void { this->onEvent(e); });
+    m_window->setEventCallbackFn([this](Event& e)
+      {
+        this->onEvent(e);
+      });
 
     // should probably handle this with Timer class or something
     double prev_time = glfwGetTime();
@@ -61,33 +77,27 @@ namespace kogayonon
     GLint maxVertices;
     glGetIntegerv(GL_MAX_ELEMENTS_VERTICES, &maxVertices);
     Logger::logInfo("Max vertices per draw call: ", maxVertices);
-
-    m_renderer->pushShader("resources/shaders/3d_vertex.glsl", "resources/shaders/3d_fragment.glsl", "3d_shader");
-
-    AssetManager& assets = AssetManager::getInstance();
     Camera& camera = Camera::getInstance();
     Shader& shader = m_renderer->getShader("3d_shader");
 
 #define MODEL std::string("resources/models/cube.gltf")
 
-    assets.addModel(MODEL);
+    Model my_model(MODEL);
 
-    while (!glfwWindowShouldClose(m_window->getWindow()))
+    while(!glfwWindowShouldClose(m_window->getWindow()))
     {
       TaskManager::getInstance().completed();
 
       glClearColor(0.3f, 0.0f, 1.0f, 0.3f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-      glm::mat4 proj = glm::mat4(1.0f);
-      float scaleFactor = 0.08f;
+      auto proj = glm::mat4(1.0f);
+      float scale_factor = 0.08f;
       glm::mat4 model_mat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -200.0f));
-      glm::mat4 scale_mat = glm::scale(glm::mat4(6.0f), glm::vec3(10.08f));
+      glm::mat4 scale_mat = glm::scale(glm::mat4(6.0f), glm::vec3(10.08f * scale_factor));
       proj = glm::perspective(glm::radians(45.0f), (float)m_window->getWidth() / (float)m_window->getHeight(), 0.1f, 4000.0f);
 
       m_renderer->bindShader("3d_shader");
-      Model& test = assets.getModel(MODEL);
-      test.draw(m_renderer->getShader("3d_shader"));
       shader.setMat4("model", model_mat);
       shader.setMat4("projection", proj);
       shader.setMat4("scaleMatrix", scale_mat);
@@ -97,12 +107,12 @@ namespace kogayonon
       m_renderer->unbindShader("3d_shader");
 
       double current_time = glfwGetTime();
-      Timer::getInstance().setDelta(current_time - prev_time);
+      TimeTracker::getInstance().setDelta(current_time - prev_time);
       camera.processKeyboard();
       prev_time = current_time;
       m_window->update();
 
-      if (glfwWindowShouldClose(m_window->getWindow()))
+      if(glfwWindowShouldClose(m_window->getWindow()))
       {
         WindowCloseEvent close_event;
         // we dispatch the close event so if we need to do some cleanup we can now
@@ -112,39 +122,42 @@ namespace kogayonon
     }
   }
 
-  void App::onEvent(Event& event)
+  void App::onEvent(Event& event) const
   {
     EventListener::getInstance().dispatch(event);
   }
 
-  bool App::onMouseEnter(MouseEnteredEvent& event) { return true; }
+  bool App::onMouseEnter(const MouseEnteredEvent& event)const
+  {
+    return true;
+  }
 
-  bool App::onWindowResize(WindowResizeEvent& event)
+  bool App::onWindowResize(const WindowResizeEvent& event)const
   {
     m_window->setViewport();
     return true;
   }
 
-  bool App::onWindowClose(WindowCloseEvent& event)
+  bool App::onWindowClose(const WindowCloseEvent& event)const
   {
     Logger::logInfo("window close event");
     return true;
   }
 
-  bool App::onMouseClicked(MouseClickedEvent& event)
+  bool App::onMouseClicked(const MouseClickedEvent& event)const
   {
     return true;
   }
 
-  bool App::onMouseMove(MouseMovedEvent& event)
+  bool App::onMouseMove(const MouseMovedEvent& event)const
   {
     Logger::logInfo("mouse move");
     return true;
   }
 
-  bool App::onKeyPress(KeyPressedEvent& event)
+  bool App::onKeyPress(const KeyPressedEvent& event)const
   {
-    switch (event.getKeyCode())
+    switch(event.getKeyCode())
     {
       case KeyCode::F1:
         m_renderer->togglePolyMode();
@@ -161,7 +174,13 @@ namespace kogayonon
     return true;
   }
 
-  GLFWwindow* App::getWindow() { return m_window->getWindow(); }
+  GLFWwindow* App::getWindow()
+  {
+    return m_window->getWindow();
+  }
 
-  bool App::onScroll() { return true; }
+  bool App::onScroll() const
+  {
+    return true;
+  }
 }

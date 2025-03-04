@@ -10,11 +10,12 @@ namespace kogayonon
   {
   public:
     explicit Model(const std::string& path_to_model);
+    Model(Model&& other);
     Model() = default;
     ~Model() = default;
 
-    void draw(Shader& shader);
-    void init(const std::string path);
+    void draw(const Shader& shader);
+    void init(const std::string& path)const;
 
     void serializeMeshes(const std::string& path);
     void deserializeMeshes(const std::string& path);
@@ -22,13 +23,24 @@ namespace kogayonon
     std::vector<Mesh>& getMeshes();
 
     void operator=(const Model& other);
-    inline bool isLoaded() { return m_loaded; }
-    inline void setLoaded() { m_loaded = true; }
-    inline std::string getPath()const { return m_path; }
+
+    inline bool isLoaded()const
+    {
+      return m_loaded;
+    }
+
+    inline void setLoaded()
+    {
+      m_loaded = true;
+    }
+
+    inline std::string& getPath()
+    {
+      return m_path;
+    }
 
   private:
     std::vector<Mesh> m_meshes;
-    std::map<std::string, Texture> m_textures_loaded;
     std::string m_path;
     bool m_loaded = false;
   };

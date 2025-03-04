@@ -1,19 +1,20 @@
 #pragma once
 #include <unordered_map>
 #include <string>
+#include <cgltf/cgltf.h>
+#include <mutex>
 
 #include "core/singleton/singleton.h"
 #include "mesh.h"
-#include <cgltf/cgltf.h>
 
 namespace kogayonon
 {
   class TextureLoader :public Singleton<TextureLoader>
   {
   public:
-    void loadTexture(cgltf_texture* texture, const std::string& type, std::vector<Texture>& textures, const std::string& model_dir);
-
-  private:
-    std::unordered_map<std::string, Texture> m_loaded_textures;
+    void loadTexture(const cgltf_texture* texture, std::unordered_map<std::string, Texture>& loaded_textures, const std::string& type, const std::string& model_dir);
+    void pushTexture(const std::string& texture_path, std::function<void(const Texture&)> callback, std::mutex& mutex, std::unordered_map<std::string, Texture>& textures, const cgltf_data* data);
+    void initializeTextures(const cgltf_data* data, const std::string& model_dir, std::unordered_map<std::string, Texture>& loaded_textures);
+    void processMaterial(const cgltf_material* material, std::unordered_map<std::string, Texture>& loaded_textures, const std::string& model_dir);
   };
 }

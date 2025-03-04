@@ -3,59 +3,69 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <stb/stb_image.h>
 
 //#include "core/asset_manager/model_loader/model_loader.h"
 #include "core/logger.h"
 #include "core/renderer/camera.h"
-#include <stb\stb_image.h>
+#include "core/asset_manager/manager/texture_manager.h"
 
 namespace kogayonon
 {
-  Mesh::Mesh(std::vector<Vertex> vertices, std::vector<uint32_t> indices, std::vector<Texture> textures) :
-    m_vertices(vertices), m_indices(indices), m_textures(textures),
-    m_ebo(0), m_vao(0), m_vbo(0)
+  Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<std::string>& textures) :
+    m_vertices(vertices), m_indices(indices), m_textures(textures)
+  {
+  }
+
+  Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) :
+    m_vertices(vertices), m_indices(indices), m_textures()
   {
   }
 
   // Setup textures on main thread since opengl functions are not thread safe
   void Mesh::setupTextures()
   {
-    for (Texture& texture : m_textures)
+    for(int i = 0; i < m_textures.size(); i++)
     {
-      if (!texture.data.empty())
+      TextureManager& manager = TextureManager::getInstance();
+      auto& textures_map = manager.getTextures();
+      for(unsigned int i = 0; i < m_textures.size(); i++)
       {
-
-        assert((1 <= texture.num_components) && (4 >= texture.num_components));
-        GLenum glformat = GL_RGB;
-        switch (texture.num_components)
+        auto& texture = textures_map[m_textures[i]];
+        if(!texture.data.empty())
         {
-          case 1: glformat = GL_RED;  break;
-          case 2: glformat = GL_RG;   break;
-          case 3: glformat = GL_RGB;  break;
-          case 4: glformat = GL_RGBA; break;
+          GLenum glformat = GL_RGB;
+          switch(texture.num_components)
+          {
+            case 1: glformat = GL_RED;  break;
+            case 2: glformat = GL_RG;   break;
+            case 3: glformat = GL_RGB;  break;
+            case 4: glformat = GL_RGBA; break;
+          }
+          glCreateTextures(GL_TEXTURE_2D, 1, &texture.id);
+          // We allocate immutable storage for the texture
+          glTextureStorage2D(texture.id, 1, GL_RGBA8, texture.width, texture.height);
+
+          // Upload the image data to the texture
+          glTextureSubImage2D(texture.id, 0, 0, 0, texture.width, texture.height, glformat, GL_UNSIGNED_BYTE, texture.data.data());
+
+          // Generate mipmaps
+          glGenerateTextureMipmap(texture.id);
+
+          glTextureParameteri(texture.id, GL_TEXTURE_WRAP_S, GL_REPEAT); // Or GL_MIRRORED_REPEAT, GL_CLAMP_TO_EDGE, etc.
+          glTextureParameteri(texture.id, GL_TEXTURE_WRAP_T, GL_REPEAT); // For the T coordinate
+          glTextureParameteri(texture.id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+          glTextureParameteri(texture.id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+          texture.data.clear();
         }
-        glCreateTextures(GL_TEXTURE_2D, 1, &texture.id);
-        // We allocate immutable storage for the texture
-        glTextureStorage2D(texture.id, 1, GL_RGBA8, texture.width, texture.height);
-
-        // Upload the image data to the texture
-        glTextureSubImage2D(texture.id, 0, 0, 0, texture.width, texture.height, glformat, GL_UNSIGNED_BYTE, texture.data.data());
-
-        // Generate mipmaps
-        glGenerateTextureMipmap(texture.id);
-
-        glTextureParameteri(texture.id, GL_TEXTURE_WRAP_S, GL_REPEAT); // Or GL_MIRRORED_REPEAT, GL_CLAMP_TO_EDGE, etc.
-        glTextureParameteri(texture.id, GL_TEXTURE_WRAP_T, GL_REPEAT); // For the T coordinate
-        glTextureParameteri(texture.id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTextureParameteri(texture.id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        texture.data.clear();
-      }
-      else
-      {
-        Logger::logError("Failed to load image from ", texture.path);
+        else
+        {
+          Logger::logError("Failed to load image from ", texture.path);
+        }
       }
     }
+
   }
 
   void Mesh::setupMesh()
@@ -68,10 +78,6 @@ namespace kogayonon
     // Upload vertex data directly to EBO
     glCreateBuffers(1, &m_ebo);
     glNamedBufferData(m_ebo, m_indices.size() * sizeof(uint32_t), m_indices.data(), GL_STATIC_DRAW);
-
-    GLint vbo_size = 0, ebo_size = 0;
-    glGetNamedBufferParameteriv(m_vbo, GL_BUFFER_SIZE, &vbo_size);
-    glGetNamedBufferParameteriv(m_ebo, GL_BUFFER_SIZE, &ebo_size);
 
     assert(!m_vertices.empty() && !m_indices.empty());
 
@@ -88,28 +94,29 @@ namespace kogayonon
 
     glVertexArrayAttribFormat(m_vao, 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, position));
     glVertexArrayAttribFormat(m_vao, 1, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, normal));
-    glVertexArrayAttribFormat(m_vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, texture));
+    glVertexArrayAttribFormat(m_vao, 2, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, tex_coords));
 
     glVertexArrayAttribBinding(m_vao, 0, 0);
     glVertexArrayAttribBinding(m_vao, 1, 0);
     glVertexArrayAttribBinding(m_vao, 2, 0);
 
     setupTextures();
-    m_num_indices = m_indices.size();
     m_init = true;
   }
 
-  void Mesh::draw(Shader& shader)
+  void Mesh::draw(const Shader& shader)
   {
-    if (!m_init) setupMesh();
+    if(!m_init) setupMesh();
 
-    for (unsigned int i = 0; i < m_textures.size(); i++)
+    TextureManager& manager = TextureManager::getInstance();
+    auto& textures_map = manager.getTextures();
+    for(unsigned int i = 0; i < m_textures.size(); i++)
     {
-      glBindTextureUnit(i, m_textures[i].id);
+      glBindTextureUnit(i, textures_map[m_textures[i]].id);
     }
     // draw mesh
     glBindVertexArray(m_vao);
-    glDrawElements(GL_TRIANGLES, m_num_indices, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()), GL_UNSIGNED_INT, nullptr);
     glBindVertexArray(0);
     glBindTextureUnit(0, 0);
   }
