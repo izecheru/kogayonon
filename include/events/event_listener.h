@@ -5,20 +5,23 @@
 #include <map>
 namespace kogayonon
 {
-  class EventListener :public Singleton<EventListener> {
+  class EventListener :public Singleton<EventListener>
+  {
   public:
-    EventListener() {}
+    EventListener() = default;
     using EventCallback = std::function<bool(Event&)>;
 
     template<typename T>
-    void addCallback(EventCallback callback) {
+    void addCallback(EventCallback callback)
+    {
       auto type = T::getStaticType();
       char callback_id = m_id++;
-      m_callbacks[type].push_back({ callback_id,callback });
+      m_callbacks[type].push_back({callback_id,callback});
     }
 
     template<typename T>
-    void removeCallback(char callback_id) {
+    void removeCallback(char callback_id)
+    {
       auto type = T::getEventType();
       auto& vec = m_callbacks[type];
 
@@ -29,10 +32,13 @@ namespace kogayonon
         }), vec.end());
     }
 
-    void dispatch(Event& event) {
+    void dispatch(Event& event)
+    {
       auto it = m_callbacks.find(event.getEventType());
-      if (it != m_callbacks.end()) {
-        for (const auto& [id, callback] : it->second) {
+      if(it != m_callbacks.end())
+      {
+        for(const auto& [id, callback] : it->second)
+        {
           event.m_handled |= callback(event);
         }
       }

@@ -3,36 +3,70 @@
 
 namespace kogayonon
 {
-  bool TaskManager::completed()
+
+  TaskManager::TaskManager(size_t threadCount)
   {
-    if (m_tasks_done) return false;
-
-    m_tasks_done = std::all_of(m_tasks.begin(), m_tasks.end(), [](std::future<void>& f)
-      {
-        if (f.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
-        {
-          f.get();
-          return true;
-        }
-        return false;
-      });
-
-    if (m_tasks_done)
+    for(size_t i = 0; i < threadCount; ++i)
     {
-      Logger::logInfo("Tasks done");
-      clearTasks();
-      return true;
+      m_workers.emplace_back([this]
+        {
+          workerThread();
+        });
     }
-
-    return false;
   }
 
-  void TaskManager::clearTasks()
+  TaskManager::~TaskManager()
   {
-    if (m_tasks_done)
+    stop();
+  }
+
+  void TaskManager::enqueue(std::function<void()> task)
+  {
     {
-      return;
+      std::unique_lock lock(m_queue_mutex);
+      m_tasks.push(std::move(task));
     }
-    m_tasks.clear();
+    m_cvar.notify_one();  // Wake up a worker thread
+  }
+
+  void TaskManager::workerThread()
+  {
+    while(true)
+    {
+      std::function<void()> task;
+      {
+        std::unique_lock lock(m_queue_mutex);
+        m_cvar.wait(lock, [this]
+          {
+            return m_stop || !m_tasks.empty();
+          });
+
+        if(m_stop && m_tasks.empty())
+        {
+          return;
+        }
+
+        task = std::move(m_tasks.front());
+        m_tasks.pop();
+      }
+      task();  // Execute task
+    }
+  }
+
+  void TaskManager::stop()
+  {
+    {
+      std::unique_lock lock(m_queue_mutex);
+      m_stop = true;
+    }
+    m_cvar.notify_all();  // Wake all worker threads
+
+    for(std::thread& worker : m_workers)
+    {
+      if(worker.joinable())
+      {
+        worker.join();
+      }
+    }
   }
 }

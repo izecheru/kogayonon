@@ -10,7 +10,7 @@
 
 namespace kogayonon
 {
-  bool ModelLoader::pushModel(const cgltf_data* data, const std::string& model_path, std::function<void(Model&)>callback, std::mutex& t_mutex, std::unordered_map<std::string, Model>& models_map)
+  bool ModelLoader::pushModel(const cgltf_data* data, const std::string& model_path, std::function<void(Model&)> callback, std::mutex& t_mutex, std::unordered_map<std::string, Model>& models_map)
   {
     // make sure model file exists otherwise bad luck
     assert(data != nullptr);
@@ -24,28 +24,32 @@ namespace kogayonon
       std::filesystem::create_directories(model_dir);
     }
     std::filesystem::path binary = model_dir / (model_name + ".bin");
-
     if(std::filesystem::exists(binary))
     {
-      TaskManager::getInstance().runTask([this, data, binary, &t_mutex, &models_map, model_path, callback]()
+      TaskManager::getInstance().enqueue([binary, &t_mutex, &models_map, model_path, callback]()
         {
           Model model;
-          //assignModelMeshes(data, model.getMeshes());
           model.deserializeMeshes(binary.string());
-          std::lock_guard lock(t_mutex);
-          models_map[model_path] = std::move(model);
+          {
+            std::lock_guard lock(t_mutex);
+            models_map[model_path] = model;
+          }
           callback(models_map[model_path]);
         });
     }
     else // needs to be serialized
     {
-      TaskManager::getInstance().runTask([this, data, binary, &t_mutex, &models_map, model_path, callback]()
+
+      TaskManager::getInstance().enqueue([this, data, binary, &t_mutex, &models_map, model_path, callback]()
         {
           Model model;
           assignModelMeshes(data, model.getMeshes());
+          Logger::logInfo(binary.string());
           model.serializeMeshes(binary.string());
-          std::lock_guard lock(t_mutex);
-          models_map[model_path] = std::move(model);
+          {
+            std::lock_guard lock(t_mutex);
+            models_map[model_path] = model;
+          }
           callback(models_map[model_path]);
         });
     }

@@ -28,7 +28,6 @@
 #include "core/layer/layer_stack.h"
 #include "core/layer/imgui_layer.h"
 #include "core/task/task_manager.h"
-#include "core/time_tracker/time_tracker.h"
 #include "core/layer/world_layer.h"
 
 namespace kogayonon
@@ -80,13 +79,11 @@ namespace kogayonon
     Camera& camera = Camera::getInstance();
     Shader& shader = m_renderer->getShader("3d_shader");
 
-#define MODEL std::string("resources/models/cube.gltf")
-
-    Model my_model(MODEL);
-
+    Model my_model("resources/models/sphere.gltf");
+    //Model my_model2("resources/models/untitled.gltf");
+    //Model my_model3("resources/models/cube.gltf");
     while(!glfwWindowShouldClose(m_window->getWindow()))
     {
-      TaskManager::getInstance().completed();
 
       glClearColor(0.3f, 0.0f, 1.0f, 0.3f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

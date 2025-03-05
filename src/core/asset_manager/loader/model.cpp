@@ -13,7 +13,7 @@ namespace kogayonon
     init(path_to_model);
   }
 
-  Model::Model(Model&& other)
+  Model::Model(Model&& other)noexcept
   {
     m_loaded = other.m_loaded;
     m_meshes = other.m_meshes;
@@ -47,7 +47,7 @@ namespace kogayonon
   void Model::serializeMeshes(const std::string& path)
   {
     MeshSerializer& serializer = MeshSerializer::getInstance();
-    serializer.openFile(path, FileMode::WRITE);
+    assert(serializer.openFile(path, FileMode::WRITE) == true);
 
     size_t mesh_count = m_meshes.size();
     serializer.serializeVar(mesh_count);
@@ -60,9 +60,11 @@ namespace kogayonon
   {
     MeshSerializer& serializer = MeshSerializer::getInstance();
     serializer.openFile(path, FileMode::READ);
+    assert(!serializer.isEmptyIn());
 
     size_t mesh_count = 0;
-    serializer.deserializeVar(mesh_count);
+    Logger::logInfo(path);
+    assert(serializer.deserializeVar(mesh_count) == true);
 
     m_meshes.resize(mesh_count);
 

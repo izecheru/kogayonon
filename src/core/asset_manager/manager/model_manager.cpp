@@ -1,7 +1,7 @@
-
 #include "core/asset_manager/manager/model_manager.h"
 #include "core/asset_manager/loader/model_loader.h"
 #include "core/time_tracker/time_tracker.h"
+#include "core/asset_manager/manager/texture_manager.h"
 
 namespace kogayonon
 {

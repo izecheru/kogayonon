@@ -1,27 +1,32 @@
 #pragma once
-#include "core/singleton/singleton.h"
-#include "core/logger.h"
+#include <vector>
 #include <queue>
-#include <future>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <functional>
+#include <atomic>
+#include "core/singleton/singleton.h"
 
 namespace kogayonon
 {
-  class TaskManager : public Singleton<TaskManager>
+
+  class TaskManager :public Singleton<TaskManager>
   {
   public:
-    bool completed();
-
-    // we call the function callable in async mode and pass the parameters
-    template<typename T, typename... Args>
-    void runTask(T&& callable, Args&&... args)
-    {
-      m_tasks.push_back(std::async(std::launch::async, callable, args...));
-    }
-
-    void clearTasks();
+    explicit TaskManager(size_t threadCount = std::thread::hardware_concurrency());
+    ~TaskManager();
+    void enqueue(std::function<void()> task);
+    void stop();
 
   private:
-    bool m_tasks_done = false;
-    std::vector<std::future<void>> m_tasks;
+    void workerThread();
+
+  private:
+    std::vector<std::thread> m_workers;
+    std::queue<std::function<void()>> m_tasks;
+    std::mutex m_queue_mutex;
+    std::condition_variable m_cvar;
+    std::atomic<bool> m_stop{false};
   };
 }

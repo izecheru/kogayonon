@@ -37,7 +37,6 @@ namespace kogayonon
     assert(m_data != nullptr);
 
     addModel(path);
-    //addTexture(path);
   }
 
   Model& AssetManager::getModel(const std::string& path) const

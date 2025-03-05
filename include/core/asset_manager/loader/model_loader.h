@@ -13,7 +13,7 @@ namespace kogayonon
   class ModelLoader :public Singleton<ModelLoader>
   {
   public:
-    bool pushModel(const cgltf_data* data, const std::string& model_path, std::function<void(Model&)>callback, std::mutex& t_mutex, std::unordered_map<std::string, Model>& models_map);
+    bool pushModel(const cgltf_data* data, const std::string& model_path, std::function<void(Model&)> callback, std::mutex& t_mutex, std::unordered_map<std::string, Model>& models_map);
     void assignModelMeshes(const cgltf_data* data, std::vector<Mesh>& meshes);
 
     void parsePrimitives(cgltf_node& node, std::vector<uint32_t>& indices, std::vector<Vertex>& final_vertices);

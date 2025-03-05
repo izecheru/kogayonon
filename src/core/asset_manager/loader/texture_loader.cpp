@@ -45,7 +45,7 @@ namespace kogayonon
     const cgltf_data* data)
   {
     TimeTracker::getInstance().startCount("texture");
-    TaskManager::getInstance().runTask([this, &mutex, &textures, callback, texture_path, data]()
+    TaskManager::getInstance().enqueue([this, &mutex, &textures, callback, texture_path, data]()
       {
         if(textures.find(texture_path) != textures.end()) return;
 

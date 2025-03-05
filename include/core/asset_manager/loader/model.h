@@ -10,7 +10,7 @@ namespace kogayonon
   {
   public:
     explicit Model(const std::string& path_to_model);
-    Model(Model&& other);
+    Model(Model&& other)noexcept;
     Model() = default;
     ~Model() = default;
 
