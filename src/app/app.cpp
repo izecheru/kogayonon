@@ -39,7 +39,8 @@ namespace kogayonon
 
     // TODO this should be done in the renderer not here
     m_renderer->pushShader("resources/shaders/3d_vertex.glsl", "resources/shaders/3d_fragment.glsl", "3d_shader");
-    // the order you push layers here is the order of rendering from 
+
+    // the order you push layers here is the order of rendering from
     m_renderer->pushLayer(std::make_unique<WorldLayer>(m_renderer->getShader("3d_shader")));//0
     m_renderer->pushLayer(std::make_unique<ImguiLayer>(m_window->getWindow()));//1
 
@@ -71,7 +72,7 @@ namespace kogayonon
       });
 
     // should probably handle this with Timer class or something
-    double prev_time = glfwGetTime();
+    float prev_time = glfwGetTime();
 
     GLint maxVertices;
     glGetIntegerv(GL_MAX_ELEMENTS_VERTICES, &maxVertices);
@@ -80,11 +81,11 @@ namespace kogayonon
     Shader& shader = m_renderer->getShader("3d_shader");
 
     Model my_model("resources/models/sphere.gltf");
-    //Model my_model2("resources/models/untitled.gltf");
-    //Model my_model3("resources/models/cube.gltf");
+    Model my_model2("resources/models/untitled.gltf");
+    Model my_model3("resources/models/cube.gltf");
+
     while(!glfwWindowShouldClose(m_window->getWindow()))
     {
-
       glClearColor(0.3f, 0.0f, 1.0f, 0.3f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -103,7 +104,7 @@ namespace kogayonon
       m_renderer->draw();
       m_renderer->unbindShader("3d_shader");
 
-      double current_time = glfwGetTime();
+      float current_time = glfwGetTime();
       TimeTracker::getInstance().setDelta(current_time - prev_time);
       camera.processKeyboard();
       prev_time = current_time;
@@ -112,6 +113,7 @@ namespace kogayonon
       if(glfwWindowShouldClose(m_window->getWindow()))
       {
         WindowCloseEvent close_event;
+
         // we dispatch the close event so if we need to do some cleanup we can now
         EventListener::getInstance().dispatch(close_event);
         break;

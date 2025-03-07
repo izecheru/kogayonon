@@ -7,7 +7,7 @@ namespace kogayonon
     is_poly = false;
   }
 
-  void Renderer::draw()
+  void Renderer::draw()const
   {
     m_layer_stack.draw();
   }
@@ -20,7 +20,7 @@ namespace kogayonon
   void Renderer::pushShader(const std::string& vertex_shader, const std::string& fragment_shader, const std::string& shader_name)
   {
     Shader sh(vertex_shader, fragment_shader);
-    m_shaders.insert(std::pair<const std::string, Shader>(shader_name, sh));
+    m_shaders.try_emplace(shader_name, sh);
   }
 
   void Renderer::pushLayer(std::unique_ptr<Layer> layer)
@@ -55,7 +55,7 @@ namespace kogayonon
 
   void Renderer::togglePolyMode()
   {
-    switch (is_poly)
+    switch(is_poly)
     {
       case true:
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

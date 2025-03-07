@@ -16,20 +16,26 @@ namespace kogayonon
   public:
     inline void startCount(const std::string& reason)
     {
-      std::lock_guard<std::mutex> lock(m_mutex);
+      std::scoped_lock<std::mutex> lock(m_mutex);
       m_duration_map[reason].first = clock::now();
     }
 
     inline void stopCount(const std::string& reason)
     {
-      std::lock_guard<std::mutex> lock(m_mutex);
+      std::scoped_lock<std::mutex> lock(m_mutex);
       m_duration_map[reason].second = clock::now();
     }
 
     duration getDuration(const std::string& reason) const;
 
-    inline void setDelta(double d) { delta_time = d; }
-    inline double getDelta()const { return delta_time; }
+    inline void setDelta(float d)
+    {
+      delta_time = d;
+    }
+    inline double getDelta()const
+    {
+      return delta_time;
+    }
 
   private:
     mutable std::mutex m_mutex{};

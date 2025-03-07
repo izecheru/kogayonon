@@ -13,7 +13,10 @@ namespace kogayonon
     auto& map = AssetManager::getInstance().getModelMap();
     for(auto& [path, model] : map)
     {
-      model.draw(m_shader);
+      for(Mesh& mesh : model.getMeshes())
+      {
+        mesh.draw(m_shader);
+      }
     }
   }
 }

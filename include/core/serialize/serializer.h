@@ -16,9 +16,10 @@ namespace kogayonon
   class Serializer
   {
   public:
+
     // mode = 1 -> ifstream
     // mode = 0 -> ofstream
-    bool isEmptyIn()
+    bool isEmptyIn() const
     {
       if(!m_in) return true;  // Ensure stream is valid
       m_in.seekg(0, std::ios::end); // Move to end to check file size
@@ -26,7 +27,6 @@ namespace kogayonon
       m_in.seekg(0, std::ios::beg); // Reset back to beginning
       return size <= 0;
     }
-
 
     bool openFile(const std::string& path, FileMode mode)
     {
@@ -84,7 +84,6 @@ namespace kogayonon
       return m_out.good();
     }
 
-
     template<typename V>
     bool deserializeVar(V&& var)
     {
@@ -92,10 +91,21 @@ namespace kogayonon
       return m_in.good();
     }
 
+    /// <summary>
+    /// Serialize a single type T object
+    /// </summary>
+    /// <param name="obj">-> Reference to object</param>
+    /// <returns></returns>
     virtual bool serialize(T& obj) = 0;
-    virtual bool deserialize(T& obj) = 0;
 
+    /// <summary>
+    /// Serialize a vector of type T objects
+    /// </summary>
+    /// <param name="vec">-> Reference to vector of objects</param>
+    /// <returns></returns>
     virtual bool serialize(std::vector<T>& vec) = 0;
+
+    virtual bool deserialize(T& obj) = 0;
     virtual bool deserialize(std::vector<T>& vec) = 0;
 
     inline bool inGood()

@@ -10,11 +10,10 @@
 
 namespace kogayonon
 {
-
   class TaskManager :public Singleton<TaskManager>
   {
   public:
-    explicit TaskManager(size_t threadCount = std::thread::hardware_concurrency());
+    explicit TaskManager(size_t thread_count = std::thread::hardware_concurrency());
     ~TaskManager();
     void enqueue(std::function<void()> task);
     void stop();

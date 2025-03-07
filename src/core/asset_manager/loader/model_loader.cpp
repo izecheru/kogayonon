@@ -10,28 +10,34 @@
 
 namespace kogayonon
 {
-  bool ModelLoader::pushModel(const cgltf_data* data, const std::string& model_path, std::function<void(Model&)> callback, std::mutex& t_mutex, std::unordered_map<std::string, Model>& models_map)
+  bool ModelLoader::pushModel(const cgltf_data* data, const std::string& model_path, std::function<void(Model&)> callback, std::mutex& mutex, std::unordered_map<std::string, Model>& models_map)
   {
     // make sure model file exists otherwise bad luck
     assert(data != nullptr);
+
     // construct the directory for the serialized model
     std::filesystem::path m_p(model_path);
     std::string model_name = m_p.stem().string();
+
     // all models should reside in serialized_models like so /<model_name>.bin
     std::filesystem::path model_dir = m_p.parent_path() / "serialized_models";
     if(!std::filesystem::exists(model_dir))
     {
       std::filesystem::create_directories(model_dir);
     }
-    std::filesystem::path binary = model_dir / (model_name + ".bin");
-    if(std::filesystem::exists(binary))
+
+    // WARN: this should probably pass an ifstream to the serialization part cause if I add 3 models,
+    // they will scramble the ifstream and ofstream and i don't think it will work well and lock with mutex
+    if(std::filesystem::path bin_path = model_dir / (model_name + ".bin"); std::filesystem::exists(bin_path))
     {
-      TaskManager::getInstance().enqueue([binary, &t_mutex, &models_map, model_path, callback]()
+      // we already have a serialized model so we deserialize it and assing meshes
+      TaskManager::getInstance().enqueue([bin_path, &mutex, &models_map, model_path, callback]()
         {
           Model model;
-          model.deserializeMeshes(binary.string());
           {
-            std::lock_guard lock(t_mutex);
+            MeshSerializer& serializer = MeshSerializer::getInstance();
+            std::scoped_lock lock(mutex, serializer.getMutex());
+            MeshSerializer::getInstance().deserializeMeshes(bin_path.string(), model);
             models_map[model_path] = model;
           }
           callback(models_map[model_path]);
@@ -39,15 +45,15 @@ namespace kogayonon
     }
     else // needs to be serialized
     {
-
-      TaskManager::getInstance().enqueue([this, data, binary, &t_mutex, &models_map, model_path, callback]()
+      TaskManager::getInstance().enqueue([this, data, bin_path, &mutex, &models_map, model_path, callback]()
         {
           Model model;
           assignModelMeshes(data, model.getMeshes());
-          Logger::logInfo(binary.string());
-          model.serializeMeshes(binary.string());
+          Logger::logInfo(bin_path.string());
           {
-            std::lock_guard lock(t_mutex);
+            MeshSerializer& serializer = MeshSerializer::getInstance();
+            std::scoped_lock lock(mutex, serializer.getMutex());
+            serializer.serializeMeshes(bin_path.string(), model);
             models_map[model_path] = model;
           }
           callback(models_map[model_path]);
@@ -65,6 +71,7 @@ namespace kogayonon
     for(size_t node_index = 0; node_index < data->nodes_count; node_index++)
     {
       parsePrimitives(data->nodes[node_index], indices, final_vertices);
+
       // Store mesh
       if(!final_vertices.empty() && !indices.empty())
       {

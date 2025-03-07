@@ -12,25 +12,24 @@ namespace kogayonon
     Renderer();
     ~Renderer() = default;
 
-    void draw();
-
+    void draw()const;
     LayerStack& getLayerStack();
-
-    void pushShader(const std::string& vertex_shader, const std::string& fragment_shader, const std::string& shader_name);
     void pushLayer(std::unique_ptr<Layer> layer);
-
-    Shader& getShader(const char* shader_name);
-    GLint getShaderId(const char* shader_name);
-
-    void bindShader(const char* shader_name);
-    void unbindShader(const char* shader_name);
-
     bool getPolyMode();
     void togglePolyMode();
+
+    // TODO breaking SRP here, move them to shader
+    void pushShader(const std::string& vertex_shader, const std::string& fragment_shader, const std::string& shader_name);
+    Shader& getShader(const char* shader_name);
+    GLint getShaderId(const char* shader_name);
+    void bindShader(const char* shader_name);
+    void unbindShader(const char* shader_name);
 
   private:
     bool is_poly;
     LayerStack m_layer_stack;
+
+    //TODO move this to shader too
     std::map<const std::string, Shader> m_shaders;
   };
 }
