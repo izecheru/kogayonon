@@ -11,14 +11,14 @@ namespace kogayonon
   class MeshSerializer :public Singleton<MeshSerializer>, public Serializer<Mesh>
   {
   public:
-    bool serialize(Mesh& mesh) override;
-    bool serialize(std::vector<Mesh>& mesh) final;
+    bool serialize(Mesh& mesh, std::ofstream& out) override;
+    bool serialize(std::vector<Mesh>& mesh, std::ofstream& out) final;
 
-    bool deserialize(Mesh& mesh) override;
-    bool deserialize(std::vector<Mesh>& mesh) final;
+    bool deserialize(Mesh& mesh, std::ifstream& in) override;
+    bool deserialize(std::vector<Mesh>& mesh, std::ifstream& in) final;
 
-    void serializeMeshes(const std::string& bin_path, Model& model);
-    void deserializeMeshes(const std::string& bin_path, Model& model);
+    void serializeMeshes(const std::string& bin_path, Model& model, std::ofstream& out);
+    void deserializeMeshes(const std::string& bin_path, Model& model, std::ifstream& in);
 
     inline std::mutex& getMutex()
     {

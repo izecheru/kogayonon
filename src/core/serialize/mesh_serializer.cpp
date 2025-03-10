@@ -3,83 +3,83 @@
 
 namespace kogayonon
 {
-  void MeshSerializer::serializeMeshes(const std::string& bin_path, Model& model)
+  void MeshSerializer::serializeMeshes(const std::string& bin_path, Model& model, std::ofstream& out)
   {
-    assert(openFile(bin_path, FileMode::WRITE) == true);
-
+    openFile(bin_path, out, FileMode::WRITE);
     std::vector<Mesh>& meshes = model.getMeshes();
 
     size_t mesh_count = meshes.size();
-    serializeVar(mesh_count);
+    serializeVar(mesh_count, out);
 
-    serialize(meshes);
-    closeFile();
+    serialize(meshes, out);
+    closeFile(out);
   }
 
-  void MeshSerializer::deserializeMeshes(const std::string& bin_path, Model& model)
+  void MeshSerializer::deserializeMeshes(const std::string& bin_path, Model& model, std::ifstream& in)
   {
-    openFile(bin_path, FileMode::READ);
-    assert(!isEmptyIn());
+    openFile(bin_path, in, FileMode::READ);
 
     std::vector<Mesh>& meshes = model.getMeshes();
 
     size_t mesh_count = 0;
     Logger::logInfo(bin_path);
-    assert(deserializeVar(mesh_count) == true);
+    assert(deserializeVar(mesh_count, in) == true);
 
     meshes.resize(mesh_count);
 
-    deserialize(meshes);
-    closeFile();
+    deserialize(meshes, in);
+    closeFile(in);
   }
 
-  bool MeshSerializer::serialize(Mesh& mesh)
+  bool MeshSerializer::serialize(Mesh& mesh, std::ofstream& out)
   {
     std::vector<Vertex>& vertices = mesh.getVertices();
     if(size_t vert_size = vertices.size(); vert_size > 0)
     {
-      Serializer::serializeVar(vert_size);
-      Serializer::serializeRaw(vertices.data(), vert_size * sizeof(Vertex));
+      Serializer::serializeVar(vert_size, out);
+      Serializer::serializeRaw(vertices.data(), vert_size * sizeof(Vertex), out);
     }
     else
     {
       Logger::logError("Attempting to serialize mesh with 0 vertices");
+      return false;
     }
     std::vector<uint32_t>& indices = mesh.getIndices();
     if(size_t ind_size = indices.size(); ind_size > 0)
     {
-      Serializer::serializeVar(ind_size);
-      Serializer::serializeRaw(indices.data(), ind_size * sizeof(uint32_t));
+      Serializer::serializeVar(ind_size, out);
+      Serializer::serializeRaw(indices.data(), ind_size * sizeof(uint32_t), out);
     }
     else
     {
       Logger::logError("Attempting to serialize mesh with 0 indices");
+      return false;
     }
-    return Serializer::outGood();
+    return true;
   }
 
-  bool MeshSerializer::deserialize(Mesh& mesh)
+  bool MeshSerializer::deserialize(Mesh& mesh, std::ifstream& in)
   {
     // Deserialize vertices
     size_t vertex_count = 0;
-    Serializer::deserializeVar(vertex_count);
+    Serializer::deserializeVar(vertex_count, in);
     std::vector<Vertex> vertices(vertex_count);
-    Serializer::deserializeRaw(vertices.data(), vertex_count * sizeof(Vertex));
+    Serializer::deserializeRaw(vertices.data(), vertex_count * sizeof(Vertex), in);
 
     // Deserialize indices
     size_t index_count = 0;
-    Serializer::deserializeVar(index_count);
+    Serializer::deserializeVar(index_count, in);
     std::vector<uint32_t> indices(index_count);
-    Serializer::deserializeRaw(indices.data(), index_count * sizeof(uint32_t));
+    Serializer::deserializeRaw(indices.data(), index_count * sizeof(uint32_t), in);
     mesh = Mesh(vertices, indices);
-    return Serializer::inGood();
+    return Serializer::isGood(in);
   }
 
-  bool MeshSerializer::serialize(std::vector<Mesh>& mesh)
+  bool MeshSerializer::serialize(std::vector<Mesh>& mesh, std::ofstream& out)
   {
     for(auto& m : mesh)
     {
-      if(!serialize(m))
+      if(!serialize(m, out))
       {
         Logger::logError("COuld not serialize mesh");
       }
@@ -87,11 +87,11 @@ namespace kogayonon
     return true;
   }
 
-  bool MeshSerializer::deserialize(std::vector<Mesh>& mesh)
+  bool MeshSerializer::deserialize(std::vector<Mesh>& mesh, std::ifstream& in)
   {
     for(auto& m : mesh)
     {
-      if(!deserialize(m))
+      if(!deserialize(m, in))
       {
         Logger::logError("COuld not serialize mesh");
       }

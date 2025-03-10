@@ -37,7 +37,8 @@ namespace kogayonon
           {
             MeshSerializer& serializer = MeshSerializer::getInstance();
             std::scoped_lock lock(mutex, serializer.getMutex());
-            MeshSerializer::getInstance().deserializeMeshes(bin_path.string(), model);
+            std::ifstream in{};
+            serializer.deserializeMeshes(bin_path.string(), model, in);
             models_map[model_path] = model;
           }
           callback(models_map[model_path]);
@@ -53,7 +54,8 @@ namespace kogayonon
           {
             MeshSerializer& serializer = MeshSerializer::getInstance();
             std::scoped_lock lock(mutex, serializer.getMutex());
-            serializer.serializeMeshes(bin_path.string(), model);
+            std::ofstream out{};
+            serializer.serializeMeshes(bin_path.string(), model, out);
             models_map[model_path] = model;
           }
           callback(models_map[model_path]);

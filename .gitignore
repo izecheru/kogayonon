@@ -400,11 +400,12 @@ FodyWeavers.xsd
 *.sln.iml
 *.yml
 
-
 # Folders
 bin/
 out/
 .vs/
+
+resources/models/serialized_models/
 resources/models/material_0_baseColor.png
 resources/models/RETARD.mtl
 resources/models/stres.bin
@@ -416,6 +417,9 @@ resources/models/untitled.mtl
 resources/models/untitled2.bin
 resources/models/untitled2.gltf
 resources/models/serialized/out.bin
+
 *.gbl
 *.scor
 *.t0000
+resources/models/spheres.bin
+resources/models/spheres.gltf
