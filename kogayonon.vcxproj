@@ -155,7 +155,7 @@
     <ClCompile Include="src\core\input\input.cpp" />
     <ClCompile Include="src\core\layer\imgui_layer.cpp" />
     <ClCompile Include="src\core\layer\layer_stack.cpp" />
-    <ClCompile Include="src\core\logger.cpp" />
+    <ClCompile Include="src\core\klogger\klogger.cpp" />
     <ClCompile Include="src\core\asset_manager\loader\mesh.cpp" />
     <ClCompile Include="src\core\asset_manager\loader\model.cpp" />
     <ClCompile Include="src\core\renderer\camera.cpp" />
@@ -642,7 +642,7 @@
     <ClInclude Include="include\core\layer\layer.h" />
     <ClInclude Include="include\core\layer\layer_stack.h" />
     <ClInclude Include="include\core\layer\world_layer.h" />
-    <ClInclude Include="include\core\logger.h" />
+    <ClInclude Include="include\core\klogger\klogger.h" />
     <ClInclude Include="include\core\asset_manager\loader\mesh.h" />
     <ClInclude Include="include\core\asset_manager\loader\model.h" />
     <ClInclude Include="include\core\mouse_codes.h" />
@@ -670,6 +670,7 @@
     <Library Include="dependencies\lib\glfw3.lib" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="log.txt" />
     <Text Include="resources\models\cottage\cottage_description.txt" />
   </ItemGroup>
   <ItemGroup>

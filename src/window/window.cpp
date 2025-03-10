@@ -6,7 +6,7 @@
 
 #include "window/window.h"
 #include "core/input/input.h"
-#include "core/logger.h"
+#include "core/klogger/klogger.h"
 #include "events/app_event.h"
 #include "events/keyboard_events.h"
 #include "events/mouse_events.h"
@@ -21,8 +21,8 @@ namespace kogayonon
 
   Window::~Window()
   {
-    Logger::logInfo("~Window destroyed");
-    if (m_window)
+    KLogger::log(LogType::INFO, "~Window destroyed");
+    if(m_window)
     {
       glfwDestroyWindow(m_window);
     }
@@ -35,13 +35,19 @@ namespace kogayonon
     glfwSwapBuffers(m_window);
   }
 
-  unsigned short Window::getWidth() const { return m_data.width; }
+  unsigned short Window::getWidth() const
+  {
+    return m_data.width;
+  }
 
-  unsigned short Window::getHeight() const { return m_data.height; }
+  unsigned short Window::getHeight() const
+  {
+    return m_data.height;
+  }
 
   void Window::setVsync()
   {
-    if (!m_data.vsync)
+    if(!m_data.vsync)
     {
       m_data.vsync = true;
       glfwSwapInterval(1);
@@ -53,7 +59,10 @@ namespace kogayonon
     }
   }
 
-  bool Window::isVsync() { return m_data.vsync; }
+  bool Window::isVsync()
+  {
+    return m_data.vsync;
+  }
 
   void Window::setViewport()
   {
@@ -71,9 +80,9 @@ namespace kogayonon
 
   bool Window::init(const window_props& props)
   {
-    if (!glfwInit())
+    if(!glfwInit())
     {
-      Logger::logError("failed to init glfw\n");
+      KLogger::log(LogType::ERROR, "failed to init glfw\n");
       return false;
     }
 
@@ -179,9 +188,9 @@ namespace kogayonon
 
     glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int scan_code, int action, int mods)
       {
-        window_props& props = *(window_props*)glfwGetWindowUserPointer(window);
+        window_props const& props = *(window_props*)glfwGetWindowUserPointer(window);
 
-        switch (action)
+        switch(action)
         {
           case GLFW_PRESS:
             {
@@ -216,7 +225,13 @@ namespace kogayonon
     return true;
   }
 
-  GLFWwindow* Window::getWindow() { return m_window; }
+  GLFWwindow* Window::getWindow()
+  {
+    return m_window;
+  }
 
-  window_props& Window::getWindowData() { return m_data; }
+  window_props& Window::getWindowData()
+  {
+    return m_data;
+  }
 }

@@ -22,7 +22,6 @@ namespace kogayonon
     std::vector<Mesh>& meshes = model.getMeshes();
 
     size_t mesh_count = 0;
-    Logger::logInfo(bin_path);
     assert(deserializeVar(mesh_count, in) == true);
 
     meshes.resize(mesh_count);
@@ -41,7 +40,7 @@ namespace kogayonon
     }
     else
     {
-      Logger::logError("Attempting to serialize mesh with 0 vertices");
+      KLogger::log(LogType::ERROR, "Attempting to serialize mesh with 0 vertices");
       return false;
     }
     std::vector<uint32_t>& indices = mesh.getIndices();
@@ -52,7 +51,7 @@ namespace kogayonon
     }
     else
     {
-      Logger::logError("Attempting to serialize mesh with 0 indices");
+      KLogger::log(LogType::ERROR, "Attempting to serialize mesh with 0 indices");
       return false;
     }
     return true;
@@ -81,7 +80,7 @@ namespace kogayonon
     {
       if(!serialize(m, out))
       {
-        Logger::logError("COuld not serialize mesh");
+        KLogger::log(LogType::ERROR, "Could not serialize mesh");
       }
     }
     return true;
@@ -93,7 +92,7 @@ namespace kogayonon
     {
       if(!deserialize(m, in))
       {
-        Logger::logError("COuld not serialize mesh");
+        KLogger::log(LogType::ERROR, "Could not deserialize mesh");
       }
     }
     return true;

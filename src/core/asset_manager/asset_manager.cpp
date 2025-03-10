@@ -13,7 +13,6 @@
 
 namespace kogayonon
 {
-
   void AssetManager::addModel(const std::string& path) const
   {
     ModelManager::getInstance().addModel(m_data, path);
@@ -30,7 +29,7 @@ namespace kogayonon
     cgltf_options options = {};
     if(cgltf_result result = cgltf_parse_file(&options, path.c_str(), &m_data); result != cgltf_result_success)
     {
-      Logger::logError("Failed to load glTF file:", path);
+      KLogger::log(LogType::ERROR, "Failed to load glTF file:", path);
     }
 
     cgltf_load_buffers(&options, m_data, path.c_str());

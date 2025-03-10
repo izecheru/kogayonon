@@ -26,8 +26,6 @@ namespace kogayonon
       std::filesystem::create_directories(model_dir);
     }
 
-    // WARN: this should probably pass an ifstream to the serialization part cause if I add 3 models,
-    // they will scramble the ifstream and ofstream and i don't think it will work well and lock with mutex
     if(std::filesystem::path bin_path = model_dir / (model_name + ".bin"); std::filesystem::exists(bin_path))
     {
       // we already have a serialized model so we deserialize it and assing meshes
@@ -50,7 +48,7 @@ namespace kogayonon
         {
           Model model;
           assignModelMeshes(data, model.getMeshes());
-          Logger::logInfo(bin_path.string());
+          KLogger::log(LogType::INFO, bin_path.string());
           {
             MeshSerializer& serializer = MeshSerializer::getInstance();
             std::scoped_lock lock(mutex, serializer.getMutex());
@@ -87,7 +85,7 @@ namespace kogayonon
     for(size_t animation_index = 0; animation_index < data->animations_count; animation_index++)
     {
       cgltf_animation& animation = data->animations[animation_index];
-      Logger::logInfo("Parsing animation:", animation.name);
+      KLogger::log(LogType::INFO, "Parsing animation:", animation.name);
     }
   }
 

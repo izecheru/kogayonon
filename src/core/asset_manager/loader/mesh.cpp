@@ -6,7 +6,7 @@
 #include <stb/stb_image.h>
 
 //#include "core/asset_manager/model_loader/model_loader.h"
-#include "core/logger.h"
+#include "core/klogger/klogger.h"
 #include "core/renderer/camera.h"
 #include "core/asset_manager/manager/texture_manager.h"
 
@@ -43,6 +43,7 @@ namespace kogayonon
             case 4: glformat = GL_RGBA; break;
           }
           glCreateTextures(GL_TEXTURE_2D, 1, &texture.id);
+
           // We allocate immutable storage for the texture
           glTextureStorage2D(texture.id, 1, GL_RGBA8, texture.width, texture.height);
 
@@ -61,16 +62,16 @@ namespace kogayonon
         }
         else
         {
-          Logger::logError("Failed to load image from ", texture.path);
+          KLogger::log(LogType::ERROR, "Failed to load image from ", texture.path);
         }
       }
     }
-
   }
 
   void Mesh::setupMesh()
   {
     glCreateVertexArrays(1, &m_vao);
+
     // Upload vertex data directly to VBO
     glCreateBuffers(1, &m_vbo);
     glNamedBufferData(m_vbo, m_vertices.size() * sizeof(Vertex), m_vertices.data(), GL_STATIC_DRAW);
@@ -83,10 +84,12 @@ namespace kogayonon
 
     // Now we link the VBO to the VAO
     glVertexArrayVertexBuffer(m_vao, 0, m_vbo, 0, sizeof(Vertex));
+
     // Associate the EBO to the VAO
     glVertexArrayElementBuffer(m_vao, m_ebo);
 
     assert(m_vao != 0 && m_vbo != 0 && m_ebo != 0);
+
     // We define the attributes directly on VAO
     glEnableVertexArrayAttrib(m_vao, 0);
     glEnableVertexArrayAttrib(m_vao, 1);
@@ -114,6 +117,7 @@ namespace kogayonon
     {
       glBindTextureUnit(i, textures_map[m_textures[i]].id);
     }
+
     // draw mesh
     glBindVertexArray(m_vao);
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()), GL_UNSIGNED_INT, nullptr);

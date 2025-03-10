@@ -3,8 +3,7 @@
 #include <vector>
 #include "shader/shader.h"
 #include "core/renderer/camera.h"
-#include "core/logger.h"
-
+#include "core/klogger/klogger.h"
 
 namespace kogayonon
 {

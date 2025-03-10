@@ -12,7 +12,7 @@ namespace kogayonon
       [](const Texture& texture)// called after loading the texture
       {
         TimeTracker::getInstance().stopCount("texture");
-        Logger::logInfo("Texture ", texture.path, " loaded in:", TimeTracker::getInstance().getDuration("texture").count());
+        KLogger::log(LogType::INFO, "Texture ", texture.path, " loaded in:", TimeTracker::getInstance().getDuration("texture").count());
       },
       m_mutex,
       m_loaded_textures,

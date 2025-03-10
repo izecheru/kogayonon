@@ -11,7 +11,7 @@ namespace kogayonon
   {
   public:
     App();
-    ~App() = default;
+    ~App();
     void run() const;
 
     void onEvent(Event& event) const;

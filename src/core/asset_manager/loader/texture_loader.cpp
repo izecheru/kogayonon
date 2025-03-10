@@ -19,15 +19,14 @@ namespace kogayonon
       }
       else
       {
-
-        Logger::logInfo("Loading texture from:", texture_path);
+        KLogger::log(LogType::INFO, "Loading texture from:", texture_path);
 
         int w; int h; int num_comp;
         unsigned char* tex_data = stbi_load(texture_path.c_str(), &w, &h, &num_comp, 0);
 
         if(!tex_data)
         {
-          Logger::logError("Failed to load texture:", texture_path);
+          KLogger::log(LogType::ERROR, "Failed to load texture:", texture_path);
           return;
         }
 
@@ -79,6 +78,7 @@ namespace kogayonon
   void TextureLoader::processMaterial(const cgltf_material* material, std::unordered_map<std::string, Texture>& loaded_textures, const std::string& model_dir)
   {
     if(!material)return;
+
     // Base Color (Diffuse)
     if(material->has_pbr_metallic_roughness)
     {
@@ -92,10 +92,12 @@ namespace kogayonon
       loadTexture(material->pbr_metallic_roughness.metallic_roughness_texture.texture, loaded_textures, "texture_specular", model_dir);
       loadTexture(material->pbr_metallic_roughness.metallic_roughness_texture.texture, loaded_textures, "texture_glossiness", model_dir);
     }
+
     // Normal, Occlusion, Emissive, and Transmission Maps
     loadTexture(material->pbr_metallic_roughness.metallic_roughness_texture.texture, loaded_textures, "texture_normal", model_dir);
     loadTexture(material->pbr_metallic_roughness.metallic_roughness_texture.texture, loaded_textures, "texture_occlusion", model_dir);
     loadTexture(material->pbr_metallic_roughness.metallic_roughness_texture.texture, loaded_textures, "texture_emissive", model_dir);
+
     // Transmission Map
     if(material->has_transmission)
     {

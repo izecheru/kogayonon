@@ -51,7 +51,7 @@
     <ClCompile Include="src\app\app.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\core\logger.cpp">
+    <ClCompile Include="src\core\klogger\klogger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\core\input\input.cpp">
@@ -1471,7 +1471,7 @@
     <ClInclude Include="include\core\key_codes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\core\logger.h">
+    <ClInclude Include="include\core\klogger\klogger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\core\mouse_codes.h">
@@ -1580,6 +1580,7 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="resources\models\cottage\cottage_description.txt" />
+    <Text Include="log.txt" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resources\models\cottage\cottage_textures\cottage_diffuse.png">

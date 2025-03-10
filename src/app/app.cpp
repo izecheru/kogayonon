@@ -7,9 +7,7 @@
 #endif  // !GLFW_INCLUDE_NONE
 
 #include <filesystem>
-
 #include <glad/glad.h>
-
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -18,7 +16,7 @@
 #include "core/asset_manager/asset_manager.h"
 #include "events/event_listener.h"
 #include "core/input/input.h"
-#include "core/logger.h"
+#include "core/klogger/klogger.h"
 #include "core/renderer/camera.h"
 #include "core/renderer/renderer.h"
 #include "events/keyboard_events.h"
@@ -34,6 +32,7 @@ namespace kogayonon
 {
   App::App()
   {
+    KLogger::initialize("log.txt");
     m_window = std::make_unique<Window>();
     m_renderer = std::make_unique<Renderer>();
 
@@ -58,10 +57,15 @@ namespace kogayonon
       });
   }
 
+  App::~App()
+  {
+    KLogger::shutdown();
+  }
+
   void App::run()const
   {
     const GLubyte* version = glGetString(GL_VERSION);
-    Logger::logInfo("OpenGL Version: ", version);
+    KLogger::log(LogType::INFO, "OpenGL Version: ", version);
     glEnable(GL_DEPTH_TEST);
 
     // all the events from the window are sent to the app.onEvent function and from there
@@ -76,7 +80,7 @@ namespace kogayonon
 
     GLint maxVertices;
     glGetIntegerv(GL_MAX_ELEMENTS_VERTICES, &maxVertices);
-    Logger::logInfo("Max vertices per draw call: ", maxVertices);
+    KLogger::log(LogType::INFO, "Max vertices per draw call: ", maxVertices);
     Camera& camera = Camera::getInstance();
     Shader& shader = m_renderer->getShader("3d_shader");
 
@@ -139,7 +143,7 @@ namespace kogayonon
 
   bool App::onWindowClose(const WindowCloseEvent& event)const
   {
-    Logger::logInfo("window close event");
+    KLogger::log(LogType::INFO, "window close event");
     return true;
   }
 
@@ -150,7 +154,7 @@ namespace kogayonon
 
   bool App::onMouseMove(const MouseMovedEvent& event)const
   {
-    Logger::logInfo("mouse move");
+    KLogger::log(LogType::INFO, "mouse move");
     return true;
   }
 

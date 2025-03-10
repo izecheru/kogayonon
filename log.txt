@@ -1,0 +1,11 @@
+[22:07:25][info] Shader compiled successfully:Vertex Shader
+[22:07:25][info] Shader compiled successfully:Fragment Shader
+[22:07:32][info] Succesfully linked shaders
+
+[22:07:33][info] ImGui layer initialised
+[22:07:33][info] OpenGL Version: 4.6.0 NVIDIA 560.94
+[22:07:34][info] Max vertices per draw call: 1048576
+[22:07:35][info] Model loaded in:0.0362051
+[22:07:36][info] Model loaded in:0.825338
+[22:07:37][info] Model loaded in:1.42846
+[22:07:44][info] window close event

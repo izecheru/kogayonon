@@ -15,7 +15,7 @@ namespace kogayonon
       {
         model.setLoaded();
         TimeTracker::getInstance().stopCount("model");
-        Logger::logInfo("Model loaded in:", TimeTracker::getInstance().getDuration("model").count());
+        KLogger::log(LogType::INFO, "Model loaded in:", TimeTracker::getInstance().getDuration("model").count());
       },
       m_mutex,
       m_models

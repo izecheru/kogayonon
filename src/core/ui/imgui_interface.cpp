@@ -4,13 +4,13 @@
 
 #include "core/ui/win_camera_settings.h"
 #include "core/ui/imgui_interface.h"
-#include "core/logger.h"
+#include "core/klogger/klogger.h"
 
 namespace kogayonon
 {
   ImGuiInterface::~ImGuiInterface()
   {
-    for (int i = 0; i < m_windows.size(); i++)
+    for(int i = 0; i < m_windows.size(); i++)
     {
       delete m_windows[i];
     }
@@ -18,13 +18,13 @@ namespace kogayonon
 
   ImGuiInterface::ImGuiInterface(GLFWwindow* window)
   {
-    if (initImgui(window))
+    if(initImgui(window))
     {
-      Logger::logInfo("Imgui initialised");
+      KLogger::log(LogType::INFO, "Imgui initialised");
     }
     else
     {
-      Logger::logError("Imgui could not be initialised");
+      KLogger::log(LogType::ERROR, "Imgui could not be initialised");
     }
   }
 
@@ -38,14 +38,14 @@ namespace kogayonon
     io.IniFilename = "imgui_config.ini";
 
     ImGui::StyleColorsLight();
-    if (!ImGui_ImplGlfw_InitForOpenGL(window, true))
+    if(!ImGui_ImplGlfw_InitForOpenGL(window, true))
     {
-      Logger::logError("error init imgui");
+      KLogger::log(LogType::ERROR, "error init imgui");
       return false;
     }
-    if (!ImGui_ImplOpenGL3_Init("#version 460"))
+    if(!ImGui_ImplOpenGL3_Init("#version 460"))
     {
-      Logger::logError("error init imgui");
+      KLogger::log(LogType::ERROR, "error init imgui");
       return false;
     }
     return true;
@@ -57,7 +57,7 @@ namespace kogayonon
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    for (auto& window : m_windows)
+    for(auto& window : m_windows)
     {
       window->draw();
     }
