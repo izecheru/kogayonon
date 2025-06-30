@@ -17,11 +17,7 @@ namespace kogayonon
     void draw(const Shader& shader);
     void init(const std::string& path)const;
 
-    void serializeMeshes(const std::string& path);
-    void deserializeMeshes(const std::string& path);
-
     std::vector<Mesh>& getMeshes();
-
     void operator=(const Model& other);
 
     inline bool isLoaded()const

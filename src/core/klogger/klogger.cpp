@@ -18,6 +18,7 @@ namespace kogayonon
     }
     m_worker_thread = std::thread(&logWorker);
   }
+
   void KLogger::shutdown()
   {
     {
@@ -54,6 +55,7 @@ namespace kogayonon
       {
         break;
       }
+
       if(m_out.is_open())
       {
         m_out << log_message << '\n';

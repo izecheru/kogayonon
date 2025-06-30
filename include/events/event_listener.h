@@ -12,11 +12,13 @@ namespace kogayonon
     using EventCallback = std::function<bool(Event&)>;
 
     template<typename T>
+
+    //probably should make this reference instead of copying all that shit
     void addCallback(EventCallback callback)
     {
       auto type = T::getStaticType();
       char callback_id = m_id++;
-      m_callbacks[type].push_back({callback_id,callback});
+      m_callbacks[type].push_back({ callback_id,callback });
     }
 
     template<typename T>
@@ -35,9 +37,9 @@ namespace kogayonon
     void dispatch(Event& event)
     {
       auto it = m_callbacks.find(event.getEventType());
-      if(it != m_callbacks.end())
+      if (it != m_callbacks.end())
       {
-        for(const auto& [id, callback] : it->second)
+        for (const auto& [id, callback] : it->second)
         {
           event.m_handled |= callback(event);
         }
@@ -45,9 +47,11 @@ namespace kogayonon
     }
 
   private:
+
     // TODO rethink event system so that i can easely subscribe and unsubscribe the correct way and at
     // the correct time from a specific event inside a specific class listener
     std::unordered_map <EventType, std::vector<std::pair<unsigned char, EventCallback>>> m_callbacks;
+
     // don't think we need more than 255 ids
     unsigned char m_id = 0;
   };

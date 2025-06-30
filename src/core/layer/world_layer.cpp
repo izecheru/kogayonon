@@ -10,10 +10,10 @@ namespace kogayonon
 
   void WorldLayer::drawModels()const
   {
-    auto& map = AssetManager::getInstance().getModelMap();
-    for(auto& [path, model] : map)
+    auto& map = AssetManager::getInstance()->getModelMap();
+    for (auto& [path, model] : map)
     {
-      for(Mesh& mesh : model.getMeshes())
+      for (Mesh& mesh : model.getMeshes())
       {
         mesh.draw(m_shader);
       }

@@ -1,4 +1,5 @@
 #pragma once
+#include <mutex>
 
 namespace kogayonon
 {
@@ -6,19 +7,27 @@ namespace kogayonon
   class Singleton
   {
   public:
-    static T& getInstance()
+    static T* getInstance()
     {
-      static T instance;
-      return instance;
+      {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_pInstance == nullptr)
+        {
+          m_pInstance = new T();
+        }
+      }
+      return m_pInstance;
     }
 
-    Singleton(const Singleton&) = delete;
-    Singleton(Singleton&&) = delete;
-    Singleton& operator=(const Singleton&) = delete;
-    Singleton& operator=(Singleton&&) = delete;
+    Singleton(Singleton& other) = delete;
+    Singleton& operator=(Singleton&) = delete;
+
+  private:
+    static inline std::mutex m_mutex;
+    static inline T* m_pInstance;
 
   protected:
-    Singleton() { }
-    ~Singleton() { }
+    Singleton() = default;
+    ~Singleton() = default;
   };
 }

@@ -12,7 +12,7 @@ namespace kogayonon
   {
   public:
     void addModel(const std::string& path)const;
-    void addTexture(const std::string& path)const;
+    void addTexture(const std::string& model_path)const;
     void initializeModel(const std::string& path);
 
     Model& getModel(const std::string& path)const;

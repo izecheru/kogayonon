@@ -44,6 +44,9 @@ namespace kogayonon
     bool onMouseMoved(MouseMovedEvent& event);
     void processMouseMoved(float x, float y, bool constrain_pitch = true);
 
+    bool onMouseClicked(MouseClickedEvent& event);
+    void processMouseClicked();
+
     void processKeyboard();
     void updateCameraVectors();
 
@@ -52,13 +55,12 @@ namespace kogayonon
 
     CameraProps& getProps();
 
-    inline float getX() { return m_props.position.x; }
-    inline float getY() { return m_props.position.y; }
-    inline float getZ() { return m_props.position.z; }
+    inline float getX() const { return m_props.position.x; }
+    inline float getY() const { return m_props.position.y; }
+    inline float getZ() const { return m_props.position.z; }
 
   private:
     CameraProps m_props{};
     bool first_move = false;
-    unsigned int m_camera_listener_id = 2;
   };
 }

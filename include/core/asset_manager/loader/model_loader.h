@@ -16,8 +16,9 @@ namespace kogayonon
     bool pushModel(const cgltf_data* data, const std::string& model_path, std::function<void(Model&)> callback, std::mutex& t_mutex, std::unordered_map<std::string, Model>& models_map);
     void assignModelMeshes(const cgltf_data* data, std::vector<Mesh>& meshes);
 
-    void parsePrimitives(cgltf_node& node, std::vector<uint32_t>& indices, std::vector<Vertex>& final_vertices);
+    void parsePrimitives(cgltf_node& node, std::vector<uint32_t>& indices, std::vector<Vertex>& final_vertices, std::vector<std::string>& texture_paths);
     void parseVertices(cgltf_primitive& primitive, std::vector<glm::vec3>& positions, std::vector<glm::vec3>& normals, std::vector<glm::vec2>& tex_coords, const glm::mat4& transformation)const;
     void parseIndices(cgltf_accessor* accessor, std::vector<uint32_t>& indices)const;
+    void parseTextures(const cgltf_material* material, std::vector<std::string>& texture_paths)const;
   };
 }

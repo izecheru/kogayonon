@@ -21,22 +21,22 @@ namespace kogayonon
 
     // all models should reside in serialized_models like so /<model_name>.bin
     std::filesystem::path model_dir = m_p.parent_path() / "serialized_models";
-    if(!std::filesystem::exists(model_dir))
+    if (!std::filesystem::exists(model_dir))
     {
       std::filesystem::create_directories(model_dir);
     }
 
-    if(std::filesystem::path bin_path = model_dir / (model_name + ".bin"); std::filesystem::exists(bin_path))
+    if (std::filesystem::path bin_path = model_dir / (model_name + ".bin"); std::filesystem::exists(bin_path))
     {
       // we already have a serialized model so we deserialize it and assing meshes
-      TaskManager::getInstance().enqueue([bin_path, &mutex, &models_map, model_path, callback]()
+      TaskManager::getInstance()->enqueue([bin_path, &mutex, &models_map, model_path, callback]()
         {
           Model model;
           {
-            MeshSerializer& serializer = MeshSerializer::getInstance();
-            std::scoped_lock lock(mutex, serializer.getMutex());
+            MeshSerializer* serializer = MeshSerializer::getInstance();
+            std::scoped_lock lock(mutex, serializer->getMutex());
             std::ifstream in{};
-            serializer.deserializeMeshes(bin_path.string(), model, in);
+            serializer->deserializeMeshes(bin_path.string(), model, in);
             models_map[model_path] = model;
           }
           callback(models_map[model_path]);
@@ -44,16 +44,20 @@ namespace kogayonon
     }
     else // needs to be serialized
     {
-      TaskManager::getInstance().enqueue([this, data, bin_path, &mutex, &models_map, model_path, callback]()
+      TaskManager::getInstance()->enqueue([this, data, bin_path, &mutex, &models_map, model_path, callback]()
         {
           Model model;
+
+          // get the meshes and the textures here, should pass on the model path
           assignModelMeshes(data, model.getMeshes());
+
+          //
           KLogger::log(LogType::INFO, bin_path.string());
           {
-            MeshSerializer& serializer = MeshSerializer::getInstance();
-            std::scoped_lock lock(mutex, serializer.getMutex());
+            MeshSerializer* serializer = MeshSerializer::getInstance();
+            std::scoped_lock lock(mutex, serializer->getMutex());
             std::ofstream out{};
-            serializer.serializeMeshes(bin_path.string(), model, out);
+            serializer->serializeMeshes(bin_path.string(), model, out);
             models_map[model_path] = model;
           }
           callback(models_map[model_path]);
@@ -67,35 +71,37 @@ namespace kogayonon
   {
     std::vector<Vertex> final_vertices;
     std::vector<uint32_t> indices;
+    std::vector<std::string> texture_paths;
 
-    for(size_t node_index = 0; node_index < data->nodes_count; node_index++)
+    for (size_t node_index = 0; node_index < data->nodes_count; node_index++)
     {
-      parsePrimitives(data->nodes[node_index], indices, final_vertices);
+      parsePrimitives(data->nodes[node_index], indices, final_vertices, texture_paths);
 
       // Store mesh
-      if(!final_vertices.empty() && !indices.empty())
+      if (!final_vertices.empty() && !indices.empty())
       {
-        meshes.emplace_back(final_vertices, indices);
+        meshes.emplace_back(final_vertices, indices, texture_paths);
       }
       final_vertices.clear();
       indices.clear();
+      texture_paths.clear();
     }
 
     // parse animations
-    for(size_t animation_index = 0; animation_index < data->animations_count; animation_index++)
-    {
-      cgltf_animation& animation = data->animations[animation_index];
-      KLogger::log(LogType::INFO, "Parsing animation:", animation.name);
-    }
+    //for(size_t animation_index = 0; animation_index < data->animations_count; animation_index++)
+    //{
+    //  cgltf_animation& animation = data->animations[animation_index];
+    //  KLogger::log(LogType::INFO, "Parsing animation:", animation.name);
+    //}
   }
 
-  void ModelLoader::parsePrimitives(cgltf_node& node, std::vector<uint32_t>& indices, std::vector<Vertex>& final_vertices)
+  void ModelLoader::parsePrimitives(cgltf_node& node, std::vector<uint32_t>& indices, std::vector<Vertex>& final_vertices, std::vector<std::string>& texture_paths)
   {
-    if(node.mesh == nullptr) return;
+    if (node.mesh == nullptr) return;
 
     cgltf_mesh& mesh = *node.mesh;
     auto transformation = glm::mat4(1.0f);
-    if(node.has_matrix)
+    if (node.has_matrix)
     {
       transformation = glm::make_mat4(node.matrix);
     }
@@ -107,7 +113,7 @@ namespace kogayonon
       transformation = translation * rotation * scale;
     }
 
-    for(size_t primitive_index = 0; primitive_index < mesh.primitives_count; primitive_index++)
+    for (size_t primitive_index = 0; primitive_index < mesh.primitives_count; primitive_index++)
     {
       cgltf_primitive& primitive = mesh.primitives[primitive_index];
 
@@ -119,13 +125,19 @@ namespace kogayonon
       parseVertices(primitive, positions, normals, tex_coords, transformation);
 
       // extract index data
-      if(primitive.indices)
+      if (primitive.indices)
       {
         parseIndices(primitive.indices, indices);
       }
 
+      // extract texture paths
+      if (primitive.material)
+      {
+        parseTextures(primitive.material, texture_paths);
+      }
+
       // store transformed vertices
-      for(size_t i = 0; i < positions.size(); i++)
+      for (size_t i = 0; i < positions.size(); i++)
       {
         Vertex final_vertex;
         final_vertex.position = positions[i];
@@ -140,7 +152,7 @@ namespace kogayonon
   void ModelLoader::parseVertices(cgltf_primitive& primitive, std::vector<glm::vec3>& positions, std::vector<glm::vec3>& normals, std::vector<glm::vec2>& tex_coords, const glm::mat4& transformation)const
   {
     // extract vertex attributes
-    for(size_t attr_index = 0; attr_index < primitive.attributes_count; attr_index++)
+    for (size_t attr_index = 0; attr_index < primitive.attributes_count; attr_index++)
     {
       cgltf_attribute& attribute = primitive.attributes[attr_index];
       cgltf_accessor* accessor = attribute.data;
@@ -151,11 +163,11 @@ namespace kogayonon
 
       size_t vertex_count = accessor->count;
       size_t stride = buffer_view->stride ? buffer_view->stride : cgltf_calc_size(accessor->type, accessor->component_type);
-      for(size_t v = 0; v < vertex_count; v++)
+      for (size_t v = 0; v < vertex_count; v++)
       {
         auto t_data = (float*)(buffer_data + accessor->offset + v * stride);
 
-        switch(attribute.type)
+        switch (attribute.type)
         {
           case cgltf_attribute_type_position:
             glm::vec3 position(t_data[0], t_data[1], t_data[2]);
@@ -188,22 +200,47 @@ namespace kogayonon
     cgltf_buffer_view* buffer_view = accessor->buffer_view;
     uint8_t* buffer_data = (uint8_t*)buffer_view->buffer->data + buffer_view->offset;
 
-    for(size_t i = 0; i < accessor->count; i++)
+    for (size_t i = 0; i < accessor->count; i++)
     {
       uint32_t index = 0;
-      if(accessor->component_type == cgltf_component_type_r_16u)
+      if (accessor->component_type == cgltf_component_type_r_16u)
       {
         index = *((uint16_t*)(buffer_data + accessor->offset + i * sizeof(uint16_t)));
       }
-      else if(accessor->component_type == cgltf_component_type_r_32u)
+      else if (accessor->component_type == cgltf_component_type_r_32u)
       {
         index = *((uint32_t*)(buffer_data + accessor->offset + i * sizeof(uint32_t)));
       }
-      else if(accessor->component_type == cgltf_component_type_r_8u)
+      else if (accessor->component_type == cgltf_component_type_r_8u)
       {
         index = *((uint8_t*)(buffer_data + accessor->offset + i * sizeof(uint8_t)));
       }
       indices.push_back(index);
+    }
+  }
+
+  // this should also know the model directory OR i can just use the image->uri and build the direcotries later on
+  // somewhere more convenient
+  void ModelLoader::parseTextures(const cgltf_material* material, std::vector<std::string>& texture_paths)const
+  {
+    // Base Color (Diffuse)
+    if (material->has_pbr_metallic_roughness)
+    {
+      cgltf_texture* tex = material->pbr_metallic_roughness.base_color_texture.texture;
+      texture_paths.emplace_back(tex->image->uri);
+    }
+
+    // Specular-Glossiness Workflow
+    if (material->has_pbr_specular_glossiness)
+    {
+    }
+
+    // Normal, Occlusion, Emissive, and Transmission Maps
+    //TextureLoader::getInstance().loadTexture(material->normal_texture.texture, "texture_normal", textures, model_dir);
+    //TextureLoader::getInstance().loadTexture(material->occlusion_texture.texture, "texture_occlusion", textures, model_dir);
+    //TextureLoader::getInstance().loadTexture(material->emissive_texture.texture, "texture_emissive", textures, model_dir);
+    if (material->has_transmission)
+    {
     }
   }
 }

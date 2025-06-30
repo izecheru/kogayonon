@@ -12,7 +12,9 @@ namespace kogayonon
   class TextureManager :public Singleton<TextureManager>
   {
   public:
-    void addTexture(const std::string& path, const cgltf_data* data);
+
+    // currently we cannot remove textures
+    void addTexture(const std::string& model_path, const cgltf_data* data);
 
     inline Texture& getTexture(const std::string& path)
     {
@@ -22,6 +24,11 @@ namespace kogayonon
     inline std::unordered_map<std::string, Texture>& getTextures()
     {
       return m_loaded_textures;
+    }
+
+    inline std::mutex& getTextureMapMutex()
+    {
+      return m_mutex;
     }
 
   private:

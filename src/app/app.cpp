@@ -43,15 +43,15 @@ namespace kogayonon
     m_renderer->pushLayer(std::make_unique<WorldLayer>(m_renderer->getShader("3d_shader")));//0
     m_renderer->pushLayer(std::make_unique<ImguiLayer>(m_window->getWindow()));//1
 
-    EventListener::getInstance().addCallback<WindowResizeEvent>([this](const Event& e)
+    EventListener::getInstance()->addCallback<WindowResizeEvent>([this](const Event& e)
       {
         return this->onWindowResize((const WindowResizeEvent&)(e));
       });
-    EventListener::getInstance().addCallback<WindowCloseEvent>([this](const Event& e)
+    EventListener::getInstance()->addCallback<WindowCloseEvent>([this](const Event& e)
       {
         return this->onWindowClose((const WindowCloseEvent&)(e));
       });
-    EventListener::getInstance().addCallback<KeyPressedEvent>([this](const Event& e)
+    EventListener::getInstance()->addCallback<KeyPressedEvent>([this](const Event& e)
       {
         return this->onKeyPress((const KeyPressedEvent&)(e));
       });
@@ -81,14 +81,14 @@ namespace kogayonon
     GLint maxVertices;
     glGetIntegerv(GL_MAX_ELEMENTS_VERTICES, &maxVertices);
     KLogger::log(LogType::INFO, "Max vertices per draw call: ", maxVertices);
-    Camera& camera = Camera::getInstance();
+    Camera* camera = Camera::getInstance();
     Shader& shader = m_renderer->getShader("3d_shader");
 
     Model my_model("resources/models/sphere.gltf");
-    Model my_model2("resources/models/untitled.gltf");
-    Model my_model3("resources/models/cube.gltf");
+    Model my_model2("resources/models/untitled.gltf"); Model
+      my_model3("resources/models/cube.gltf");
 
-    while(!glfwWindowShouldClose(m_window->getWindow()))
+    while (!glfwWindowShouldClose(m_window->getWindow()))
     {
       glClearColor(0.3f, 0.0f, 1.0f, 0.3f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -103,23 +103,23 @@ namespace kogayonon
       shader.setMat4("model", model_mat);
       shader.setMat4("projection", proj);
       shader.setMat4("scaleMatrix", scale_mat);
-      camera.cameraUniform(m_renderer->getShaderId("3d_shader"), "view");
+      camera->cameraUniform(m_renderer->getShaderId("3d_shader"), "view");
 
       m_renderer->draw();
       m_renderer->unbindShader("3d_shader");
 
       float current_time = glfwGetTime();
-      TimeTracker::getInstance().setDelta(current_time - prev_time);
-      camera.processKeyboard();
+      TimeTracker::getInstance()->setDelta(current_time - prev_time);
+      camera->processKeyboard();
       prev_time = current_time;
       m_window->update();
 
-      if(glfwWindowShouldClose(m_window->getWindow()))
+      if (glfwWindowShouldClose(m_window->getWindow()))
       {
         WindowCloseEvent close_event;
 
         // we dispatch the close event so if we need to do some cleanup we can now
-        EventListener::getInstance().dispatch(close_event);
+        EventListener::getInstance()->dispatch(close_event);
         break;
       }
     }
@@ -127,7 +127,7 @@ namespace kogayonon
 
   void App::onEvent(Event& event) const
   {
-    EventListener::getInstance().dispatch(event);
+    EventListener::getInstance()->dispatch(event);
   }
 
   bool App::onMouseEnter(const MouseEnteredEvent& event)const
@@ -160,7 +160,7 @@ namespace kogayonon
 
   bool App::onKeyPress(const KeyPressedEvent& event)const
   {
-    switch(event.getKeyCode())
+    switch (event.getKeyCode())
     {
       case KeyCode::F1:
         m_renderer->togglePolyMode();

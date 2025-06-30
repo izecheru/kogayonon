@@ -17,10 +17,15 @@ namespace kogayonon
 {
   Camera::Camera()
   {
-    EventListener::getInstance().addCallback<MouseScrolledEvent>([this](Event& e)
+    EventListener::getInstance()->addCallback<MouseScrolledEvent>([this](Event& e)
       {
         return this->onMouseScrolled(static_cast<MouseScrolledEvent&>(e));
       });
+
+    //EventListener::getInstance().addCallback<MouseClickedEvent>([this](Event& e)
+      //{
+        //return this->onMouseClicked(static_cast<MouseClickedEvent&>(e));
+      //});
     setupCamera();
   }
 
@@ -60,21 +65,21 @@ namespace kogayonon
 
   bool Camera::onMouseScrolled(MouseScrolledEvent& event)
   {
-    if(event.isHandled()) return false;
+    if (event.isHandled()) return false;
     processMouseScrolled(event.getXOff(), event.getYOff());
     return true;
   }
 
   void Camera::processMouseScrolled(double x_offset, double y_offset)
   {
-    float velocity = m_props.movement_speed * TimeTracker::getInstance().getDelta() * 100.0f;
+    float velocity = m_props.movement_speed * TimeTracker::getInstance()->getDelta() * 100.0f;
     m_props.position.z -= y_offset * velocity;
     updateCameraVectors();
   }
 
   bool Camera::onMouseMoved(MouseMovedEvent& event)
   {
-    if(event.isHandled()) return false;
+    if (event.isHandled()) return false;
     processMouseMoved(event.getX(), event.getY());
     return true;
   }
@@ -84,7 +89,7 @@ namespace kogayonon
     static float lastX = x;
     static float lastY = y;
 
-    if(first_move)
+    if (first_move)
     {
       lastX = x;
       lastY = y;
@@ -103,44 +108,44 @@ namespace kogayonon
     m_props.pitch += yoffset;
 
     // this is to no go deaberbeleacu
-    if(constrain_pitch)
+    if (constrain_pitch)
     {
-      if(m_props.pitch > 89.0f) m_props.pitch = 89.0f;
-      if(m_props.pitch < -89.0f) m_props.pitch = -89.0f;
+      if (m_props.pitch > 89.0f) m_props.pitch = 89.0f;
+      if (m_props.pitch < -89.0f) m_props.pitch = -89.0f;
     }
 
     // wrap yaw within [-180, 180]
-    if(m_props.yaw > 180.0f) m_props.yaw -= 360.0f;
-    if(m_props.yaw < -180.0f) m_props.yaw += 360.0f;
+    if (m_props.yaw > 180.0f) m_props.yaw -= 360.0f;
+    if (m_props.yaw < -180.0f) m_props.yaw += 360.0f;
 
     updateCameraVectors();
   }
 
   void Camera::processKeyboard()
   {
-    float velocity = m_props.movement_speed * TimeTracker::getInstance().getDelta() * 30.0f;
+    float velocity = m_props.movement_speed * TimeTracker::getInstance()->getDelta() * 30.0f;
 
-    if(KeyboardState::getKeyState(KeyCode::W))
+    if (KeyboardState::getKeyState(KeyCode::W))
     {
       m_props.position += m_props.direction * velocity;
     }
-    if(KeyboardState::getKeyState(KeyCode::S))
+    if (KeyboardState::getKeyState(KeyCode::S))
     {
       m_props.position -= m_props.direction * velocity;
     }
-    if(KeyboardState::getKeyState(KeyCode::D))
+    if (KeyboardState::getKeyState(KeyCode::D))
     {
       m_props.position += m_props.right * velocity;
     }
-    if(KeyboardState::getKeyState(KeyCode::A))
+    if (KeyboardState::getKeyState(KeyCode::A))
     {
       m_props.position -= m_props.right * velocity;
     }
-    if(KeyboardState::getKeyState(KeyCode::Space))
+    if (KeyboardState::getKeyState(KeyCode::Space))
     {
       m_props.position.y += 1.4f * velocity;
     }
-    if(KeyboardState::getKeyState(KeyCode::LeftControl))
+    if (KeyboardState::getKeyState(KeyCode::LeftControl))
     {
       m_props.position.y -= 1.4f * velocity;
     }  // this is for later when i add jump mechanic
@@ -175,5 +180,10 @@ namespace kogayonon
   CameraProps& Camera::getProps()
   {
     return m_props;
+  }
+
+  void Camera::processMouseClicked()
+  {
+    return;
   }
 }

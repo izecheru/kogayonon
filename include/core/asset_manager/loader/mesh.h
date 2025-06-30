@@ -33,6 +33,11 @@ namespace kogayonon
       : type(t), path(p), width(w), height(h), num_components(n), data(d), gamma(g)
     {
     }
+
+    inline std::string& getPath()
+    {
+      return path;
+    }
   };
 
   class Mesh
@@ -58,7 +63,8 @@ namespace kogayonon
     texture_vec& getTextures();
 
   private:
-    void setupTextures();
+    bool
+      setupTextures();
 
   private:
     vertice_vec m_vertices;

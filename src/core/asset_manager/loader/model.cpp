@@ -22,7 +22,7 @@ namespace kogayonon
 
   void Model::init(const std::string& path)const
   {
-    AssetManager::getInstance().initializeModel(path);
+    AssetManager::getInstance()->initializeModel(path);
   }
 
   std::vector<Mesh>& Model::getMeshes()

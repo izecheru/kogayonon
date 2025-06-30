@@ -15,19 +15,19 @@ namespace kogayonon
 {
   void AssetManager::addModel(const std::string& path) const
   {
-    ModelManager::getInstance().addModel(m_data, path);
+    ModelManager::getInstance()->addModel(m_data, path);
   }
 
-  void AssetManager::addTexture(const std::string& path)const
+  void AssetManager::addTexture(const std::string& model_path)const
   {
-    TextureManager::getInstance().addTexture(path, m_data);
+    TextureManager::getInstance()->addTexture(model_path, m_data);
   }
 
   void AssetManager::initializeModel(const std::string& path)
   {
     std::string model_dir = std::filesystem::path(path).parent_path().string();
     cgltf_options options = {};
-    if(cgltf_result result = cgltf_parse_file(&options, path.c_str(), &m_data); result != cgltf_result_success)
+    if (cgltf_result result = cgltf_parse_file(&options, path.c_str(), &m_data); result != cgltf_result_success)
     {
       KLogger::log(LogType::ERROR, "Failed to load glTF file:", path);
     }
@@ -36,14 +36,16 @@ namespace kogayonon
     assert(m_data != nullptr);
 
     addModel(path);
+    addTexture(path);
   }
 
   Model& AssetManager::getModel(const std::string& path) const
   {
-    return ModelManager::getInstance().getModel(path);
+    return ModelManager::getInstance()->getModel(path);
   }
+
   std::unordered_map<std::string, Model>& AssetManager::getModelMap() const
   {
-    return ModelManager::getInstance().getModelMap();
+    return ModelManager::getInstance()->getModelMap();
   }
 }

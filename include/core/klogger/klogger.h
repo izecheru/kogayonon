@@ -32,6 +32,8 @@ namespace kogayonon
       time_t log_time = time(nullptr);
       struct tm local_time;
       localtime_s(&local_time, &log_time);
+
+      std::unique_lock lock(m_mutex);
       m_str_stream << "[" << std::put_time(&local_time, "%H:%M:%S") << "]";
       switch(type)
       {
@@ -43,10 +45,7 @@ namespace kogayonon
       }
 
       (m_str_stream << ... << args);
-      {
-        std::unique_lock lock(m_mutex);
-        m_queued_logs.push(m_str_stream.str());
-      }
+      m_queued_logs.push(m_str_stream.str());
 
       m_cv.notify_all();
       m_str_stream.str("");
