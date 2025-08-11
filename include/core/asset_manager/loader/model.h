@@ -1,8 +1,9 @@
 #pragma once
-#include <vector>
-#include "shader/shader.h"
-#include "mesh.h"
 #include <map>
+#include <vector>
+
+#include "mesh.h"
+#include "shader/shader.h"
 
 namespace kogayonon
 {
@@ -10,23 +11,31 @@ namespace kogayonon
   {
   public:
     explicit Model(const std::string& path_to_model);
-    Model(Model&& other)noexcept;
-    Model() = default;
-    ~Model() = default;
+    explicit Model(Model&& other) noexcept : m_loaded(other.m_loaded), m_path(other.m_path)
+    {
+      m_meshes = std::move(other.m_meshes);
+    }
 
-    void draw(const Shader& shader);
-    void init(const std::string& path)const;
+    Model() = default;
+
+    // void draw(const Shader& shader);
+    void init(const std::string& path) const;
 
     std::vector<Mesh>& getMeshes();
-    void operator=(const Model& other);
 
-    inline bool isLoaded()const
+    Model(const Model&)            = default;
+    Model& operator=(const Model&) = default;
+
+    inline bool isLoaded() const
     {
       return m_loaded;
     }
 
     inline void setLoaded()
     {
+      if (m_loaded == true)
+        return;
+
       m_loaded = true;
     }
 
@@ -40,4 +49,4 @@ namespace kogayonon
     std::string m_path;
     bool m_loaded = false;
   };
-}
+} // namespace kogayonon

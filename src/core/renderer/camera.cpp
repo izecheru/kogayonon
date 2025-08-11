@@ -3,41 +3,41 @@
 #define GLFW_INCLUDE_NONE
 #endif
 #include <glad/glad.h>
+#include <imgui.h>
+
 #include <glm/glm.hpp>
-#include <imgui/imgui.h>
-#include "core/klogger/klogger.h"
-#include "core/input/input.h"
-#include "shader/shader.h"
 #include <glm/gtc/type_ptr.hpp>
+
+#include "core/input/input.h"
+#include "core/klogger/klogger.h"
+#include "core/time_tracker/time_tracker.h"
 #include "events/event_listener.h"
 #include "events/keyboard_events.h"
-#include "core/time_tracker/time_tracker.h"
+#include "shader/shader.h"
 
 namespace kogayonon
 {
   Camera::Camera()
   {
-    EventListener::getInstance()->addCallback<MouseScrolledEvent>([this](Event& e)
-      {
-        return this->onMouseScrolled(static_cast<MouseScrolledEvent&>(e));
-      });
+    EventListener::getInstance()->addCallback<MouseScrolledEvent>(
+        [this](Event& e) { return this->onMouseScrolled(static_cast<MouseScrolledEvent&>(e)); });
 
-    //EventListener::getInstance().addCallback<MouseClickedEvent>([this](Event& e)
-      //{
-        //return this->onMouseClicked(static_cast<MouseClickedEvent&>(e));
-      //});
+    // EventListener::getInstance().addCallback<MouseClickedEvent>([this](Event& e)
+    //{
+    // return this->onMouseClicked(static_cast<MouseClickedEvent&>(e));
+    //});
     setupCamera();
   }
 
   void Camera::setupCamera()
   {
-    m_props.position = glm::vec3(0.0f, 0.0f, 3.0f);
-    m_props.direction = glm::vec3(0.0f, 0.0f, -1.0f);
-    m_props.camera_up = glm::vec3(0.0f, 1.0f, 0.0f);
-    m_props.world_up = glm::vec3(0.0f, 1.0f, 0.0f);
-    m_props.yaw = -90.0f;
-    m_props.pitch = 0.0f;
-    m_props.mouse_sens = 0.2f;
+    m_props.position       = glm::vec3(0.0f, 0.0f, 3.0f);
+    m_props.direction      = glm::vec3(0.0f, 0.0f, -1.0f);
+    m_props.camera_up      = glm::vec3(0.0f, 1.0f, 0.0f);
+    m_props.world_up       = glm::vec3(0.0f, 1.0f, 0.0f);
+    m_props.yaw            = -90.0f;
+    m_props.pitch          = 0.0f;
+    m_props.mouse_sens     = 0.2f;
     m_props.movement_speed = 90.0f;
   }
 
@@ -65,7 +65,8 @@ namespace kogayonon
 
   bool Camera::onMouseScrolled(MouseScrolledEvent& event)
   {
-    if (event.isHandled()) return false;
+    if (event.isHandled())
+      return false;
     processMouseScrolled(event.getXOff(), event.getYOff());
     return true;
   }
@@ -79,7 +80,8 @@ namespace kogayonon
 
   bool Camera::onMouseMoved(MouseMovedEvent& event)
   {
-    if (event.isHandled()) return false;
+    if (event.isHandled())
+      return false;
     processMouseMoved(event.getX(), event.getY());
     return true;
   }
@@ -91,15 +93,15 @@ namespace kogayonon
 
     if (first_move)
     {
-      lastX = x;
-      lastY = y;
+      lastX      = x;
+      lastY      = y;
       first_move = false;
     }
 
     float xoffset = x - lastX;
     float yoffset = lastY - y;
-    lastX = x;
-    lastY = y;
+    lastX         = x;
+    lastY         = y;
 
     xoffset *= m_props.mouse_sens;
     yoffset *= m_props.mouse_sens;
@@ -110,13 +112,17 @@ namespace kogayonon
     // this is to no go deaberbeleacu
     if (constrain_pitch)
     {
-      if (m_props.pitch > 89.0f) m_props.pitch = 89.0f;
-      if (m_props.pitch < -89.0f) m_props.pitch = -89.0f;
+      if (m_props.pitch > 89.0f)
+        m_props.pitch = 89.0f;
+      if (m_props.pitch < -89.0f)
+        m_props.pitch = -89.0f;
     }
 
     // wrap yaw within [-180, 180]
-    if (m_props.yaw > 180.0f) m_props.yaw -= 360.0f;
-    if (m_props.yaw < -180.0f) m_props.yaw += 360.0f;
+    if (m_props.yaw > 180.0f)
+      m_props.yaw -= 360.0f;
+    if (m_props.yaw < -180.0f)
+      m_props.yaw += 360.0f;
 
     updateCameraVectors();
   }
@@ -148,21 +154,21 @@ namespace kogayonon
     if (KeyboardState::getKeyState(KeyCode::LeftControl))
     {
       m_props.position.y -= 1.4f * velocity;
-    }  // this is for later when i add jump mechanic
+    } // this is for later when i add jump mechanic
 
-  //m_props.position.y = 0.0f;
+    // m_props.position.y = 0.0f;
     updateCameraVectors();
   }
 
   void Camera::updateCameraVectors()
   {
     glm::vec3 direction;
-    direction.x = cos(glm::radians(m_props.yaw)) * cos(glm::radians(m_props.pitch));
-    direction.y = sin(glm::radians(m_props.pitch));
-    direction.z = sin(glm::radians(m_props.yaw)) * cos(glm::radians(m_props.pitch));
+    direction.x       = cos(glm::radians(m_props.yaw)) * cos(glm::radians(m_props.pitch));
+    direction.y       = sin(glm::radians(m_props.pitch));
+    direction.z       = sin(glm::radians(m_props.yaw)) * cos(glm::radians(m_props.pitch));
     m_props.direction = glm::normalize(direction);
 
-    m_props.right = glm::normalize(glm::cross(m_props.direction, m_props.world_up));
+    m_props.right     = glm::normalize(glm::cross(m_props.direction, m_props.world_up));
     m_props.camera_up = glm::normalize(glm::cross(m_props.right, m_props.direction));
   }
 
@@ -186,4 +192,4 @@ namespace kogayonon
   {
     return;
   }
-}
+} // namespace kogayonon

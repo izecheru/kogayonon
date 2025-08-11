@@ -2,13 +2,13 @@
 #include <fstream>
 #include <mutex>
 
-#include "core/singleton/singleton.h"
 #include "core/asset_manager/loader/mesh.h"
 #include "core/asset_manager/loader/model.h"
+#include "core/singleton/singleton.h"
 #include "serializer.h"
 namespace kogayonon
 {
-  class MeshSerializer :public Singleton<MeshSerializer>, public Serializer<Mesh>
+  class MeshSerializer : public Singleton<MeshSerializer>, public Serializer<Mesh>
   {
   public:
     bool serialize(Mesh& mesh, std::ofstream& out) override;
@@ -28,4 +28,4 @@ namespace kogayonon
   private:
     std::mutex m_file_mutex;
   };
-}
+} // namespace kogayonon

@@ -1,13 +1,15 @@
-#include <filesystem>
-#include <stb/stb_image.h>
-
 #include "core/asset_manager/loader/texture_loader.h"
-#include "core/task/task_manager.h"
+
+#include <stb_image.h>
+
+#include "core/context_manager/context_manager.h"
+#include "core/klogger/klogger.h"
 #include "core/time_tracker/time_tracker.h"
 
 namespace kogayonon
 {
-  void TextureLoader::loadTexture(const cgltf_texture* texture, std::unordered_map<std::string, Texture>& loaded_textures, const std::string& type, const std::string& model_dir)
+  void TextureLoader::loadTexture(const cgltf_texture* texture, std::unordered_map<std::string, Texture>& loaded_textures,
+                                  const std::string& type, const std::string& model_dir)
   {
     if (texture && texture->image && texture->image->uri)
     {
@@ -21,7 +23,9 @@ namespace kogayonon
       {
         KLogger::log(LogType::INFO, "Loading texture from:", texture_path);
 
-        int w; int h; int num_comp;
+        int w;
+        int h;
+        int num_comp;
         unsigned char* tex_data = stbi_load(texture_path.c_str(), &w, &h, &num_comp, 0);
 
         if (!tex_data)
@@ -31,34 +35,30 @@ namespace kogayonon
         }
 
         std::vector<unsigned char> texture_data(tex_data, tex_data + (w * h * num_comp));
-        Texture tex(type, texture_path, w, h, num_comp, texture_data, true);
-        loaded_textures[texture_path] = tex;
+        loaded_textures.emplace(texture_path, Texture(type, texture_path, w, h, num_comp, texture_data, true));
       }
     }
   }
 
-  void TextureLoader::pushTexture(
-    const std::string& model_dir,
-    std::function<void(const Texture&)> callback,
-    std::mutex& texture_map_mutex,
-    std::unordered_map<std::string, Texture>& textures,
-    const cgltf_data* data)
+  void TextureLoader::pushTexture(const std::string& model_dir, std::function<void(const Texture&)> callback, std::mutex& texture_map_mutex,
+                                  std::unordered_map<std::string, Texture>& textures, const cgltf_data* data)
   {
     TimeTracker::getInstance()->startCount("texture");
-    TaskManager::getInstance()->enqueue([this, &texture_map_mutex, model_dir, &textures, callback, data]()
-      {
-        std::unique_lock lock(texture_map_mutex);
-        initializeTextures(data, model_dir, textures);
-      });
+    ContextManager::task_manager()->enqueue([this, &texture_map_mutex, model_dir, &textures, callback, data]() {
+      std::unique_lock lock(texture_map_mutex);
+      initializeTextures(data, model_dir, textures);
+    });
   }
 
-  void TextureLoader::initializeTextures(const cgltf_data* data, const std::string& model_dir, std::unordered_map<std::string, Texture>& loaded_textures)
+  void TextureLoader::initializeTextures(const cgltf_data* data, const std::string& model_dir,
+                                         std::unordered_map<std::string, Texture>& loaded_textures)
   {
     for (size_t node_index = 0; node_index < data->nodes_count; node_index++)
     {
       cgltf_node const& node = data->nodes[node_index];
 
-      if (!node.mesh) continue;
+      if (!node.mesh)
+        continue;
 
       cgltf_mesh const& mesh = *node.mesh;
 
@@ -73,15 +73,18 @@ namespace kogayonon
     }
   }
 
-  void TextureLoader::processMaterial(const cgltf_material* material, std::unordered_map<std::string, Texture>& loaded_textures, const std::string& model_dir)
+  void TextureLoader::processMaterial(const cgltf_material* material, std::unordered_map<std::string, Texture>& loaded_textures,
+                                      const std::string& model_dir)
   {
-    if (!material)return;
+    if (!material)
+      return;
 
     // Base Color (Diffuse)
     if (material->has_pbr_metallic_roughness)
     {
       loadTexture(material->pbr_metallic_roughness.base_color_texture.texture, loaded_textures, "texture_diffuse", model_dir);
-      loadTexture(material->pbr_metallic_roughness.metallic_roughness_texture.texture, loaded_textures, "texture_metallic_roughness", model_dir);
+      loadTexture(material->pbr_metallic_roughness.metallic_roughness_texture.texture, loaded_textures, "texture_metallic_roughness",
+                  model_dir);
     }
 
     // Specular-Glossiness Workflow
@@ -100,4 +103,4 @@ namespace kogayonon
       loadTexture(material->transmission.transmission_texture.texture, loaded_textures, "texture_transmission", model_dir);
     }
   }
-}
+} // namespace kogayonon

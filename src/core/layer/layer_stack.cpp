@@ -1,11 +1,10 @@
 #include "core/layer/layer_stack.h"
-#include "core/layer/imgui_layer.h"
 
 namespace kogayonon
 {
   LayerStack::~LayerStack()
   {
-
+    m_layers.clear();
   }
 
   void LayerStack::pushLayer(std::unique_ptr<Layer> layer)
@@ -28,4 +27,4 @@ namespace kogayonon
       }
     }
   }
-}
+} // namespace kogayonon

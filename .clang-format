@@ -1,0 +1,43 @@
+﻿Language: Cpp
+BasedOnStyle: Microsoft
+
+# Indentation and Formatting
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+BreakBeforeBraces: Custom
+BraceWrapping:
+  SplitEmptyFunction: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowAllParametersOfDeclarationOnNextLine: true
+BinPackParameters: true
+ColumnLimit: 140
+AlwaysBreakAfterReturnType: None
+NamespaceIndentation: All
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: true
+  AcrossComments: false
+
+AlwaysBreakTemplateDeclarations: Yes
+
+# Include Sorting
+SortIncludes: true
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex:           '^<.*\.h>'
+    Priority:        1
+  - Regex:           '^<.*>'
+    Priority:        2
+  - Regex:           '^".*'
+    Priority:        3
+
+# Pointer and Reference Alignment
+PointerAlignment: Left
+ReferenceAlignment: Pointer
+
+# Misc
+ReflowComments: true
+SpacesInContainerLiterals: true
+SpaceBeforeParens: ControlStatements
+AlignTrailingComments: true

@@ -2,7 +2,8 @@
 
 namespace kogayonon
 {
-  bool Event::isInCategory(EventCategory category) {
+  bool Event::isInCategory(EventCategory category)
+  {
     return getCategoryFlags() & category;
   }
 }

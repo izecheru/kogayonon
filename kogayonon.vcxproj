@@ -146,8 +146,6 @@
     <ClCompile Include="src\core\asset_manager\asset_manager.cpp" />
     <ClCompile Include="src\core\asset_manager\loader\model_loader.cpp" />
     <ClCompile Include="src\core\asset_manager\loader\texture_loader.cpp" />
-    <ClCompile Include="src\core\asset_manager\manager\model_manager.cpp" />
-    <ClCompile Include="src\core\asset_manager\manager\texture_manager.cpp" />
     <ClCompile Include="src\core\layer\world_layer.cpp" />
     <ClCompile Include="src\core\serialize\mesh_serializer.cpp" />
     <ClCompile Include="main.cpp" />
@@ -169,6 +167,8 @@
     <ClCompile Include="src\window\window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".clang-format" />
+    <None Include=".clang-tidy" />
     <None Include=".gitattributes" />
     <None Include=".gitignore" />
     <None Include="dependencies\include\glm\detail\func_common.inl" />
@@ -634,8 +634,7 @@
     <ClInclude Include="include\core\asset_manager\asset_manager.h" />
     <ClInclude Include="include\core\asset_manager\loader\model_loader.h" />
     <ClInclude Include="include\core\asset_manager\loader\texture_loader.h" />
-    <ClInclude Include="include\core\asset_manager\manager\model_manager.h" />
-    <ClInclude Include="include\core\asset_manager\manager\texture_manager.h" />
+    <ClInclude Include="include\core\context_manager\context_manager.h" />
     <ClInclude Include="include\core\input\input.h" />
     <ClInclude Include="include\core\key_codes.h" />
     <ClInclude Include="include\core\layer\imgui_layer.h" />
@@ -670,6 +669,7 @@
     <Library Include="dependencies\lib\glfw3.lib" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="CMakeLists.txt" />
     <Text Include="log.txt" />
     <Text Include="resources\models\cottage\cottage_description.txt" />
   </ItemGroup>

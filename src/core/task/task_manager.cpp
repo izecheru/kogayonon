@@ -1,17 +1,15 @@
 #include "core/task/task_manager.h"
-#include "core/time_tracker/time_tracker.h"
+
 #include "core/klogger/klogger.h"
+#include "core/time_tracker/time_tracker.h"
 
 namespace kogayonon
 {
   TaskManager::TaskManager(size_t thread_count)
   {
-    for(size_t i = 0; i < thread_count; ++i)
+    for (size_t i = 0; i < thread_count; ++i)
     {
-      m_workers.emplace_back([this]
-        {
-          workerThread();
-        });
+      m_workers.emplace_back([this] { workerThread(); });
     }
   }
 
@@ -20,18 +18,9 @@ namespace kogayonon
     stop();
   }
 
-  void TaskManager::enqueue(std::function<void()> task)
-  {
-    {
-      std::lock_guard lock(m_queue_mutex);
-      m_tasks.push(std::move(task));
-    }
-    m_cvar.notify_one();
-  }
-
   void TaskManager::workerThread()
   {
-    while(true)
+    while (true)
     {
       std::function<void()> task;
       {
@@ -40,14 +29,11 @@ namespace kogayonon
         // this makes the thread resume waiting if the conditions are not satisfied
         // this only works with std::unique_lock
 
-        m_cvar.wait(lock, [this]
-          {
-            return m_stop || !m_tasks.empty();
-          });
+        m_cvar.wait(lock, [this] { return m_stop || !m_tasks.empty(); });
 
         //
 
-        if(m_stop && m_tasks.empty())
+        if (m_stop && m_tasks.empty())
         {
           break;
         }
@@ -57,9 +43,9 @@ namespace kogayonon
       }
       try
       {
-        task();  // Execute task
+        task(); // Execute task
       }
-      catch(const std::exception& e)
+      catch (const std::exception& e)
       {
         // Log the error instead of crashing the thread
         KLogger::log(LogType::ERROR, "Task execution error: ", e.what());
@@ -73,14 +59,14 @@ namespace kogayonon
       std::lock_guard lock(m_queue_mutex);
       m_stop = true;
     }
-    m_cvar.notify_all();  // Wake all worker threads
+    m_cvar.notify_all(); // Wake all worker threads
 
-    for(std::thread& worker : m_workers)
+    for (std::thread& worker : m_workers)
     {
-      if(worker.joinable())
+      if (worker.joinable())
       {
         worker.join();
       }
     }
   }
-}
+} // namespace kogayonon

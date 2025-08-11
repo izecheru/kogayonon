@@ -1,73 +1,71 @@
 ﻿#include "core/asset_manager/loader/mesh.h"
 
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <stb/stb_image.h>
+#include <glad/glad.h>
 
-//#include "core/asset_manager/model_loader/model_loader.h"
 #include "core/klogger/klogger.h"
 #include "core/renderer/camera.h"
-#include "core/asset_manager/manager/texture_manager.h"
 
 namespace kogayonon
 {
-  Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<std::string>& textures) :
-    m_vertices(vertices), m_indices(indices), m_textures(textures)
-  {
-  }
+  Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<std::string>& textures)
+      : m_vertices(vertices), m_indices(indices), m_textures(textures)
+  {}
 
-  Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) :
-    m_vertices(vertices), m_indices(indices), m_textures()
-  {
-  }
+  Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
+      : m_vertices(vertices), m_indices(indices), m_textures()
+  {}
 
-  // Setup textures on main thread since opengl functions are not thread safe
+  //// Setup textures on main thread since opengl functions are not thread safe
   bool Mesh::setupTextures()
   {
-    TextureManager* manager = TextureManager::getInstance();
-    auto& textures_map = manager->getTextures();
-    KLogger::log(LogType::INFO, "num of textures in map:", textures_map.size());
+    // //if (textures_map.empty())
+    //   return false;
 
-    if (textures_map.empty()) return false;
+    // for (unsigned int i = 0; i < m_textures.size(); i++)
+    //{
+    //   auto& texture = textures_map[m_textures[i]];
+    //   KLogger::log(LogType::INFO, "texture path:", m_textures[i]);
+    //   if (!texture.data.empty())
+    //   {
+    //     GLenum glformat = GL_RGB;
+    //     switch (texture.num_components)
+    //     {
+    //     case 1:
+    //       glformat = GL_RED;
+    //       break;
+    //     case 2:
+    //       glformat = GL_RG;
+    //       break;
+    //     case 3:
+    //       glformat = GL_RGB;
+    //       break;
+    //     case 4:
+    //       glformat = GL_RGBA;
+    //       break;
+    //     }
+    //     glCreateTextures(GL_TEXTURE_2D, 1, &texture.id);
 
-    for (unsigned int i = 0; i < m_textures.size(); i++)
-    {
-      auto& texture = textures_map[m_textures[i]];
-      KLogger::log(LogType::INFO, "texture path:", m_textures[i]);
-      if (!texture.data.empty())
-      {
-        GLenum glformat = GL_RGB;
-        switch (texture.num_components)
-        {
-          case 1: glformat = GL_RED;  break;
-          case 2: glformat = GL_RG;   break;
-          case 3: glformat = GL_RGB;  break;
-          case 4: glformat = GL_RGBA; break;
-        }
-        glCreateTextures(GL_TEXTURE_2D, 1, &texture.id);
+    //    // We allocate immutable storage for the texture
+    //    glTextureStorage2D(texture.id, 1, GL_RGBA8, texture.width, texture.height);
 
-        // We allocate immutable storage for the texture
-        glTextureStorage2D(texture.id, 1, GL_RGBA8, texture.width, texture.height);
+    //    // Upload the image data to the texture
+    //    glTextureSubImage2D(texture.id, 0, 0, 0, texture.width, texture.height, glformat, GL_UNSIGNED_BYTE, texture.data.data());
 
-        // Upload the image data to the texture
-        glTextureSubImage2D(texture.id, 0, 0, 0, texture.width, texture.height, glformat, GL_UNSIGNED_BYTE, texture.data.data());
+    //    // Generate mipmaps
+    //    glGenerateTextureMipmap(texture.id);
 
-        // Generate mipmaps
-        glGenerateTextureMipmap(texture.id);
+    //    glTextureParameteri(texture.id, GL_TEXTURE_WRAP_S, GL_REPEAT); // Or GL_MIRRORED_REPEAT, GL_CLAMP_TO_EDGE, etc.
+    //    glTextureParameteri(texture.id, GL_TEXTURE_WRAP_T, GL_REPEAT); // For the T coordinate
+    //    glTextureParameteri(texture.id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    //    glTextureParameteri(texture.id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        glTextureParameteri(texture.id, GL_TEXTURE_WRAP_S, GL_REPEAT); // Or GL_MIRRORED_REPEAT, GL_CLAMP_TO_EDGE, etc.
-        glTextureParameteri(texture.id, GL_TEXTURE_WRAP_T, GL_REPEAT); // For the T coordinate
-        glTextureParameteri(texture.id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTextureParameteri(texture.id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        texture.data.clear();
-      }
-      else
-      {
-        KLogger::log(LogType::ERROR, "Failed to load image from ", texture.path);
-      }
-    }
+    //    texture.data.clear();
+    //  }
+    //  else
+    //  {
+    //    KLogger::log(LogType::ERROR, "Failed to load image from ", texture.path);
+    //  }
+    //}
     return true;
   }
 
@@ -109,23 +107,24 @@ namespace kogayonon
     m_init = setupTextures();
   }
 
-  void Mesh::draw(const Shader& shader)
-  {
-    if (!m_init) setupMesh();
+  // void Mesh::draw(const Shader& shader)
+  //{
+  //   if (!m_init)
+  //     setupMesh();
 
-    TextureManager* manager = TextureManager::getInstance();
-    auto& textures_map = manager->getTextures();
-    for (unsigned int i = 0; i < m_textures.size(); i++)
-    {
-      glBindTextureUnit(i, textures_map[m_textures[i]].id);
-    }
+  //  TextureManager* manager = TextureManager::getInstance();
+  //  auto& textures_map      = manager->getTextures();
+  //  for (unsigned int i = 0; i < m_textures.size(); i++)
+  //  {
+  //    glBindTextureUnit(i, textures_map[m_textures[i]].id);
+  //  }
 
-    // draw mesh
-    glBindVertexArray(m_vao);
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()), GL_UNSIGNED_INT, nullptr);
-    glBindVertexArray(0);
-    glBindTextureUnit(0, 0);
-  }
+  //  // draw mesh
+  //  glBindVertexArray(m_vao);
+  //  glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()), GL_UNSIGNED_INT, nullptr);
+  //  glBindVertexArray(0);
+  //  glBindTextureUnit(0, 0);
+  //}
 
   Mesh::vertice_vec& Mesh::getVertices()
   {
@@ -141,4 +140,4 @@ namespace kogayonon
   {
     return m_textures;
   }
-}
+} // namespace kogayonon

@@ -1,10 +1,6 @@
-#include <malloc.h>
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <sstream>
 #include <glm/gtc/type_ptr.hpp>
-
+#include <glad/glad.h>
+#include <glm/ext/matrix_float4x4.hpp>
 #include "shader/shader.h"
 #include "core/klogger/klogger.h"
 
@@ -19,35 +15,35 @@ namespace kogayonon
   shader_source Shader::parseShaderFile(const std::string& vert_path, const std::string& frag_path)
   {
     std::ifstream vertex_stream(vert_path);
-    if(!vertex_stream.is_open())
+    if (!vertex_stream.is_open())
     {
       KLogger::log(LogType::ERROR, "Failed to open shader file: ", vert_path);
       std::string result = "";
       assert(result.size() > 0);
-      return {result,result};
+      return { result,result };
     }
 
     std::stringstream vertex_ss; // 0 for vertex, 1 for fragment
     std::string line;
 
-    while(getline(vertex_stream, line))
+    while (getline(vertex_stream, line))
     {
       vertex_ss << line << '\n';
     }
 
     std::ifstream fragment_stream(frag_path);
-    if(!fragment_stream.is_open())
+    if (!fragment_stream.is_open())
     {
       KLogger::log(LogType::ERROR, "Failed to open shader file: ", frag_path);
       std::string result = "";
 
       assert(result.size() > 0);
-      return {result,result};
+      return { result,result };
     }
 
     std::stringstream fragment_ss; // 0 for vertex, 1 for fragment
     line = "";
-    while(getline(fragment_stream, line))
+    while (getline(fragment_stream, line))
     {
       fragment_ss << line << '\n';
     }
@@ -68,10 +64,9 @@ namespace kogayonon
     glUseProgram(0);
   }
 
-  void Shader::setInt(const char* uniform, int value)
+  void Shader::setInt(const char* uniform, int value) const
   {
-    int location = glGetUniformLocation(m_program_id, uniform);
-    if(location == -1)
+    if (int location = glGetUniformLocation(m_program_id, uniform); location == -1)
     {
       // Uniform not found, print a warning or error message
       KLogger::log(LogType::ERROR, "Uniform not found: ", uniform);
@@ -84,8 +79,7 @@ namespace kogayonon
 
   void Shader::setMat4(const char* uniform, glm::mat4& mat)
   {
-    int location = glGetUniformLocation(m_program_id, uniform);
-    if(location == -1)
+    if (int location = glGetUniformLocation(m_program_id, uniform); location == -1)
     {
       KLogger::log(LogType::ERROR, "Uniform not found: ", uniform);
     }
@@ -108,17 +102,17 @@ namespace kogayonon
     glCompileShader(id);
     int result;
     glGetShaderiv(id, GL_COMPILE_STATUS, &result);
-    if(result == GL_FALSE)
+    if (result == GL_FALSE)
     {
       int length;
       glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
-      char* message = (char*)_malloca(length * sizeof(char));
+      auto message = (char*)_malloca(length * sizeof(char));
       glGetShaderInfoLog(id, length, &length, message);
-      if(shader_type == GL_VERTEX_SHADER)
+      if (shader_type == GL_VERTEX_SHADER)
       {
         KLogger::log(LogType::INFO, "Failed to compile vertex shader:\n", message, '\n');
       }
-      else if(shader_type == GL_FRAGMENT_SHADER)
+      else if (shader_type == GL_FRAGMENT_SHADER)
       {
         KLogger::log(LogType::INFO, "Failed to compile fragment shader:\n", message, '\n');
       }
@@ -141,7 +135,7 @@ namespace kogayonon
     glLinkProgram(program);
     int result;
     glGetProgramiv(program, GL_LINK_STATUS, &result);
-    if(result == GL_FALSE)
+    if (result == GL_FALSE)
     {
       int length;
       glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);

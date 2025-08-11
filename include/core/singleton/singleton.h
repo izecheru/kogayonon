@@ -9,22 +9,12 @@ namespace kogayonon
   public:
     static T* getInstance()
     {
-      {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        if (m_pInstance == nullptr)
-        {
-          m_pInstance = new T();
-        }
-      }
-      return m_pInstance;
+      static T instance;  // Thread-safe since C++11, no leaks
+      return &instance;
     }
 
-    Singleton(Singleton& other) = delete;
-    Singleton& operator=(Singleton&) = delete;
-
-  private:
-    static inline std::mutex m_mutex;
-    static inline T* m_pInstance;
+    Singleton(const Singleton&) = delete;
+    Singleton& operator=(const Singleton&) = delete;
 
   protected:
     Singleton() = default;

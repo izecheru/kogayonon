@@ -2,17 +2,13 @@
 
 namespace kogayonon
 {
-  Renderer::Renderer()
-  {
-    is_poly = false;
-  }
 
-  void Renderer::draw()const
+  void Renderer::draw() const
   {
     m_layer_stack.draw();
   }
 
-  LayerStack& kogayonon::Renderer::getLayerStack()
+  LayerStack& Renderer::getLayerStack()
   {
     return m_layer_stack;
   }
@@ -55,17 +51,17 @@ namespace kogayonon
 
   void Renderer::togglePolyMode()
   {
-    switch(is_poly)
+    switch (is_poly)
     {
-      case true:
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        break;
+    case true:
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+      break;
 
-      case false:
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        break;
+    case false:
+      glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+      break;
     }
 
     is_poly = !is_poly;
   }
-}
+} // namespace kogayonon

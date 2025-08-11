@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+
 #include "core/asset_manager/loader/mesh.h"
 #include "core/layer/layer_stack.h"
 #include "shader/shader.h"
@@ -9,10 +10,10 @@ namespace kogayonon
   class Renderer
   {
   public:
-    Renderer();
+    Renderer() : is_poly(false) {}
     ~Renderer() = default;
 
-    void draw()const;
+    void draw() const;
     LayerStack& getLayerStack();
     void pushLayer(std::unique_ptr<Layer> layer);
     bool getPolyMode();
@@ -26,10 +27,8 @@ namespace kogayonon
     void unbindShader(const char* shader_name);
 
   private:
-    bool is_poly;
+    bool is_poly = false;
     LayerStack m_layer_stack;
-
-    //TODO move this to shader too
     std::map<const std::string, Shader> m_shaders;
   };
-}
+} // namespace kogayonon

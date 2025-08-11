@@ -2,18 +2,20 @@
 
 #ifndef GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_NONE
-#endif  // !GLFW_INCLUDE_NONE
+#endif // !GLFW_INCLUDE_NONE
 
-#include "imgui_window.h"
-#include "core/singleton/singleton.h"
+#include <glfw3.h>
 
-#include <GLFW/glfw3.h>
 #include <vector>
+
+#include "core/singleton/singleton.h"
+#include "imgui_window.h"
 
 namespace kogayonon
 {
   using Windows = std::vector<ImguiWindow*>;
-  class ImGuiInterface : public Singleton<ImGuiInterface> {
+  class ImGuiInterface : public Singleton<ImGuiInterface>
+  {
   public:
     ImGuiInterface() = default;
     ~ImGuiInterface();
@@ -29,4 +31,4 @@ namespace kogayonon
   private:
     Windows m_windows{};
   };
-}
+} // namespace kogayonon

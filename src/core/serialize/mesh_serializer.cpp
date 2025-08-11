@@ -1,5 +1,7 @@
 #include "core/serialize/mesh_serializer.h"
+
 #include "core/asset_manager/loader/mesh.h"
+#include "core/klogger/klogger.h"
 
 namespace kogayonon
 {
@@ -8,7 +10,7 @@ namespace kogayonon
     openFile(bin_path, out, FileMode::WRITE);
     std::vector<Mesh>& meshes = model.getMeshes();
 
-    size_t mesh_count = meshes.size();
+    size_t mesh_count         = meshes.size();
     serializeVar(mesh_count, out);
 
     serialize(meshes, out);
@@ -21,7 +23,7 @@ namespace kogayonon
 
     std::vector<Mesh>& meshes = model.getMeshes();
 
-    size_t mesh_count = 0;
+    size_t mesh_count         = 0;
     assert(deserializeVar(mesh_count, in) == true);
 
     meshes.resize(mesh_count);
@@ -33,7 +35,7 @@ namespace kogayonon
   bool MeshSerializer::serialize(Mesh& mesh, std::ofstream& out)
   {
     std::vector<Vertex>& vertices = mesh.getVertices();
-    if(size_t vert_size = vertices.size(); vert_size > 0)
+    if (size_t vert_size = vertices.size(); vert_size > 0)
     {
       Serializer::serializeVar(vert_size, out);
       Serializer::serializeRaw(vertices.data(), vert_size * sizeof(Vertex), out);
@@ -44,7 +46,7 @@ namespace kogayonon
       return false;
     }
     std::vector<uint32_t>& indices = mesh.getIndices();
-    if(size_t ind_size = indices.size(); ind_size > 0)
+    if (size_t ind_size = indices.size(); ind_size > 0)
     {
       Serializer::serializeVar(ind_size, out);
       Serializer::serializeRaw(indices.data(), ind_size * sizeof(uint32_t), out);
@@ -76,9 +78,9 @@ namespace kogayonon
 
   bool MeshSerializer::serialize(std::vector<Mesh>& mesh, std::ofstream& out)
   {
-    for(auto& m : mesh)
+    for (auto& m : mesh)
     {
-      if(!serialize(m, out))
+      if (!serialize(m, out))
       {
         KLogger::log(LogType::ERROR, "Could not serialize mesh");
       }
@@ -88,13 +90,13 @@ namespace kogayonon
 
   bool MeshSerializer::deserialize(std::vector<Mesh>& mesh, std::ifstream& in)
   {
-    for(auto& m : mesh)
+    for (auto& m : mesh)
     {
-      if(!deserialize(m, in))
+      if (!deserialize(m, in))
       {
         KLogger::log(LogType::ERROR, "Could not deserialize mesh");
       }
     }
     return true;
   }
-}
+} // namespace kogayonon

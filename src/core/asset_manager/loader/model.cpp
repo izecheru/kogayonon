@@ -1,9 +1,13 @@
 ﻿#include "core/asset_manager/loader/model.h"
-#include "core/asset_manager/loader/model_loader.h"
-#include "core/asset_manager/asset_manager.h"
-#include "core/serialize/mesh_serializer.h"
 
 #include <filesystem>
+
+#include "core/asset_manager/asset_manager.h"
+#include "core/asset_manager/loader/mesh.h"
+#include "core/asset_manager/loader/model_loader.h"
+#include "core/context_manager/context_manager.h"
+#include "core/serialize/mesh_serializer.h"
+#include "shader/shader.h"
 
 namespace kogayonon
 {
@@ -13,26 +17,14 @@ namespace kogayonon
     init(path_to_model);
   }
 
-  Model::Model(Model&& other)noexcept
+  void Model::init(const std::string& path) const
   {
-    m_loaded = other.m_loaded;
-    m_meshes = other.m_meshes;
-    m_path = other.m_path;
-  }
-
-  void Model::init(const std::string& path)const
-  {
-    AssetManager::getInstance()->initializeModel(path);
+    auto mgr = ContextManager::getFromContext<AssetManager>(Context::AssetManagerContext);
+    mgr->initializeModel(path);
   }
 
   std::vector<Mesh>& Model::getMeshes()
   {
     return m_meshes;
   }
-
-  void Model::operator=(const Model& other)
-  {
-    this->m_loaded = other.m_loaded;
-    this->m_meshes = other.m_meshes;
-  }
-}
+} // namespace kogayonon

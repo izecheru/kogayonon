@@ -111,12 +111,6 @@
     <ClCompile Include="src\core\asset_manager\loader\texture_loader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\core\asset_manager\manager\texture_manager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\core\asset_manager\manager\model_manager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\core\layer\world_layer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -554,6 +548,8 @@
     <None Include="imgui_config.ini" />
     <None Include="resources\models\clock-008.mtl" />
     <None Include="resources\models\model.mtl" />
+    <None Include=".clang-format" />
+    <None Include=".clang-tidy" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dependencies\include\glad\glad.h">
@@ -1564,13 +1560,10 @@
     <ClInclude Include="include\core\asset_manager\loader\texture_loader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\core\asset_manager\manager\texture_manager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\core\asset_manager\manager\model_manager.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\core\layer\world_layer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\core\context_manager\context_manager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1581,6 +1574,7 @@
   <ItemGroup>
     <Text Include="resources\models\cottage\cottage_description.txt" />
     <Text Include="log.txt" />
+    <Text Include="CMakeLists.txt" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resources\models\cottage\cottage_textures\cottage_diffuse.png">

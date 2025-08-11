@@ -4,76 +4,77 @@
 
 #ifndef GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_NONE
-#endif  // !GLFW_INCLUDE_NONE
+#endif // !GLFW_INCLUDE_NONE
+
+#include <glad/glad.h>
 
 #include <filesystem>
-#include <glad/glad.h>
-#include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "app/app.h"
-#include "core/time_tracker/time_tracker.h"
 #include "core/asset_manager/asset_manager.h"
-#include "events/event_listener.h"
+#include "core/context_manager/context_manager.h"
 #include "core/input/input.h"
 #include "core/klogger/klogger.h"
+#include "core/layer/imgui_layer.h"
+#include "core/layer/layer_stack.h"
+#include "core/layer/world_layer.h"
 #include "core/renderer/camera.h"
 #include "core/renderer/renderer.h"
+#include "core/task/task_manager.h"
+#include "core/time_tracker/time_tracker.h"
+#include "core/ui/imgui_interface.h"
+#include "events/event_listener.h"
 #include "events/keyboard_events.h"
 #include "events/mouse_events.h"
 #include "window/window.h"
-#include "core/ui/imgui_interface.h"
-#include "core/layer/layer_stack.h"
-#include "core/layer/imgui_layer.h"
-#include "core/task/task_manager.h"
-#include "core/layer/world_layer.h"
 
 namespace kogayonon
 {
   App::App()
   {
     KLogger::initialize("log.txt");
-    m_window = std::make_unique<Window>();
+    ContextManager::addToContext(Context::AssetManagerContext, std::make_shared<AssetManager>());
+    ContextManager::addToContext(Context::TaskManagerContext, std::make_shared<TaskManager>(10));
+
+    m_window   = std::make_unique<Window>();
     m_renderer = std::make_unique<Renderer>();
+
+    // this is from vim
 
     // TODO this should be done in the renderer not here
     m_renderer->pushShader("resources/shaders/3d_vertex.glsl", "resources/shaders/3d_fragment.glsl", "3d_shader");
 
-    // the order you push layers here is the order of rendering from
-    m_renderer->pushLayer(std::make_unique<WorldLayer>(m_renderer->getShader("3d_shader")));//0
-    m_renderer->pushLayer(std::make_unique<ImguiLayer>(m_window->getWindow()));//1
+    // the order you push layers here is the order of rendering, so imgiui would be drawn on
+    // everything below it
+    m_renderer->pushLayer(std::make_unique<WorldLayer>(m_renderer->getShader("3d_shader"))); // 0
+    m_renderer->pushLayer(std::make_unique<ImguiLayer>(m_window->getWindow()));              // 1
 
-    EventListener::getInstance()->addCallback<WindowResizeEvent>([this](const Event& e)
-      {
-        return this->onWindowResize((const WindowResizeEvent&)(e));
-      });
-    EventListener::getInstance()->addCallback<WindowCloseEvent>([this](const Event& e)
-      {
-        return this->onWindowClose((const WindowCloseEvent&)(e));
-      });
-    EventListener::getInstance()->addCallback<KeyPressedEvent>([this](const Event& e)
-      {
-        return this->onKeyPress((const KeyPressedEvent&)(e));
-      });
+    EventListener::getInstance()->addCallback<WindowResizeEvent>(
+        [this](const Event& e) { return this->onWindowResize((const WindowResizeEvent&)(e)); });
+    EventListener::getInstance()->addCallback<WindowCloseEvent>(
+        [this](const Event& e) { return this->onWindowClose((const WindowCloseEvent&)(e)); });
+    EventListener::getInstance()->addCallback<KeyPressedEvent>(
+        [this](const Event& e) { return this->onKeyPress((const KeyPressedEvent&)(e)); });
   }
 
   App::~App()
   {
+    ContextManager::clear();
     KLogger::shutdown();
   }
 
-  void App::run()const
+  void App::run() const
   {
     const GLubyte* version = glGetString(GL_VERSION);
     KLogger::log(LogType::INFO, "OpenGL Version: ", version);
+    KLogger::log(LogType::INFO, "Starting game engine---");
     glEnable(GL_DEPTH_TEST);
 
-    // all the events from the window are sent to the app.onEvent function and from there
-    // to all the layers in the layer stack
-    m_window->setEventCallbackFn([this](Event& e)
-      {
-        this->onEvent(e);
-      });
+    // all the events from the window are sent to the app.onEvent function and
+    // from there to all the layers in the layer stack
+    m_window->setEventCallbackFn([this](Event& e) { this->onEvent(e); });
 
     // should probably handle this with Timer class or something
     float prev_time = glfwGetTime();
@@ -85,16 +86,18 @@ namespace kogayonon
     Shader& shader = m_renderer->getShader("3d_shader");
 
     Model my_model("resources/models/sphere.gltf");
-    Model my_model2("resources/models/untitled.gltf"); Model
-      my_model3("resources/models/cube.gltf");
+
+    // Model my_model2("resources/models/serialized_models/spehere.bin");
+
+    // Model my_model3("resources/models/cube.gltf");
 
     while (!glfwWindowShouldClose(m_window->getWindow()))
     {
       glClearColor(0.3f, 0.0f, 1.0f, 0.3f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-      auto proj = glm::mat4(1.0f);
-      float scale_factor = 0.08f;
+      auto proj           = glm::mat4(1.0f);
+      float scale_factor  = 0.08f;
       glm::mat4 model_mat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -200.0f));
       glm::mat4 scale_mat = glm::scale(glm::mat4(6.0f), glm::vec3(10.08f * scale_factor));
       proj = glm::perspective(glm::radians(45.0f), (float)m_window->getWidth() / (float)m_window->getHeight(), 0.1f, 4000.0f);
@@ -130,49 +133,49 @@ namespace kogayonon
     EventListener::getInstance()->dispatch(event);
   }
 
-  bool App::onMouseEnter(const MouseEnteredEvent& event)const
+  bool App::onMouseEnter(const MouseEnteredEvent& event) const
   {
     return true;
   }
 
-  bool App::onWindowResize(const WindowResizeEvent& event)const
+  bool App::onWindowResize(const WindowResizeEvent& event) const
   {
     m_window->setViewport();
     return true;
   }
 
-  bool App::onWindowClose(const WindowCloseEvent& event)const
+  bool App::onWindowClose(const WindowCloseEvent& event) const
   {
     KLogger::log(LogType::INFO, "window close event");
     return true;
   }
 
-  bool App::onMouseClicked(const MouseClickedEvent& event)const
+  bool App::onMouseClicked(const MouseClickedEvent& event) const
   {
     return true;
   }
 
-  bool App::onMouseMove(const MouseMovedEvent& event)const
+  bool App::onMouseMove(const MouseMovedEvent& event) const
   {
     KLogger::log(LogType::INFO, "mouse move");
     return true;
   }
 
-  bool App::onKeyPress(const KeyPressedEvent& event)const
+  bool App::onKeyPress(const KeyPressedEvent& event) const
   {
     switch (event.getKeyCode())
     {
-      case KeyCode::F1:
-        m_renderer->togglePolyMode();
-        break;
-      case KeyCode::Escape:
-        glfwSetWindowShouldClose(m_window->getWindow(), true);
-        break;
-      case KeyCode::C:
-        glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-        break;
-      default:
-        return false;
+    case KeyCode::F1:
+      m_renderer->togglePolyMode();
+      break;
+    case KeyCode::Escape:
+      glfwSetWindowShouldClose(m_window->getWindow(), true);
+      break;
+    case KeyCode::C:
+      glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+      break;
+    default:
+      return false;
     }
     return true;
   }
@@ -186,4 +189,4 @@ namespace kogayonon
   {
     return true;
   }
-}
+} // namespace kogayonon
