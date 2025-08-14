@@ -11,10 +11,7 @@ namespace kogayonon
 {
   ImGuiInterface::~ImGuiInterface()
   {
-    for (int i = 0; i < m_windows.size(); i++)
-    {
-      delete m_windows[i];
-    }
+    m_windows.clear();
   }
 
   ImGuiInterface::ImGuiInterface(GLFWwindow* window)
@@ -33,18 +30,20 @@ namespace kogayonon
   {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io    = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO();
 
-    io.ConfigFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
+    // Correct: only config flags here
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+    static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+
+    // Window flags go into DockSpace/Begin
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
+
     io.IniFilename = "imgui_config.ini";
-
     ImGui::StyleColorsLight();
-    if (!ImGui_ImplGlfw_InitForOpenGL(window, true))
-    {
-      ContextManager::klogger()->log(LogType::ERROR, "error init imgui");
-      return false;
-    }
-    if (!ImGui_ImplOpenGL3_Init("#version 460"))
+
+    if (!ImGui_ImplGlfw_InitForOpenGL(window, true) || !ImGui_ImplOpenGL3_Init("#version 460"))
     {
       ContextManager::klogger()->log(LogType::ERROR, "error init imgui");
       return false;
@@ -54,17 +53,56 @@ namespace kogayonon
 
   void ImGuiInterface::draw()
   {
+    // Start new ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    for (auto& window : m_windows)
+    // Fullscreen DockSpace window
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking;
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->Pos);
+    ImGui::SetNextWindowSize(viewport->Size);
+    ImGui::SetNextWindowViewport(viewport->ID);
+
+    window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                    ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::Begin("DockSpace Window", nullptr, window_flags);
+    ImGui::PopStyleVar(2);
+
+    // Create DockSpace
+    static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable)
     {
-      window->draw();
+      ImGuiID dockspace_id = ImGui::GetID("MyDockspace");
+      ImGui::DockSpace(dockspace_id, ImVec2(0, 0), dockspace_flags);
     }
 
+    ImGui::End(); // End DockSpace window
+
+    // Draw all custom windows
+    for (auto& window : m_windows)
+    {
+      if (window)
+        window->draw();
+    }
+
+    // Render ImGui
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    // Optional: handle multi-viewport windows
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+      GLFWwindow* backup_current_context = glfwGetCurrentContext();
+      ImGui::UpdatePlatformWindows();
+      ImGui::RenderPlatformWindowsDefault();
+      glfwMakeContextCurrent(backup_current_context);
+    }
   }
 
   /// <summary>
@@ -75,11 +113,11 @@ namespace kogayonon
 
   bool ImGuiInterface::initWindows()
   {
-    m_windows.push_back(new CameraSettingsWindow("Camera settings"));
+    m_windows.push_back(std::make_shared<CameraSettingsWindow>("Camera settings"));
     return true;
   }
 
-  Windows& ImGuiInterface::getWindows()
+  std::vector<std::shared_ptr<ImguiWindow>>& ImGuiInterface::getWindows()
   {
     return m_windows;
   }

@@ -13,8 +13,7 @@
 
 namespace kogayonon
 {
-  using Windows = std::vector<ImguiWindow*>;
-  class ImGuiInterface : public Singleton<ImGuiInterface>
+  class ImGuiInterface
   {
   public:
     ImGuiInterface() = default;
@@ -26,9 +25,9 @@ namespace kogayonon
     void draw();
 
   private:
-    Windows& getWindows();
+    std::vector<std::shared_ptr<ImguiWindow>>& getWindows();
 
   private:
-    Windows m_windows{};
+    std::vector<std::shared_ptr<ImguiWindow>> m_windows{};
   };
 } // namespace kogayonon
