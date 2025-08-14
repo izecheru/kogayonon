@@ -41,7 +41,7 @@ namespace kogayonon
         Model model;
         ModelLoader::getInstance()->assignModelMeshes(data, model.getMeshes());
         std::ofstream out{};
-        KLogger::log(LogType::INFO, "Loaded ", model.getMeshes().size(), " meshes for ", model_path);
+        ContextManager::klogger()->log(LogType::INFO, "Loaded ", model.getMeshes().size(), " meshes for ", model_path);
 
         // TODO serialize the model here
 
@@ -57,7 +57,7 @@ namespace kogayonon
     TextureLoader::getInstance()->pushTexture(
         model_path,
         [](const Texture& texture) // called after loading the texture
-        { KLogger::log(LogType::INFO, "Texture ", texture.path, " loaded"); },
+        { ContextManager::klogger()->log(LogType::INFO, "Texture ", texture.path, " loaded"); },
         m_texture_map_mutex, m_loaded_textures, data);
   }
 
@@ -75,7 +75,7 @@ namespace kogayonon
       cgltf_options options = {};
       if (cgltf_result result = cgltf_parse_file(&options, path.c_str(), &m_data); result != cgltf_result_success)
       {
-        KLogger::log(LogType::ERROR, "Failed to load glTF file:", path);
+        ContextManager::klogger()->log(LogType::ERROR, "Failed to load glTF file:", path);
       }
 
       if (auto result = cgltf_load_buffers(&options, m_data, path.c_str()); result != cgltf_result_success)
@@ -102,4 +102,10 @@ namespace kogayonon
   {
     return m_models;
   }
+
+  std::unordered_map<std::string, Texture>& AssetManager::getTextureMap()
+  {
+    return m_loaded_textures;
+  }
+
 } // namespace kogayonon

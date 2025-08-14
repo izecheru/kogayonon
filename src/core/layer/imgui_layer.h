@@ -1,13 +1,13 @@
 #pragma once
 
-#include "layer.h"
 #include "core/ui/imgui_interface.h"
-#include "events/mouse_events.h"
-#include "events/keyboard_events.h"
+#include "event/keyboard_events.h"
+#include "event/mouse_events.h"
+#include "layer.h"
 
 namespace kogayonon
 {
-  class ImguiLayer :public Layer
+  class ImguiLayer : public Layer
   {
   public:
     explicit ImguiLayer(GLFWwindow* window);
@@ -21,4 +21,4 @@ namespace kogayonon
   private:
     ImGuiInterface m_interface;
   };
-}
+} // namespace kogayonon

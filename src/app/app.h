@@ -1,9 +1,9 @@
 #pragma once
 #include "core/renderer/renderer.h"
+#include "event/app_event.h"
+#include "event/keyboard_events.h"
+#include "event/mouse_events.h"
 #include "window/window.h"
-#include "events/app_event.h"
-#include "events/mouse_events.h"
-#include "events/keyboard_events.h"
 
 namespace kogayonon
 {
@@ -32,4 +32,4 @@ namespace kogayonon
     static inline std::unique_ptr<Window> m_window;
     static inline std::unique_ptr<Renderer> m_renderer;
   };
-}
+} // namespace kogayonon

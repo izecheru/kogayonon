@@ -29,6 +29,7 @@ namespace kogayonon
   public:
     Model& getModel(const std::string& path);
     std::unordered_map<std::string, Model>& getModelMap();
+    std::unordered_map<std::string, Texture>& getTextureMap();
 
   private:
     cgltf_data* m_data = nullptr;

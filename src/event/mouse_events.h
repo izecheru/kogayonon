@@ -1,24 +1,23 @@
 #pragma once
-#include <sstream>
-#include <events/event.h>
 #include <core/mouse_codes.h>
+#include <event/event.h>
+
+#include <sstream>
 #include <string>
 
 namespace kogayonon
 {
-  class MouseEnteredEvent :public Event
+  class MouseEnteredEvent : public Event
   {
   public:
-    explicit MouseEnteredEvent(const int entered) :m_entered(entered)
-    {
-    }
+    explicit MouseEnteredEvent(const int entered) : m_entered(entered) {}
 
     int hasEntered() const
     {
       return m_entered;
     }
 
-    std::string toString()const override
+    std::string toString() const override
     {
       std::stringstream ss{};
       ss << "MouseEnteredEvent: " << m_entered;
@@ -27,7 +26,7 @@ namespace kogayonon
     }
 
     EVENT_CLASS_CATEGORY(MouseEventCategory)
-      EVENT_CLASS_TYPE(MouseEntered)
+    EVENT_CLASS_TYPE(MouseEntered)
   private:
     int m_entered;
   };
@@ -39,22 +38,18 @@ namespace kogayonon
     double m_mouse_y;
 
   public:
-    MouseMovedEvent(const double x, const double y)
-      : m_mouse_x(x)
-      , m_mouse_y(y)
-    {
-    }
+    MouseMovedEvent(const double x, const double y) : m_mouse_x(x), m_mouse_y(y) {}
 
-    inline double getX()const
+    inline double getX() const
     {
       return m_mouse_x;
     }
-    inline double getY()const
+    inline double getY() const
     {
       return m_mouse_y;
     }
 
-    std::string toString()const override
+    std::string toString() const override
     {
       std::stringstream ss{};
       ss << "MouseMovedEvent: " << m_mouse_x << ", " << m_mouse_y;
@@ -63,10 +58,10 @@ namespace kogayonon
     }
 
     EVENT_CLASS_CATEGORY(MouseEventCategory)
-      EVENT_CLASS_TYPE(MouseMoved)
+    EVENT_CLASS_TYPE(MouseMoved)
   };
 
-  class MouseClickedEvent :public Event
+  class MouseClickedEvent : public Event
   {
   private:
     MouseCode m_button;
@@ -74,9 +69,9 @@ namespace kogayonon
     MouseModifier m_mods;
 
   public:
-    MouseClickedEvent(int button, int action, int mods) :m_button(MouseCode(button)), m_action(MouseAction(action)), m_mods(MouseModifier(mods))
-    {
-    }
+    MouseClickedEvent(int button, int action, int mods)
+        : m_button(MouseCode(button)), m_action(MouseAction(action)), m_mods(MouseModifier(mods))
+    {}
 
     MouseCode getButton() const
     {
@@ -96,19 +91,17 @@ namespace kogayonon
     }
 
     EVENT_CLASS_CATEGORY(MouseEventCategory)
-      EVENT_CLASS_TYPE(MouseButtonPressed)
+    EVENT_CLASS_TYPE(MouseButtonPressed)
   };
 
-  class MouseScrolledEvent :public Event
+  class MouseScrolledEvent : public Event
   {
   private:
     double m_x_offset = 0;
     double m_y_offset = 0;
 
   public:
-    MouseScrolledEvent(double t_x_offset, double t_y_offset) :m_x_offset(t_x_offset), m_y_offset(t_y_offset)
-    {
-    }
+    MouseScrolledEvent(double t_x_offset, double t_y_offset) : m_x_offset(t_x_offset), m_y_offset(t_y_offset) {}
 
     inline double getXOff() const
     {
@@ -128,6 +121,6 @@ namespace kogayonon
     }
 
     EVENT_CLASS_CATEGORY(MouseEventCategory)
-      EVENT_CLASS_TYPE(MouseScrolled)
+    EVENT_CLASS_TYPE(MouseScrolled)
   };
-}
+} // namespace kogayonon

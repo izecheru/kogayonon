@@ -1,7 +1,7 @@
 #include "core/serialize/mesh_serializer.h"
 
 #include "core/asset_manager/loader/mesh.h"
-#include "core/klogger/klogger.h"
+#include "core/context_manager/context_manager.h"
 
 namespace kogayonon
 {
@@ -42,7 +42,7 @@ namespace kogayonon
     }
     else
     {
-      KLogger::log(LogType::ERROR, "Attempting to serialize mesh with 0 vertices");
+      ContextManager::klogger()->log(LogType::ERROR, "Attempting to serialize mesh with 0 vertices");
       return false;
     }
     std::vector<uint32_t>& indices = mesh.getIndices();
@@ -53,7 +53,7 @@ namespace kogayonon
     }
     else
     {
-      KLogger::log(LogType::ERROR, "Attempting to serialize mesh with 0 indices");
+      ContextManager::klogger()->log(LogType::ERROR, "Attempting to serialize mesh with 0 indices");
       return false;
     }
     return true;
@@ -82,7 +82,7 @@ namespace kogayonon
     {
       if (!serialize(m, out))
       {
-        KLogger::log(LogType::ERROR, "Could not serialize mesh");
+        ContextManager::klogger()->log(LogType::ERROR, "Could not serialize mesh");
       }
     }
     return true;
@@ -94,7 +94,7 @@ namespace kogayonon
     {
       if (!deserialize(m, in))
       {
-        KLogger::log(LogType::ERROR, "Could not deserialize mesh");
+        ContextManager::klogger()->log(LogType::ERROR, "Could not deserialize mesh");
       }
     }
     return true;

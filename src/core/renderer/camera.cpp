@@ -11,8 +11,8 @@
 #include "core/input/input.h"
 #include "core/klogger/klogger.h"
 #include "core/time_tracker/time_tracker.h"
-#include "events/event_listener.h"
-#include "events/keyboard_events.h"
+#include "event/event_listener.h"
+#include "event/keyboard_events.h"
 #include "shader/shader.h"
 
 namespace kogayonon

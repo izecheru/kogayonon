@@ -1,6 +1,6 @@
 #include "core/task/task_manager.h"
 
-#include "core/klogger/klogger.h"
+#include "core/context_manager/context_manager.h"
 #include "core/time_tracker/time_tracker.h"
 
 namespace kogayonon
@@ -48,7 +48,7 @@ namespace kogayonon
       catch (const std::exception& e)
       {
         // Log the error instead of crashing the thread
-        KLogger::log(LogType::ERROR, "Task execution error: ", e.what());
+        ContextManager::klogger()->log(LogType::ERROR, "Task execution error: ", e.what());
       }
     }
   }

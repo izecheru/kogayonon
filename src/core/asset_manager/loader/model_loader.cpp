@@ -36,7 +36,7 @@ namespace kogayonon
     // for(size_t animation_index = 0; animation_index < data->animations_count; animation_index++)
     //{
     //  cgltf_animation& animation = data->animations[animation_index];
-    //  KLogger::log(LogType::INFO, "Parsing animation:", animation.name);
+    //  ContextManager::klogger()->log(LogType::INFO, "Parsing animation:", animation.name);
     //}
   }
 

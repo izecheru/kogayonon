@@ -21,15 +21,21 @@ namespace kogayonon
   class KLogger
   {
   public:
-    // Delete constructor and destructor to prevent instantiation
-    KLogger()  = delete;
-    ~KLogger() = delete;
+    KLogger(const std::string& path)
+    {
+      initialize(path);
+    }
 
-    static void logWorker();
-    static void shutdown();
+    ~KLogger()
+    {
+      shutdown();
+    }
 
-    static void initialize(const std::string& log_path);
-    template <typename... Args> static void log(LogType type, const Args&... args)
+    void logWorker();
+    void shutdown();
+
+    template <typename... Args>
+    void log(LogType type, const Args&... args)
     {
       time_t log_time = time(nullptr);
       struct tm local_time;
@@ -65,12 +71,14 @@ namespace kogayonon
     }
 
   private:
-    static std::queue<std::string> m_queued_logs;
-    static std::thread m_worker_thread;
-    static std::condition_variable m_cv;
+    void initialize(const std::string& log_path);
 
-    static std::stringstream m_str_stream;
-    static std::mutex m_mutex;
-    static std::ofstream m_out;
+    std::queue<std::string> m_queued_logs;
+    std::thread m_worker_thread;
+    std::condition_variable m_cv;
+
+    std::stringstream m_str_stream;
+    std::mutex m_mutex;
+    std::ofstream m_out;
   };
 } // namespace kogayonon

@@ -31,7 +31,7 @@ namespace kogayonon
         : type(t), path(p), width(w), height(h), num_components(n), data(d), gamma(g)
     {}
 
-    inline std::string& getPath() const
+    inline std::string getPath() const
     {
       return path;
     }
@@ -39,11 +39,6 @@ namespace kogayonon
 
   class Mesh
   {
-  private:
-    using texture_vec = std::vector<std::string>;
-    using indices_vec = std::vector<uint32_t>;
-    using vertice_vec = std::vector<Vertex>;
-
   public:
     Mesh() = default;
     explicit Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<std::string>& textures);
@@ -54,23 +49,22 @@ namespace kogayonon
     {
       return m_init;
     }
-    vertice_vec& getVertices();
-    indices_vec& getIndices();
-    texture_vec& getTextures();
+
+    std::vector<Vertex>& getVertices();
+    std::vector<uint32_t>& getIndices();
+    std::vector<std::string>& getTextures();
 
   private:
     bool setupTextures();
 
   private:
-    vertice_vec m_vertices;
-    texture_vec m_textures;
-    indices_vec m_indices;
+    std::vector<Vertex> m_vertices{};
+    std::vector<uint32_t> m_indices{};
+    std::vector<std::string> m_textures{};
 
     uint32_t m_vao = 0;
     uint32_t m_vbo = 0;
     uint32_t m_ebo = 0;
     bool m_init    = false;
-
-    std::vector<std::shared_ptr<Texture>> m_loaded_textures{};
   };
 } // namespace kogayonon

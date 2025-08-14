@@ -1,4 +1,4 @@
-#include "events/event.h"
+#include "event/event.h"
 
 namespace kogayonon
 {
@@ -6,4 +6,4 @@ namespace kogayonon
   {
     return getCategoryFlags() & category;
   }
-}
+} // namespace kogayonon

@@ -2,6 +2,7 @@
 
 #include <glad/glad.h>
 
+#include "core/context_manager/context_manager.h"
 #include "core/klogger/klogger.h"
 #include "core/renderer/camera.h"
 
@@ -18,54 +19,56 @@ namespace kogayonon
   //// Setup textures on main thread since opengl functions are not thread safe
   bool Mesh::setupTextures()
   {
-    // //if (textures_map.empty())
-    //   return false;
+    auto texture_map = ContextManager::asset_manager()->getTextureMap();
 
-    // for (unsigned int i = 0; i < m_textures.size(); i++)
-    //{
-    //   auto& texture = textures_map[m_textures[i]];
-    //   KLogger::log(LogType::INFO, "texture path:", m_textures[i]);
-    //   if (!texture.data.empty())
-    //   {
-    //     GLenum glformat = GL_RGB;
-    //     switch (texture.num_components)
-    //     {
-    //     case 1:
-    //       glformat = GL_RED;
-    //       break;
-    //     case 2:
-    //       glformat = GL_RG;
-    //       break;
-    //     case 3:
-    //       glformat = GL_RGB;
-    //       break;
-    //     case 4:
-    //       glformat = GL_RGBA;
-    //       break;
-    //     }
-    //     glCreateTextures(GL_TEXTURE_2D, 1, &texture.id);
+    if (m_textures.empty() || texture_map.empty())
+      return false;
 
-    //    // We allocate immutable storage for the texture
-    //    glTextureStorage2D(texture.id, 1, GL_RGBA8, texture.width, texture.height);
+    for (auto it = m_textures.begin(); it != m_textures.end(); ++it)
+    {
+      Texture& texture = texture_map.at(*it);
+      ContextManager::klogger()->log(LogType::INFO, "texture path:", texture.path);
+      if (!texture.data.empty())
+      {
+        GLenum glformat = GL_RGB;
+        switch (texture.num_components)
+        {
+        case 1:
+          glformat = GL_RED;
+          break;
+        case 2:
+          glformat = GL_RG;
+          break;
+        case 3:
+          glformat = GL_RGB;
+          break;
+        case 4:
+          glformat = GL_RGBA;
+          break;
+        }
+        glCreateTextures(GL_TEXTURE_2D, 1, &texture.id);
 
-    //    // Upload the image data to the texture
-    //    glTextureSubImage2D(texture.id, 0, 0, 0, texture.width, texture.height, glformat, GL_UNSIGNED_BYTE, texture.data.data());
+        // We allocate immutable storage for the texture
+        glTextureStorage2D(texture.id, 1, GL_RGBA8, texture.width, texture.height);
 
-    //    // Generate mipmaps
-    //    glGenerateTextureMipmap(texture.id);
+        // Upload the image data to the texture
+        glTextureSubImage2D(texture.id, 0, 0, 0, texture.width, texture.height, glformat, GL_UNSIGNED_BYTE, texture.data.data());
 
-    //    glTextureParameteri(texture.id, GL_TEXTURE_WRAP_S, GL_REPEAT); // Or GL_MIRRORED_REPEAT, GL_CLAMP_TO_EDGE, etc.
-    //    glTextureParameteri(texture.id, GL_TEXTURE_WRAP_T, GL_REPEAT); // For the T coordinate
-    //    glTextureParameteri(texture.id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    //    glTextureParameteri(texture.id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        // Generate mipmaps
+        glGenerateTextureMipmap(texture.id);
 
-    //    texture.data.clear();
-    //  }
-    //  else
-    //  {
-    //    KLogger::log(LogType::ERROR, "Failed to load image from ", texture.path);
-    //  }
-    //}
+        glTextureParameteri(texture.id, GL_TEXTURE_WRAP_S, GL_REPEAT); // Or GL_MIRRORED_REPEAT, GL_CLAMP_TO_EDGE, etc.
+        glTextureParameteri(texture.id, GL_TEXTURE_WRAP_T, GL_REPEAT); // For the T coordinate
+        glTextureParameteri(texture.id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTextureParameteri(texture.id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        texture.data.clear();
+      }
+      else
+      {
+        ContextManager::klogger()->log(LogType::ERROR, "Failed to load image from ", texture.path);
+      }
+    }
     return true;
   }
 
@@ -126,17 +129,17 @@ namespace kogayonon
   //  glBindTextureUnit(0, 0);
   //}
 
-  Mesh::vertice_vec& Mesh::getVertices()
+  std::vector<Vertex>& Mesh::getVertices()
   {
     return m_vertices;
   }
 
-  Mesh::indices_vec& Mesh::getIndices()
+  std::vector<uint32_t>& Mesh::getIndices()
   {
     return m_indices;
   }
 
-  Mesh::texture_vec& Mesh::getTextures()
+  std::vector<std::string>& Mesh::getTextures()
   {
     return m_textures;
   }

@@ -4,9 +4,10 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
+#include "core/context_manager/context_manager.h"
 #include "core/klogger/klogger.h"
-#include "events/event_listener.h"
-#include "events/keyboard_events.h"
+#include "event/event_listener.h"
+#include "event/keyboard_events.h"
 
 namespace kogayonon
 {
@@ -28,7 +29,7 @@ namespace kogayonon
 
     m_interface.initWindows();
 
-    KLogger::log(LogType::INFO, "ImGui layer initialised");
+    ContextManager::klogger()->log(LogType::INFO, "ImGui layer initialised");
     return true;
   }
 

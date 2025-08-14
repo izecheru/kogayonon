@@ -25,23 +25,21 @@
 #include "core/task/task_manager.h"
 #include "core/time_tracker/time_tracker.h"
 #include "core/ui/imgui_interface.h"
-#include "events/event_listener.h"
-#include "events/keyboard_events.h"
-#include "events/mouse_events.h"
+#include "event/event_listener.h"
+#include "event/keyboard_events.h"
+#include "event/mouse_events.h"
 #include "window/window.h"
 
 namespace kogayonon
 {
   App::App()
   {
-    KLogger::initialize("log.txt");
+    ContextManager::addToContext(Context::KLoggerContext, std::make_shared<KLogger>("log.txt"));
     ContextManager::addToContext(Context::AssetManagerContext, std::make_shared<AssetManager>());
     ContextManager::addToContext(Context::TaskManagerContext, std::make_shared<TaskManager>(10));
 
     m_window   = std::make_unique<Window>();
     m_renderer = std::make_unique<Renderer>();
-
-    // this is from vim
 
     // TODO this should be done in the renderer not here
     m_renderer->pushShader("resources/shaders/3d_vertex.glsl", "resources/shaders/3d_fragment.glsl", "3d_shader");
@@ -61,15 +59,18 @@ namespace kogayonon
 
   App::~App()
   {
+    m_window.reset();
+    m_renderer.reset();
+
+    // LET THIS HERE IF YOU NEED LOGGING ON EXIT
     ContextManager::clear();
-    KLogger::shutdown();
   }
 
   void App::run() const
   {
     const GLubyte* version = glGetString(GL_VERSION);
-    KLogger::log(LogType::INFO, "OpenGL Version: ", version);
-    KLogger::log(LogType::INFO, "Starting game engine---");
+    ContextManager::klogger()->log(LogType::INFO, "OpenGL Version: ", version);
+    ContextManager::klogger()->log(LogType::INFO, "Starting game engine");
     glEnable(GL_DEPTH_TEST);
 
     // all the events from the window are sent to the app.onEvent function and
@@ -81,7 +82,7 @@ namespace kogayonon
 
     GLint maxVertices;
     glGetIntegerv(GL_MAX_ELEMENTS_VERTICES, &maxVertices);
-    KLogger::log(LogType::INFO, "Max vertices per draw call: ", maxVertices);
+    ContextManager::klogger()->log(LogType::INFO, "Max vertices per draw call: ", maxVertices);
     Camera* camera = Camera::getInstance();
     Shader& shader = m_renderer->getShader("3d_shader");
 
@@ -146,7 +147,7 @@ namespace kogayonon
 
   bool App::onWindowClose(const WindowCloseEvent& event) const
   {
-    KLogger::log(LogType::INFO, "window close event");
+    ContextManager::klogger()->log(LogType::INFO, "window close event");
     return true;
   }
 
@@ -157,7 +158,7 @@ namespace kogayonon
 
   bool App::onMouseMove(const MouseMovedEvent& event) const
   {
-    KLogger::log(LogType::INFO, "mouse move");
+    ContextManager::klogger()->log(LogType::INFO, "mouse move");
     return true;
   }
 

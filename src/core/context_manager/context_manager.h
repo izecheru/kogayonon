@@ -14,6 +14,7 @@ namespace kogayonon
   {
     AssetManagerContext,
     TaskManagerContext,
+    KLoggerContext,
   };
 
   static std::string contextToString(Context id)
@@ -24,7 +25,10 @@ namespace kogayonon
       return "AssetManager";
     case Context::TaskManagerContext:
       return "TaskManager";
+    case Context::KLoggerContext:
+      return "KLogger";
     }
+    return "Not Found";
   }
 
   class ContextManager
@@ -42,11 +46,11 @@ namespace kogayonon
       if (context_map.find(id) == context_map.end())
       {
         context_map.emplace(id, context);
-        KLogger::log(LogType::CRITICAL, "Added to context - ", contextToString(id));
+        klogger()->log(LogType::CRITICAL, "Added to context - ", contextToString(id));
       }
       else
       {
-        KLogger::log(LogType::CRITICAL, "Could not add to context - ", contextToString(id));
+        klogger()->log(LogType::CRITICAL, "Could not add to context - ", contextToString(id));
       }
     }
 
@@ -57,11 +61,11 @@ namespace kogayonon
       if (context_map.find(id) != context_map.end())
       {
         context_map.erase(id);
-        KLogger::log(LogType::CRITICAL, "Removed from context - ", contextToString(id));
+        klogger()->log(LogType::CRITICAL, "Removed from context - ", contextToString(id));
       }
       else
       {
-        KLogger::log(LogType::CRITICAL, "Could not find context for removal - ", contextToString(id));
+        klogger()->log(LogType::CRITICAL, "Could not find context for removal - ", contextToString(id));
       }
     }
 
@@ -79,7 +83,6 @@ namespace kogayonon
     {
       std::lock_guard lock(m_context_map_mutex);
       context_map.clear();
-      KLogger::log(LogType::INFO, "ContextManager cleared all contexts.");
     }
 
     static std::shared_ptr<AssetManager> asset_manager()
@@ -90,6 +93,11 @@ namespace kogayonon
     static std::shared_ptr<TaskManager> task_manager()
     {
       return getFromContext<TaskManager>(Context::TaskManagerContext);
+    }
+
+    static std::shared_ptr<KLogger> klogger()
+    {
+      return getFromContext<KLogger>(Context::KLoggerContext);
     }
 
   private:

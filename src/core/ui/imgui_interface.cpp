@@ -4,7 +4,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
-#include "core/klogger/klogger.h"
+#include "core/context_manager/context_manager.h"
 #include "core/ui/win_camera_settings.h"
 
 namespace kogayonon
@@ -21,11 +21,11 @@ namespace kogayonon
   {
     if (initImgui(window))
     {
-      KLogger::log(LogType::INFO, "Imgui initialised");
+      ContextManager::klogger()->log(LogType::INFO, "Imgui initialised");
     }
     else
     {
-      KLogger::log(LogType::ERROR, "Imgui could not be initialised");
+      ContextManager::klogger()->log(LogType::ERROR, "Imgui could not be initialised");
     }
   }
 
@@ -41,12 +41,12 @@ namespace kogayonon
     ImGui::StyleColorsLight();
     if (!ImGui_ImplGlfw_InitForOpenGL(window, true))
     {
-      KLogger::log(LogType::ERROR, "error init imgui");
+      ContextManager::klogger()->log(LogType::ERROR, "error init imgui");
       return false;
     }
     if (!ImGui_ImplOpenGL3_Init("#version 460"))
     {
-      KLogger::log(LogType::ERROR, "error init imgui");
+      ContextManager::klogger()->log(LogType::ERROR, "error init imgui");
       return false;
     }
     return true;

@@ -1,8 +1,9 @@
 #pragma once
-#include "core/singleton/singleton.h"
 #include <glm/glm.hpp>
-#include "events/mouse_events.h"
-#include "events/keyboard_events.h"
+
+#include "core/singleton/singleton.h"
+#include "event/keyboard_events.h"
+#include "event/mouse_events.h"
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -25,7 +26,7 @@ namespace kogayonon
     float mouse_sens;
   };
 
-  class Camera :public Singleton<Camera>
+  class Camera : public Singleton<Camera>
   {
   public:
     Camera();
@@ -36,7 +37,7 @@ namespace kogayonon
     const bool getFirstMove();
 
     void setFirstMove();
-    const glm::mat4& getViewMatrix()const;
+    const glm::mat4& getViewMatrix() const;
 
     bool onMouseScrolled(MouseScrolledEvent& event);
     void processMouseScrolled(double x_offset, double y_offset);
@@ -51,16 +52,25 @@ namespace kogayonon
     void updateCameraVectors();
 
     void cameraUniform(unsigned int shader_id, const char* uniform);
-    glm::vec3 getCameraPos()const;
+    glm::vec3 getCameraPos() const;
 
     CameraProps& getProps();
 
-    inline float getX() const { return m_props.position.x; }
-    inline float getY() const { return m_props.position.y; }
-    inline float getZ() const { return m_props.position.z; }
+    inline float getX() const
+    {
+      return m_props.position.x;
+    }
+    inline float getY() const
+    {
+      return m_props.position.y;
+    }
+    inline float getZ() const
+    {
+      return m_props.position.z;
+    }
 
   private:
     CameraProps m_props{};
     bool first_move = false;
   };
-}
+} // namespace kogayonon

@@ -4,20 +4,13 @@
 
 namespace kogayonon
 {
-  std::stringstream KLogger::m_str_stream;
-  std::mutex KLogger::m_mutex;
-  std::ofstream KLogger::m_out;
-  std::queue<std::string> KLogger::m_queued_logs;
-  std::condition_variable KLogger::m_cv;
-  std::thread KLogger::m_worker_thread;
-
   void KLogger::initialize(const std::string& log_path)
   {
     {
       std::unique_lock lock(m_mutex);
       m_out.open(log_path, std::ios::out);
     }
-    m_worker_thread = std::thread(&logWorker);
+    m_worker_thread = std::thread([this]() { logWorker(); });
   }
 
   void KLogger::shutdown()
@@ -44,7 +37,7 @@ namespace kogayonon
       std::string log_message;
       {
         std::unique_lock lock(m_mutex);
-        m_cv.wait(lock, [] { return !m_queued_logs.empty(); });
+        m_cv.wait(lock, [this] { return !m_queued_logs.empty(); });
         log_message = m_queued_logs.front();
         m_queued_logs.pop();
       }

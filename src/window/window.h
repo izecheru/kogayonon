@@ -4,11 +4,12 @@
 #define GLFW_INCLUDE_NONE
 #endif
 #include <GLFW/glfw3.h>
-#include <unordered_set>
-#include <functional>
-#include <events/event.h>
-#include <cstdint>
 #include <core/key_codes.h>
+#include <event/event.h>
+
+#include <cstdint>
+#include <functional>
+#include <unordered_set>
 
 namespace kogayonon
 {
@@ -22,13 +23,10 @@ namespace kogayonon
     bool vsync;
     EventCallbackFn eventCallback;
 
-    explicit window_props(const char* t_title = "kogayonon",
-      unsigned short t_width = 900,
-      unsigned short t_height = 500,
-      bool t_vsync = true)
-      : title(t_title), width(t_width), height(t_height), vsync(t_vsync)
-    {
-    }
+    explicit window_props(const char* t_title = "kogayonon", unsigned short t_width = 900, unsigned short t_height = 500,
+                          bool t_vsync = true)
+        : title(t_title), width(t_width), height(t_height), vsync(t_vsync)
+    {}
 
     ~window_props() = default;
   };
@@ -56,4 +54,4 @@ namespace kogayonon
     GLFWwindow* m_window{};
     window_props m_data{};
   };
-}
+} // namespace kogayonon
