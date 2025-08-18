@@ -15,6 +15,7 @@ namespace kogayonon
     {
       m_visible = state;
     }
+
     bool isVisible() const
     {
       return m_visible;

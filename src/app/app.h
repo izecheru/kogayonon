@@ -24,12 +24,11 @@ namespace kogayonon
     bool onKeyPress(const KeyPressedEvent& event) const;
     bool onScroll() const;
 
-    static GLFWwindow* getWindow();
+    void initializeContext();
 
   private:
     static inline bool capture_mouse = true;
     static inline double delta_time;
-    static inline std::unique_ptr<Window> m_window;
-    static inline std::unique_ptr<Renderer> m_renderer;
+    static inline std::shared_ptr<Window> m_window;
   };
 } // namespace kogayonon

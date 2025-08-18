@@ -10,7 +10,7 @@ namespace kogayonon
     openFile(bin_path, out, FileMode::WRITE);
     std::vector<Mesh>& meshes = model.getMeshes();
 
-    size_t mesh_count         = meshes.size();
+    size_t mesh_count = meshes.size();
     serializeVar(mesh_count, out);
 
     serialize(meshes, out);
@@ -23,7 +23,7 @@ namespace kogayonon
 
     std::vector<Mesh>& meshes = model.getMeshes();
 
-    size_t mesh_count         = 0;
+    size_t mesh_count = 0;
     assert(deserializeVar(mesh_count, in) == true);
 
     meshes.resize(mesh_count);

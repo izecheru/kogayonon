@@ -1,25 +1,23 @@
 #pragma once
 
-#include "core/singleton/singleton.h"
 #include "core/renderer/camera.h"
+#include "core/singleton/singleton.h"
 #include "imgui_window.h"
 
 namespace kogayonon
 {
-  class CameraSettingsWindow : public ImguiWindow
+  class CameraSettingsWindow : public ImGuiWindow
   {
   public:
-    explicit CameraSettingsWindow(std::string name, bool can_move = false) :ImguiWindow(std::move(name))
+    explicit CameraSettingsWindow(const std::string& name, bool can_move = true) : ImGuiWindow(name)
     {
       m_props->can_move = can_move;
-      m_props->m_flags |= ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize;
+      m_props->m_flags |= ImGuiWindowFlags_AlwaysAutoResize;
     }
 
-  private:
-    bool initCameraWindow();
     void draw() override;
 
-    // specific functions for this particular window
+  private:
     void drawProperties(CameraProps& t_props);
   };
-}
+} // namespace kogayonon

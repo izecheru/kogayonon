@@ -8,7 +8,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "core/input/input.h"
 #include "core/klogger/klogger.h"
 #include "core/time_tracker/time_tracker.h"
 #include "event/event_listener.h"
@@ -31,13 +30,13 @@ namespace kogayonon
 
   void Camera::setupCamera()
   {
-    m_props.position       = glm::vec3(0.0f, 0.0f, 3.0f);
-    m_props.direction      = glm::vec3(0.0f, 0.0f, -1.0f);
-    m_props.camera_up      = glm::vec3(0.0f, 1.0f, 0.0f);
-    m_props.world_up       = glm::vec3(0.0f, 1.0f, 0.0f);
-    m_props.yaw            = -90.0f;
-    m_props.pitch          = 0.0f;
-    m_props.mouse_sens     = 0.2f;
+    m_props.position = glm::vec3(0.0f, 0.0f, 3.0f);
+    m_props.direction = glm::vec3(0.0f, 0.0f, -1.0f);
+    m_props.camera_up = glm::vec3(0.0f, 1.0f, 0.0f);
+    m_props.world_up = glm::vec3(0.0f, 1.0f, 0.0f);
+    m_props.yaw = -90.0f;
+    m_props.pitch = 0.0f;
+    m_props.mouse_sens = 0.2f;
     m_props.movement_speed = 90.0f;
   }
 
@@ -93,15 +92,15 @@ namespace kogayonon
 
     if (first_move)
     {
-      lastX      = x;
-      lastY      = y;
+      lastX = x;
+      lastY = y;
       first_move = false;
     }
 
     float xoffset = x - lastX;
     float yoffset = lastY - y;
-    lastX         = x;
-    lastY         = y;
+    lastX = x;
+    lastY = y;
 
     xoffset *= m_props.mouse_sens;
     yoffset *= m_props.mouse_sens;
@@ -163,12 +162,12 @@ namespace kogayonon
   void Camera::updateCameraVectors()
   {
     glm::vec3 direction;
-    direction.x       = cos(glm::radians(m_props.yaw)) * cos(glm::radians(m_props.pitch));
-    direction.y       = sin(glm::radians(m_props.pitch));
-    direction.z       = sin(glm::radians(m_props.yaw)) * cos(glm::radians(m_props.pitch));
+    direction.x = cos(glm::radians(m_props.yaw)) * cos(glm::radians(m_props.pitch));
+    direction.y = sin(glm::radians(m_props.pitch));
+    direction.z = sin(glm::radians(m_props.yaw)) * cos(glm::radians(m_props.pitch));
     m_props.direction = glm::normalize(direction);
 
-    m_props.right     = glm::normalize(glm::cross(m_props.direction, m_props.world_up));
+    m_props.right = glm::normalize(glm::cross(m_props.direction, m_props.world_up));
     m_props.camera_up = glm::normalize(glm::cross(m_props.right, m_props.direction));
   }
 
@@ -183,6 +182,7 @@ namespace kogayonon
     glm::vec3 pos = glm::vec3(m_props.position.x, m_props.position.y, m_props.position.z);
     return pos;
   }
+
   CameraProps& Camera::getProps()
   {
     return m_props;

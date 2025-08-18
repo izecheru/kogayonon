@@ -26,10 +26,11 @@ namespace kogayonon
     float mouse_sens;
   };
 
-  class Camera : public Singleton<Camera>
+  class Camera
   {
   public:
     Camera();
+    ~Camera() = default;
 
     void setupCamera();
 
@@ -60,10 +61,12 @@ namespace kogayonon
     {
       return m_props.position.x;
     }
+
     inline float getY() const
     {
       return m_props.position.y;
     }
+
     inline float getZ() const
     {
       return m_props.position.z;

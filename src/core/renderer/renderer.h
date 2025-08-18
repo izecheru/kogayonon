@@ -1,34 +1,29 @@
 #pragma once
-#include <map>
-
-#include "core/asset_manager/loader/mesh.h"
-#include "core/layer/layer_stack.h"
-#include "shader/shader.h"
+#include "core/ui/imgui_manager.h"
+#include "shader/shader_manager.h"
 
 namespace kogayonon
 {
   class Renderer
   {
   public:
-    Renderer() : is_poly(false) {}
-    ~Renderer() = default;
+    explicit Renderer(GLFWwindow* window)
+        : is_poly(false), m_shader_manager(std::make_unique<ShaderManager>()), m_imgui_manager(std::make_unique<ImGuiManager>(window))
+    {}
+
+    ~Renderer()
+    {
+      m_shader_manager.reset();
+      m_shader_manager = nullptr;
+    }
 
     void draw() const;
-    LayerStack& getLayerStack();
-    void pushLayer(std::unique_ptr<Layer> layer);
     bool getPolyMode();
     void togglePolyMode();
 
-    // TODO breaking SRP here, move them to shader
-    void pushShader(const std::string& vertex_shader, const std::string& fragment_shader, const std::string& shader_name);
-    Shader& getShader(const char* shader_name);
-    GLint getShaderId(const char* shader_name);
-    void bindShader(const char* shader_name);
-    void unbindShader(const char* shader_name);
-
   private:
     bool is_poly = false;
-    LayerStack m_layer_stack;
-    std::map<const std::string, Shader> m_shaders;
+    std::unique_ptr<ShaderManager> m_shader_manager = nullptr;
+    std::unique_ptr<ImGuiManager> m_imgui_manager = nullptr;
   };
 } // namespace kogayonon

@@ -15,16 +15,12 @@
 #include "app/app.h"
 #include "core/asset_manager/asset_manager.h"
 #include "core/context_manager/context_manager.h"
-#include "core/input/input.h"
 #include "core/klogger/klogger.h"
 #include "core/layer/imgui_layer.h"
-#include "core/layer/layer_stack.h"
-#include "core/layer/world_layer.h"
 #include "core/renderer/camera.h"
 #include "core/renderer/renderer.h"
 #include "core/task/task_manager.h"
-#include "core/time_tracker/time_tracker.h"
-#include "core/ui/imgui_interface.h"
+#include "core/ui/imgui_manager.h"
 #include "event/event_listener.h"
 #include "event/keyboard_events.h"
 #include "event/mouse_events.h"
@@ -34,20 +30,9 @@ namespace kogayonon
 {
   App::App()
   {
-    ContextManager::addToContext(Context::KLoggerContext, std::make_shared<KLogger>("log.txt"));
-    ContextManager::addToContext(Context::AssetManagerContext, std::make_shared<AssetManager>());
-    ContextManager::addToContext(Context::TaskManagerContext, std::make_shared<TaskManager>(10));
+    m_window = std::make_shared<Window>();
 
-    m_window   = std::make_unique<Window>();
-    m_renderer = std::make_unique<Renderer>();
-
-    // TODO this should be done in the renderer not here
-    m_renderer->pushShader("resources/shaders/3d_vertex.glsl", "resources/shaders/3d_fragment.glsl", "3d_shader");
-
-    // the order you push layers here is the order of rendering, so imgiui would be drawn on
-    // everything below it
-    m_renderer->pushLayer(std::make_unique<WorldLayer>(m_renderer->getShader("3d_shader"))); // 0
-    m_renderer->pushLayer(std::make_unique<ImguiLayer>(m_window->getWindow()));              // 1
+    initializeContext();
 
     EventListener::getInstance()->addCallback<WindowResizeEvent>(
         [this](const Event& e) { return this->onWindowResize((const WindowResizeEvent&)(e)); });
@@ -60,7 +45,6 @@ namespace kogayonon
   App::~App()
   {
     m_window.reset();
-    m_renderer.reset();
 
     // LET THIS HERE IF YOU NEED LOGGING ON EXIT
     ContextManager::clear();
@@ -83,39 +67,13 @@ namespace kogayonon
     GLint maxVertices;
     glGetIntegerv(GL_MAX_ELEMENTS_VERTICES, &maxVertices);
     ContextManager::klogger()->log(LogType::INFO, "Max vertices per draw call: ", maxVertices);
-    Camera* camera = Camera::getInstance();
-    Shader& shader = m_renderer->getShader("3d_shader");
 
-    Model my_model("resources/models/sphere.gltf");
-
-    // Model my_model2("resources/models/serialized_models/spehere.bin");
-
-    // Model my_model3("resources/models/cube.gltf");
-
-    while (!glfwWindowShouldClose(m_window->getWindow()))
+    while (true)
     {
-      glClearColor(0.3f, 0.0f, 1.0f, 0.3f);
+      glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-      auto proj           = glm::mat4(1.0f);
-      float scale_factor  = 0.08f;
-      glm::mat4 model_mat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -200.0f));
-      glm::mat4 scale_mat = glm::scale(glm::mat4(6.0f), glm::vec3(10.08f * scale_factor));
-      proj = glm::perspective(glm::radians(45.0f), (float)m_window->getWidth() / (float)m_window->getHeight(), 0.1f, 4000.0f);
-
-      m_renderer->bindShader("3d_shader");
-      shader.setMat4("model", model_mat);
-      shader.setMat4("projection", proj);
-      shader.setMat4("scaleMatrix", scale_mat);
-      camera->cameraUniform(m_renderer->getShaderId("3d_shader"), "view");
-
-      m_renderer->draw();
-      m_renderer->unbindShader("3d_shader");
-
-      float current_time = glfwGetTime();
-      TimeTracker::getInstance()->setDelta(current_time - prev_time);
-      camera->processKeyboard();
-      prev_time = current_time;
+      ContextManager::renderer()->draw();
       m_window->update();
 
       if (glfwWindowShouldClose(m_window->getWindow()))
@@ -167,7 +125,7 @@ namespace kogayonon
     switch (event.getKeyCode())
     {
     case KeyCode::F1:
-      m_renderer->togglePolyMode();
+      ContextManager::renderer()->togglePolyMode();
       break;
     case KeyCode::Escape:
       glfwSetWindowShouldClose(m_window->getWindow(), true);
@@ -181,13 +139,17 @@ namespace kogayonon
     return true;
   }
 
-  GLFWwindow* App::getWindow()
-  {
-    return m_window->getWindow();
-  }
-
   bool App::onScroll() const
   {
     return true;
+  }
+
+  void App::initializeContext()
+  {
+    ContextManager::addToContext(Context::KLoggerContext, std::make_shared<KLogger>("log.txt"));
+    ContextManager::addToContext(Context::AssetManagerContext, std::make_shared<AssetManager>());
+    ContextManager::addToContext(Context::TaskManagerContext, std::make_shared<TaskManager>(10));
+    ContextManager::addToContext(Context::CameraContext, std::make_shared<Camera>());
+    ContextManager::addToContext(Context::RendererContext, std::make_shared<Renderer>(m_window->getWindow()));
   }
 } // namespace kogayonon

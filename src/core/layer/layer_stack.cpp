@@ -7,7 +7,7 @@ namespace kogayonon
     m_layers.clear();
   }
 
-  void LayerStack::pushLayer(std::unique_ptr<Layer> layer)
+  void LayerStack::pushLayer(std::shared_ptr<Layer> layer)
   {
     m_layers.push_back(std::move(layer));
   }

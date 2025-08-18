@@ -14,8 +14,8 @@ BinPackParameters: true
 ColumnLimit: 140
 AlwaysBreakAfterReturnType: None
 NamespaceIndentation: All
-
 AlwaysBreakTemplateDeclarations: Yes
+SeparateDefinitionBlocks: Always
 
 # Include Sorting
 SortIncludes: true

@@ -2,24 +2,23 @@
 
 #include <imgui.h>
 
+#include <memory>
 #include <string>
 
 namespace kogayonon
 {
-  // TODO load the ini file and design the windows there
-  // i need sliders and all that for a window so i dont know
-  // of a way to load it programatically or write function with
-  // params good enough to create any window i might need
-  class ImguiWindow
+  class ImGuiWindow
   {
   public:
-    explicit ImguiWindow(std::string name)
+    explicit ImGuiWindow(std::string name)
     {
-      m_props = new imgui_props(name);
+      m_props = std::make_unique<imgui_props>(name);
     }
-    virtual ~ImguiWindow()
+
+    virtual ~ImGuiWindow()
     {
-      delete m_props;
+      m_props.reset();
+      m_props = nullptr;
     }
 
     // Default implementations for all property functions
@@ -27,14 +26,17 @@ namespace kogayonon
     {
       m_props->is_docked = status;
     }
+
     virtual void setVisible(bool status)
     {
       m_props->visible = status;
     }
+
     virtual void setX(double x)
     {
       m_props->m_x = x;
     }
+
     virtual void setY(double y)
     {
       m_props->m_y = y;
@@ -46,11 +48,11 @@ namespace kogayonon
     struct imgui_props
     {
       std::string m_name;
-      double m_x      = 0.0;
-      double m_y      = 0.0;
-      bool is_docked  = false;
-      bool can_move   = true;
-      bool visible    = true;
+      double m_x = 0.0;
+      double m_y = 0.0;
+      bool is_docked = false;
+      bool can_move = true;
+      bool visible = true;
       bool is_hovered = false;
       bool can_resize = false;
       ImGuiWindowFlags m_flags;
@@ -61,6 +63,6 @@ namespace kogayonon
       {}
     };
 
-    imgui_props* m_props;
+    std::unique_ptr<imgui_props> m_props = nullptr;
   };
 } // namespace kogayonon

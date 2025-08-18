@@ -5,7 +5,6 @@
 #endif
 
 #include "core/context_manager/context_manager.h"
-#include "core/input/input.h"
 #include "core/klogger/klogger.h"
 #include "event/app_event.h"
 #include "event/keyboard_events.h"
@@ -69,9 +68,14 @@ namespace kogayonon
   {
     int width, height;
     glfwGetFramebufferSize(m_window, &width, &height);
-    m_data.width  = width;
+    m_data.width = width;
     m_data.height = height;
     glViewport(0, 0, width, height);
+  }
+
+  void Window::maximize()
+  {
+    glfwMaximizeWindow(m_window);
   }
 
   void Window::setEventCallbackFn(const EventCallbackFn& callback)
@@ -90,6 +94,7 @@ namespace kogayonon
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 
     m_window = glfwCreateWindow(props.width, props.height, props.title, NULL, NULL);
 

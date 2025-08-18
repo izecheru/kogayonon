@@ -23,7 +23,7 @@ namespace kogayonon
     bool vsync;
     EventCallbackFn eventCallback;
 
-    explicit window_props(const char* t_title = "kogayonon", unsigned short t_width = 900, unsigned short t_height = 500,
+    explicit window_props(const char* t_title = "kogayonon", unsigned short t_width = 1900, unsigned short t_height = 1000,
                           bool t_vsync = true)
         : title(t_title), width(t_width), height(t_height), vsync(t_vsync)
     {}
@@ -43,6 +43,7 @@ namespace kogayonon
     void setVsync();
     bool isVsync();
     void setViewport();
+    void maximize();
     void setEventCallbackFn(const EventCallbackFn& callback);
     GLFWwindow* getWindow();
     window_props& getWindowData();

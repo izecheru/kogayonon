@@ -12,21 +12,42 @@ namespace kogayonon
     glm::vec2 tex_coords;
   };
 
+  struct MeshGPU
+  {
+    GLuint vao = 0;
+    GLuint vbo = 0;
+    GLuint ebo = 0;
+  };
+
+  struct MeshData
+  {
+    std::vector<Vertex> m_vertices{};
+    std::vector<uint32_t> m_indices{};
+    std::vector<std::string> m_textures{};
+
+    explicit MeshData(std::vector<Vertex> vertices, std::vector<uint32_t> indices, std::vector<std::string> textures)
+        : m_vertices(std::move(vertices)), m_indices(std::move(indices)), m_textures(std::move(textures))
+    {}
+
+    explicit MeshData(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices) : m_vertices(vertices), m_indices(indices)
+    {}
+
+    ~MeshData() {}
+  };
+
   struct Texture
   {
     unsigned int id = 0;
-    std::string type; // Changed from char array to std::string
-    std::string path; // Changed from char array to std::string
-    int width          = 0;
-    int height         = 0;
+    std::string type;
+    std::string path;
+    int width = 0;
+    int height = 0;
     int num_components = 0;
-    std::vector<unsigned char> data; // Changed from raw pointer to vector for automatic memory management
+    std::vector<unsigned char> data;
     bool gamma = true;
 
-    // Default constructor
     Texture() = default;
 
-    // Parameterized constructor
     explicit Texture(const std::string& t, const std::string& p, int w, int h, int n, const std::vector<unsigned char>& d, bool g)
         : type(t), path(p), width(w), height(h), num_components(n), data(d), gamma(g)
     {}
@@ -41,10 +62,23 @@ namespace kogayonon
   {
   public:
     Mesh() = default;
-    explicit Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<std::string>& textures);
-    explicit Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+
+    explicit Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const std::vector<std::string>& textures)
+        : m_data(std::make_shared<MeshData>(vertices, indices, textures))
+    {}
+
+    explicit Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
+        : m_data(std::make_shared<MeshData>(vertices, indices))
+    {}
+
+    ~Mesh()
+    {
+      m_data.reset();
+      m_data = nullptr;
+    }
 
     void setupMesh();
+
     inline bool isInit() const
     {
       return m_init;
@@ -58,13 +92,9 @@ namespace kogayonon
     bool setupTextures();
 
   private:
-    std::vector<Vertex> m_vertices{};
-    std::vector<uint32_t> m_indices{};
-    std::vector<std::string> m_textures{};
+    std::shared_ptr<MeshData> m_data;
+    std::shared_ptr<MeshGPU> m_gpu;
 
-    uint32_t m_vao = 0;
-    uint32_t m_vbo = 0;
-    uint32_t m_ebo = 0;
-    bool m_init    = false;
+    bool m_init = false;
   };
 } // namespace kogayonon

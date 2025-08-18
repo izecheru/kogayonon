@@ -6,6 +6,8 @@
 
 #include "core/asset_manager/asset_manager.h"
 #include "core/klogger/klogger.h"
+#include "core/renderer/camera.h"
+#include "core/renderer/renderer.h"
 #include "core/task/task_manager.h"
 
 namespace kogayonon
@@ -15,6 +17,8 @@ namespace kogayonon
     AssetManagerContext,
     TaskManagerContext,
     KLoggerContext,
+    CameraContext,
+    RendererContext
   };
 
   static std::string contextToString(Context id)
@@ -27,6 +31,10 @@ namespace kogayonon
       return "TaskManager";
     case Context::KLoggerContext:
       return "KLogger";
+    case Context::CameraContext:
+      return "Camera";
+    case Context::RendererContext:
+      return "Renderer";
     }
     return "Not Found";
   }
@@ -34,8 +42,8 @@ namespace kogayonon
   class ContextManager
   {
   public:
-    ContextManager()                                 = delete;
-    ContextManager(const ContextManager&)            = delete;
+    ContextManager() = delete;
+    ContextManager(const ContextManager&) = delete;
     ContextManager& operator=(const ContextManager&) = delete;
 
     template <typename T>
@@ -85,6 +93,11 @@ namespace kogayonon
       context_map.clear();
     }
 
+    static std::shared_ptr<Renderer> renderer()
+    {
+      return getFromContext<Renderer>(Context::RendererContext);
+    }
+
     static std::shared_ptr<AssetManager> asset_manager()
     {
       return getFromContext<AssetManager>(Context::AssetManagerContext);
@@ -98,6 +111,11 @@ namespace kogayonon
     static std::shared_ptr<KLogger> klogger()
     {
       return getFromContext<KLogger>(Context::KLoggerContext);
+    }
+
+    static std::shared_ptr<Camera> camera()
+    {
+      return getFromContext<Camera>(Context::CameraContext);
     }
 
   private:
