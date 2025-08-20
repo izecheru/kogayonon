@@ -37,17 +37,13 @@ namespace kogayonon
   {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
 
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    m_io = &ImGui::GetIO();
+    m_io->ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
+    m_io->IniFilename = "imgui_config.ini";
 
     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
-
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
-
-    io.IniFilename = "imgui_config.ini";
-
-    // io.IniFilename = nullptr;
     ImGui::StyleColorsDark();
 
     if (!ImGui_ImplGlfw_InitForOpenGL(window, true) || !ImGui_ImplOpenGL3_Init("#version 460"))
@@ -58,30 +54,8 @@ namespace kogayonon
     return true;
   }
 
-  void ImGuiManager::beginImGuiFrame()
+  void ImGuiManager::setupDockSpace(ImGuiViewport* viewport)
   {
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking;
-    ImGuiViewport* viewport = ImGui::GetMainViewport();
-
-    float menu_bar_height = ImGui::GetFrameHeight();
-
-    ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + menu_bar_height));
-    ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, viewport->Size.y - menu_bar_height));
-    ImGui::SetNextWindowViewport(viewport->ID);
-
-    window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                    ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    ImGui::Begin("Main window", nullptr, window_flags);
-    ImGui::PopStyleVar(2);
-
-    // Create DockSpace
     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
     if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable)
     {
@@ -113,6 +87,31 @@ namespace kogayonon
         ImGui::DockBuilderFinish(dockspace_id);
       }
     }
+  }
+
+  void ImGuiManager::beginImGuiFrame()
+  {
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    static ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+                                           ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
+                                           ImGuiWindowFlags_NoNavFocus;
+
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+    float menu_bar_height = ImGui::GetFrameHeight();
+
+    ImGui::SetNextWindowPos(ImVec2(viewport->Pos.x, viewport->Pos.y + menu_bar_height));
+    ImGui::SetNextWindowSize(ImVec2(viewport->Size.x, viewport->Size.y - menu_bar_height));
+    ImGui::SetNextWindowViewport(viewport->ID);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::Begin("Main window", nullptr, window_flags);
+    ImGui::PopStyleVar(2);
+
+    setupDockSpace(viewport);
     ImGui::End();
   }
 
@@ -121,8 +120,7 @@ namespace kogayonon
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-    ImGuiIO& io = ImGui::GetIO();
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    if (m_io->ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
       GLFWwindow* backup_current_context = glfwGetCurrentContext();
       ImGui::UpdatePlatformWindows();

@@ -25,11 +25,13 @@ namespace kogayonon
     std::vector<std::shared_ptr<ImGuiWindow>>& ImGuiManager::getWindows();
     void draw();
     void mainMenu();
+    void setupDockSpace(ImGuiViewport* viewport);
 
     void beginImGuiFrame();
     void endImGuiFrame();
 
   private:
+    ImGuiIO* m_io = nullptr;
     std::vector<std::shared_ptr<ImGuiWindow>> m_windows{};
   };
 } // namespace kogayonon
