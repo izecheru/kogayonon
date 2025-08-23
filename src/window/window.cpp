@@ -1,14 +1,17 @@
 #include <glad/glad.h>
 
+#include "context_manager/context_manager.h"
+#include "event/event_manager.h"
+
 #ifndef GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_NONE
 #endif
 
-#include "core/context_manager/context_manager.h"
-#include "core/klogger/klogger.h"
+#include "context_manager/context_manager.h"
 #include "event/app_event.h"
-#include "event/keyboard_events.h"
-#include "event/mouse_events.h"
+#include "input/keyboard_events.h"
+#include "input/mouse_events.h"
+#include "klogger/klogger.h"
 #include "window/window.h"
 
 namespace kogayonon
@@ -76,11 +79,6 @@ namespace kogayonon
   void Window::maximize()
   {
     glfwMaximizeWindow(m_window);
-  }
-
-  void Window::setEventCallbackFn(const EventCallbackFn& callback)
-  {
-    m_data.eventCallback = callback;
   }
 
   bool Window::init(const window_props& props)
@@ -153,37 +151,37 @@ namespace kogayonon
     glfwSetWindowSizeCallback(m_window, [](GLFWwindow* window, int width, int height) {
       window_props& props = *(window_props*)glfwGetWindowUserPointer(window);
       WindowResizeEvent event(width, height);
-      props.eventCallback(event);
+      props.callback(event);
     });
 
     glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double x_pos, double y_pos) {
       window_props& props = *(window_props*)glfwGetWindowUserPointer(window);
       MouseMovedEvent event(x_pos, y_pos);
-      props.eventCallback(event);
+      props.callback(event);
     });
 
     glfwSetCursorEnterCallback(m_window, [](GLFWwindow* window, int entered) {
       window_props& props = *(window_props*)glfwGetWindowUserPointer(window);
       MouseEnteredEvent event(entered);
-      props.eventCallback(event);
+      props.callback(event);
     });
 
     glfwSetScrollCallback(m_window, [](GLFWwindow* window, double x, double y) {
       window_props& props = *(window_props*)glfwGetWindowUserPointer(window);
       MouseScrolledEvent event(x, y);
-      props.eventCallback(event);
+      props.callback(event);
     });
 
     glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int button, int action, int mods) {
       window_props& props = *(window_props*)glfwGetWindowUserPointer(window);
       MouseClickedEvent event(button, action, mods);
-      props.eventCallback(event);
+      props.callback(event);
     });
 
     glfwSetWindowCloseCallback(m_window, [](GLFWwindow* window) {
       window_props& props = *(window_props*)glfwGetWindowUserPointer(window);
       WindowCloseEvent event;
-      props.eventCallback(event);
+      props.callback(event);
     });
 
     glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int scan_code, int action, int mods) {
@@ -193,17 +191,19 @@ namespace kogayonon
       {
       case GLFW_PRESS: {
         KeyPressedEvent event((KeyCode)key, 0);
-        props.eventCallback(event);
+        props.callback(event);
+
         break;
       }
       case GLFW_RELEASE: {
         KeyReleasedEvent event((KeyCode)key);
-        props.eventCallback(event);
+        props.callback(event);
+
         break;
       }
       case GLFW_REPEAT: {
         KeyPressedEvent event((KeyCode)key, 1);
-        props.eventCallback(event);
+        props.callback(event);
       }
       }
     });
@@ -211,12 +211,14 @@ namespace kogayonon
     glfwSetCharCallback(m_window, [](GLFWwindow* window, unsigned int key_code) {
       window_props& props = *(window_props*)glfwGetWindowUserPointer(window);
       KeyTypedEvent event((KeyCode)key_code);
-      props.eventCallback(event);
+      props.callback(event);
     });
 
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
     glViewport(0, 0, props.width, props.height);
+    m_initialized = true;
+
     return true;
   }
 
@@ -228,5 +230,10 @@ namespace kogayonon
   window_props& Window::getWindowData()
   {
     return m_data;
+  }
+
+  void Window::setEventCallbackFn(const EventCallbackFn& callback)
+  {
+    m_data.callback = callback;
   }
 } // namespace kogayonon

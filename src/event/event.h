@@ -3,45 +3,52 @@
 
 namespace kogayonon
 {
-#define BIT(x) (1<<x)
-
   enum class EventType
   {
     None = 0,
-    WindowClose, WindowResize, WindowFocus, WindowLostFocus, WindowMinimzed,
-    AppTick, AppUpdate, AppRender,
-    KeyPressed, KeyReleased, KeyTyped,
-    MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled, MouseEntered
+    WindowClose,
+    WindowResize,
+    WindowFocus,
+    WindowLostFocus,
+    WindowMinimzed,
+    AppTick,
+    AppUpdate,
+    AppRender,
+    KeyPressed,
+    KeyReleased,
+    KeyTyped,
+    MouseButtonPressed,
+    MouseButtonReleased,
+    MouseMoved,
+    MouseScrolled,
+    MouseEntered,
+    MouseClicked
   };
 
-  enum EventCategory
-  {
-    None = 0,
-    ApplicationEventCategory = BIT(0),
-    InputEventCategory = BIT(1),
-    KeyboardEventCategory = BIT(2),
-    MouseEventCategory = BIT(3),
-    MouseButtonEventCategory = BIT(4)
-  };
-
-#define EVENT_CLASS_CATEGORY(category) virtual int getCategoryFlags() const override { return category; }
-
+  // clang-format off
 #define EVENT_CLASS_TYPE(type) static EventType getStaticType() { return EventType::type; }\
-								virtual EventType getEventType() const override { return getStaticType(); }\
-								virtual const char* getName() const override { return #type; }
+								virtual EventType getEventType() const override { return getStaticType(); }
+
+  // clang-format on
 
   class Event
   {
   public:
+    Event() = default;
     virtual ~Event() = default;
-    bool m_handled = false;
 
     virtual EventType getEventType() const = 0;
-    virtual const char* getName() const = 0;
-    virtual int getCategoryFlags() const = 0;
-    virtual std::string toString() const = 0;
-    bool isInCategory(EventCategory category);
-    bool isHandled() { return m_handled == true; }
-    void setHandled() { m_handled = true; }
+
+    inline bool isHandled() const
+    {
+      return m_handled;
+    }
+
+    inline void setHandled()
+    {
+      m_handled = true;
+    }
+
+    bool m_handled = false;
   };
-}
+} // namespace kogayonon

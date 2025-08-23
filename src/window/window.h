@@ -3,17 +3,14 @@
 #ifndef GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_NONE
 #endif
-#include <GLFW/glfw3.h>
-#include <core/key_codes.h>
 #include <event/event.h>
+#include <glfw3.h>
 
-#include <cstdint>
 #include <functional>
-#include <unordered_set>
 
 namespace kogayonon
 {
-  using EventCallbackFn = std::function<void(Event&)>;
+  using EventCallbackFn = std::function<bool(Event&)>;
 
   struct window_props
   {
@@ -21,9 +18,9 @@ namespace kogayonon
     unsigned short width;
     unsigned short height;
     bool vsync;
-    EventCallbackFn eventCallback;
+    EventCallbackFn callback;
 
-    explicit window_props(const char* t_title = "kogayonon", unsigned short t_width = 1900, unsigned short t_height = 1000,
+    explicit window_props(const char* t_title = "kogayonon engine", unsigned short t_width = 1900, unsigned short t_height = 1000,
                           bool t_vsync = true)
         : title(t_title), width(t_width), height(t_height), vsync(t_vsync)
     {}
@@ -44,9 +41,9 @@ namespace kogayonon
     bool isVsync();
     void setViewport();
     void maximize();
-    void setEventCallbackFn(const EventCallbackFn& callback);
     GLFWwindow* getWindow();
     window_props& getWindowData();
+    void setEventCallbackFn(const EventCallbackFn& callback);
 
   private:
     bool init(const window_props& props);
@@ -54,5 +51,6 @@ namespace kogayonon
   private:
     GLFWwindow* m_window{};
     window_props m_data{};
+    bool m_initialized = false;
   };
 } // namespace kogayonon

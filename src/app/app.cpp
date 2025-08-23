@@ -8,22 +8,15 @@
 
 #include <glad/glad.h>
 
-#include <filesystem>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
 #include "app/app.h"
-#include "core/asset_manager/asset_manager.h"
-#include "core/context_manager/context_manager.h"
-#include "core/klogger/klogger.h"
-#include "core/layer/imgui_layer.h"
-#include "core/renderer/camera.h"
-#include "core/renderer/renderer.h"
-#include "core/task/task_manager.h"
-#include "core/ui/imgui_manager.h"
-#include "event/event_listener.h"
-#include "event/keyboard_events.h"
-#include "event/mouse_events.h"
+#include "asset_manager/asset_manager.h"
+#include "context_manager/context_manager.h"
+#include "event/event_manager.h"
+#include "klogger/klogger.h"
+#include "renderer/camera.h"
+#include "renderer/renderer.h"
+#include "task/task_manager.h"
+#include "ui/imgui_manager.h"
 #include "window/window.h"
 
 namespace kogayonon
@@ -31,21 +24,14 @@ namespace kogayonon
   App::App()
   {
     m_window = std::make_shared<Window>();
-
+    m_window->setEventCallbackFn([this](Event& e) -> bool { return this->onEvent(e); });
     initializeContext();
-
-    EventListener::getInstance()->addCallback<WindowResizeEvent>(
-        [this](const Event& e) { return this->onWindowResize((const WindowResizeEvent&)(e)); });
-    EventListener::getInstance()->addCallback<WindowCloseEvent>(
-        [this](const Event& e) { return this->onWindowClose((const WindowCloseEvent&)(e)); });
-    EventListener::getInstance()->addCallback<KeyPressedEvent>(
-        [this](const Event& e) { return this->onKeyPress((const KeyPressedEvent&)(e)); });
+    ContextManager::event_manager()->subscribe<WindowResizeEvent>(
+        [this](const Event& e) -> bool { return this->onWindowResize((const WindowResizeEvent&)e); });
   }
 
   App::~App()
   {
-    m_window.reset();
-
     // LET THIS HERE IF YOU NEED LOGGING ON EXIT
     ContextManager::clear();
   }
@@ -57,99 +43,42 @@ namespace kogayonon
     ContextManager::klogger()->log(LogType::INFO, "Starting game engine");
     glEnable(GL_DEPTH_TEST);
 
-    // all the events from the window are sent to the app.onEvent function and
-    // from there to all the layers in the layer stack
-    m_window->setEventCallbackFn([this](Event& e) { this->onEvent(e); });
-
-    // should probably handle this with Timer class or something
     float prev_time = glfwGetTime();
 
     GLint maxVertices;
     glGetIntegerv(GL_MAX_ELEMENTS_VERTICES, &maxVertices);
     ContextManager::klogger()->log(LogType::INFO, "Max vertices per draw call: ", maxVertices);
 
-    while (true)
+    while (!glfwWindowShouldClose(m_window->getWindow()))
     {
       glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
       ContextManager::renderer()->draw();
       m_window->update();
-
-      if (glfwWindowShouldClose(m_window->getWindow()))
-      {
-        WindowCloseEvent close_event;
-
-        // we dispatch the close event so if we need to do some cleanup we can now
-        EventListener::getInstance()->dispatch(close_event);
-        break;
-      }
     }
-  }
-
-  void App::onEvent(Event& event) const
-  {
-    EventListener::getInstance()->dispatch(event);
-  }
-
-  bool App::onMouseEnter(const MouseEnteredEvent& event) const
-  {
-    return true;
-  }
-
-  bool App::onWindowResize(const WindowResizeEvent& event) const
-  {
-    m_window->setViewport();
-    return true;
-  }
-
-  bool App::onWindowClose(const WindowCloseEvent& event) const
-  {
-    ContextManager::klogger()->log(LogType::INFO, "window close event");
-    return true;
-  }
-
-  bool App::onMouseClicked(const MouseClickedEvent& event) const
-  {
-    return true;
-  }
-
-  bool App::onMouseMove(const MouseMovedEvent& event) const
-  {
-    ContextManager::klogger()->log(LogType::INFO, "mouse move");
-    return true;
-  }
-
-  bool App::onKeyPress(const KeyPressedEvent& event) const
-  {
-    switch (event.getKeyCode())
-    {
-    case KeyCode::F1:
-      ContextManager::renderer()->togglePolyMode();
-      break;
-    case KeyCode::Escape:
-      glfwSetWindowShouldClose(m_window->getWindow(), true);
-      break;
-    case KeyCode::C:
-      glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-      break;
-    default:
-      return false;
-    }
-    return true;
-  }
-
-  bool App::onScroll() const
-  {
-    return true;
   }
 
   void App::initializeContext()
   {
     ContextManager::addToContext(Context::KLoggerContext, std::make_shared<KLogger>("log.txt"));
+    ContextManager::addToContext(Context::EventManagerContext, std::make_shared<EventManager>());
     ContextManager::addToContext(Context::AssetManagerContext, std::make_shared<AssetManager>());
     ContextManager::addToContext(Context::TaskManagerContext, std::make_shared<TaskManager>(10));
     ContextManager::addToContext(Context::CameraContext, std::make_shared<Camera>());
     ContextManager::addToContext(Context::RendererContext, std::make_shared<Renderer>(m_window->getWindow()));
+  }
+
+  bool App::onEvent(Event& e)
+  {
+    ContextManager::event_manager()->dispatch(e);
+    return false;
+  }
+
+  bool App::onWindowResize(const WindowResizeEvent& e)
+  {
+    m_window->setViewport();
+    ContextManager::klogger()->log(LogType::INFO, "App::onWindowResize(", e.getWidth(), " ", e.getHeight(), ")");
+    return false;
   }
 } // namespace kogayonon

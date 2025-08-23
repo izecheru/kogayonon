@@ -1,8 +1,8 @@
 #pragma once
-#include "core/renderer/renderer.h"
 #include "event/app_event.h"
-#include "event/keyboard_events.h"
-#include "event/mouse_events.h"
+#include "input/keyboard_events.h"
+#include "input/mouse_events.h"
+#include "renderer/renderer.h"
 #include "window/window.h"
 
 namespace kogayonon
@@ -14,17 +14,12 @@ namespace kogayonon
     ~App();
     void run() const;
 
-    void onEvent(Event& event) const;
-
-    bool onWindowResize(const WindowResizeEvent& event) const;
-    bool onWindowClose(const WindowCloseEvent& event) const;
-    bool onMouseClicked(const MouseClickedEvent& event) const;
-    bool onMouseMove(const MouseMovedEvent& event) const;
-    bool onMouseEnter(const MouseEnteredEvent& event) const;
-    bool onKeyPress(const KeyPressedEvent& event) const;
-    bool onScroll() const;
-
     void initializeContext();
+
+    // Events
+  private:
+    bool onEvent(Event& e);
+    bool onWindowResize(const WindowResizeEvent& e);
 
   private:
     static inline bool capture_mouse = true;

@@ -4,7 +4,7 @@
 #include <glm/ext/matrix_float4x4.hpp>
 #include <string>
 
-#include "core/singleton/singleton.h"
+#include "singleton/singleton.h"
 
 namespace kogayonon
 {
