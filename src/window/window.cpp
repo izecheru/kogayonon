@@ -1,239 +1,173 @@
-#include <glad/glad.h>
+#include "window/window.h"
 
-#include "context_manager/context_manager.h"
-#include "event/event_manager.h"
-
-#ifndef GLFW_INCLUDE_NONE
-#define GLFW_INCLUDE_NONE
-#endif
+#include <imgui_impl_sdl2.h>
 
 #include "context_manager/context_manager.h"
 #include "event/app_event.h"
 #include "input/keyboard_events.h"
 #include "input/mouse_events.h"
 #include "klogger/klogger.h"
-#include "window/window.h"
 
 namespace kogayonon
 {
-  Window::Window()
-  {
-    init(m_data);
-    glfwSetWindowUserPointer(m_window, &m_data);
-  }
+Window::Window()
+{
+  init(m_data);
+}
 
-  Window::~Window()
+Window::~Window()
+{
+  ContextManager::klogger()->log(LogType::INFO, "~Window destroyed");
+  if (m_gl_context != nullptr)
+    SDL_GL_DeleteContext(m_gl_context);
+
+  if (m_window != nullptr)
+    SDL_DestroyWindow(m_window);
+
+  m_window = nullptr;
+  SDL_Quit();
+}
+
+void Window::update()
+{
+  SDL_Event event;
+  while (SDL_PollEvent(&event))
   {
-    ContextManager::klogger()->log(LogType::INFO, "~Window destroyed");
-    if (m_window)
+    ImGui_ImplSDL2_ProcessEvent(&event);
+    switch (event.type)
     {
-      glfwDestroyWindow(m_window);
+    case SDL_QUIT: {
+      WindowCloseEvent e;
+      m_data.callback(e);
+      break;
     }
-    glfwTerminate();
-  }
-
-  void Window::update()
-  {
-    glfwPollEvents();
-    glfwSwapBuffers(m_window);
-  }
-
-  unsigned short Window::getWidth() const
-  {
-    return m_data.width;
-  }
-
-  unsigned short Window::getHeight() const
-  {
-    return m_data.height;
-  }
-
-  void Window::setVsync()
-  {
-    if (!m_data.vsync)
-    {
-      m_data.vsync = true;
-      glfwSwapInterval(1);
-    }
-    else
-    {
-      m_data.vsync = false;
-      glfwSwapInterval(0);
-    }
-  }
-
-  bool Window::isVsync()
-  {
-    return m_data.vsync;
-  }
-
-  void Window::setViewport()
-  {
-    int width, height;
-    glfwGetFramebufferSize(m_window, &width, &height);
-    m_data.width = width;
-    m_data.height = height;
-    glViewport(0, 0, width, height);
-  }
-
-  void Window::maximize()
-  {
-    glfwMaximizeWindow(m_window);
-  }
-
-  bool Window::init(const window_props& props)
-  {
-    if (!glfwInit())
-    {
-      ContextManager::klogger()->log(LogType::ERROR, "failed to init glfw\n");
-      return false;
-    }
-
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
-
-    m_window = glfwCreateWindow(props.width, props.height, props.title, NULL, NULL);
-
-    // continue only if window is not nullptr
-    assert(m_window != nullptr);
-
-    glfwMakeContextCurrent(m_window);
-
-    // continue only if glad can load
-    assert(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress));
-
-    glEnable(GL_DEBUG_OUTPUT);
-    /* glDebugMessageCallback([](GLenum source, GLenum type, GLuint id, GLenum severity,
-       GLsizei length, const GLchar* message, const void* userParam)
-       {
-         auto const src_str = [source]()
-           {
-             switch (source)
-             {
-               case GL_DEBUG_SOURCE_API: return "API";
-               case GL_DEBUG_SOURCE_WINDOW_SYSTEM: return "WINDOW SYSTEM";
-               case GL_DEBUG_SOURCE_SHADER_COMPILER: return "SHADER COMPILER";
-               case GL_DEBUG_SOURCE_THIRD_PARTY: return "THIRD PARTY";
-               case GL_DEBUG_SOURCE_APPLICATION: return "APPLICATION";
-               case GL_DEBUG_SOURCE_OTHER: return "OTHER";
-             }
-           }();
-
-         auto const type_str = [type]()
-           {
-             switch (type)
-             {
-               case GL_DEBUG_TYPE_ERROR: return "ERROR";
-               case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: return "DEPRECATED_BEHAVIOR";
-               case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: return "UNDEFINED_BEHAVIOR";
-               case GL_DEBUG_TYPE_PORTABILITY: return "PORTABILITY";
-               case GL_DEBUG_TYPE_PERFORMANCE: return "PERFORMANCE";
-               case GL_DEBUG_TYPE_MARKER: return "MARKER";
-               case GL_DEBUG_TYPE_OTHER: return "OTHER";
-             }
-           }();
-
-         auto const severity_str = [severity]()
-           {
-             switch (severity)
-             {
-               case GL_DEBUG_SEVERITY_NOTIFICATION: return "NOTIFICATION";
-               case GL_DEBUG_SEVERITY_LOW: return "LOW";
-               case GL_DEBUG_SEVERITY_MEDIUM: return "MEDIUM";
-               case GL_DEBUG_SEVERITY_HIGH: return "HIGH";
-             }
-           }();
-         std::cout << src_str << ", " << type_str << ", " << severity_str << ", " << id << ": " << message << '\n';
-       }, nullptr);*/
-
-    glfwSetWindowSizeCallback(m_window, [](GLFWwindow* window, int width, int height) {
-      window_props& props = *(window_props*)glfwGetWindowUserPointer(window);
-      WindowResizeEvent event(width, height);
-      props.callback(event);
-    });
-
-    glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double x_pos, double y_pos) {
-      window_props& props = *(window_props*)glfwGetWindowUserPointer(window);
-      MouseMovedEvent event(x_pos, y_pos);
-      props.callback(event);
-    });
-
-    glfwSetCursorEnterCallback(m_window, [](GLFWwindow* window, int entered) {
-      window_props& props = *(window_props*)glfwGetWindowUserPointer(window);
-      MouseEnteredEvent event(entered);
-      props.callback(event);
-    });
-
-    glfwSetScrollCallback(m_window, [](GLFWwindow* window, double x, double y) {
-      window_props& props = *(window_props*)glfwGetWindowUserPointer(window);
-      MouseScrolledEvent event(x, y);
-      props.callback(event);
-    });
-
-    glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int button, int action, int mods) {
-      window_props& props = *(window_props*)glfwGetWindowUserPointer(window);
-      MouseClickedEvent event(button, action, mods);
-      props.callback(event);
-    });
-
-    glfwSetWindowCloseCallback(m_window, [](GLFWwindow* window) {
-      window_props& props = *(window_props*)glfwGetWindowUserPointer(window);
-      WindowCloseEvent event;
-      props.callback(event);
-    });
-
-    glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int scan_code, int action, int mods) {
-      window_props const& props = *(window_props*)glfwGetWindowUserPointer(window);
-
-      switch (action)
+    case SDL_WINDOWEVENT: {
+      if (event.window.event == SDL_WINDOWEVENT_RESIZED)
       {
-      case GLFW_PRESS: {
-        KeyPressedEvent event((KeyCode)key, 0);
-        props.callback(event);
-
-        break;
+        m_data.width = event.window.data1;
+        m_data.height = event.window.data2;
+        WindowResizeEvent e(m_data.width, m_data.height);
+        m_data.callback(e);
       }
-      case GLFW_RELEASE: {
-        KeyReleasedEvent event((KeyCode)key);
-        props.callback(event);
-
-        break;
-      }
-      case GLFW_REPEAT: {
-        KeyPressedEvent event((KeyCode)key, 1);
-        props.callback(event);
-      }
-      }
-    });
-
-    glfwSetCharCallback(m_window, [](GLFWwindow* window, unsigned int key_code) {
-      window_props& props = *(window_props*)glfwGetWindowUserPointer(window);
-      KeyTypedEvent event((KeyCode)key_code);
-      props.callback(event);
-    });
-
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-
-    glViewport(0, 0, props.width, props.height);
-    m_initialized = true;
-
-    return true;
+      break;
+    }
+    case SDL_MOUSEMOTION: {
+      MouseMovedEvent e(event.motion.x, event.motion.y);
+      m_data.callback(e);
+      break;
+    }
+    case SDL_MOUSEBUTTONDOWN:
+    case SDL_MOUSEBUTTONUP: {
+      MouseClickedEvent e(event.button.button, event.button.state, event.button.clicks);
+      m_data.callback(e);
+      break;
+    }
+    case SDL_MOUSEWHEEL: {
+      MouseScrolledEvent e(event.wheel.x, event.wheel.y);
+      m_data.callback(e);
+      break;
+    }
+    case SDL_KEYDOWN: {
+      KeyPressedEvent e((KeyCode)event.key.keysym.sym, event.key.repeat);
+      m_data.callback(e);
+      break;
+    }
+    case SDL_KEYUP: {
+      KeyReleasedEvent e((KeyCode)event.key.keysym.sym);
+      m_data.callback(e);
+      break;
+    }
+    case SDL_TEXTINPUT: {
+      KeyTypedEvent e((KeyCode)event.text.text[0]);
+      m_data.callback(e);
+      break;
+    }
+    }
   }
 
-  GLFWwindow* Window::getWindow()
+  SDL_GL_SwapWindow(m_window);
+}
+
+unsigned short Window::getWidth() const
+{
+  return m_data.width;
+}
+
+unsigned short Window::getHeight() const
+{
+  return m_data.height;
+}
+
+void Window::setVsync()
+{
+  m_data.vsync != m_data.vsync;
+  SDL_GL_SetSwapInterval(m_data.vsync ? 1 : 0);
+}
+
+bool Window::isVsync()
+{
+  return m_data.vsync;
+}
+
+void Window::setViewport()
+{
+  int w, h;
+  SDL_GL_GetDrawableSize(m_window, &w, &h);
+  m_data.width = w;
+  m_data.height = h;
+  glViewport(0, 0, w, h);
+}
+
+void Window::maximize()
+{
+  SDL_MaximizeWindow(m_window);
+}
+
+bool Window::init(const window_props& props)
+{
+  if (SDL_Init(SDL_INIT_VIDEO) < 0)
   {
-    return m_window;
+    ContextManager::klogger()->log(LogType::ERROR, "failed to init sdl\n");
+    return false;
   }
 
-  window_props& Window::getWindowData()
-  {
-    return m_data;
-  }
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-  void Window::setEventCallbackFn(const EventCallbackFn& callback)
-  {
-    m_data.callback = callback;
-  }
+  m_window = SDL_CreateWindow(props.title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, props.width, props.height,
+                              SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED);
+
+  // continue only if window is not nullptr
+  assert(m_window != nullptr);
+
+  m_gl_context = SDL_GL_CreateContext(m_window);
+  assert(m_gl_context != nullptr);
+  SDL_GL_MakeCurrent(m_window, m_gl_context);
+
+  // continue only if glad can load
+  assert(gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress));
+
+  glEnable(GL_DEBUG_OUTPUT);
+  glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+  glViewport(0, 0, props.width, props.height);
+  m_data = props;
+  m_initialized = true;
+  return true;
+}
+
+SDL_Window* Window::getWindow()
+{
+  return m_window;
+}
+
+window_props& Window::getWindowData()
+{
+  return m_data;
+}
+
+void Window::setEventCallbackFn(const EventCallbackFn& callback)
+{
+  m_data.callback = callback;
+}
 } // namespace kogayonon

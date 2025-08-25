@@ -6,10 +6,25 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Add shader files
+if(EXISTS "${CMAKE_BINARY_DIR}/bin/shaders")
+    message(STATUS "Directory ${CMAKE_BINARY_DIR}/bin/shaders already exists, skipping copy this time.")
+else()
+    # Note the trailing slash on SOURCE_DIR to copy only contents
+    file(COPY "${CMAKE_SOURCE_DIR}/resources/shaders/" DESTINATION "${CMAKE_BINARY_DIR}/bin/shaders")
+    message(STATUS "Copied shaders from ${CMAKE_SOURCE_DIR}/resources/shaders to ${CMAKE_BINARY_DIR}/bin/shaders")
+endif()
+
+# Separate files
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib") # .lib, .a
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib") # .dll, .so
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin") # .exe
+
 # Thirdparty dependencies
+set(CMAKE_PREFIX_PATH "dependencies/sdl2/cmake")
+find_package(SDL2 REQUIRED CONFIG)
 add_subdirectory(dependencies/imgui)
 add_subdirectory(dependencies/stb)
-add_subdirectory(dependencies/glfw)
 add_subdirectory(dependencies/glad)
 add_subdirectory(dependencies/cgltf)
 add_subdirectory(dependencies/glm)
@@ -52,7 +67,7 @@ set(USER_INTERFACE_SOURCES
     "src/ui/win_camera_settings.cpp"
     "src/ui/scene_viewport.h"
     "src/ui/scene_viewport.cpp"
-)
+ "src/ui/debug_window.h" "src/ui/debug_window.cpp")
 
 set(SHADER_SOURCES
     "src/shader/shader.cpp"
@@ -73,9 +88,9 @@ set(UTILS_SOURCES
     "src/klogger/klogger.cpp"
     "src/klogger/klogger.h"
 
-    "src/serialize/mesh_serializer.cpp"
-    "src/serialize/mesh_serializer.h"
-    "src/serialize/serializer.h"
+    "src/serialiser/mesh_serialiser.cpp"
+    "src/serialiser/mesh_serialiser.h"
+    "src/serialiser/serialiser.h"
 
     "src/task/task_manager.cpp"
     "src/task/task_manager.h"
@@ -114,10 +129,11 @@ add_executable(kogayonon
 
 target_include_directories(
   kogayonon PRIVATE
+  "${CMAKE_SOURCE_DIR}/dependencies/sdl2/include"
   "${CMAKE_SOURCE_DIR}/src/"
 )
 
 target_link_libraries(
   kogayonon PRIVATE
-  cgltf stb imgui glad glfw glm
+  cgltf stb imgui glad glm SDL2::SDL2
 )

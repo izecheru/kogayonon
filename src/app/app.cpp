@@ -21,64 +21,59 @@
 
 namespace kogayonon
 {
-  App::App()
+App::App()
+{
+  m_window = std::make_shared<Window>();
+  m_window->setEventCallbackFn([this](Event& e) -> bool { return this->onEvent(e); });
+
+  initializeContext();
+
+  ContextManager::event_manager()->subscribe<WindowResizeEvent>(
+      [this](const Event& e) -> bool { return this->onWindowResize((const WindowResizeEvent&)e); });
+
+  ContextManager::event_manager()->subscribe<WindowCloseEvent>(
+      [this](const Event& e) -> bool { return this->onWindowClose((const WindowCloseEvent&)e); });
+}
+
+App::~App()
+{
+  // LET THIS HERE IF YOU NEED LOGGING ON EXIT
+  ContextManager::clear();
+}
+
+void App::run() const
+{
+  while (m_running)
   {
-    m_window = std::make_shared<Window>();
-    m_window->setEventCallbackFn([this](Event& e) -> bool { return this->onEvent(e); });
-    initializeContext();
-    ContextManager::event_manager()->subscribe<WindowResizeEvent>(
-        [this](const Event& e) -> bool { return this->onWindowResize((const WindowResizeEvent&)e); });
+    ContextManager::renderer()->draw();
   }
+}
 
-  App::~App()
-  {
-    // LET THIS HERE IF YOU NEED LOGGING ON EXIT
-    ContextManager::clear();
-  }
+void App::initializeContext()
+{
+  ContextManager::addToContext(Context::KLoggerContext, std::make_shared<KLogger>("log.txt"));
+  ContextManager::addToContext(Context::EventManagerContext, std::make_shared<EventManager>());
+  ContextManager::addToContext(Context::AssetManagerContext, std::make_shared<AssetManager>());
+  ContextManager::addToContext(Context::TaskManagerContext, std::make_shared<TaskManager>(10));
+  ContextManager::addToContext(Context::CameraContext, std::make_shared<Camera>());
+  ContextManager::addToContext(Context::RendererContext, std::make_shared<Renderer>(m_window));
+}
 
-  void App::run() const
-  {
-    const GLubyte* version = glGetString(GL_VERSION);
-    ContextManager::klogger()->log(LogType::INFO, "OpenGL Version: ", version);
-    ContextManager::klogger()->log(LogType::INFO, "Starting game engine");
-    glEnable(GL_DEPTH_TEST);
+bool App::onEvent(Event& e)
+{
+  ContextManager::event_manager()->dispatch(e);
+  return false;
+}
 
-    float prev_time = glfwGetTime();
+bool App::onWindowResize(const WindowResizeEvent& e)
+{
+  m_window->setViewport();
+  return false;
+}
 
-    GLint maxVertices;
-    glGetIntegerv(GL_MAX_ELEMENTS_VERTICES, &maxVertices);
-    ContextManager::klogger()->log(LogType::INFO, "Max vertices per draw call: ", maxVertices);
-
-    while (!glfwWindowShouldClose(m_window->getWindow()))
-    {
-      glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-      ContextManager::renderer()->draw();
-      m_window->update();
-    }
-  }
-
-  void App::initializeContext()
-  {
-    ContextManager::addToContext(Context::KLoggerContext, std::make_shared<KLogger>("log.txt"));
-    ContextManager::addToContext(Context::EventManagerContext, std::make_shared<EventManager>());
-    ContextManager::addToContext(Context::AssetManagerContext, std::make_shared<AssetManager>());
-    ContextManager::addToContext(Context::TaskManagerContext, std::make_shared<TaskManager>(10));
-    ContextManager::addToContext(Context::CameraContext, std::make_shared<Camera>());
-    ContextManager::addToContext(Context::RendererContext, std::make_shared<Renderer>(m_window->getWindow()));
-  }
-
-  bool App::onEvent(Event& e)
-  {
-    ContextManager::event_manager()->dispatch(e);
-    return false;
-  }
-
-  bool App::onWindowResize(const WindowResizeEvent& e)
-  {
-    m_window->setViewport();
-    ContextManager::klogger()->log(LogType::INFO, "App::onWindowResize(", e.getWidth(), " ", e.getHeight(), ")");
-    return false;
-  }
+bool App::onWindowClose(const WindowCloseEvent& e)
+{
+  m_running = false;
+  return true;
+}
 } // namespace kogayonon

@@ -2,10 +2,14 @@
 
 namespace kogayonon
 {
-  void SceneViewportWindow::draw()
+void SceneViewportWindow::draw()
+{
+  if (!ImGui::Begin(m_props->m_name.c_str(), nullptr, m_props->m_flags))
   {
-    ImGui::Begin(m_props->m_name.c_str(), nullptr, m_props->m_flags);
-    ImGui::Text("ce mai faci?");
     ImGui::End();
+    return;
   }
+  ImGui::Text("ce mai faci?");
+  ImGui::End();
+}
 } // namespace kogayonon

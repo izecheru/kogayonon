@@ -111,9 +111,11 @@ namespace kogayonon
   //  }
 
   //  // draw mesh
+  //  glBindFramebuffer(m_fbo);
   //  glBindVertexArray(m_vao);
   //  glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()), GL_UNSIGNED_INT, nullptr);
   //  glBindVertexArray(0);
+  //  glBindFramebuffer(0);
   //  glBindTextureUnit(0, 0);
   //}
 

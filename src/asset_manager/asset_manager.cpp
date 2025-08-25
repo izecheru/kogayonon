@@ -8,7 +8,7 @@
 #include "asset_manager/loader/texture_loader.h"
 #include "context_manager/context_manager.h"
 #include "klogger/klogger.h"
-#include "serialize/mesh_serializer.h"
+#include "serialiser/mesh_serialiser.h"
 #include "task/task_manager.h"
 
 namespace kogayonon

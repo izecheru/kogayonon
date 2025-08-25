@@ -7,23 +7,24 @@
 
 namespace kogayonon
 {
-  class App
-  {
-  public:
-    App();
-    ~App();
-    void run() const;
+class App
+{
+public:
+  App();
+  ~App();
+  void run() const;
 
-    void initializeContext();
+  void initializeContext();
 
-    // Events
-  private:
-    bool onEvent(Event& e);
-    bool onWindowResize(const WindowResizeEvent& e);
+  // Events
+private:
+  bool onEvent(Event& e);
+  bool onWindowResize(const WindowResizeEvent& e);
+  bool onWindowClose(const WindowCloseEvent& e);
 
-  private:
-    static inline bool capture_mouse = true;
-    static inline double delta_time;
-    static inline std::shared_ptr<Window> m_window;
-  };
+private:
+  static inline double delta_time;
+  static inline std::shared_ptr<Window> m_window;
+  static inline bool m_running = true;
+};
 } // namespace kogayonon

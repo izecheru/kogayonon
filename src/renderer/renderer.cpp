@@ -4,7 +4,11 @@ namespace kogayonon
 {
   void Renderer::draw() const
   {
+    glEnable(GL_DEPTH_TEST);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     m_imgui_manager->draw();
+    m_window->update();
   }
 
   bool Renderer::getPolyMode()
@@ -14,6 +18,8 @@ namespace kogayonon
 
   void Renderer::togglePolyMode()
   {
+    is_poly = !is_poly;
+
     switch (is_poly)
     {
     case true:
@@ -24,7 +30,5 @@ namespace kogayonon
       glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
       break;
     }
-
-    is_poly = !is_poly;
   }
 } // namespace kogayonon

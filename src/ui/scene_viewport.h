@@ -3,13 +3,13 @@
 
 namespace kogayonon
 {
-  class SceneViewportWindow : public ImGuiWindow
-  {
-  public:
-    SceneViewportWindow(const std::string& name) : ImGuiWindow(name) {}
+class SceneViewportWindow : public ImGuiWindow
+{
+public:
+  SceneViewportWindow(std::string&& name) : ImGuiWindow(std ::move(name)) {}
 
-    ~SceneViewportWindow() {}
+  ~SceneViewportWindow() {}
 
-    void draw() override;
-  };
+  void draw() override;
+};
 } // namespace kogayonon

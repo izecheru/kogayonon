@@ -6,7 +6,7 @@
 #include "asset_manager/loader/mesh.h"
 #include "asset_manager/loader/model_loader.h"
 #include "context_manager/context_manager.h"
-#include "serialize/mesh_serializer.h"
+#include "serialiser/mesh_serialiser.h"
 #include "shader/shader.h"
 
 namespace kogayonon
