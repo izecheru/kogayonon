@@ -1,14 +1,9 @@
+#include "app/app.h"
+
 #include <glm/glm.hpp>
 #include <iostream>
 #include <memory>
 
-#ifndef GLFW_INCLUDE_NONE
-#define GLFW_INCLUDE_NONE
-#endif // !GLFW_INCLUDE_NONE
-
-#include <glad/glad.h>
-
-#include "app/app.h"
 #include "asset_manager/asset_manager.h"
 #include "context_manager/context_manager.h"
 #include "event/event_manager.h"
@@ -16,7 +11,6 @@
 #include "renderer/camera.h"
 #include "renderer/renderer.h"
 #include "task/task_manager.h"
-#include "ui/imgui_manager.h"
 #include "window/window.h"
 
 namespace kogayonon

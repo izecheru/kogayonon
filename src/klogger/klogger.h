@@ -44,7 +44,7 @@ public:
   }
 
   template <typename... Args>
-  void log(LogType type, const Args&... args)
+  void log(LogType type, Args&&... args)
   {
     time_t log_time = time(nullptr);
     struct tm local_time;
@@ -81,6 +81,24 @@ public:
     }
     m_str_stream.str("");
     m_str_stream.clear();
+  }
+
+  template <typename... Args>
+  void error(Args&&... args)
+  {
+    log(LogType::ERROR, std::forward<Args>(args)...);
+  }
+
+  template <typename... Args>
+  void critical(Args&&... args)
+  {
+    log(LogType::CRITICAL, std::forward<Args>(args)...);
+  }
+
+  template <typename... Args>
+  void info(Args&&... args)
+  {
+    log(LogType::INFO, std::forward<Args>(args)...);
   }
 
 private:

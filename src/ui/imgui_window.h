@@ -1,7 +1,7 @@
 #pragma once
-
 #include <imgui.h>
 
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -9,6 +9,8 @@ namespace kogayonon
 {
 class ImGuiWindow
 {
+  using RenderCallbackFn = std::function<void()>;
+
 public:
   explicit ImGuiWindow(std::string&& name)
   {
@@ -38,14 +40,33 @@ public:
     m_props->m_y = y;
   }
 
+  double width()
+  {
+    return m_props->m_width;
+  }
+
+  double height()
+  {
+    return m_props->m_height;
+  }
+
   virtual void draw() = 0;
 
+  virtual void setCallback(const RenderCallbackFn& func)
+  {
+    m_render_callback = func;
+  }
+
 protected:
+  RenderCallbackFn m_render_callback;
+
   struct imgui_props
   {
     std::string m_name;
     double m_x = 0.0;
     double m_y = 0.0;
+    double m_width = 0.0;
+    double m_height = 0.0;
     bool is_docked = false;
     bool can_move = true;
     bool visible = true;

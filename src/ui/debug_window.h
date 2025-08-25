@@ -1,4 +1,5 @@
 #pragma once
+#include <mutex>
 #include <vector>
 
 #include "imgui_window.h"
@@ -19,7 +20,7 @@ public:
 
     (str_stream << ... << args);
     {
-      std::unique_lock lock(m_mutex);
+      std::unique_lock<std::mutex> lock(m_mutex);
       m_messages.push_back(str_stream.str());
     }
   }
@@ -28,7 +29,7 @@ public:
 
 private:
   bool m_auto_scroll = true;
-  std::mutex m_mutex;
+  static inline std::mutex m_mutex;
   static inline std::vector<std::string> m_messages;
 };
 } // namespace kogayonon

@@ -17,7 +17,6 @@ Window::Window()
 
 Window::~Window()
 {
-  ContextManager::klogger()->log(LogType::INFO, "~Window destroyed");
   if (m_gl_context != nullptr)
     SDL_GL_DeleteContext(m_gl_context);
 

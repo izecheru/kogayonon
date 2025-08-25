@@ -7,17 +7,17 @@
 
 namespace kogayonon
 {
-  class ImguiLayer : public Layer
-  {
-  public:
-    ImguiLayer();
+class ImguiLayer : public Layer
+{
+public:
+  ImguiLayer();
 
-    void draw() override;
+  void draw() override;
 
-    void push_window(std::shared_ptr<ImGuiWindow>& window);
-    std::vector<std::shared_ptr<ImGuiWindow>>& getWindows();
+  void push_window(std::shared_ptr<ImGuiWindow>& window);
+  std::vector<std::shared_ptr<ImGuiWindow>>& getWindows();
 
-  private:
-    std::vector<std::shared_ptr<ImGuiWindow>> m_windows{};
-  };
+private:
+  std::vector<std::shared_ptr<ImGuiWindow>> m_windows{};
+};
 } // namespace kogayonon

@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
+
 project(kogayonon LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Add shader files
@@ -34,7 +34,8 @@ set(RENDERER_SOURCES
     "src/renderer/camera.h"
     "src/renderer/renderer.cpp"
     "src/renderer/renderer.h"
-)
+    "src/renderer/framebuffer.h"
+    "src/renderer/framebuffer.cpp")
 
 set(ASSET_MANAGER_SOURCES
     "src/asset_manager/loader/mesh.cpp"
@@ -67,7 +68,11 @@ set(USER_INTERFACE_SOURCES
     "src/ui/win_camera_settings.cpp"
     "src/ui/scene_viewport.h"
     "src/ui/scene_viewport.cpp"
- "src/ui/debug_window.h" "src/ui/debug_window.cpp")
+    "src/ui/debug_window.h"
+    "src/ui/debug_window.cpp"
+    "src/ui/file_explorer.h"
+    "src/ui/file_explorer.cpp"
+)
 
 set(SHADER_SOURCES
     "src/shader/shader.cpp"

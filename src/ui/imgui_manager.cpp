@@ -20,14 +20,14 @@ ImGuiManager::~ImGuiManager()
   m_windows.clear();
 }
 
-ImGuiManager::ImGuiManager(SDL_Window* window, SDL_GLContext context)
+ImGuiManager::ImGuiManager(SDL_Window* window, SDL_GLContext context, std::shared_ptr<FrameBuffer> fbo)
 {
   if (initImgui(window, context))
   {
     ContextManager::klogger()->log(LogType::INFO, "Imgui initialised");
-    push_window(std::make_shared<CameraSettingsWindow>("Camera settings"));
-    push_window(std::make_shared<SceneViewportWindow>("Scene"));
-    push_window(std::make_shared<DebugConsoleWindow>("Debug console"));
+    push_window("Camera settings", std::make_shared<CameraSettingsWindow>("Camera settings"));
+    push_window("Scene", std::make_shared<SceneViewportWindow>("Scene", fbo));
+    push_window("Debug console", std::make_shared<DebugConsoleWindow>("Debug console"));
 
     // add the callback for the debug console window
     ContextManager::klogger()->addCallback([](const std::string& msg) { DebugConsoleWindow::log(msg); });
@@ -143,7 +143,7 @@ void ImGuiManager::draw()
   mainMenu();
   for (auto& win : m_windows)
   {
-    win->draw();
+    win.second->draw();
   }
   endImGuiFrame();
 }
@@ -164,12 +164,12 @@ void ImGuiManager::mainMenu()
   }
 }
 
-void ImGuiManager::push_window(std::shared_ptr<ImGuiWindow> window)
+void ImGuiManager::push_window(std::string&& name, std::shared_ptr<ImGuiWindow> window)
 {
-  m_windows.push_back(window);
+  m_windows.insert({std::move(name), window});
 }
 
-std::vector<std::shared_ptr<ImGuiWindow>>& ImGuiManager::getWindows()
+std::unordered_map<std::string, std::shared_ptr<ImGuiWindow>>& ImGuiManager::getWindows()
 {
   return m_windows;
 }

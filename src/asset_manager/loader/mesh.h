@@ -82,7 +82,7 @@ public:
     return *this;
   }
 
-  Mesh& operator=(Mesh&& other)
+  Mesh& operator=(Mesh&& other) noexcept
   {
     if (this != &other)
     {
