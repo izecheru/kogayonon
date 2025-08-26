@@ -17,7 +17,6 @@ enum class Context
 {
   AssetManagerContext,
   TaskManagerContext,
-  KLoggerContext,
   CameraContext, // this might get deleted from here since you might want multiple cameras
   RendererContext,
   EventManagerContext,
@@ -31,8 +30,6 @@ static std::string contextToString(Context id)
     return "AssetManager";
   case Context::TaskManagerContext:
     return "TaskManager";
-  case Context::KLoggerContext:
-    return "KLogger";
   case Context::CameraContext:
     return "Camera";
   case Context::RendererContext:
@@ -58,11 +55,11 @@ public:
     if (context_map.find(id) == context_map.end())
     {
       context_map.emplace(id, context);
-      klogger()->log(LogType::CRITICAL, "Added to context - ", contextToString(id));
+      KLogger::log(LogType::CRITICAL, "Added to context - ", contextToString(id));
     }
     else
     {
-      klogger()->log(LogType::CRITICAL, "Could not add to context - ", contextToString(id));
+      KLogger::log(LogType::CRITICAL, "Could not add to context - ", contextToString(id));
     }
   }
 
@@ -110,11 +107,6 @@ public:
   static std::shared_ptr<TaskManager> task_manager()
   {
     return getFromContext<TaskManager>(Context::TaskManagerContext);
-  }
-
-  static std::shared_ptr<KLogger> klogger()
-  {
-    return getFromContext<KLogger>(Context::KLoggerContext);
   }
 
   static std::shared_ptr<Camera> camera()

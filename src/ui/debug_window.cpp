@@ -6,7 +6,7 @@ namespace kogayonon
 {
 void DebugConsoleWindow::clearLogs()
 {
-  ContextManager::klogger()->log(LogType::INFO, "Cleared logs in debug console window");
+  KLogger::log(LogType::INFO, "Cleared logs in debug console window");
   if (m_messages.empty())
   {
     return;

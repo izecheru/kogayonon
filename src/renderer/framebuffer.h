@@ -3,59 +3,39 @@
 
 #include <memory>
 
-#include "ui/imgui_window.h"
-
 namespace kogayonon
 {
 class FrameBuffer
 {
 public:
-  FrameBuffer();
+  FrameBuffer(int width, int height);
   ~FrameBuffer();
 
-  void bind();
-  void unbind();
+  void bind() const;
+  void unbind() const;
 
-  inline unsigned int& FBO()
+  void rescaleFramebuffer(int width, int height);
+
+  inline unsigned int getTexture()
   {
     return m_fbo;
   }
 
-  inline unsigned int& TEX()
-  {
-    return m_fbo;
-  }
-
-  inline void setViewport(double w, double h)
-  {
-    m_width = w;
-    m_height = h;
-
-    // Resize color texture
-    glTextureStorage2D(m_tex, 1, GL_RGBA8, w, h);
-
-    // Resize depth renderbuffer
-    glNamedRenderbufferStorage(m_rbo, GL_DEPTH24_STENCIL8, w, h);
-  }
-
-  inline double getWidth() const
+  inline int getWidth()
   {
     return m_width;
   }
 
-  inline double getHeight() const
+  inline int getHeight()
   {
     return m_height;
   }
 
 private:
-  double m_width = 0;
-  double m_height = 0;
-
-private:
+  int m_width;
+  int m_height;
   unsigned int m_rbo;
   unsigned int m_fbo;
-  unsigned int m_tex;
-  unsigned int m_depth_tex;
+  unsigned int m_texture;
 };
 } // namespace kogayonon

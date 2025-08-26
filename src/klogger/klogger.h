@@ -24,27 +24,19 @@ class KLogger
 public:
   using LogCallback = std::function<void(const std::string&)>;
 
-  KLogger(const std::string& path)
-  {
-    initialize(path);
-  }
+  KLogger() = delete;
 
-  ~KLogger()
-  {
-    shutdown();
-  }
+  static void logWorker();
+  static void shutdown();
 
-  void logWorker();
-  void shutdown();
-
-  void inline addCallback(LogCallback callback)
+  static void inline addCallback(LogCallback callback)
   {
     std::unique_lock lock(m_mutex);
     m_callbacks.push_back(callback);
   }
 
   template <typename... Args>
-  void log(LogType type, Args&&... args)
+  static void log(LogType type, Args&&... args)
   {
     time_t log_time = time(nullptr);
     struct tm local_time;
@@ -84,33 +76,33 @@ public:
   }
 
   template <typename... Args>
-  void error(Args&&... args)
+  static void error(Args&&... args)
   {
     log(LogType::ERROR, std::forward<Args>(args)...);
   }
 
   template <typename... Args>
-  void critical(Args&&... args)
+  static void critical(Args&&... args)
   {
     log(LogType::CRITICAL, std::forward<Args>(args)...);
   }
 
   template <typename... Args>
-  void info(Args&&... args)
+  static void info(Args&&... args)
   {
     log(LogType::INFO, std::forward<Args>(args)...);
   }
 
+  static void initialize(const std::string& log_path);
+
 private:
-  void initialize(const std::string& log_path);
+  static inline std::queue<std::string> m_queued_logs;
+  static inline std::thread m_worker_thread;
+  static inline std::condition_variable m_cv;
+  static inline std::vector<LogCallback> m_callbacks;
 
-  std::queue<std::string> m_queued_logs;
-  std::thread m_worker_thread;
-  std::condition_variable m_cv;
-  std::vector<LogCallback> m_callbacks;
-
-  std::stringstream m_str_stream;
-  std::mutex m_mutex;
-  std::ofstream m_out;
+  static inline std::stringstream m_str_stream;
+  static inline std::mutex m_mutex;
+  static inline std::ofstream m_out;
 };
 } // namespace kogayonon

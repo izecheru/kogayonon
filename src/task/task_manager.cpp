@@ -48,7 +48,7 @@ namespace kogayonon
       catch (const std::exception& e)
       {
         // Log the error instead of crashing the thread
-        ContextManager::klogger()->log(LogType::ERROR, "Task execution error: ", e.what());
+        KLogger::log(LogType::ERROR, "Task execution error: ", e.what());
       }
     }
   }

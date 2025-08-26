@@ -20,7 +20,7 @@ namespace kogayonon
     std::ifstream vertex_stream(vert_path);
     if (!vertex_stream.is_open())
     {
-      ContextManager::klogger()->log(LogType::ERROR, "Failed to open shader file: ", vert_path);
+      KLogger::log(LogType::ERROR, "Failed to open shader file: ", vert_path);
       std::string result = "";
       assert(result.size() > 0);
       return {result, result};
@@ -37,7 +37,7 @@ namespace kogayonon
     std::ifstream fragment_stream(frag_path);
     if (!fragment_stream.is_open())
     {
-      ContextManager::klogger()->log(LogType::ERROR, "Failed to open shader file: ", frag_path);
+      KLogger::log(LogType::ERROR, "Failed to open shader file: ", frag_path);
       std::string result = "";
 
       assert(result.size() > 0);
@@ -72,7 +72,7 @@ namespace kogayonon
     if (int location = glGetUniformLocation(m_program_id, uniform); location == -1)
     {
       // Uniform not found, print a warning or error message
-      ContextManager::klogger()->log(LogType::ERROR, "Uniform not found: ", uniform);
+      KLogger::log(LogType::ERROR, "Uniform not found: ", uniform);
     }
     else
     {
@@ -84,7 +84,7 @@ namespace kogayonon
   {
     if (int location = glGetUniformLocation(m_program_id, uniform); location == -1)
     {
-      ContextManager::klogger()->log(LogType::ERROR, "Uniform not found: ", uniform);
+      KLogger::log(LogType::ERROR, "Uniform not found: ", uniform);
     }
     else
     {
@@ -113,16 +113,16 @@ namespace kogayonon
       glGetShaderInfoLog(id, length, &length, message);
       if (shader_type == GL_VERTEX_SHADER)
       {
-        ContextManager::klogger()->log(LogType::INFO, "Failed to compile vertex shader:\n", message, '\n');
+        KLogger::log(LogType::INFO, "Failed to compile vertex shader:\n", message, '\n');
       }
       else if (shader_type == GL_FRAGMENT_SHADER)
       {
-        ContextManager::klogger()->log(LogType::INFO, "Failed to compile fragment shader:\n", message, '\n');
+        KLogger::log(LogType::INFO, "Failed to compile fragment shader:\n", message, '\n');
       }
       glDeleteShader(id);
       return 0;
     }
-    ContextManager::klogger()->log(LogType::INFO,
+    KLogger::log(LogType::INFO,
                                    "Shader compiled successfully:", shader_type == GL_VERTEX_SHADER ? "Vertex Shader" : "Fragment Shader");
     return id;
   }
@@ -146,7 +146,7 @@ namespace kogayonon
       auto message = (char*)malloc(length * sizeof(char));
       glGetProgramInfoLog(program, length, &length, message);
 
-      ContextManager::klogger()->log(LogType::INFO, "Failed to link shader program:\n", message, '\n');
+      KLogger::log(LogType::INFO, "Failed to link shader program:\n", message, '\n');
       free(message);
       glDeleteProgram(program);
       return 0;
@@ -155,7 +155,7 @@ namespace kogayonon
     glDeleteShader(vs);
     glDeleteShader(fs);
 
-    ContextManager::klogger()->log(LogType::INFO, "Succesfully linked shaders", '\n');
+    KLogger::log(LogType::INFO, "Succesfully linked shaders", '\n');
     return program;
   }
 } // namespace kogayonon

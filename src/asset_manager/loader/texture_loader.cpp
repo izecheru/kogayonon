@@ -21,7 +21,7 @@ namespace kogayonon
       }
       else
       {
-        ContextManager::klogger()->log(LogType::INFO, "Loading texture from:", texture_path);
+        KLogger::log(LogType::INFO, "Loading texture from:", texture_path);
 
         int w;
         int h;
@@ -30,7 +30,7 @@ namespace kogayonon
 
         if (!tex_data)
         {
-          ContextManager::klogger()->log(LogType::ERROR, "Failed to load texture:", texture_path);
+          KLogger::log(LogType::ERROR, "Failed to load texture:", texture_path);
           return;
         }
 

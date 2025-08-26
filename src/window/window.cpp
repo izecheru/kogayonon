@@ -126,7 +126,7 @@ bool Window::init(const window_props& props)
 {
   if (SDL_Init(SDL_INIT_VIDEO) < 0)
   {
-    ContextManager::klogger()->log(LogType::ERROR, "failed to init sdl\n");
+    KLogger::log(LogType::ERROR, "failed to init sdl\n");
     return false;
   }
 

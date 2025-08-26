@@ -5,7 +5,7 @@
 #include <imgui_impl_sdl2.h>
 #include <imgui_internal.h>
 
-#include "context_manager/context_manager.h"
+#include "klogger/klogger.h"
 #include "ui/debug_window.h"
 #include "ui/scene_viewport.h"
 #include "ui/win_camera_settings.h"
@@ -20,21 +20,21 @@ ImGuiManager::~ImGuiManager()
   m_windows.clear();
 }
 
-ImGuiManager::ImGuiManager(SDL_Window* window, SDL_GLContext context, std::shared_ptr<FrameBuffer> fbo)
+ImGuiManager::ImGuiManager(SDL_Window* window, SDL_GLContext context)
 {
   if (initImgui(window, context))
   {
-    ContextManager::klogger()->log(LogType::INFO, "Imgui initialised");
+    KLogger::log(LogType::INFO, "Imgui initialised");
     push_window("Camera settings", std::make_shared<CameraSettingsWindow>("Camera settings"));
-    push_window("Scene", std::make_shared<SceneViewportWindow>("Scene", fbo));
+    push_window("Scene", std::make_shared<SceneViewportWindow>("Scene"));
     push_window("Debug console", std::make_shared<DebugConsoleWindow>("Debug console"));
 
     // add the callback for the debug console window
-    ContextManager::klogger()->addCallback([](const std::string& msg) { DebugConsoleWindow::log(msg); });
+    KLogger::addCallback([](const std::string& msg) { DebugConsoleWindow::log(msg); });
   }
   else
   {
-    ContextManager::klogger()->log(LogType::ERROR, "Imgui could not be initialised");
+    KLogger::log(LogType::ERROR, "Imgui could not be initialised");
   }
 }
 
@@ -53,7 +53,7 @@ bool ImGuiManager::initImgui(SDL_Window* window, SDL_GLContext context)
 
   if (!ImGui_ImplSDL2_InitForOpenGL(window, context) || !ImGui_ImplOpenGL3_Init("#version 460"))
   {
-    ContextManager::klogger()->log(LogType::ERROR, "Error init imgui");
+    KLogger::log(LogType::ERROR, "Error init imgui");
     return false;
   }
   return true;
@@ -156,7 +156,7 @@ void ImGuiManager::mainMenu()
     {
       if (ImGui::MenuItem("Close", "Ctrl+X"))
       {
-        ContextManager::klogger()->log(LogType::INFO, "Ctrl+X pressed");
+        KLogger::log(LogType::INFO, "Ctrl+X pressed");
       }
       ImGui::EndMenu();
     }

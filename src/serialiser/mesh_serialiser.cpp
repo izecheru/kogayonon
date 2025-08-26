@@ -42,7 +42,7 @@ bool MeshSerializer::serialize(Mesh& mesh, std::ofstream& out)
   }
   else
   {
-    ContextManager::klogger()->log(LogType::ERROR, "Attempting to serialize mesh with 0 vertices");
+    KLogger::log(LogType::ERROR, "Attempting to serialize mesh with 0 vertices");
     return false;
   }
   std::vector<uint32_t>& indices = mesh.getIndices();
@@ -53,7 +53,7 @@ bool MeshSerializer::serialize(Mesh& mesh, std::ofstream& out)
   }
   else
   {
-    ContextManager::klogger()->log(LogType::ERROR, "Attempting to serialize mesh with 0 indices");
+    KLogger::log(LogType::ERROR, "Attempting to serialize mesh with 0 indices");
     return false;
   }
   return true;
@@ -82,7 +82,7 @@ bool MeshSerializer::serialize(std::vector<Mesh>& mesh, std::ofstream& out)
   {
     if (!serialize(m, out))
     {
-      ContextManager::klogger()->log(LogType::ERROR, "Could not serialize mesh");
+      KLogger::log(LogType::ERROR, "Could not serialize mesh");
     }
   }
   return true;
@@ -94,7 +94,7 @@ bool MeshSerializer::deserialize(std::vector<Mesh>& mesh, std::ifstream& in)
   {
     if (!deserialize(m, in))
     {
-      ContextManager::klogger()->log(LogType::ERROR, "Could not deserialize mesh");
+      KLogger::log(LogType::ERROR, "Could not deserialize mesh");
     }
   }
   return true;

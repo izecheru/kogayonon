@@ -31,8 +31,8 @@ App::App()
 
 App::~App()
 {
-  // LET THIS HERE IF YOU NEED LOGGING ON EXIT
   ContextManager::clear();
+  KLogger::shutdown();
 }
 
 void App::run() const
@@ -45,12 +45,12 @@ void App::run() const
 
 void App::initializeContext()
 {
-  ContextManager::addToContext(Context::KLoggerContext, std::make_shared<KLogger>("log.txt"));
+  KLogger::initialize("log.txt");
+  ContextManager::addToContext(Context::RendererContext, std::make_shared<Renderer>(m_window));
   ContextManager::addToContext(Context::EventManagerContext, std::make_shared<EventManager>());
   ContextManager::addToContext(Context::AssetManagerContext, std::make_shared<AssetManager>());
   ContextManager::addToContext(Context::TaskManagerContext, std::make_shared<TaskManager>(10));
   ContextManager::addToContext(Context::CameraContext, std::make_shared<Camera>());
-  ContextManager::addToContext(Context::RendererContext, std::make_shared<Renderer>(m_window));
 }
 
 bool App::onEvent(Event& e)

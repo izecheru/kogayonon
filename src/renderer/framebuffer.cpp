@@ -1,54 +1,67 @@
-#include "framebuffer.h"
+﻿#include "framebuffer.h"
 
 #include "context_manager/context_manager.h"
 
 namespace kogayonon
 {
-FrameBuffer::FrameBuffer()
+FrameBuffer::FrameBuffer(int width, int height) : m_width(width), m_height(height)
 {
   glCreateFramebuffers(1, &m_fbo);
 
   // Create color texture
-  glCreateTextures(GL_TEXTURE_2D, 1, &m_tex);
-  glTextureStorage2D(m_tex, 1, GL_RGBA8, m_width, m_height);
-  glTextureParameteri(m_tex, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTextureParameteri(m_tex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glNamedFramebufferTexture(m_fbo, GL_COLOR_ATTACHMENT0, m_tex, 0);
+  glCreateTextures(GL_TEXTURE_2D, 1, &m_texture);
+  glTextureStorage2D(m_texture, 1, GL_RGBA8, width, height);
+  glTextureParameteri(m_texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTextureParameteri(m_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glNamedFramebufferTexture(m_fbo, GL_COLOR_ATTACHMENT0, m_texture, 0);
 
-  // Create depth texture
-  glCreateTextures(GL_TEXTURE_2D, 1, &m_depth_tex);
-  glTextureStorage2D(m_depth_tex, 1, GL_DEPTH24_STENCIL8, m_width, m_height);
-  glTextureParameteri(m_depth_tex, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTextureParameteri(m_depth_tex, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glNamedFramebufferTexture(m_fbo, GL_DEPTH_ATTACHMENT, m_depth_tex, 0);
-
+  // Create depth renderbuffer
   glCreateRenderbuffers(1, &m_rbo);
-  glNamedRenderbufferStorage(m_rbo, GL_DEPTH24_STENCIL8, m_width, m_height);
-  glNamedFramebufferRenderbuffer(m_fbo, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_rbo);
-
-  if (glCheckNamedFramebufferStatus(m_fbo, GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-  {
-    ContextManager::klogger()->error("Framebuffer error");
-  }
+  glNamedRenderbufferStorage(m_rbo, GL_DEPTH24_STENCIL8, width, height);
 }
 
 FrameBuffer::~FrameBuffer()
 {
-  if (m_tex)
-    glDeleteTextures(1, &m_tex);
-  if (m_depth_tex)
-    glDeleteTextures(1, &m_depth_tex);
+  if (m_texture)
+    glDeleteTextures(1, &m_texture);
   if (m_fbo)
     glDeleteFramebuffers(1, &m_fbo);
+  if (m_rbo)
+    glDeleteRenderbuffers(1, &m_rbo);
 }
 
-void FrameBuffer::bind()
+void FrameBuffer::bind() const
 {
   glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 }
 
-void FrameBuffer::unbind()
+void FrameBuffer::unbind() const
 {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void FrameBuffer::rescaleFramebuffer(int width, int height)
+{
+  m_width = width;
+  m_height = height;
+
+  // delete old
+  glDeleteTextures(1, &m_texture);
+  glDeleteRenderbuffers(1, &m_rbo);
+
+  // recreate texture
+  glCreateTextures(GL_TEXTURE_2D, 1, &m_texture);
+  glTextureStorage2D(m_texture, 1, GL_RGBA8, width, height);
+  glTextureParameteri(m_texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTextureParameteri(m_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glNamedFramebufferTexture(m_fbo, GL_COLOR_ATTACHMENT0, m_texture, 0);
+
+  // recreate renderbuffer
+  glCreateRenderbuffers(1, &m_rbo);
+  glNamedRenderbufferStorage(m_rbo, GL_DEPTH24_STENCIL8, width, height);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rbo);
+
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    KLogger::error("ERROR: Framebuffer is not complete after resize!");
 }
 } // namespace kogayonon

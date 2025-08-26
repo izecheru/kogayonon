@@ -19,7 +19,7 @@ namespace kogayonon
     // for (auto it = m_textures.begin(); it != m_textures.end(); ++it)
     //{
     //   Texture& texture = texture_map.at(*it);
-    //   ContextManager::klogger()->log(LogType::INFO, "texture path:", texture.path);
+    //   KLogger::log(LogType::INFO, "texture path:", texture.path);
     //   if (!texture.data.empty())
     //   {
     //     GLenum glformat = GL_RGB;
@@ -58,7 +58,7 @@ namespace kogayonon
     //  }
     //  else
     //  {
-    //    ContextManager::klogger()->log(LogType::ERROR, "Failed to load image from ", texture.path);
+    //    KLogger::log(LogType::ERROR, "Failed to load image from ", texture.path);
     //  }
     //}
     return true;

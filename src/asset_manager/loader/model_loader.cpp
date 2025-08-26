@@ -36,7 +36,7 @@ void ModelLoader::assignModelMeshes(const cgltf_data* data, std::vector<Mesh>& m
   // for(size_t animation_index = 0; animation_index < data->animations_count; animation_index++)
   //{
   //  cgltf_animation& animation = data->animations[animation_index];
-  //  ContextManager::klogger()->log(LogType::INFO, "Parsing animation:", animation.name);
+  //  KLogger::log(LogType::INFO, "Parsing animation:", animation.name);
   //}
 }
 

@@ -13,7 +13,7 @@ namespace kogayonon
 class ImGuiManager
 {
 public:
-  explicit ImGuiManager(SDL_Window* window, SDL_GLContext context, std::shared_ptr<FrameBuffer> fbo);
+  explicit ImGuiManager(SDL_Window* window, SDL_GLContext context);
   ~ImGuiManager();
 
   bool initImgui(SDL_Window* window, SDL_GLContext context);

@@ -35,7 +35,8 @@ set(RENDERER_SOURCES
     "src/renderer/renderer.cpp"
     "src/renderer/renderer.h"
     "src/renderer/framebuffer.h"
-    "src/renderer/framebuffer.cpp")
+    "src/renderer/framebuffer.cpp"
+)
 
 set(ASSET_MANAGER_SOURCES
     "src/asset_manager/loader/mesh.cpp"

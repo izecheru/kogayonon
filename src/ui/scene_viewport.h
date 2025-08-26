@@ -9,7 +9,10 @@ namespace kogayonon
 class SceneViewportWindow : public ImGuiWindow
 {
 public:
-  SceneViewportWindow(std::string&& name, std::shared_ptr<FrameBuffer> fbo) : ImGuiWindow(std ::move(name)), m_fbo(fbo) {}
+  SceneViewportWindow(std::string&& name) : ImGuiWindow(std ::move(name))
+  {
+    m_fbo = std::make_shared<FrameBuffer>(800, 600);
+  }
 
   ~SceneViewportWindow() {}
 

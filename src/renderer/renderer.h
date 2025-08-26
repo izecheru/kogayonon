@@ -11,7 +11,7 @@ class Renderer
 public:
   explicit Renderer(std::shared_ptr<Window> window)
       : m_window(window), is_poly(false), m_shader_manager(std::make_unique<ShaderManager>()),
-        m_imgui_manager(std::make_unique<ImGuiManager>(window->getWindow(), window->getContext(), std::make_shared<FrameBuffer>()))
+        m_imgui_manager(std::make_unique<ImGuiManager>(window->getWindow(), window->getContext()))
   {}
 
   ~Renderer() = default;

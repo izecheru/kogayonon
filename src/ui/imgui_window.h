@@ -65,8 +65,8 @@ protected:
     std::string m_name;
     double m_x = 0.0;
     double m_y = 0.0;
-    double m_width = 0.0;
-    double m_height = 0.0;
+    int m_width = 0.0;
+    int m_height = 0.0;
     bool is_docked = false;
     bool can_move = true;
     bool visible = true;
