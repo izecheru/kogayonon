@@ -17,8 +17,8 @@ public:
   ~ImGuiManager();
 
   bool initImgui(SDL_Window* window, SDL_GLContext context);
-  void push_window(std::string&& name, std::shared_ptr<ImGuiWindow> window);
-  std::unordered_map<std::string, std::shared_ptr<ImGuiWindow>>& getWindows();
+  void push_window(std::string name, std::unique_ptr<ImGuiWindow> window);
+  std::unordered_map<std::string, std::unique_ptr<ImGuiWindow>>& getWindows();
   void draw();
   void mainMenu();
   void setupDockSpace(ImGuiViewport* viewport);
@@ -28,6 +28,6 @@ public:
 
 private:
   ImGuiIO* m_io = nullptr;
-  std::unordered_map<std::string, std::shared_ptr<ImGuiWindow>> m_windows{};
+  std::unordered_map<std::string, std::unique_ptr<ImGuiWindow>> m_windows{};
 };
 } // namespace kogayonon

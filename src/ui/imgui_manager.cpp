@@ -7,8 +7,6 @@
 
 #include "klogger/klogger.h"
 #include "ui/debug_window.h"
-#include "ui/scene_viewport.h"
-#include "ui/win_camera_settings.h"
 
 namespace kogayonon
 {
@@ -25,10 +23,6 @@ ImGuiManager::ImGuiManager(SDL_Window* window, SDL_GLContext context)
   if (initImgui(window, context))
   {
     KLogger::log(LogType::INFO, "Imgui initialised");
-    push_window("Camera settings", std::make_shared<CameraSettingsWindow>("Camera settings"));
-    push_window("Scene", std::make_shared<SceneViewportWindow>("Scene"));
-    push_window("Debug console", std::make_shared<DebugConsoleWindow>("Debug console"));
-
     // add the callback for the debug console window
     KLogger::addCallback([](const std::string& msg) { DebugConsoleWindow::log(msg); });
   }
@@ -36,6 +30,11 @@ ImGuiManager::ImGuiManager(SDL_Window* window, SDL_GLContext context)
   {
     KLogger::log(LogType::ERROR, "Imgui could not be initialised");
   }
+}
+
+void ImGuiManager::push_window(std::string name, std::unique_ptr<ImGuiWindow> window)
+{
+  m_windows.emplace(std::move(name), std::move(window));
 }
 
 bool ImGuiManager::initImgui(SDL_Window* window, SDL_GLContext context)
@@ -164,12 +163,7 @@ void ImGuiManager::mainMenu()
   }
 }
 
-void ImGuiManager::push_window(std::string&& name, std::shared_ptr<ImGuiWindow> window)
-{
-  m_windows.insert({std::move(name), window});
-}
-
-std::unordered_map<std::string, std::shared_ptr<ImGuiWindow>>& ImGuiManager::getWindows()
+std::unordered_map<std::string, std::unique_ptr<ImGuiWindow>>& ImGuiManager::getWindows()
 {
   return m_windows;
 }

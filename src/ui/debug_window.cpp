@@ -11,7 +11,6 @@ void DebugConsoleWindow::clearLogs()
   {
     return;
   }
-
   m_messages.clear();
 }
 

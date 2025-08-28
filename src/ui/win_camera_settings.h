@@ -12,7 +12,7 @@ public:
   explicit CameraSettingsWindow(std::string&& name, bool can_move = true) : ImGuiWindow(std::move(name))
   {
     m_props->can_move = can_move;
-    m_props->m_flags |= ImGuiWindowFlags_AlwaysAutoResize;
+    m_props->flags |= ImGuiWindowFlags_AlwaysAutoResize;
   }
 
   void draw() override;

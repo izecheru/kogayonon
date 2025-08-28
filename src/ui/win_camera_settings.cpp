@@ -8,7 +8,7 @@ namespace kogayonon
 void CameraSettingsWindow::draw()
 {
   auto& camera = ContextManager::camera();
-  if (!ImGui::Begin(m_props->m_name.c_str(), nullptr, m_props->m_flags))
+  if (!ImGui::Begin(m_props->m_name.c_str(), nullptr, m_props->flags))
   {
     ImGui::End();
     return;
@@ -23,11 +23,11 @@ void CameraSettingsWindow::draw()
   {
     if (!m_props->can_move)
     {
-      m_props->m_flags |= ImGuiWindowFlags_NoMove;
+      m_props->flags |= ImGuiWindowFlags_NoMove;
     }
     else
     {
-      m_props->m_flags &= ~ImGuiWindowFlags_NoMove;
+      m_props->flags &= ~ImGuiWindowFlags_NoMove;
     }
   }
   ImGui::LabelText(m_props->is_docked == true ? "true" : "false", "Docked:");

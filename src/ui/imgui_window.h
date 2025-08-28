@@ -32,22 +32,22 @@ public:
 
   virtual void setX(double x)
   {
-    m_props->m_x = x;
+    m_props->x = x;
   }
 
   virtual void setY(double y)
   {
-    m_props->m_y = y;
+    m_props->y = y;
   }
 
-  double width()
+  int width()
   {
-    return m_props->m_width;
+    return m_props->width;
   }
 
-  double height()
+  int height()
   {
-    return m_props->m_height;
+    return m_props->height;
   }
 
   virtual void draw() = 0;
@@ -58,25 +58,27 @@ public:
   }
 
 protected:
+  // if we ever need to pass a rendering func in the middle of the window or something
+  // i made this for the scene viewport so i can pass functions from Renderer class
   RenderCallbackFn m_render_callback;
 
   struct imgui_props
   {
     std::string m_name;
-    double m_x = 0.0;
-    double m_y = 0.0;
-    int m_width = 0.0;
-    int m_height = 0.0;
+    double x = 0.0;
+    double y = 0.0;
+    int width = 0;
+    int height = 0;
     bool is_docked = false;
     bool can_move = true;
     bool visible = true;
     bool is_hovered = false;
     bool can_resize = false;
-    ImGuiWindowFlags m_flags;
+    ImGuiWindowFlags flags;
 
-    explicit imgui_props(std::string&& t_name)
-        : m_name(std::move(t_name)), m_x(0.0), m_y(0.0), is_docked(false), visible(true), is_hovered(false), can_move(true),
-          can_resize(false), m_flags(0)
+    explicit imgui_props(std::string t_name)
+        : m_name(std::move(t_name)), x(0), y(0), is_docked(false), visible(true), is_hovered(false), can_move(true), can_resize(false),
+          flags(0)
     {}
   };
 

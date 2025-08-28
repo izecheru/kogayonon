@@ -1,5 +1,5 @@
 #pragma once
-#include <functional>
+#include <unordered_map>
 
 #include "imgui_window.h"
 #include "renderer/framebuffer.h"
@@ -9,10 +9,7 @@ namespace kogayonon
 class SceneViewportWindow : public ImGuiWindow
 {
 public:
-  SceneViewportWindow(std::string&& name) : ImGuiWindow(std ::move(name))
-  {
-    m_fbo = std::make_shared<FrameBuffer>(800, 600);
-  }
+  SceneViewportWindow(std::string&& name, std::shared_ptr<FrameBuffer> fbo) : ImGuiWindow(std ::move(name)), m_fbo(fbo) {}
 
   ~SceneViewportWindow() {}
 
