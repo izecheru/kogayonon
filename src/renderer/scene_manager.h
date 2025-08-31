@@ -12,7 +12,7 @@ public:
   ~SceneManager() = default;
 
   // scene getter and setter as well as switching and other stuff related to it
-  int getCurrentScene();
+  Scene& getCurrentScene();
   void setCurrentScene(int scene);
   void addScene(int scene);
   void removeScene(int scene);

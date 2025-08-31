@@ -1,8 +1,5 @@
 #pragma once
 #include "event/app_event.h"
-#include "input/keyboard_events.h"
-#include "input/mouse_events.h"
-#include "renderer/renderer.h"
 #include "window/window.h"
 
 namespace kogayonon
@@ -13,8 +10,6 @@ public:
   App();
   ~App();
   void run() const;
-
-  void initializeContext();
 
   // Events
 private:

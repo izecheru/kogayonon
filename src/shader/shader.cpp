@@ -5,7 +5,7 @@
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "context_manager/context_manager.h"
+#include "registry_manager/registry_manager.h"
 
 namespace kogayonon
 {

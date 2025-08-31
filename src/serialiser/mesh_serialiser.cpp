@@ -1,7 +1,7 @@
 #include "serialiser/mesh_serialiser.h"
 
 #include "asset_manager/loader/mesh.h"
-#include "context_manager/context_manager.h"
+#include "registry_manager/registry_manager.h"
 
 namespace kogayonon
 {

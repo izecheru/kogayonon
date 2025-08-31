@@ -4,20 +4,16 @@
 
 namespace kogayonon
 {
-int SceneManager::getCurrentScene()
+Scene& SceneManager::getCurrentScene()
 {
-  auto& it = m_scenes.find(m_current_scene);
-  if (it != m_scenes.end())
-  {
-    return it->first;
-  }
-
-  return 0;
+  return m_scenes.at(m_current_scene);
 }
 
+// should draw only the current scene
 void SceneManager::setCurrentScene(int scene)
 {
   auto& it = m_scenes.find(scene);
+  // if we don't have this index then we don't have a scene to set
   if (it != m_scenes.end())
   {
     m_current_scene = it->first;

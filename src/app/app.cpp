@@ -4,34 +4,28 @@
 #include <iostream>
 #include <memory>
 
-#include "asset_manager/asset_manager.h"
-#include "context_manager/context_manager.h"
-#include "event/event_manager.h"
 #include "klogger/klogger.h"
-#include "renderer/camera.h"
-#include "renderer/renderer.h"
-#include "task/task_manager.h"
+#include "registry_manager/registry_manager.h"
 #include "window/window.h"
 
 namespace kogayonon
 {
 App::App()
 {
+  KLogger::initialize("log.txt");
+
   m_window = std::make_shared<Window>();
   m_window->setEventCallbackFn([this](Event& e) -> bool { return this->onEvent(e); });
+  REGISTRY().initialise(m_window);
 
-  initializeContext();
-
-  ContextManager::event_manager()->subscribe<WindowResizeEvent>(
+  EVENT_MANAGER()->subscribe<WindowResizeEvent>(
       [this](const Event& e) -> bool { return this->onWindowResize((const WindowResizeEvent&)e); });
 
-  ContextManager::event_manager()->subscribe<WindowCloseEvent>(
-      [this](const Event& e) -> bool { return this->onWindowClose((const WindowCloseEvent&)e); });
+  EVENT_MANAGER()->subscribe<WindowCloseEvent>([this](const Event& e) -> bool { return this->onWindowClose((const WindowCloseEvent&)e); });
 }
 
 App::~App()
 {
-  ContextManager::clear();
   KLogger::shutdown();
 }
 
@@ -39,23 +33,13 @@ void App::run() const
 {
   while (m_running)
   {
-    ContextManager::renderer()->draw();
+    RENDERER()->draw();
   }
-}
-
-void App::initializeContext()
-{
-  KLogger::initialize("log.txt");
-  ContextManager::addToContext(Context::RendererContext, std::make_shared<Renderer>(m_window));
-  ContextManager::addToContext(Context::EventManagerContext, std::make_shared<EventManager>());
-  ContextManager::addToContext(Context::AssetManagerContext, std::make_shared<AssetManager>());
-  ContextManager::addToContext(Context::TaskManagerContext, std::make_shared<TaskManager>(10));
-  ContextManager::addToContext(Context::CameraContext, std::make_shared<Camera>());
 }
 
 bool App::onEvent(Event& e)
 {
-  ContextManager::event_manager()->dispatch(e);
+  EVENT_MANAGER()->dispatch(e);
   return false;
 }
 

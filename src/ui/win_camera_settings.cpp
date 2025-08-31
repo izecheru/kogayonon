@@ -1,37 +1,37 @@
 #include "ui/win_camera_settings.h"
 
-#include "context_manager/context_manager.h"
+#include "registry_manager/registry_manager.h"
 #include "renderer/camera.h"
 
 namespace kogayonon
 {
 void CameraSettingsWindow::draw()
 {
-  auto& camera = ContextManager::camera();
-  if (!ImGui::Begin(m_props->m_name.c_str(), nullptr, m_props->flags))
-  {
-    ImGui::End();
-    return;
-  }
-  m_props->is_hovered = ImGui::IsWindowHovered();
-  m_props->is_docked = ImGui::IsWindowDocked();
-  drawProperties(camera->getProps());
+  // auto& camera = RegistryManager::camera();
+  // if (!ImGui::Begin(m_props->m_name.c_str(), nullptr, m_props->flags))
+  //{
+  //   ImGui::End();
+  //   return;
+  // }
+  // m_props->is_hovered = ImGui::IsWindowHovered();
+  // m_props->is_docked = ImGui::IsWindowDocked();
+  // drawProperties(camera->getProps());
 
-  ImGui::SliderFloat("Mouse sensitivity", &camera->getProps().mouse_sens, 0.01f, 2.0f, "%.4f");
-  ImGui::SliderFloat("Movement sensitivity", &camera->getProps().movement_speed, 0.01f, 100.0f, "%.4f");
-  if (ImGui::Checkbox("Can move the window?", &m_props->can_move))
-  {
-    if (!m_props->can_move)
-    {
-      m_props->flags |= ImGuiWindowFlags_NoMove;
-    }
-    else
-    {
-      m_props->flags &= ~ImGuiWindowFlags_NoMove;
-    }
-  }
-  ImGui::LabelText(m_props->is_docked == true ? "true" : "false", "Docked:");
-  ImGui::End();
+  // ImGui::SliderFloat("Mouse sensitivity", &camera->getProps().mouse_sens, 0.01f, 2.0f, "%.4f");
+  // ImGui::SliderFloat("Movement sensitivity", &camera->getProps().movement_speed, 0.01f, 100.0f, "%.4f");
+  // if (ImGui::Checkbox("Can move the window?", &m_props->can_move))
+  //{
+  //   if (!m_props->can_move)
+  //   {
+  //     m_props->flags |= ImGuiWindowFlags_NoMove;
+  //   }
+  //   else
+  //   {
+  //     m_props->flags &= ~ImGuiWindowFlags_NoMove;
+  //   }
+  // }
+  // ImGui::LabelText(m_props->is_docked == true ? "true" : "false", "Docked:");
+  // ImGui::End();
 }
 
 void CameraSettingsWindow::drawProperties(CameraProps& t_props)

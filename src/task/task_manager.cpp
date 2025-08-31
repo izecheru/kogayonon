@@ -1,6 +1,6 @@
 #include "task/task_manager.h"
 
-#include "context_manager/context_manager.h"
+#include "registry_manager/registry_manager.h"
 #include "time_tracker/time_tracker.h"
 
 namespace kogayonon

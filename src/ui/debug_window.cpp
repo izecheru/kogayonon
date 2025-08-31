@@ -1,6 +1,6 @@
 #include "debug_window.h"
 
-#include "context_manager/context_manager.h"
+#include "registry_manager/registry_manager.h"
 
 namespace kogayonon
 {

@@ -4,7 +4,7 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>
 
-#include "context_manager/context_manager.h"
+#include "registry_manager/registry_manager.h"
 #include "input/keyboard_events.h"
 #include "klogger/klogger.h"
 

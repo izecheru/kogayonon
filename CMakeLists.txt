@@ -28,6 +28,7 @@ add_subdirectory(dependencies/stb)
 add_subdirectory(dependencies/glad)
 add_subdirectory(dependencies/cgltf)
 add_subdirectory(dependencies/glm)
+add_subdirectory(dependencies/entt)
 
 set(RENDERER_SOURCES
     "src/renderer/camera.cpp"
@@ -104,10 +105,10 @@ set(UTILS_SOURCES
     "src/time_tracker/time_tracker.cpp"
     "src/time_tracker/time_tracker.h"
 
-    "src/context_manager/context_manager.h"
+    "src/registry_manager/registry_manager.h"
 
     "src/singleton/singleton.h"
-)
+ "src/registry_manager/registry.h" "src/registry_manager/registry_manager.cpp")
 
 set(EVENTS_SOURCES
     "src/event/app_event.h"
@@ -141,5 +142,5 @@ target_include_directories(
 
 target_link_libraries(
   kogayonon PRIVATE
-  cgltf stb imgui glad glm SDL2::SDL2
+  cgltf stb imgui glad glm SDL2::SDL2 EnTT
 )

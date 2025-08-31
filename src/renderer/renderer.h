@@ -21,7 +21,6 @@ public:
         m_imgui_manager(std::make_unique<ImGuiManager>(window->getWindow(), window->getContext())),
         m_scene_fbo(std::make_shared<FrameBuffer>(800, 600))
   {
-    m_imgui_manager->push_window("Camera settings", std::make_unique<CameraSettingsWindow>("Camera settings"));
     m_imgui_manager->push_window("Scene", std::make_unique<SceneViewportWindow>("Scene", m_scene_fbo));
     m_imgui_manager->push_window("Debug console", std::make_unique<DebugConsoleWindow>("Debug console"));
   }
@@ -84,7 +83,7 @@ public:
 
 private:
   bool is_poly = false;
-  std::shared_ptr<Window> m_window;
+  std::weak_ptr<Window> m_window;
   std::shared_ptr<FrameBuffer> m_scene_fbo;
   std::unique_ptr<ImGuiManager> m_imgui_manager = nullptr;
   std::unique_ptr<ShaderManager> m_shader_manager = nullptr;

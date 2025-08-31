@@ -2,7 +2,7 @@
 
 #include <glad/glad.h>
 
-#include "context_manager/context_manager.h"
+#include "registry_manager/registry_manager.h"
 #include "klogger/klogger.h"
 #include "renderer/camera.h"
 

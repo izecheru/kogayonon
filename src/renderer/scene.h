@@ -7,7 +7,7 @@
 namespace kogayonon
 {
 /**
- * @brief Scene object that holds references for all objects currently loaded in itself
+ * @brief Scene object that holds references for all objects currently loaded in current object (scene)
  */
 class Scene
 {

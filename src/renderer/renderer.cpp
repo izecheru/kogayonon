@@ -8,7 +8,7 @@ void Renderer::draw()
   glEnable(GL_DEPTH_TEST);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   m_imgui_manager->draw();
-  m_window->update();
+  m_window.lock()->update();
 }
 
 bool Renderer::getPolyMode()
