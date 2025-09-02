@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "imgui_window.h"
+#include "klogger/klogger.h"
 
 namespace kogayonon
 {
@@ -26,6 +27,26 @@ public:
   }
 
   void draw() override;
+
+private:
+  inline ImVec4 logTypeToColor(LogType type)
+  {
+    switch (type)
+    {
+    case LogType::DEBUG:
+      return ImVec4(0.5f, 0.5f, 0.5f, 1.0f); // Gray
+    case LogType::INFO:
+      return ImVec4(0.0f, 0.7f, 1.0f, 1.0f); // Cyan / Blue
+    case LogType::WARN:
+      return ImVec4(1.0f, 0.8f, 0.0f, 1.0f); // Yellow/Orange
+    case LogType::ERROR:
+      return ImVec4(1.0f, 0.2f, 0.2f, 1.0f); // Red
+    case LogType::CRITICAL:
+      return ImVec4(0.8f, 0.0f, 0.0f, 1.0f); // Darker Red
+    default:
+      return ImVec4(1.0f, 1.0f, 1.0f, 1.0f); // White (fallback)
+    }
+  }
 
 private:
   bool m_auto_scroll = true;

@@ -6,12 +6,12 @@ namespace kogayonon
 {
 void DebugConsoleWindow::clearLogs()
 {
-  KLogger::log(LogType::INFO, "Cleared logs in debug console window");
   if (m_messages.empty())
   {
     return;
   }
   m_messages.clear();
+  KLogger::log(LogType::INFO, "Cleared logs in debug console window");
 }
 
 void DebugConsoleWindow::draw()
@@ -33,7 +33,18 @@ void DebugConsoleWindow::draw()
 
   for (auto& message : m_messages)
   {
-    ImGui::TextUnformatted(message.c_str());
+    if (message.find("critical") != std::string::npos)
+    {
+      ImGui::TextColored(logTypeToColor(LogType::CRITICAL), message.c_str());
+    }
+    else if (message.find("error") != std::string::npos)
+    {
+      ImGui::TextColored(logTypeToColor(LogType::ERROR), message.c_str());
+    }
+    else if (message.find("info") != std::string::npos)
+    {
+      ImGui::TextColored(logTypeToColor(LogType::INFO), message.c_str());
+    }
   }
 
   if (m_auto_scroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())

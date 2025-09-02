@@ -75,7 +75,7 @@ set(USER_INTERFACE_SOURCES
     "src/ui/debug_window.cpp"
     "src/ui/file_explorer.h"
     "src/ui/file_explorer.cpp"
- "src/ui/display.h" "src/ui/display.cpp" "src/ui/display_manager.h" "src/ui/folder_display.h" "src/ui/folder_display.cpp")
+ "src/ui/display.h" "src/ui/display.cpp"  "src/ui/folder_display.h" "src/ui/folder_display.cpp")
 
 set(SHADER_SOURCES
     "src/shader/shader.cpp"
