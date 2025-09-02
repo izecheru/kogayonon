@@ -1,7 +1,5 @@
 #include "app/app.h"
 
-#include <glm/glm.hpp>
-#include <iostream>
 #include <memory>
 
 #include "klogger/klogger.h"
@@ -16,6 +14,7 @@ App::App()
 
   m_window = std::make_shared<Window>();
   m_window->setEventCallbackFn([this](Event& e) -> bool { return this->onEvent(e); });
+
   REGISTRY().initialise(m_window);
 
   EVENT_MANAGER()->subscribe<WindowResizeEvent>(

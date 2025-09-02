@@ -12,7 +12,7 @@ class ImGuiWindow
   using RenderCallbackFn = std::function<void()>;
 
 public:
-  explicit ImGuiWindow(std::string&& name)
+  explicit ImGuiWindow(std::string name)
   {
     m_props = std::make_unique<imgui_props>(std::move(name));
   }
@@ -58,6 +58,7 @@ public:
   }
 
 protected:
+
   // if we ever need to pass a rendering func in the middle of the window or something
   // i made this for the scene viewport so i can pass functions from Renderer class
   RenderCallbackFn m_render_callback;

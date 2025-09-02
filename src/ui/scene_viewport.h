@@ -2,6 +2,7 @@
 #include <unordered_map>
 
 #include "imgui_window.h"
+#include "klogger/klogger.h"
 #include "renderer/framebuffer.h"
 
 namespace kogayonon
@@ -16,6 +17,6 @@ public:
   void draw() override;
 
 private:
-  std::shared_ptr<FrameBuffer> m_fbo;
+  std::weak_ptr<FrameBuffer> m_fbo;
 };
 } // namespace kogayonon

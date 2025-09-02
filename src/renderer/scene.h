@@ -7,7 +7,7 @@
 namespace kogayonon
 {
 /**
- * @brief Scene object that holds references for all objects currently loaded in current object (scene)
+ * @brief Scene object that is to be drawn on the SceneViewportWindow frame buffer
  */
 class Scene
 {
@@ -21,6 +21,7 @@ public:
   void draw();
 
 private:
+
   // audio and all other stuff like effects should go here
   // might make a resource manager for scene or something like that
   std::unordered_map<std::string, Model&> m_model_refs;

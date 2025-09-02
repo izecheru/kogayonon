@@ -2,9 +2,9 @@
 #include "framebuffer.h"
 #include "shader/shader_manager.h"
 #include "ui/debug_window.h"
+#include "ui/file_explorer.h"
 #include "ui/imgui_manager.h"
 #include "ui/scene_viewport.h"
-#include "ui/win_camera_settings.h"
 #include "window/window.h"
 
 namespace kogayonon
@@ -21,6 +21,7 @@ public:
         m_imgui_manager(std::make_unique<ImGuiManager>(window->getWindow(), window->getContext())),
         m_scene_fbo(std::make_shared<FrameBuffer>(800, 600))
   {
+    m_imgui_manager->push_window("File explorer", std::make_unique<FileExplorerWindow>("File explorer", "/"));
     m_imgui_manager->push_window("Scene", std::make_unique<SceneViewportWindow>("Scene", m_scene_fbo));
     m_imgui_manager->push_window("Debug console", std::make_unique<DebugConsoleWindow>("Debug console"));
   }
@@ -34,10 +35,9 @@ public:
   /**
    * @brief Just a test function for the callback
    */
-  void callback_test()
+  inline void callback_test()
   {
     // temp code
-    m_shader_manager->bindShader("3d");
     float triangleVertices[] = {0.0f, 0.5f, 0.0f, 0.5f, -0.5f, 0.0f, -0.5f, -0.5f, 0.0f};
     static GLuint VAO = 0, VBO = 0; // static so we only create once
     if (VAO == 0)
@@ -52,6 +52,7 @@ public:
       glVertexArrayAttribBinding(VAO, 0, 0);
     }
 
+    m_shader_manager->bindShader("3d");
     glBindVertexArray(VAO);
     glDrawArrays(GL_TRIANGLES, 0, 3);
     glBindVertexArray(0);

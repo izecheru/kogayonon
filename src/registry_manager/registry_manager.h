@@ -10,18 +10,22 @@
 
 namespace kogayonon
 {
+// i used entt instead of implementing my own stuff just for the sake of speed and all the other features
 #define REGISTRY() RegistryManager::getInstance()
 #define EVENT_MANAGER() RegistryManager::getInstance().getContext<std::shared_ptr<EventManager>>()
 #define ASSET_MANAGER() RegistryManager::getInstance().getContext<std::shared_ptr<AssetManager>>()
 #define TASK_MANAGER() RegistryManager::getInstance().getContext<std::shared_ptr<TaskManager>>()
 #define RENDERER() RegistryManager::getInstance().getContext<std::shared_ptr<Renderer>>()
 
+/**
+ * @brief RegistryManager holds the main parts of the application
+ */
 class RegistryManager
 {
 public:
   inline static RegistryManager& getInstance()
   {
-    static RegistryManager instance;
+    static RegistryManager instance{};
     return instance;
   }
 

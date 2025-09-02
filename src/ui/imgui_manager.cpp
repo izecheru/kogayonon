@@ -12,6 +12,7 @@ namespace kogayonon
 {
 ImGuiManager::~ImGuiManager()
 {
+  KLogger::info("imgui manager dtor");
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplSDL2_Shutdown();
   ImGui::DestroyContext();
@@ -23,6 +24,7 @@ ImGuiManager::ImGuiManager(SDL_Window* window, SDL_GLContext context)
   if (initImgui(window, context))
   {
     KLogger::log(LogType::INFO, "Imgui initialised");
+
     // add the callback for the debug console window
     KLogger::addCallback([](const std::string& msg) { DebugConsoleWindow::log(msg); });
   }
@@ -86,7 +88,7 @@ void ImGuiManager::setupDockSpace(ImGuiViewport* viewport)
       ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.25f, &dock_id_left, &dock_main_id);
 
       // Dock windows
-      ImGui::DockBuilderDockWindow("Camera settings", dock_id_left);
+      ImGui::DockBuilderDockWindow("File explorer", dock_id_left);
       ImGui::DockBuilderDockWindow("Scene", dock_main_id);
       ImGui::DockBuilderDockWindow("Debug console", dock_id_bottom);
 

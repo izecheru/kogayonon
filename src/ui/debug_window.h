@@ -9,7 +9,7 @@ namespace kogayonon
 class DebugConsoleWindow : public ImGuiWindow
 {
 public:
-  DebugConsoleWindow(std::string&& name) : ImGuiWindow(std::move(name)) {}
+  DebugConsoleWindow(std::string name) : ImGuiWindow(std::move(name)) {}
 
   void clearLogs();
 
