@@ -8,5 +8,4 @@ struct Vertex
     glm::vec3 normal;
     glm::vec2 tex_coords;
 };
-
 } // namespace kogayonon_resources

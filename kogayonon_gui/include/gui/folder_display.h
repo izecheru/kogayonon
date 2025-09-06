@@ -5,7 +5,7 @@ namespace kogayonon_gui {
 class FolderDisplay : public Display
 {
   public:
-    FolderDisplay(std::string name, std::string path) : Display(std::move(name)), m_path(std::move(path)) {}
+    FolderDisplay( std::string name, std::string path ) : Display( name ), m_path( path ) {}
 
     void draw() override;
 

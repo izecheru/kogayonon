@@ -10,26 +10,26 @@ class KeyboardState
     KeyboardState() = delete;
     ~KeyboardState() = default;
 
-    static void setKeyState(KeyCode code, bool state)
+    static void setKeyState( KeyCode code, bool state )
     {
-        if (key_state.find(code) != key_state.end())
+        if ( key_state.find( code ) != key_state.end() )
         {
-            key_state.at(code) = state;
+            key_state.at( code ) = state;
         }
     }
 
-    static bool getKeyState(KeyCode code)
+    static bool getKeyState( KeyCode code )
     {
-        return key_state[code];
+        return key_state[ code ];
     }
 
-    static bool getKeyCombinationState(std::vector<KeyCode>& codes)
+    static bool getKeyCombinationState( std::vector<KeyCode>& codes )
     {
         bool result = true;
-        for (KeyCode& code : codes)
+        for ( KeyCode& code : codes )
         {
             // if all are true &=
-            result &= key_state.at(code);
+            result &= key_state.at( code );
         }
         return result;
     }

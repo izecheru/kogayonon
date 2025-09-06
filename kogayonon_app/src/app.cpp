@@ -7,68 +7,79 @@
 #include "core/event/event_manager.h"
 #include "core/input/keyboard_events.h"
 #include "gui/debug_window.h"
+#include "gui/file_explorer.h"
 #include "gui/imgui_manager.h"
 #include "gui/scene_viewport.h"
 #include "logger/logger.h"
+#include "utilities/shader_manager/shader_manager.h"
 #include "utilities/task_manager/task_manager.h"
 #include "window/window.h"
 
 using namespace kogayonon_logger;
 
 namespace kogayonon_app {
-App::App()
-{
-#ifdef _DEBUG
-    m_pWindow = std::make_shared<kogayonon_window::Window>("kogayonon engine (DEBUG)", 800, 600, 1, false);
-#else
-    m_pWindow = std::make_shared<kogayonon_window::Window>("kogayonon engine", 800, 600, 1, false);
-#endif
-}
-
 App::~App()
 {
-    Logger::info("Closing app and cleaning up");
+    cleanup();
+}
+
+void App::cleanup()
+{
+    Logger::info( "Closing app and cleaning up" );
     Logger::shutdown();
 }
 
 void App::pollEvents()
 {
     SDL_Event e;
-    while (SDL_PollEvent(&e))
+    while ( SDL_PollEvent( &e ) )
     {
-        ImGui_ImplSDL2_ProcessEvent(&e);
-        switch (e.type)
+        ImGui_ImplSDL2_ProcessEvent( &e );
+        switch ( e.type )
         {
-        case SDL_WINDOWEVENT:
-            if (e.window.event == SDL_WINDOWEVENT_RESIZED)
+        case SDL_WINDOWEVENT: {
+            if ( e.window.event == SDL_WINDOWEVENT_RESIZED )
             {
                 int newWidth = e.window.data1;
                 int newHeight = e.window.data2;
-                kogayonon_core::WindowResizeEvent e(newWidth, newHeight);
-                EVENT_MANAGER()->dispatch(e);
+                kogayonon_core::WindowResizeEvent windowResizeEvent( newWidth, newHeight );
+                EVENT_MANAGER()->dispatchEventToListeners( windowResizeEvent );
             }
             break;
-        case SDL_QUIT:
+        }
+        case SDL_QUIT: {
             m_running = false;
             break;
-        case SDL_KEYDOWN:
+        }
+        case SDL_KEYDOWN: {
 
             // TODO maybe rethink this a bit
-            auto keycode = static_cast<kogayonon_core::KeyCode>(e.key.keysym.sym);
-            kogayonon_core::KeyPressedEvent e(keycode, 0);
-            EVENT_MANAGER()->dispatch(e);
+            auto keycode = static_cast<kogayonon_core::KeyCode>( e.key.keysym.sym );
+            kogayonon_core::KeyPressedEvent keyPressEvent( keycode, 0 );
+            Logger::info( "KeyPressedEvent - ", static_cast<int>( keycode ) );
+            EVENT_MANAGER()->dispatchEventToListeners( keyPressEvent );
             break;
+        }
+        case SDL_KEYUP: {
+
+            // TODO maybe rethink this a bit
+            auto keycode = static_cast<kogayonon_core::KeyCode>( e.key.keysym.sym );
+            kogayonon_core::KeyReleasedEvent keyReleaseEvent( keycode );
+            Logger::info( "KeyReleasedEvent - ", static_cast<int>( keycode ) );
+            EVENT_MANAGER()->dispatchEventToListeners( keyReleaseEvent );
+            break;
+        }
         }
     }
 }
 
 void App::run()
 {
-    if (!initialise())
+    if ( !initialise() )
     {
         m_running = false;
     }
-    while (m_running)
+    while ( m_running )
     {
         pollEvents();
         IMGUI_MANAGER()->draw();
@@ -76,83 +87,162 @@ void App::run()
     }
 }
 
-bool App::initialise()
+bool App::initSDL()
 {
-    Logger::initialize("log.txt");
-
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    if ( SDL_Init( SDL_INIT_VIDEO ) < 0 )
     {
-        Logger::critical("Could not initialize sdl");
+        Logger::critical( "Could not initialize sdl" );
         return false;
     }
 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 4 );
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 6 );
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
     auto pWinProps = m_pWindow->getWindowProps();
 
     auto flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
-    if (pWinProps->maximized)
+    if ( pWinProps->maximized )
     {
         flags |= SDL_WINDOW_MAXIMIZED;
     }
 
-    auto win =
-        SDL_CreateWindow(pWinProps->title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, pWinProps->width, pWinProps->height, flags);
-    m_pWindow->setWindow(std::move(win));
+    auto win = SDL_CreateWindow( pWinProps->title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, pWinProps->width,
+                                 pWinProps->height, flags );
+    m_pWindow->setWindow( std::move( win ) );
 
-    auto ctx = SDL_GL_CreateContext(m_pWindow->getWindow());
-    m_pWindow->setContext(std::move(ctx));
+    auto ctx = SDL_GL_CreateContext( m_pWindow->getWindow() );
+    m_pWindow->setContext( std::move( ctx ) );
 
-    SDL_GL_MakeCurrent(m_pWindow->getWindow(), m_pWindow->getContext());
-    assert(gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress));
+    SDL_GL_MakeCurrent( m_pWindow->getWindow(), m_pWindow->getContext() );
+    assert( gladLoadGLLoader( (GLADloadproc)SDL_GL_GetProcAddress ) );
 
-    glEnable(GL_DEBUG_OUTPUT);
-    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-    rescaleMainViewport(pWinProps->width, pWinProps->height);
+    glEnable( GL_DEBUG_OUTPUT );
+    glClearColor( 0.5f, 0.5f, 0.5f, 1.0f );
+    rescaleMainViewport( pWinProps->width, pWinProps->height );
+    return true;
+}
 
-    // initialise the managers
-    auto imguiManager = std::make_shared<kogayonon_gui::ImGuiManager>(m_pWindow->getWindow(), m_pWindow->getContext());
-    REGISTRY().addToContext<std::shared_ptr<kogayonon_gui::ImGuiManager>>(std::move(imguiManager));
+bool App::initRegistries()
+{
+    // init imgui manager
+    auto imguiManager =
+        std::make_shared<kogayonon_gui::ImGuiManager>( m_pWindow->getWindow(), m_pWindow->getContext() );
+    assert( imguiManager && "could not initialise imgui manager" );
+    REGISTRY().addToContext<std::shared_ptr<kogayonon_gui::ImGuiManager>>( std::move( imguiManager ) );
 
+    // init event manager
     auto eventManager = std::make_shared<kogayonon_core::EventManager>();
-    REGISTRY().addToContext<std::shared_ptr<kogayonon_core::EventManager>>(std::move(eventManager));
+    assert( eventManager && "could not initialise event manager" );
+    REGISTRY().addToContext<std::shared_ptr<kogayonon_core::EventManager>>( std::move( eventManager ) );
 
-    auto taskManager = std::make_shared<kogayonon_utilities::TaskManager>(10);
-    REGISTRY().addToContext<std::shared_ptr<kogayonon_utilities::TaskManager>>(std::move(taskManager));
+    // init task manager
+    auto taskManager = std::make_shared<kogayonon_utilities::TaskManager>( 10 );
+    assert( taskManager && "could not initialise task manager" );
+    REGISTRY().addToContext<std::shared_ptr<kogayonon_utilities::TaskManager>>( std::move( taskManager ) );
 
-    EVENT_MANAGER()->subscribe<kogayonon_core::WindowResizeEvent>(
-        [this](const kogayonon_core::Event& e) -> bool { return this->onWindowResize((kogayonon_core::WindowResizeEvent&)e); });
+    // init shader manager
+    auto shaderManager = std::make_shared<kogayonon_utilities::ShaderManager>();
+    assert( shaderManager && "could not initialise shader manager" );
+    shaderManager->pushShader( "resources/shaders/3d_vertex.glsl", "resources/shaders/3d_fragment.glsl", "3d" );
+    REGISTRY().addToContext<std::shared_ptr<kogayonon_utilities::ShaderManager>>( std::move( shaderManager ) );
 
-    auto future = TASK_MANAGER()->enqueue([]() -> int {
+    return true;
+}
+
+bool App::initGui()
+{
+    // insert windows
+    auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( "Scene" );
+    auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>( "Debug console" );
+
+    // root for where the file explorer can see files or folders
+    std::string rootPath = "/";
+    auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets", std::move( rootPath ) );
+
+    IMGUI_MANAGER()->push_window( "Scene", std::move( sceneViewport ) );
+    IMGUI_MANAGER()->push_window( "Debug console", std::move( debugWindow ) );
+    IMGUI_MANAGER()->push_window( "Assets", std::move( fileExplorerWindow ) );
+
+    // pass the rendering function callback for the viewport so we can draw on its frame buffer
+    auto& windows = IMGUI_MANAGER()->getWindows();
+    for ( auto& window : windows )
+    {
+        if ( window.second->getName() == "Scene" )
+        {
+            // this should be passed from the batch renderer or something, we'll see
+            window.second->setCallback( [ this ]() { callbackTest(); } );
+        }
+    }
+
+    return true;
+}
+
+bool App::initialise()
+{
+#ifdef _DEBUG
+    m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine (DEBUG)", 800, 600, 1, false );
+#else
+    m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine", 800, 600, 1, false );
+#endif
+
+    Logger::initialize( "log.txt" );
+
+    if ( !initSDL() || !initRegistries() || !initGui() )
+    {
+        return false;
+    }
+
+    EVENT_MANAGER()->listenToEvent<kogayonon_core::WindowResizeEvent>(
+        [ this ]( const kogayonon_core::Event& e ) -> bool {
+            return this->onWindowResize( (kogayonon_core::WindowResizeEvent&)e );
+        } );
+
+    auto future = TASK_MANAGER()->enqueue( []() -> int {
         int sum = 0;
-        for (int i = 10; i < 30; i++)
+        for ( int i = 10; i < 30; i++ )
         {
             sum += i;
         }
         return sum;
-    });
-    Logger::info("Task manager test result is ", future.get());
-
-    // insert windows
-    auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>("Scene");
-    auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>("Debug console");
-
-    IMGUI_MANAGER()->push_window("Scene", std::move(sceneViewport));
-    IMGUI_MANAGER()->push_window("Debug console", std::move(debugWindow));
+    } );
+    Logger::info( "Task manager test result is ", future.get() );
 
     return true;
 }
 
-void App::rescaleMainViewport(int w, int h)
+void App::rescaleMainViewport( int w, int h )
 {
     m_pWindow->resize();
-    glViewport(0, 0, w, h);
+    glViewport( 0, 0, w, h );
 }
 
-bool App::onWindowResize(kogayonon_core::WindowResizeEvent& e)
+bool App::onWindowResize( kogayonon_core::WindowResizeEvent& e )
 {
-    rescaleMainViewport(e.getWidth(), e.getHeight());
+    rescaleMainViewport( e.getWidth(), e.getHeight() );
     return true;
+}
+
+void App::callbackTest()
+{
+    // temp code
+    float triangleVertices[] = { 0.0f, 0.5f, 0.0f, 0.5f, -0.5f, 0.0f, -0.5f, -0.5f, 0.0f };
+    static GLuint VAO = 0, VBO = 0; // static so we only create once
+    if ( VAO == 0 )
+    {
+        glCreateVertexArrays( 1, &VAO );
+        glCreateBuffers( 1, &VBO );
+        glNamedBufferStorage( VBO, sizeof( triangleVertices ), triangleVertices, 0 );
+        glVertexArrayVertexBuffer( VAO, 0, VBO, 0, 3 * sizeof( float ) );
+
+        glEnableVertexArrayAttrib( VAO, 0 );
+        glVertexArrayAttribFormat( VAO, 0, 3, GL_FLOAT, GL_FALSE, 0 );
+        glVertexArrayAttribBinding( VAO, 0, 0 );
+    }
+
+    SHADER_MANAGER()->bindShader( "3d" );
+    glBindVertexArray( VAO );
+    glDrawArrays( GL_TRIANGLES, 0, 3 );
+    glBindVertexArray( 0 );
+    SHADER_MANAGER()->unbindShader( "3d" );
 }
 } // namespace kogayonon_app

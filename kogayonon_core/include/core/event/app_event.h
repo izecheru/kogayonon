@@ -8,13 +8,13 @@ class WindowCloseEvent : public Event
 {
   public:
     WindowCloseEvent() = default;
-    EVENT_CLASS_TYPE(WindowClose)
+    EVENT_CLASS_TYPE( WindowClose )
 };
 
 class WindowResizeEvent : public Event
 {
   public:
-    WindowResizeEvent(int width, int height) : m_Width(width), m_Height(height) {}
+    WindowResizeEvent( int width, int height ) : m_Width( width ), m_Height( height ) {}
 
     int getWidth() const
     {
@@ -26,7 +26,7 @@ class WindowResizeEvent : public Event
         return m_Height;
     }
 
-    EVENT_CLASS_TYPE(WindowResize)
+    EVENT_CLASS_TYPE( WindowResize )
 
   private:
     int m_Width, m_Height;

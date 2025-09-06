@@ -8,7 +8,7 @@ namespace kogayonon_gui {
 class Display
 {
   public:
-    Display(std::string name) : m_name(std::move(name)) {}
+    Display( std::string name ) : m_name( name ) {}
 
     virtual ~Display() {}
 

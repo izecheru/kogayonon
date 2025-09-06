@@ -16,8 +16,9 @@ struct Texture
 
     Texture() = default;
 
-    explicit Texture(const std::string& t, const std::string& p, int w, int h, int n, const std::vector<unsigned char>& d, bool g)
-        : type(t), path(p), width(w), height(h), num_components(n), data(d), gamma(g)
+    explicit Texture( const std::string& t, const std::string& p, int w, int h, int n,
+                      const std::vector<unsigned char>& d, bool g )
+        : type( t ), path( p ), width( w ), height( h ), num_components( n ), data( d ), gamma( g )
     {}
 
     inline std::string getPath() const
@@ -25,5 +26,4 @@ struct Texture
         return path;
     }
 };
-
 } // namespace kogayonon_resources

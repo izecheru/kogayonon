@@ -19,11 +19,13 @@ class Mesh
   public:
     Mesh() = default;
     ~Mesh() = default;
-    Mesh(const Mesh& other);
-    Mesh& operator=(const Mesh& other);
-    Mesh& operator=(Mesh&& other) noexcept;
-    explicit Mesh(std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices, std::vector<std::string>&& textures);
-    explicit Mesh(std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices);
+    Mesh( const Mesh& other );
+    Mesh& operator=( const Mesh& other );
+    Mesh& operator=( Mesh&& other ) noexcept;
+
+    explicit Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices,
+                   std::vector<std::string>&& textures );
+    explicit Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices );
 
     std::vector<Vertex>& getVertices();
     std::vector<uint32_t>& getIndices();

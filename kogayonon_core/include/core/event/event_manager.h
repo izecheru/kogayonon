@@ -8,33 +8,33 @@
 namespace kogayonon_core {
 class EventManager
 {
-    using EventCallbackFn = std::function<bool(Event&)>;
+    using EventCallbackFn = std::function<bool( Event& )>;
 
   public:
     EventManager() = default;
     ~EventManager() = default;
 
     template <typename T>
-    void subscribe(EventCallbackFn func)
+    void listenToEvent( EventCallbackFn func )
     {
-        if (m_callbacks.find(T::getStaticType()) == m_callbacks.end())
+        if ( m_callbacks.find( T::getStaticType() ) == m_callbacks.end() )
         {
-            m_callbacks.insert({T::getStaticType(), std::vector<EventCallbackFn>{}});
+            m_callbacks.insert( { T::getStaticType(), std::vector<EventCallbackFn>{} } );
         }
-        m_callbacks.at(T::getStaticType()).push_back(func);
+        m_callbacks.at( T::getStaticType() ).push_back( func );
     }
 
     template <typename T>
     void unsubscribe()
     {}
 
-    void dispatch(Event& e)
+    void dispatchEventToListeners( Event& e )
     {
-        if (auto it = m_callbacks.find(e.getEventType()); it != m_callbacks.end())
+        if ( auto it = m_callbacks.find( e.getEventType() ); it != m_callbacks.end() )
         {
-            for (const auto& callback : it->second)
+            for ( const auto& callback : it->second )
             {
-                e.m_handled |= callback(e);
+                e.m_handled |= callback( e );
             }
         }
     }

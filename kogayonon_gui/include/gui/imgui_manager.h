@@ -8,13 +8,13 @@ class ImGuiManager
     using ImGuiWindows_Map = std::unordered_map<std::string, std::unique_ptr<ImGuiWindow>>;
 
   public:
-    explicit ImGuiManager(SDL_Window* window, SDL_GLContext context);
+    explicit ImGuiManager( SDL_Window* window, SDL_GLContext context );
     ~ImGuiManager();
 
-    bool initImgui(SDL_Window* window, SDL_GLContext context);
-    void push_window(std::string name, std::unique_ptr<ImGuiWindow> window);
+    bool initImgui( SDL_Window* window, SDL_GLContext context );
+    void push_window( std::string name, std::unique_ptr<ImGuiWindow> window );
     ImGuiWindows_Map& getWindows();
-    void setupDockSpace(ImGuiViewport* viewport);
+    void setupDockSpace( ImGuiViewport* viewport );
 
     void draw();
     void mainMenu();

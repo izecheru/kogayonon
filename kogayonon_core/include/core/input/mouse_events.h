@@ -10,14 +10,14 @@ namespace kogayonon_core {
 class MouseEnteredEvent : public Event
 {
   public:
-    explicit MouseEnteredEvent(const int entered) : m_entered(entered) {}
+    explicit MouseEnteredEvent( const int entered ) : m_entered( entered ) {}
 
     int hasEntered() const
     {
         return m_entered;
     }
 
-    EVENT_CLASS_TYPE(MouseEntered)
+    EVENT_CLASS_TYPE( MouseEntered )
 
   private:
     int m_entered;
@@ -30,7 +30,7 @@ class MouseMovedEvent : public Event
     double m_mouse_y;
 
   public:
-    MouseMovedEvent(const double x, const double y) : m_mouse_x(x), m_mouse_y(y) {}
+    MouseMovedEvent( const double x, const double y ) : m_mouse_x( x ), m_mouse_y( y ) {}
 
     inline double getX() const
     {
@@ -42,7 +42,7 @@ class MouseMovedEvent : public Event
         return m_mouse_y;
     }
 
-    EVENT_CLASS_TYPE(MouseMoved)
+    EVENT_CLASS_TYPE( MouseMoved )
 };
 
 class MouseClickedEvent : public Event
@@ -53,8 +53,8 @@ class MouseClickedEvent : public Event
     MouseModifier m_mods;
 
   public:
-    MouseClickedEvent(int button, int action, int mods)
-        : m_button(MouseCode(button)), m_action(MouseAction(action)), m_mods(MouseModifier(mods))
+    MouseClickedEvent( int button, int action, int mods )
+        : m_button( MouseCode( button ) ), m_action( MouseAction( action ) ), m_mods( MouseModifier( mods ) )
     {}
 
     MouseCode getButton() const
@@ -66,7 +66,7 @@ class MouseClickedEvent : public Event
     {
         return m_action;
     }
-    EVENT_CLASS_TYPE(MouseClicked)
+    EVENT_CLASS_TYPE( MouseClicked )
 };
 
 class MouseScrolledEvent : public Event
@@ -76,7 +76,7 @@ class MouseScrolledEvent : public Event
     double m_y_offset = 0;
 
   public:
-    MouseScrolledEvent(double t_x_offset, double t_y_offset) : m_x_offset(t_x_offset), m_y_offset(t_y_offset) {}
+    MouseScrolledEvent( double t_x_offset, double t_y_offset ) : m_x_offset( t_x_offset ), m_y_offset( t_y_offset ) {}
 
     inline double getXOff() const
     {
@@ -87,6 +87,6 @@ class MouseScrolledEvent : public Event
     {
         return m_y_offset;
     }
-    EVENT_CLASS_TYPE(MouseScrolled)
+    EVENT_CLASS_TYPE( MouseScrolled )
 };
 } // namespace kogayonon_core

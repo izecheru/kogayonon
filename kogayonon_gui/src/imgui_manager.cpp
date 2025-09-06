@@ -9,7 +9,6 @@
 using namespace kogayonon_logger;
 
 namespace kogayonon_gui {
-
 ImGuiManager::~ImGuiManager()
 {
     Logger::info("imgui manager dtor");
@@ -89,9 +88,9 @@ void ImGuiManager::setupDockSpace(ImGuiViewport* viewport)
             ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.25f, &dock_id_left, &dock_main_id);
 
             // Dock windows
-            ImGui::DockBuilderDockWindow("File explorer", dock_id_bottom);
-            ImGui::DockBuilderDockWindow("Scene", dock_main_id);
             ImGui::DockBuilderDockWindow("Debug console", dock_id_bottom);
+            ImGui::DockBuilderDockWindow("Assets", dock_id_bottom);
+            ImGui::DockBuilderDockWindow("Scene", dock_main_id);
 
             ImGui::DockBuilderFinish(dockspace_id);
         }

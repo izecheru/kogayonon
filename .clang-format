@@ -1,9 +1,7 @@
-﻿Language: Cpp
-BasedOnStyle: Microsoft
+﻿BasedOnStyle: Microsoft
 
 # Indentation and Formatting
-IndentWidth: 4
-TabWidth: 2
+TabWidth: 4
 UseTab: Never
 ContinuationIndentWidth: 4
 BreakBeforeBraces: Custom
@@ -16,9 +14,9 @@ BraceWrapping:
   IndentBraces: false
   SplitEmptyFunction: false
 AllowShortFunctionsOnASingleLine: Empty
+AllowAllConstructorInitializersOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
 BinPackParameters: true
-ColumnLimit: 140
 AlwaysBreakAfterReturnType: None
 AlwaysBreakTemplateDeclarations: Yes
 SeparateDefinitionBlocks: Always
@@ -43,6 +41,8 @@ DerivePointerAlignment: false
 # Misc
 ReflowComments: true
 SpacesInContainerLiterals: true
+SpacesInParentheses: 'true'
+SpacesInSquareBrackets: 'true'
 Cpp11BracedListStyle: true
 SpaceBeforeParens: ControlStatements
 SpaceBeforeCpp11BracedList: false

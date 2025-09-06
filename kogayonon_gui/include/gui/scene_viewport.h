@@ -9,7 +9,7 @@ namespace kogayonon_gui {
 class SceneViewportWindow : public ImGuiWindow
 {
   public:
-    explicit SceneViewportWindow(std::string name);
+    explicit SceneViewportWindow( std::string name );
     ~SceneViewportWindow() = default;
     void draw() override;
 

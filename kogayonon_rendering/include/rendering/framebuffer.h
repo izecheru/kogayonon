@@ -5,13 +5,13 @@ namespace kogayonon_rendering {
 class FrameBuffer
 {
   public:
-    FrameBuffer(int width, int height);
+    FrameBuffer( int width, int height );
     ~FrameBuffer();
 
     void bind() const;
     void unbind() const;
 
-    void rescaleFramebuffer(int width, int height);
+    void rescaleFramebuffer( int width, int height );
     unsigned int getTexture() const;
     unsigned int getFbo() const;
     unsigned int getRbo() const;

@@ -6,13 +6,13 @@ namespace kogayonon_core {
 class Registry
 {
   public:
-    Registry() : m_registry(std::make_shared<entt::registry>()) {}
+    Registry() : m_registry( std::make_shared<entt::registry>() ) {}
 
     ~Registry() = default;
 
-    inline bool isValid(entt::entity entity) const
+    inline bool isValid( entt::entity entity ) const
     {
-        return m_registry->valid(entity);
+        return m_registry->valid( entity );
     }
 
     inline entt::registry& getRegistry()
@@ -26,9 +26,9 @@ class Registry
     }
 
     template <typename TContext>
-    inline TContext& addToContext(TContext context)
+    inline TContext& addToContext( TContext context )
     {
-        return m_registry->ctx().emplace<TContext>(context);
+        return m_registry->ctx().emplace<TContext>( context );
     }
 
     template <typename TContext>
