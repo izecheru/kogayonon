@@ -2,38 +2,49 @@
 BasedOnStyle: Microsoft
 
 # Indentation and Formatting
-IndentWidth: 2
+IndentWidth: 4
 TabWidth: 2
 UseTab: Never
+ContinuationIndentWidth: 4
 BreakBeforeBraces: Custom
 BraceWrapping:
+  AfterClass: true
+  AfterControlStatement: true
+  AfterFunction: true
+  AfterNamespace: false
+  BeforeElse: true
+  IndentBraces: false
   SplitEmptyFunction: false
 AllowShortFunctionsOnASingleLine: Empty
 AllowAllParametersOfDeclarationOnNextLine: true
 BinPackParameters: true
 ColumnLimit: 140
 AlwaysBreakAfterReturnType: None
-# NamespaceIndentation: All
 AlwaysBreakTemplateDeclarations: Yes
 SeparateDefinitionBlocks: Always
 
 # Include Sorting
-SortIncludes: true
-IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex:           '^<.*\.h>'
-    Priority:        1
-  - Regex:           '^<.*>'
-    Priority:        2
-  - Regex:           '^".*'
-    Priority:        3
+  - Regex:           '^<c[^>]+>$'
+    Priority:        1   # C standard library headers (e.g. <cmath>, <cstdio>)
+  - Regex:           '^<[a-z][^>]*>$'
+    Priority:        2   # C++ standard library headers (e.g. <vector>, <string>)
+  - Regex:           '^<[^>]+>$'
+    Priority:        3   # Other system/third-party headers (e.g. <GL/glew.h>)
+  - Regex:           '^".*"$'
+    Priority:        4   # Project headers
+SortIncludes:        true
 
 # Pointer and Reference Alignment
 PointerAlignment: Left
 ReferenceAlignment: Pointer
+DerivePointerAlignment: false
 
 # Misc
 ReflowComments: true
 SpacesInContainerLiterals: true
+Cpp11BracedListStyle: true
 SpaceBeforeParens: ControlStatements
+SpaceBeforeCpp11BracedList: false
 AlignTrailingComments: true
+AllowShortIfStatementsOnASingleLine: false

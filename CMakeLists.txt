@@ -18,130 +18,35 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin") # .exe
 # -------------------------------------------------------------------
 set(CMAKE_PREFIX_PATH "dependencies/sdl2/cmake")
 find_package(SDL2 REQUIRED CONFIG)
+add_subdirectory(dependencies/glad)
 add_subdirectory(dependencies/imgui)
 add_subdirectory(dependencies/stb)
-add_subdirectory(dependencies/glad)
 add_subdirectory(dependencies/cgltf)
 add_subdirectory(dependencies/glm)
 add_subdirectory(dependencies/entt)
 
+# My own modules
+add_subdirectory(kogayonon_logger)
+add_subdirectory(kogayonon_utilities)
+add_subdirectory(kogayonon_window)
+add_subdirectory(kogayonon_core)
+add_subdirectory(kogayonon_resources)
+add_subdirectory(kogayonon_app)
+add_subdirectory(kogayonon_gui)
+add_subdirectory(kogayonon_rendering)
 # -------------------------------------------------------------------
 # Source groups
 # -------------------------------------------------------------------
-set(RENDERER_SOURCES
-    "src/renderer/camera.cpp"
-    "src/renderer/camera.h"
-    "src/renderer/renderer.cpp"
-    "src/renderer/renderer.h"
-    "src/renderer/framebuffer.h"
-    "src/renderer/framebuffer.cpp"
-    "src/renderer/scene.h"
-    "src/renderer/scene_manager.h"
-    "src/renderer/scene_manager.cpp"
-)
 
-set(ASSET_MANAGER_SOURCES
-    "src/asset_manager/loader/mesh.cpp"
-    "src/asset_manager/loader/mesh.h"
-    "src/asset_manager/loader/model.cpp"
-    "src/asset_manager/loader/model.h"
-    "src/asset_manager/loader/model_loader.cpp"
-    "src/asset_manager/loader/model_loader.h"
-    "src/asset_manager/loader/texture_loader.cpp"
-    "src/asset_manager/loader/texture_loader.h"
-    "src/asset_manager/asset_manager.cpp"
-    "src/asset_manager/asset_manager.h"
-)
 
-set(LAYER_SOURCES
-    "src/layer/imgui_layer.cpp"
-    "src/layer/imgui_layer.h"
-    "src/layer/layer.h"
-    "src/layer/layer_stack.cpp"
-    "src/layer/layer_stack.h"
-    "src/layer/world_layer.cpp"
-    "src/layer/world_layer.h"
-)
-
-set(USER_INTERFACE_SOURCES
-    "src/ui/imgui_manager.h"
-    "src/ui/imgui_window.h"
-    "src/ui/imgui_manager.cpp"
-    "src/ui/win_camera_settings.h"
-    "src/ui/win_camera_settings.cpp"
-    "src/ui/scene_viewport.h"
-    "src/ui/scene_viewport.cpp"
-    "src/ui/debug_window.h"
-    "src/ui/debug_window.cpp"
-    "src/ui/file_explorer.h"
-    "src/ui/file_explorer.cpp"
- "src/ui/display.h" "src/ui/display.cpp"  "src/ui/folder_display.h" "src/ui/folder_display.cpp")
-
-set(SHADER_SOURCES
-    "src/shader/shader.cpp"
-    "src/shader/shader_manager.h"
-    "src/shader/shader_manager.cpp"
-    "src/shader/shader.h"
-)
-
-set(INPUT_SOURCES
-    "src/input/keyboard_events.h"
-    "src/input/keyboard_state.h"
-    "src/input/key_codes.h"
-    "src/input/mouse_codes.h"
-    "src/input/mouse_events.h"
-)
-
-set(UTILS_SOURCES
-    "src/klogger/klogger.cpp"
-    "src/klogger/klogger.h"
-    "src/serialiser/mesh_serialiser.cpp"
-    "src/serialiser/mesh_serialiser.h"
-    "src/serialiser/serialiser.h"
-    "src/task/task_manager.cpp"
-    "src/task/task_manager.h"
-    "src/time_tracker/time_tracker.cpp"
-    "src/time_tracker/time_tracker.h"
-    "src/registry_manager/registry_manager.h"
-    "src/singleton/singleton.h"
-    "src/registry_manager/registry.h"
-    "src/registry_manager/registry_manager.cpp"
-)
-
-set(EVENTS_SOURCES
-    "src/event/app_event.h"
-    "src/event/event.h"
-    "src/event/event_manager.h"
-    "src/event/event_manager.cpp"
-    "src/event/event_dispatcher.h"
-)
-
-# -------------------------------------------------------------------
-# Executable
-# -------------------------------------------------------------------
-add_executable(kogayonon
-    "main.cpp"
-    "src/app/app.cpp"
-    "src/app/app.h"
-    "src/window/window.h"
-    "src/window/window.cpp"
-    ${RENDERER_SOURCES}
-    ${ASSET_MANAGER_SOURCES}
-    ${LAYER_SOURCES}
-    ${USER_INTERFACE_SOURCES}
-    ${SHADER_SOURCES}
-    ${INPUT_SOURCES}
-    ${UTILS_SOURCES}
-    ${EVENTS_SOURCES}
-)
+add_executable(kogayonon  "kogayonon_app/src/main.cpp")
 
 target_include_directories(
     kogayonon PRIVATE
     "${CMAKE_SOURCE_DIR}/dependencies/sdl2/include"
-    "${CMAKE_SOURCE_DIR}/src"
 )
 
 target_link_libraries(
     kogayonon PRIVATE
-    cgltf stb imgui glad glm SDL2::SDL2 EnTT
+    kogayonon_app 
 )
