@@ -12,7 +12,7 @@ class ImGuiManager
     ~ImGuiManager();
 
     bool initImgui( SDL_Window* window, SDL_GLContext context );
-    void push_window( std::string name, std::unique_ptr<ImGuiWindow> window );
+    void pushWindow( std::string name, std::unique_ptr<ImGuiWindow> window );
     ImGuiWindows_Map& getWindows();
     void setupDockSpace( ImGuiViewport* viewport );
 

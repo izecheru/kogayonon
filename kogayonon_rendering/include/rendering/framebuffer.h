@@ -1,5 +1,4 @@
 #pragma once
-#include <memory>
 
 namespace kogayonon_rendering {
 class FrameBuffer
@@ -11,18 +10,20 @@ class FrameBuffer
     void bind() const;
     void unbind() const;
 
-    void rescaleFramebuffer( int width, int height );
+    void rescale( int width, int height );
+
     unsigned int getTexture() const;
-    unsigned int getFbo() const;
-    unsigned int getRbo() const;
+    unsigned int getFrameBufferObject() const;
+    unsigned int getRenderBufferObject() const;
+
     int getWidth() const;
     int getHeight() const;
 
   private:
     int m_width;
     int m_height;
-    unsigned int m_rbo;
-    unsigned int m_fbo;
+    unsigned int m_renderBufferObject;
+    unsigned int m_frameBufferObject;
     unsigned int m_texture;
 };
 } // namespace kogayonon_rendering

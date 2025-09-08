@@ -16,5 +16,5 @@ add_library(kogayonon_gui
 )
 
 target_include_directories(kogayonon_gui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(kogayonon_gui PUBLIC imgui SDL2::SDL2 kogayonon_rendering
-                      PRIVATE kogayonon_logger)
+target_link_libraries(kogayonon_gui PUBLIC imgui SDL2::SDL2
+                      PRIVATE kogayonon_rendering kogayonon_core kogayonon_logger)

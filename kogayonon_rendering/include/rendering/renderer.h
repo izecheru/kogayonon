@@ -1,6 +1,8 @@
 #pragma once
 
 namespace kogayonon_rendering {
+class FrameBuffer;
+
 class Renderer
 {
   public:
@@ -9,10 +11,11 @@ class Renderer
 
     void draw();
 
-    bool getPolyMode();
-    void togglePolyMode();
+    bool getPoly();
+    void togglePoly();
 
   private:
-    bool is_poly = false;
+    FrameBuffer* m_pSceneFrameBuffer;
+    bool m_bPolyMode = false;
 };
 } // namespace kogayonon_rendering

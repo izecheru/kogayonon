@@ -2,55 +2,54 @@
 
 #include <thread>
 
-namespace kogayonon_logger
+namespace kogayonon_logger {
+void Logger::initialize( const std::string& log_path )
 {
-void Logger::initialize(const std::string& log_path)
-{
-  {
-    std::unique_lock lock(m_mutex);
-    m_out.open(log_path, std::ios::out);
-  }
-  m_worker_thread = std::thread([]() { logWorker(); });
+    {
+        std::unique_lock lock( m_mutex );
+        m_out.open( log_path, std::ios::out );
+    }
+    m_worker_thread = std::thread( []() { logWorker(); } );
 }
 
 void Logger::shutdown()
 {
-  {
-    std::unique_lock lock(m_mutex);
-    m_queued_logs.emplace("Shutting down logger...");
-  }
-  m_cv.notify_all();
-  if (m_worker_thread.joinable())
-  {
-    m_worker_thread.join();
-  }
-  if (m_out.is_open())
-  {
-    m_out.close();
-  }
+    {
+        std::unique_lock lock( m_mutex );
+        m_queued_logs.emplace( "Shutting down logger..." );
+    }
+    m_cv.notify_all();
+    if ( m_worker_thread.joinable() )
+    {
+        m_worker_thread.join();
+    }
+    if ( m_out.is_open() )
+    {
+        m_out.close();
+    }
 }
 
 void Logger::logWorker()
 {
-  while (true)
-  {
-    std::string log_message;
+    while ( true )
     {
-      std::unique_lock lock(m_mutex);
-      m_cv.wait(lock, [] { return !m_queued_logs.empty(); });
-      log_message = m_queued_logs.front();
-      m_queued_logs.pop();
-    }
+        std::string log_message;
+        {
+            std::unique_lock lock( m_mutex );
+            m_cv.wait( lock, [] { return !m_queued_logs.empty(); } );
+            log_message = m_queued_logs.front();
+            m_queued_logs.pop();
+        }
 
-    if (log_message == "Shutting down logger...")
-    {
-      break;
-    }
+        if ( log_message == "Shutting down logger..." )
+        {
+            break;
+        }
 
-    if (m_out.is_open())
-    {
-      m_out << log_message << '\n';
+        if ( m_out.is_open() )
+        {
+            m_out << log_message << '\n';
+        }
     }
-  }
 }
 } // namespace kogayonon_logger

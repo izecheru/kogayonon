@@ -9,11 +9,14 @@ BraceWrapping:
   AfterClass: true
   AfterControlStatement: true
   AfterFunction: true
-  AfterNamespace: false
+  AfterNamespace: true  
   BeforeElse: true
   IndentBraces: false
-  SplitEmptyFunction: false
-AllowShortFunctionsOnASingleLine: Empty
+  SplitEmptyFunction: true
+AllowShortFunctionsOnASingleLine: None
+PointerAlignment: Left
+CompactNamespaces: false                
+FixNamespaceComments: true               
 AllowAllConstructorInitializersOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
 BinPackParameters: true
@@ -24,27 +27,13 @@ SeparateDefinitionBlocks: Always
 # Include Sorting
 IncludeCategories:
   - Regex:           '^<c[^>]+>$'
-    Priority:        1   # C standard library headers (e.g. <cmath>, <cstdio>)
+    Priority:        1
   - Regex:           '^<[a-z][^>]*>$'
-    Priority:        2   # C++ standard library headers (e.g. <vector>, <string>)
+    Priority:        2
   - Regex:           '^<[^>]+>$'
-    Priority:        3   # Other system/third-party headers (e.g. <GL/glew.h>)
+    Priority:        3
   - Regex:           '^".*"$'
-    Priority:        4   # Project headers
+    Priority:        4
 SortIncludes:        true
 
-# Pointer and Reference Alignment
-PointerAlignment: Left
-ReferenceAlignment: Pointer
-DerivePointerAlignment: false
-
-# Misc
-ReflowComments: true
-SpacesInContainerLiterals: true
-SpacesInParentheses: 'true'
-SpacesInSquareBrackets: 'true'
-Cpp11BracedListStyle: true
-SpaceBeforeParens: ControlStatements
-SpaceBeforeCpp11BracedList: false
-AlignTrailingComments: true
-AllowShortIfStatementsOnASingleLine: false
+# Pointer and Refer

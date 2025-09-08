@@ -3,21 +3,21 @@
 #include <assert.h>
 
 namespace kogayonon_window {
-Window::Window(const char* t_title, int t_width, int t_height, bool t_vsync, bool t_maximized)
-    : m_pWindowProps(std::make_shared<window_props>(t_title, t_width, t_height, t_vsync, t_maximized))
+Window::Window( const char* t_title, int t_width, int t_height, bool t_vsync, bool t_maximized )
+    : m_pWindowProps( std::make_shared<window_props>( t_title, t_width, t_height, t_vsync, t_maximized ) )
 {}
 
 Window::~Window()
 {
-    if (m_window)
+    if ( m_window )
     {
-        SDL_DestroyWindow(m_window);
+        SDL_DestroyWindow( m_window );
         m_window = nullptr;
     }
 
-    if (m_glContext)
+    if ( m_glContext )
     {
-        SDL_GL_DeleteContext(m_glContext);
+        SDL_GL_DeleteContext( m_glContext );
         m_glContext = nullptr;
     }
     SDL_Quit();
@@ -25,15 +25,15 @@ Window::~Window()
 
 void Window::swapWindow()
 {
-    SDL_GL_SwapWindow(m_window);
+    SDL_GL_SwapWindow( m_window );
 }
 
-void Window::setWidth(int w)
+void Window::setWidth( int w )
 {
     m_pWindowProps->width = w;
 }
 
-void Window::setHeight(int h)
+void Window::setHeight( int h )
 {
     m_pWindowProps->height = h;
 }
@@ -41,9 +41,9 @@ void Window::setHeight(int h)
 void Window::resize()
 {
     int w, h;
-    SDL_GL_GetDrawableSize(m_window, &w, &h);
-    setWidth(w);
-    setHeight(h);
+    SDL_GL_GetDrawableSize( m_window, &w, &h );
+    setWidth( w );
+    setHeight( h );
 }
 
 bool Window::getMaximized()
@@ -51,7 +51,7 @@ bool Window::getMaximized()
     return m_pWindowProps->maximized;
 }
 
-void Window::setMaximized(bool value)
+void Window::setMaximized( bool value )
 {
     m_pWindowProps->maximized = value;
 }
@@ -76,15 +76,15 @@ SDL_GLContext Window::getContext() const
     return m_glContext;
 }
 
-void Window::setContext(SDL_GLContext ctx)
+void Window::setContext( SDL_GLContext ctx )
 {
-    assert(ctx != nullptr && "SDL_GLContext can't be nullptr");
+    assert( ctx != nullptr && "SDL_GLContext can't be nullptr" );
     m_glContext = ctx;
 }
 
-void Window::setWindow(SDL_Window* wnd)
+void Window::setWindow( SDL_Window* wnd )
 {
-    assert(wnd != nullptr && "SDL_Window* can't be nullptr");
+    assert( wnd != nullptr && "SDL_Window* can't be nullptr" );
     m_window = wnd;
 }
 

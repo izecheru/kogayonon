@@ -6,44 +6,49 @@ namespace kogayonon_core {
 class Registry
 {
   public:
-    Registry() : m_registry( std::make_shared<entt::registry>() ) {}
+    Registry() : m_pRegistry( std::make_shared<entt::registry>() ) {}
 
     ~Registry() = default;
 
     inline bool isValid( entt::entity entity ) const
     {
-        return m_registry->valid( entity );
+        return m_pRegistry->valid( entity );
+    }
+
+    inline entt::entity createEntity()
+    {
+        return m_pRegistry->create();
     }
 
     inline entt::registry& getRegistry()
     {
-        return *m_registry;
+        return *m_pRegistry;
     }
 
     inline void clearRegistry()
     {
-        m_registry->clear();
+        m_pRegistry->clear();
     }
 
     template <typename TContext>
     inline TContext& addToContext( TContext context )
     {
-        return m_registry->ctx().emplace<TContext>( context );
+        return m_pRegistry->ctx().emplace<TContext>( context );
     }
 
     template <typename TContext>
     inline TContext& getContext()
     {
-        return m_registry->ctx().get<TContext>();
+        return m_pRegistry->ctx().get<TContext>();
     }
 
     template <typename TContext>
     inline bool eraseContext()
     {
-        return m_registry->ctx().erase<TContext>();
+        return m_pRegistry->ctx().erase<TContext>();
     }
 
   private:
-    std::shared_ptr<entt::registry> m_registry;
+    std::shared_ptr<entt::registry> m_pRegistry;
 };
 } // namespace kogayonon_core

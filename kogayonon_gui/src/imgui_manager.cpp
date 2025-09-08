@@ -33,7 +33,7 @@ ImGuiManager::ImGuiManager(SDL_Window* window, SDL_GLContext context)
     }
 }
 
-void ImGuiManager::push_window(std::string name, std::unique_ptr<ImGuiWindow> window)
+void ImGuiManager::pushWindow(std::string name, std::unique_ptr<ImGuiWindow> window)
 {
     m_windows.emplace(std::move(name), std::move(window));
 }

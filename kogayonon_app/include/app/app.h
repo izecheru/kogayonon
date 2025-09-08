@@ -1,19 +1,28 @@
 #pragma once
 #include <memory>
 
-namespace kogayonon_core {
+namespace kogayonon_core
+{
 class WindowResizeEvent;
 } // namespace kogayonon_core
 
-namespace kogayonon_gui {
+namespace kogayonon_gui
+{
 class SceneViewportWindow;
 }
 
-namespace kogayonon_window {
+namespace kogayonon_window
+{
 class Window;
 } // namespace kogayonon_window
 
-namespace kogayonon_app {
+namespace kogayonon_rendering
+{
+class FrameBuffer;
+} // namespace kogayonon_rendering
+
+namespace kogayonon_app
+{
 class App
 {
   public:
@@ -22,12 +31,15 @@ class App
     void cleanup();
     void pollEvents();
     void run();
-    bool initialise();
+
+    bool init();
     bool initSDL();
     bool initRegistries();
     bool initGui();
-    void rescaleMainViewport( int w, int h );
-    bool onWindowResize( kogayonon_core::WindowResizeEvent& e );
+    bool initScenes();
+
+    void rescaleMainViewport(int w, int h);
+    bool onWindowResize(kogayonon_core::WindowResizeEvent& e);
 
     void callbackTest();
 
