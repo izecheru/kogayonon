@@ -5,5 +5,7 @@ It is written in c++ having c++17 as standard.
 
 This needs some work to better see what's going on in the engine...
 
-[^1]: [ImGui repo](https://github.com/ocornut/imgui)
-[^2]: [CGLTF repo](https://github.com/jkuhlmann/cgltf)
+I use vcpkg for thirdparty dependencies like sdl2, soil2 and so on
+```cmd
+vcpkg install soil2 sdl2
+```

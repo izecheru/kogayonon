@@ -1,8 +1,8 @@
 #include "core/ecs/components/texture_component.h"
+#include <SOIL2/SOIL2.h>
 #include <assert.h>
 #include <filesystem>
 #include <glad/glad.h>
-#include "SOIL2.h"
 #include "logger/logger.h"
 using namespace kogayonon_logger;
 

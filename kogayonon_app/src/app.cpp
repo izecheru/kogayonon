@@ -121,9 +121,16 @@ bool App::initSDL()
     m_pWindow->setContext(std::move(ctx));
 
     SDL_GL_MakeCurrent(m_pWindow->getWindow(), m_pWindow->getContext());
-    assert(gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress));
 
+    if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
+    {
+        Logger::critical("Failed to initialize GLAD");
+        return false;
+    }
+
+#ifdef _DEBUG
     glEnable(GL_DEBUG_OUTPUT);
+#endif
     glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
     rescaleMainViewport(pWinProps->width, pWinProps->height);
     return true;
@@ -193,11 +200,15 @@ bool App::initGui()
 
 bool App::initScenes()
 {
-    auto testScene = std::make_shared<kogayonon_core::Scene>("Test");
-    auto entity = std::make_unique<kogayonon_core::Entity>(testScene->getRegistry());
+    auto mainScene = std::make_shared<kogayonon_core::Scene>("MainScene");
+
+    // add a test entity with a texture component
+    auto entity = std::make_unique<kogayonon_core::Entity>(mainScene->getRegistry());
     entity->addComponent<kogayonon_core::TextureComponent>("TextureTest", "resources/textures/TextureTest.png");
-    kogayonon_core::SceneManager::getInstance().addScene(testScene, "Test");
-    kogayonon_core::SceneManager::getInstance().setCurrentScene("Test");
+    kogayonon_core::SceneManager::getInstance().addScene(mainScene);
+
+    // set the current scene
+    kogayonon_core::SceneManager::getInstance().setCurrentScene("MainScene");
     return true;
 }
 
@@ -213,6 +224,7 @@ bool App::init()
 
     if (!initSDL() || !initRegistries() || !initGui() || !initScenes())
     {
+        Logger::error("If you did not get a logg message and still see this, then something went wrong");
         return false;
     }
 
@@ -242,12 +254,15 @@ void App::rescaleMainViewport(int w, int h)
 bool App::onWindowResize(kogayonon_core::WindowResizeEvent& e)
 {
     rescaleMainViewport(e.getWidth(), e.getHeight());
+
+    // if we need to process the event further (in camera projection matrix for example) we return false
     return true;
 }
 
 void App::callbackTest()
 {
-    auto scene = kogayonon_core::SceneManager::getInstance().getCurrentScene();
+    auto& sceneManager = kogayonon_core::SceneManager::getInstance();
+    auto scene = sceneManager.getCurrentScene();
     if (!scene.lock())
         return;
 
@@ -256,8 +271,7 @@ void App::callbackTest()
     static GLuint quadVAO = 0, quadVBO = 0;
     if (quadVAO == 0)
     {
-        float quadVertices[] = {// positions   // texCoords
-                                -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f,  1.0f, 1.0f, 1.0f,
+        float quadVertices[] = {-1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f,  1.0f, 1.0f, 1.0f,
                                 -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,  1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f};
 
         glCreateVertexArrays(1, &quadVAO);
@@ -287,12 +301,12 @@ void App::callbackTest()
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, textureComp.m_texture);
 
-        // Set uniform if your shader needs it
         GLint loc = glGetUniformLocation(SHADER_MANAGER()->getShaderId("3d"), "uTexture");
+
+        // if uTexture is not found in the shader
         if (loc >= 0)
             glUniform1i(loc, 0);
 
-        // Draw full-screen quad
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 

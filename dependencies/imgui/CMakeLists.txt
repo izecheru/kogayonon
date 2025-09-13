@@ -1,10 +1,6 @@
-cmake_minimum_required(VERSION 3.10)
+ find_package(SDL2 CONFIG REQUIRED)
 
-project(imgui)
-
-add_library(imgui)
-
-target_sources(imgui PRIVATE
+add_library(imgui
   "src/imgui.cpp"
   "src/imgui_demo.cpp"
   "src/imgui_draw.cpp"
@@ -16,5 +12,10 @@ target_sources(imgui PRIVATE
 
 target_include_directories(imgui PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}/include/"
-  "${CMAKE_SOURCE_DIR}/dependencies/sdl2/include/"
 )
+
+    target_link_libraries(imgui
+        PRIVATE
+        $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
+        $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
+    )

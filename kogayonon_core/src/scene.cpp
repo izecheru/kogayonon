@@ -11,4 +11,14 @@ Registry& Scene::getRegistry()
 {
     return *m_pRegistry.get();
 }
+
+std::string Scene::getName() const
+{
+    return m_name;
+}
+
+void Scene::changeName(const std::string& name)
+{
+    m_name = name;
+}
 } // namespace kogayonon_core

@@ -9,8 +9,9 @@ SceneManager& SceneManager::getInstance()
     return instance;
 }
 
-void kogayonon_core::SceneManager::addScene(std::shared_ptr<Scene> scene, const std::string& name)
+void kogayonon_core::SceneManager::addScene(std::shared_ptr<Scene> scene)
 {
+    auto name = scene->getName();
     m_scenes.emplace(name, std::move(scene));
 }
 
