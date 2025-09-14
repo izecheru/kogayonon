@@ -1,7 +1,8 @@
 #pragma once
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
-namespace kogayonon_core {
+namespace kogayonon_core
+{
 enum class KeyCode
 {
     // Printable keys

@@ -7,5 +7,5 @@ This needs some work to better see what's going on in the engine...
 
 I use vcpkg for thirdparty dependencies like sdl2, soil2 and so on
 ```cmd
-vcpkg install soil2 sdl2
+vcpkg install soil2 sdl2 glm entt
 ```

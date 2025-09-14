@@ -17,6 +17,8 @@
 #include "gui/imgui_manager.h"
 #include "gui/scene_viewport.h"
 #include "logger/logger.h"
+#include "rendering/framebuffer.h"
+#include "utilities/asset_manager/asset_manager.h"
 #include "utilities/shader_manager/shader_manager.h"
 #include "utilities/task_manager/task_manager.h"
 #include "window/window.h"
@@ -138,28 +140,33 @@ bool App::initSDL()
 
 bool App::initRegistries()
 {
-    auto& pMainRegistry = REGISTRY();
+    auto& mainRegistry = REGISTRY();
 
     // init imgui manager
     auto imguiManager = std::make_shared<kogayonon_gui::ImGuiManager>(m_pWindow->getWindow(), m_pWindow->getContext());
     assert(imguiManager && "could not initialise imgui manager");
-    pMainRegistry.addToContext<std::shared_ptr<kogayonon_gui::ImGuiManager>>(std::move(imguiManager));
+    mainRegistry.addToContext<std::shared_ptr<kogayonon_gui::ImGuiManager>>(std::move(imguiManager));
 
     // init event manager
     auto eventManager = std::make_shared<kogayonon_core::EventManager>();
     assert(eventManager && "could not initialise event manager");
-    pMainRegistry.addToContext<std::shared_ptr<kogayonon_core::EventManager>>(std::move(eventManager));
+    mainRegistry.addToContext<std::shared_ptr<kogayonon_core::EventManager>>(std::move(eventManager));
 
     // init task manager
     auto taskManager = std::make_shared<kogayonon_utilities::TaskManager>(10);
     assert(taskManager && "could not initialise task manager");
-    pMainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::TaskManager>>(std::move(taskManager));
+    mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::TaskManager>>(std::move(taskManager));
 
     // init shader manager
     auto shaderManager = std::make_shared<kogayonon_utilities::ShaderManager>();
     assert(shaderManager && "could not initialise shader manager");
     shaderManager->pushShader("resources/shaders/3d_vertex.glsl", "resources/shaders/3d_fragment.glsl", "3d");
-    pMainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::ShaderManager>>(std::move(shaderManager));
+    mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::ShaderManager>>(std::move(shaderManager));
+
+    // init asset manager
+    auto assetManager = std::make_shared<kogayonon_utilities::AssetManager>();
+    assert(assetManager && "could not initialise asset manager");
+    mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::AssetManager>>(std::move(assetManager));
 
     return true;
 }
@@ -167,23 +174,9 @@ bool App::initRegistries()
 bool App::initGui()
 {
     // insert windows
-    auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>("Scene");
-
-    // might just get the frame buffer pointer into the renderer and then just bind it, draw, unbind and pass the
-    // texture to the scene viewport, oooor since we get a pointer to a member variable from scene viewport (the frame
-    // buffer) we can just do all the drawing elsewhere and after that the scene viewport gets the buffer texture
+    m_pFrameBuffer = std::make_shared<kogayonon_rendering::FrameBuffer>(400, 400);
+    auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>("Scene", m_pFrameBuffer);
     sceneViewport->setCallback([this]() { callbackTest(); });
-    /*
-    in renderer or something
-    frameBuffer->bind();
-    glDraw....
-    frameBuffer->unbind();
-
-    in scene viewport
-    ImGui::Begin();
-    ImGui::AddImage(frameBuffer->getTexture(),...);
-    ImGui::End();
-    */
 
     auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>("Debug console");
 
@@ -204,7 +197,8 @@ bool App::initScenes()
 
     // add a test entity with a texture component
     auto entity = std::make_unique<kogayonon_core::Entity>(mainScene->getRegistry());
-    entity->addComponent<kogayonon_core::TextureComponent>("TextureTest", "resources/textures/TextureTest.png");
+    auto tex = ASSET_MANAGER()->addTexture("textureTest", "resources/textures/texture.png");
+    entity->addComponent<kogayonon_core::TextureComponent>(tex);
     kogayonon_core::SceneManager::getInstance().addScene(mainScene);
 
     // set the current scene
@@ -222,9 +216,23 @@ bool App::init()
 
     Logger::initialize("log.txt");
 
-    if (!initSDL() || !initRegistries() || !initGui() || !initScenes())
+    if (!initSDL())
     {
-        Logger::error("If you did not get a logg message and still see this, then something went wrong");
+        return false;
+    }
+
+    if (!initRegistries())
+    {
+        return false;
+    }
+
+    if (!initGui())
+    {
+        return false;
+    }
+
+    if (!initScenes())
+    {
         return false;
     }
 
@@ -263,6 +271,8 @@ void App::callbackTest()
 {
     auto& sceneManager = kogayonon_core::SceneManager::getInstance();
     auto scene = sceneManager.getCurrentScene();
+
+    // check if the scene ptr is still valid
     if (!scene.lock())
         return;
 
@@ -292,14 +302,14 @@ void App::callbackTest()
 
     glBindVertexArray(quadVAO);
 
-    auto view = registry.getRegistry().view<kogayonon_core::TextureComponent>();
+    auto& view = registry.getRegistry().view<kogayonon_core::TextureComponent>();
     for (auto [entity, textureComp] : view.each())
     {
-        if (textureComp.m_texture == 0)
+        if (textureComp.getTexture() == 0)
             continue;
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, textureComp.m_texture);
+        glBindTexture(GL_TEXTURE_2D, textureComp.getTexture());
 
         GLint loc = glGetUniformLocation(SHADER_MANAGER()->getShaderId("3d"), "uTexture");
 

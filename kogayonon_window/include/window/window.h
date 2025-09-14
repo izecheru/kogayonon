@@ -1,9 +1,10 @@
 #pragma once
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <functional>
 #include <memory>
 
-namespace kogayonon_window {
+namespace kogayonon_window
+{
 struct window_props
 {
     const char* title;
@@ -12,9 +13,10 @@ struct window_props
     bool vsync;
     bool maximized;
 
-    explicit window_props( const char* t_title, int t_width, int t_height, bool t_vsync, bool max )
-        : title( t_title ), width( t_width ), height( t_height ), vsync( t_vsync ), maximized( max )
-    {}
+    explicit window_props(const char* t_title, int t_width, int t_height, bool t_vsync, bool max)
+        : title(t_title), width(t_width), height(t_height), vsync(t_vsync), maximized(max)
+    {
+    }
 
     ~window_props() = default;
 };
@@ -22,27 +24,27 @@ struct window_props
 class Window
 {
   public:
-    explicit Window( const char* t_title, int t_width, int t_height, bool t_vsync, bool t_maximized );
+    explicit Window(const char* t_title, int t_width, int t_height, bool t_vsync, bool t_maximized);
     ~Window();
 
     void swapWindow();
 
-    void setMaximized( bool value );
+    void setMaximized(bool value);
     bool getMaximized();
 
     int getWidth() const;
     int getHeight() const;
-    void setWidth( int w );
-    void setHeight( int h );
+    void setWidth(int w);
+    void setHeight(int h);
     void resize();
 
     window_props* getWindowProps();
 
     SDL_Window* getWindow();
-    void setWindow( SDL_Window* wnd );
+    void setWindow(SDL_Window* wnd);
 
     SDL_GLContext getContext() const;
-    void setContext( SDL_GLContext ctx );
+    void setContext(SDL_GLContext ctx);
 
   private:
     SDL_Window* m_window = nullptr;

@@ -34,6 +34,7 @@ add_subdirectory(dependencies/glad)
 add_subdirectory(dependencies/cgltf)
 
 # My own modules
+
 add_subdirectory(kogayonon_logger)
 add_subdirectory(kogayonon_utilities)
 add_subdirectory(kogayonon_window)

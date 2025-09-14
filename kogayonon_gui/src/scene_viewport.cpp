@@ -1,17 +1,21 @@
 #include "gui/scene_viewport.h"
 #include <glad/glad.h>
+#include "logger/logger.h"
 #include "rendering/framebuffer.h"
 
 namespace kogayonon_gui
 {
-SceneViewportWindow::SceneViewportWindow(std::string name) : ImGuiWindow(std ::move(name))
+//      explicit SceneViewportWindow(std::string name, std::shared_ptr<kogayonon_rendering::FrameBuffer> frameBuffer);
+
+SceneViewportWindow::SceneViewportWindow(std::string name,
+                                         std::shared_ptr<kogayonon_rendering::FrameBuffer> frameBuffer)
+    : ImGuiWindow(std ::move(name)), m_pFrameBuffer(frameBuffer)
 {
-    m_pFrameBuffer = std::make_unique<kogayonon_rendering::FrameBuffer>(m_props->width, m_props->height);
 }
 
-kogayonon_rendering::FrameBuffer* SceneViewportWindow::getFrameBuffer()
+std::weak_ptr<kogayonon_rendering::FrameBuffer> SceneViewportWindow::getFrameBuffer()
 {
-    return m_pFrameBuffer.get();
+    return std::weak_ptr<kogayonon_rendering::FrameBuffer>(m_pFrameBuffer);
 }
 
 void SceneViewportWindow::draw()
@@ -22,27 +26,29 @@ void SceneViewportWindow::draw()
         return;
     }
 
-    m_props->width = ImGui::GetContentRegionAvail().x;
-    m_props->height = ImGui::GetContentRegionAvail().y;
+    auto& pFrameBuffer = m_pFrameBuffer.lock();
 
-    // draw to framebuffer
-    int fbWidth = (int)m_props->width;
-    int fbHeight = (int)m_props->height;
-    m_pFrameBuffer->bind();
-    m_pFrameBuffer->rescale(fbWidth, fbHeight);
-    glViewport(0, 0, fbWidth, fbHeight);
-    glClearColor(0.0, 1.0, 0.0, 0.2);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    if (m_renderCallback)
+    if (pFrameBuffer && m_renderCallback)
     {
-        m_renderCallback();
-    }
-    m_pFrameBuffer->unbind();
+        m_props->width = ImGui::GetContentRegionAvail().x;
+        m_props->height = ImGui::GetContentRegionAvail().y;
 
-    ImVec2 win_pos = ImGui::GetCursorScreenPos();
-    ImGui::GetWindowDrawList()->AddImage((void*)m_pFrameBuffer->getTexture(), ImVec2(win_pos.x, win_pos.y),
-                                         ImVec2(win_pos.x + m_props->width, win_pos.y + m_props->height), ImVec2(0, 1),
-                                         ImVec2(1, 0));
+        pFrameBuffer->bind();
+        pFrameBuffer->rescale(m_props->width, m_props->height);
+
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // draw using the callback
+        m_renderCallback();
+
+        pFrameBuffer->unbind();
+
+        ImVec2 win_pos = ImGui::GetCursorScreenPos();
+        ImGui::GetWindowDrawList()->AddImage((void*)pFrameBuffer->getTexture(), ImVec2(win_pos.x, win_pos.y),
+                                             ImVec2(win_pos.x + m_props->width, win_pos.y + m_props->height),
+                                             ImVec2(0, 1), ImVec2(1, 0));
+    }
 
     ImGui::End();
 }

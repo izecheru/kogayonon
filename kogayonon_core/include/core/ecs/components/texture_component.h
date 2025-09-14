@@ -1,17 +1,17 @@
 #pragma once
+#include <future>
+#include <memory>
 #include <string>
+#include "resources/texture.h"
 
 namespace kogayonon_core
 {
 struct TextureComponent
 {
-    explicit TextureComponent(const std::string& textureFileName, const std::string& texturePath);
+    explicit TextureComponent(std::weak_ptr<kogayonon_resources::Texture> texture);
     ~TextureComponent();
 
-    unsigned int getTexture() const;
-
-    unsigned int m_texture;
-    std::string m_name;
-    int m_w, m_h, m_channels;
+    unsigned int getTexture();
+    std::weak_ptr<kogayonon_resources::Texture> m_texture;
 };
 } // namespace kogayonon_core

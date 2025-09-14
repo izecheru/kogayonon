@@ -8,10 +8,10 @@
 
 using namespace kogayonon_logger;
 
-namespace kogayonon_gui {
+namespace kogayonon_gui
+{
 ImGuiManager::~ImGuiManager()
 {
-    Logger::info("imgui manager dtor");
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImGui::DestroyContext();
@@ -103,8 +103,9 @@ void ImGuiManager::beginImGuiFrame()
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
-    static ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
-                                           ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
+    static ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar |
+                                           ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+                                           ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
                                            ImGuiWindowFlags_NoNavFocus;
 
     static ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -157,6 +158,7 @@ void ImGuiManager::mainMenu()
         {
             if (ImGui::MenuItem("Close", "Ctrl+X"))
             {
+                Logger::info("Close pressed");
             }
             ImGui::EndMenu();
         }

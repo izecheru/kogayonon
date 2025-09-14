@@ -6,8 +6,9 @@ add_library(
   "include/resources/texture.h"
   "src/mesh.cpp"
   "src/mesh_helper.cpp"
-  "src/model.cpp")
+  "src/model.cpp" "src/texture.cpp")
 
 target_include_directories(kogayonon_resources
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
 target_link_libraries(kogayonon_resources PUBLIC glm::glm-header-only)
