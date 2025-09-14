@@ -1,6 +1,11 @@
 #version 460 core
+
+layout (binding = 1) uniform sampler2D uTexture;
+
+in vec2 TexCoord;
 out vec4 FragColor;
+
 void main()
 {
-    FragColor = vec4(1.0, 0.5, 1.0, 0.3); // solid red color
+    FragColor = texture(uTexture, TexCoord);
 }

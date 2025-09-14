@@ -5,6 +5,7 @@
 #include <imgui_internal.h>
 #include "gui/debug_window.h"
 #include "logger/logger.h"
+#include "utilities/fonts/icons_fontawesome5.h"
 
 using namespace kogayonon_logger;
 
@@ -41,11 +42,32 @@ void ImGuiManager::pushWindow(std::string name, std::unique_ptr<ImGuiWindow> win
 bool ImGuiManager::initImgui(SDL_Window* window, SDL_GLContext context)
 {
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
+    if (!ImGui::CreateContext())
+    {
+        Logger::error("could not create imgui context");
+        return false;
+    }
 
     m_io = &ImGui::GetIO();
-    m_io->ConfigFlags |= ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
+    m_io->ConfigFlags |=
+        ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
+
+    m_io->ConfigWindowsMoveFromTitleBarOnly = true;
     m_io->IniFilename = "imgui_config.ini";
+    m_io->Fonts->AddFontDefault();
+
+    float baseFontSize = 13.0f;
+    float iconFontSize = baseFontSize * 2.0f / 3.0f;
+
+    static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_16_FA, 0};
+    ImFontConfig icons_config;
+    icons_config.MergeMode = true;
+    icons_config.PixelSnapH = true;
+    icons_config.GlyphMinAdvanceX = iconFontSize;
+    std::string fontPath = "resources/fonts/";
+    fontPath += FONT_ICON_FILE_NAME_FAS;
+    assert(std::filesystem::exists(fontPath) && "font does not exits");
+    m_io->Fonts->AddFontFromFileTTF(fontPath.c_str(), iconFontSize, &icons_config, icons_ranges);
 
     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
@@ -53,7 +75,7 @@ bool ImGuiManager::initImgui(SDL_Window* window, SDL_GLContext context)
 
     if (!ImGui_ImplSDL2_InitForOpenGL(window, context) || !ImGui_ImplOpenGL3_Init("#version 460"))
     {
-        Logger::log(LogType::ERROR, "Error init imgui");
+        Logger::error("could not init imgui");
         return false;
     }
     return true;
@@ -90,14 +112,14 @@ void ImGuiManager::setupDockSpace(ImGuiViewport* viewport)
             // Dock windows
             ImGui::DockBuilderDockWindow("Debug console", dock_id_bottom);
             ImGui::DockBuilderDockWindow("Assets", dock_id_bottom);
-            ImGui::DockBuilderDockWindow("Scene", dock_main_id);
+            ImGui::DockBuilderDockWindow(ICON_FA_IMAGE " Scene", dock_main_id);
 
             ImGui::DockBuilderFinish(dockspace_id);
         }
     }
 }
 
-void ImGuiManager::beginImGuiFrame()
+void ImGuiManager::begin()
 {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
@@ -124,7 +146,7 @@ void ImGuiManager::beginImGuiFrame()
     ImGui::End();
 }
 
-void ImGuiManager::endImGuiFrame()
+void ImGuiManager::end()
 {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -141,13 +163,13 @@ void ImGuiManager::endImGuiFrame()
 
 void ImGuiManager::draw()
 {
-    beginImGuiFrame();
+    begin();
     mainMenu();
     for (auto& win : m_windows)
     {
         win.second->draw();
     }
-    endImGuiFrame();
+    end();
 }
 
 void ImGuiManager::mainMenu()

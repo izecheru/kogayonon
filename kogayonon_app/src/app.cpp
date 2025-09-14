@@ -19,8 +19,10 @@
 #include "logger/logger.h"
 #include "rendering/framebuffer.h"
 #include "utilities/asset_manager/asset_manager.h"
+#include "utilities/fonts/icons_fontawesome5.h"
 #include "utilities/shader_manager/shader_manager.h"
 #include "utilities/task_manager/task_manager.h"
+#include "utilities/time_tracker/time_tracker.h"
 #include "window/window.h"
 
 using namespace kogayonon_logger;
@@ -88,8 +90,12 @@ void App::run()
     {
         m_running = false;
     }
+
+    TIME_TRACKER()->start("deltaTime");
+
     while (m_running)
     {
+        TIME_TRACKER()->update("deltaTime");
         pollEvents();
         IMGUI_MANAGER()->draw();
         m_pWindow->swapWindow();
@@ -142,6 +148,11 @@ bool App::initRegistries()
 {
     auto& mainRegistry = REGISTRY();
 
+    // init time tracker
+    auto timeTracker = std::make_shared<kogayonon_utilities::TimeTracker>();
+    assert(timeTracker && "could not initialise time tracker");
+    mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::TimeTracker>>(std::move(timeTracker));
+
     // init imgui manager
     auto imguiManager = std::make_shared<kogayonon_gui::ImGuiManager>(m_pWindow->getWindow(), m_pWindow->getContext());
     assert(imguiManager && "could not initialise imgui manager");
@@ -175,7 +186,7 @@ bool App::initGui()
 {
     // insert windows
     m_pFrameBuffer = std::make_shared<kogayonon_rendering::FrameBuffer>(400, 400);
-    auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>("Scene", m_pFrameBuffer);
+    auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>(ICON_FA_IMAGE " Scene", m_pFrameBuffer);
     sceneViewport->setCallback([this]() { callbackTest(); });
 
     auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>("Debug console");
@@ -239,16 +250,6 @@ bool App::init()
     EVENT_MANAGER()->listenToEvent<kogayonon_core::WindowResizeEvent>([this](const kogayonon_core::Event& e) -> bool {
         return this->onWindowResize((kogayonon_core::WindowResizeEvent&)e);
     });
-
-    auto future = TASK_MANAGER()->enqueue([]() -> int {
-        int sum = 0;
-        for (int i = 10; i < 30; i++)
-        {
-            sum += i;
-        }
-        return sum;
-    });
-    Logger::info("Task manager test result is ", future.get());
 
     return true;
 }

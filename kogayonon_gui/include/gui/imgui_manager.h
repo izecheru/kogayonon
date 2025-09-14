@@ -19,8 +19,8 @@ class ImGuiManager
 
     void draw();
     void mainMenu();
-    void beginImGuiFrame();
-    void endImGuiFrame();
+    void begin();
+    void end();
 
   private:
     ImGuiIO* m_io = nullptr;

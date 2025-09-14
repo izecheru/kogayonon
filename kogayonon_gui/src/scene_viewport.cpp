@@ -20,7 +20,7 @@ std::weak_ptr<kogayonon_rendering::FrameBuffer> SceneViewportWindow::getFrameBuf
 
 void SceneViewportWindow::draw()
 {
-    if (!ImGui::Begin(m_props->m_name.c_str(), nullptr, m_props->flags))
+    if (!ImGui::Begin(m_props->name.c_str(), nullptr, m_props->flags))
     {
         ImGui::End();
         return;

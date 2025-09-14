@@ -7,6 +7,7 @@ namespace kogayonon_utilities
 class TaskManager;
 class ShaderManager;
 class AssetManager;
+class TimeTracker;
 } // namespace kogayonon_utilities
 
 namespace kogayonon_gui
@@ -26,8 +27,8 @@ namespace kogayonon_core
 #define EVENT_MANAGER() REGISTRY().getContext<std::shared_ptr<kogayonon_core::EventManager>>()
 #define IMGUI_MANAGER() REGISTRY().getContext<std::shared_ptr<kogayonon_gui::ImGuiManager>>()
 #define TASK_MANAGER() REGISTRY().getContext<std::shared_ptr<kogayonon_utilities::TaskManager>>()
-
 #define ASSET_MANAGER() REGISTRY().getContext<std::shared_ptr<kogayonon_utilities::AssetManager>>()
+#define TIME_TRACKER() REGISTRY().getContext<std::shared_ptr<kogayonon_utilities::TimeTracker>>()
 
 // this should be in the asset manager
 #define SHADER_MANAGER() REGISTRY().getContext<std::shared_ptr<kogayonon_utilities::ShaderManager>>()
