@@ -66,7 +66,9 @@ bool ImGuiManager::initImgui(SDL_Window* window, SDL_GLContext context)
     icons_config.GlyphMinAdvanceX = iconFontSize;
     std::string fontPath = "resources/fonts/";
     fontPath += FONT_ICON_FILE_NAME_FAS;
+
     assert(std::filesystem::exists(fontPath) && "font does not exits");
+
     m_io->Fonts->AddFontFromFileTTF(fontPath.c_str(), iconFontSize, &icons_config, icons_ranges);
 
     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
@@ -110,9 +112,10 @@ void ImGuiManager::setupDockSpace(ImGuiViewport* viewport)
             ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.25f, &dock_id_left, &dock_main_id);
 
             // Dock windows
+            ImGui::DockBuilderDockWindow("Scene hierarchy", dock_id_left);
+            ImGui::DockBuilderDockWindow(ICON_FA_IMAGE " Scene", dock_main_id);
             ImGui::DockBuilderDockWindow("Debug console", dock_id_bottom);
             ImGui::DockBuilderDockWindow("Assets", dock_id_bottom);
-            ImGui::DockBuilderDockWindow(ICON_FA_IMAGE " Scene", dock_main_id);
 
             ImGui::DockBuilderFinish(dockspace_id);
         }

@@ -15,6 +15,7 @@
 #include "gui/debug_window.h"
 #include "gui/file_explorer.h"
 #include "gui/imgui_manager.h"
+#include "gui/scene_hierarchy.h"
 #include "gui/scene_viewport.h"
 #include "logger/logger.h"
 #include "rendering/framebuffer.h"
@@ -195,7 +196,10 @@ bool App::initGui()
     std::string rootPath = "/";
     auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>("Assets", std::move(rootPath));
 
+    auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>("Scene hierarchy");
+
     IMGUI_MANAGER()->pushWindow("Scene", std::move(sceneViewport));
+    IMGUI_MANAGER()->pushWindow("Scene hierarchy", std::move(sceneHierarchy));
     IMGUI_MANAGER()->pushWindow("Debug console", std::move(debugWindow));
     IMGUI_MANAGER()->pushWindow("Assets", std::move(fileExplorerWindow));
 
@@ -208,7 +212,7 @@ bool App::initScenes()
 
     // add a test entity with a texture component
     auto entity = std::make_unique<kogayonon_core::Entity>(mainScene->getRegistry());
-    auto tex = ASSET_MANAGER()->addTexture("textureTest", "resources/textures/texture.png");
+    auto tex = ASSET_MANAGER()->addTexture("textureTest", "resources/textures/paiangan.png");
     entity->addComponent<kogayonon_core::TextureComponent>(tex);
     kogayonon_core::SceneManager::getInstance().addScene(mainScene);
 
