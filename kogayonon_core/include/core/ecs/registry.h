@@ -2,17 +2,20 @@
 #include <entt/entt.hpp>
 #include <memory>
 
-namespace kogayonon_core {
+namespace kogayonon_core
+{
 class Registry
 {
   public:
-    Registry() : m_pRegistry( std::make_shared<entt::registry>() ) {}
+    Registry() : m_pRegistry(std::make_shared<entt::registry>())
+    {
+    }
 
     ~Registry() = default;
 
-    inline bool isValid( entt::entity entity ) const
+    inline bool isValid(entt::entity entity) const
     {
-        return m_pRegistry->valid( entity );
+        return m_pRegistry->valid(entity);
     }
 
     inline entt::entity createEntity()
@@ -31,9 +34,9 @@ class Registry
     }
 
     template <typename TContext>
-    inline TContext& addToContext( TContext context )
+    inline TContext& addToContext(TContext context)
     {
-        return m_pRegistry->ctx().emplace<TContext>( context );
+        return m_pRegistry->ctx().emplace<TContext>(context);
     }
 
     template <typename TContext>

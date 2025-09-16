@@ -211,7 +211,8 @@ bool App::initScenes()
     auto mainScene = std::make_shared<kogayonon_core::Scene>("MainScene");
 
     // add a test entity with a texture component
-    auto entity = std::make_unique<kogayonon_core::Entity>(mainScene->getRegistry());
+    auto entity =
+        std::make_unique<kogayonon_core::Entity>(mainScene->getRegistry(), "oli (my cat) a cat that sleeps a lot");
     auto tex = ASSET_MANAGER()->addTexture("textureTest", "resources/textures/paiangan.png");
     entity->addComponent<kogayonon_core::TextureComponent>(tex);
     kogayonon_core::SceneManager::getInstance().addScene(mainScene);

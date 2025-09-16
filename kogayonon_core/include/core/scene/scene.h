@@ -1,11 +1,12 @@
 #pragma once
+#include <entt/entt.hpp>
 #include <memory>
 #include <string>
 
 namespace kogayonon_core
 {
 class Registry;
-}
+} // namespace kogayonon_core
 
 namespace kogayonon_core
 {
@@ -16,6 +17,7 @@ class Scene
     ~Scene() = default;
 
     Registry& getRegistry();
+    entt::registry& getEnttRegistry();
     std::string getName() const;
     void changeName(const std::string& name);
 

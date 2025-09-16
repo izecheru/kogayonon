@@ -12,6 +12,11 @@ Registry& Scene::getRegistry()
     return *m_pRegistry.get();
 }
 
+entt::registry& Scene::getEnttRegistry()
+{
+    return m_pRegistry->getRegistry();
+}
+
 std::string Scene::getName() const
 {
     return m_name;

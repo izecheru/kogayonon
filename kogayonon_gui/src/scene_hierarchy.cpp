@@ -1,10 +1,11 @@
 #include "gui/scene_hierarchy.h"
+#include "core/ecs/components/name_component.h"
 #include "core/ecs/components/texture_component.h"
 #include "core/ecs/entity.h"
 #include "core/ecs/registry.h"
 #include "core/scene/scene.h"
 #include "core/scene/scene_manager.h"
-#include "resources/texture.h"
+using namespace kogayonon_core;
 
 namespace kogayonon_gui
 {
@@ -20,19 +21,42 @@ void SceneHierarchyWindow::draw()
         return;
     }
 
-    auto& sceneManager = kogayonon_core::SceneManager::getInstance();
+    auto& sceneManager = ::SceneManager::getInstance();
     auto& currentScene = sceneManager.getCurrentScene();
     auto& scene = currentScene.lock();
     if (scene)
     {
-        auto& registry = scene->getRegistry();
-        auto& enttRegistry = registry.getRegistry();
-        for (auto& [entity, textureComponent] : enttRegistry.view<kogayonon_core::TextureComponent>().each())
+        auto& enttRegistry = scene->getEnttRegistry();
+        auto& view = enttRegistry.view<NameComponent>();
+        std::vector<std::string> entityNames;
+        for (auto& [entity, nameComponent] : view.each())
         {
-            ImGui::Text("Texture path: %s ", textureComponent.m_texture.lock()->getPath().c_str());
+            entityNames.push_back(nameComponent.name);
+        }
+
+        std::vector<const char*> items;
+        items.reserve(entityNames.size());
+        for (auto& str : entityNames)
+        {
+            items.push_back(str.c_str());
+        }
+        static int selectedIndex = -1;
+
+        ImGui::BeginChild("EntityListRegion", ImVec2(0, 0), true);
+        if (ImGui::BeginListBox("##EntityList", ImVec2(0, 0)))
+        {
+            for (int i = 0; i < items.size(); i++)
+            {
+                bool isSelected = selectedIndex == i;
+                if (ImGui::Selectable(items.at(i), isSelected))
+                {
+                    selectedIndex = i;
+                }
+            }
+            ImGui::EndListBox();
         }
     }
-
+    ImGui::EndChild();
     ImGui::End();
 }
 } // namespace kogayonon_gui

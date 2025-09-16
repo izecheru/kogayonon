@@ -85,39 +85,33 @@ bool ImGuiManager::initImgui(SDL_Window* window, SDL_GLContext context)
 
 void ImGuiManager::setupDockSpace(ImGuiViewport* viewport)
 {
-    static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+    static ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags_None;
     if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable)
     {
-        ImGuiID dockspace_id = ImGui::GetID("MyDockspace");
-        ImGui::DockSpace(dockspace_id, ImVec2(0, 0), dockspace_flags);
-        static bool first_frame = true;
-        if (first_frame)
+        const auto dockspaceId = ImGui::GetID("MyDockspace");
+        ImGui::DockSpace(dockspaceId, ImVec2(0, 0), dockspaceFlags);
+        if (static bool firstFrame = true; firstFrame)
         {
-            first_frame = false;
-
-            ImGuiID dockspace_id = ImGui::GetID("MyDockspace");
+            firstFrame = false;
 
             // Clear previous layout
-            ImGui::DockBuilderRemoveNode(dockspace_id);
-            ImGui::DockBuilderAddNode(dockspace_id, ImGuiDockNodeFlags_DockSpace);
-            ImGui::DockBuilderSetNodeSize(dockspace_id, viewport->Size);
+            ImGui::DockBuilderRemoveNode(dockspaceId);
+            ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
+            ImGui::DockBuilderSetNodeSize(dockspaceId, viewport->Size);
 
-            // Split main dockspace
-            ImGuiID dock_main_id = dockspace_id;
-            ImGuiID dock_id_right, dock_id_left, dock_id_bottom, dock_id_top;
-
-            ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Up, 0.2f, &dock_id_top, &dock_main_id);
-            ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.2f, &dock_id_bottom, &dock_main_id);
-            ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.2f, &dock_id_right, &dock_main_id);
-            ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.25f, &dock_id_left, &dock_main_id);
+            auto centerNodeId = dockspaceId;
+            auto leftNodeId = ImGui::DockBuilderSplitNode(centerNodeId, ImGuiDir_Left, 0.3f, nullptr, &centerNodeId);
+            auto rightNodeId = ImGui::DockBuilderSplitNode(centerNodeId, ImGuiDir_Right, 0.3f, nullptr, &centerNodeId);
+            auto bottomCenterNodeId =
+                ImGui::DockBuilderSplitNode(centerNodeId, ImGuiDir_Down, 0.3f, nullptr, &centerNodeId);
 
             // Dock windows
-            ImGui::DockBuilderDockWindow("Scene hierarchy", dock_id_left);
-            ImGui::DockBuilderDockWindow(ICON_FA_IMAGE " Scene", dock_main_id);
-            ImGui::DockBuilderDockWindow("Debug console", dock_id_bottom);
-            ImGui::DockBuilderDockWindow("Assets", dock_id_bottom);
+            ImGui::DockBuilderDockWindow("Scene hierarchy", leftNodeId);
+            ImGui::DockBuilderDockWindow(ICON_FA_IMAGE " Scene", centerNodeId);
+            ImGui::DockBuilderDockWindow("Debug console", bottomCenterNodeId);
+            ImGui::DockBuilderDockWindow("Assets", rightNodeId);
 
-            ImGui::DockBuilderFinish(dockspace_id);
+            ImGui::DockBuilderFinish(dockspaceId);
         }
     }
 }
@@ -131,7 +125,7 @@ void ImGuiManager::begin()
     static ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar |
                                            ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
                                            ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
-                                           ImGuiWindowFlags_NoNavFocus;
+                                           ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground;
 
     static ImGuiViewport* viewport = ImGui::GetMainViewport();
     static float menu_bar_height = ImGui::GetFrameHeight();
