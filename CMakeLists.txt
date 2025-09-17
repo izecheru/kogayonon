@@ -7,12 +7,12 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
       CACHE STRING "")
 endif()
 
+
 project(kogayonon)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-# set_target_properties(kogayonon PROPERTIES WIN32_EXECUTABLE TRUE)
 
 # -------------------------------------------------------------------
 # Output directories for different artifact types

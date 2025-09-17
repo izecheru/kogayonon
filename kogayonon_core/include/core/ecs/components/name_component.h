@@ -5,7 +5,7 @@ namespace kogayonon_core
 {
 struct NameComponent
 {
-    NameComponent(std::string n) : name(n)
+    NameComponent( std::string n ) : name( n )
     {
     }
 

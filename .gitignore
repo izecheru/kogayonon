@@ -427,3 +427,5 @@ resources/models/serialized/out.bin
 *.t0000
 resources/models/spheres.bin
 resources/models/spheres.gltf
+.projectile
+compile_commands.json

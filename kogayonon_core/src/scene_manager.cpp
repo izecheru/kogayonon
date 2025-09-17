@@ -9,27 +9,27 @@ SceneManager& SceneManager::getInstance()
     return instance;
 }
 
-void kogayonon_core::SceneManager::addScene(std::shared_ptr<Scene> scene)
+void kogayonon_core::SceneManager::addScene( std::shared_ptr<Scene> scene )
 {
     auto name = scene->getName();
-    m_scenes.emplace(name, std::move(scene));
+    m_scenes.emplace( name, std::move( scene ) );
 }
 
-void SceneManager::removeScene(const std::string& name)
+void SceneManager::removeScene( const std::string& name )
 {
-    auto it = m_scenes.find(name);
-    if (it != m_scenes.end())
+    auto it = m_scenes.find( name );
+    if ( it != m_scenes.end() )
     {
-        m_scenes.erase(it);
+        m_scenes.erase( it );
     }
 }
 
 std::weak_ptr<Scene> SceneManager::getCurrentScene()
 {
-    return std::weak_ptr<Scene>(m_scenes.at(m_currentScene));
+    return std::weak_ptr<Scene>( m_scenes.at( m_currentScene ) );
 }
 
-void SceneManager::setCurrentScene(const std::string& sceneName)
+void SceneManager::setCurrentScene( const std::string& sceneName )
 {
     m_currentScene = sceneName;
 }

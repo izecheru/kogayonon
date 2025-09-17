@@ -1,9 +1,11 @@
 ﻿BasedOnStyle: Microsoft
 
 # Indentation and Formatting
-TabWidth: 4
+IndentWidth: 2
+TabWidth: 2
+ContinuationIndentWidth: 2
 UseTab: Never
-ContinuationIndentWidth: 4
+BreakConstructorInitializers: BeforeComma
 BreakBeforeBraces: Custom
 BraceWrapping:
   AfterClass: true
@@ -16,6 +18,7 @@ BraceWrapping:
 AllowShortFunctionsOnASingleLine: None
 PointerAlignment: Left
 CompactNamespaces: false                
+SpacesInParentheses: true
 FixNamespaceComments: true               
 AllowAllConstructorInitializersOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
@@ -35,5 +38,3 @@ IncludeCategories:
   - Regex:           '^".*"$'
     Priority:        4
 SortIncludes:        true
-
-# Pointer and Refer

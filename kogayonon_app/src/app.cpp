@@ -32,301 +32,304 @@ namespace kogayonon_app
 {
 App::~App()
 {
-    cleanup();
+  cleanup();
 }
 
 void App::cleanup()
 {
-    Logger::info("Closing app and cleaning up");
-    Logger::shutdown();
+  Logger::info( "Closing app and cleaning up" );
+  Logger::shutdown();
 }
 
 void App::pollEvents()
 {
-    SDL_Event e;
-    while (SDL_PollEvent(&e))
+  SDL_Event e;
+  while ( SDL_PollEvent( &e ) )
+  {
+    ImGui_ImplSDL2_ProcessEvent( &e );
+    switch ( e.type )
     {
-        ImGui_ImplSDL2_ProcessEvent(&e);
-        switch (e.type)
-        {
-        case SDL_WINDOWEVENT: {
-            if (e.window.event == SDL_WINDOWEVENT_RESIZED)
-            {
-                int newWidth = e.window.data1;
-                int newHeight = e.window.data2;
-                kogayonon_core::WindowResizeEvent windowResizeEvent(newWidth, newHeight);
-                EVENT_MANAGER()->dispatchEventToListeners(windowResizeEvent);
-            }
-            break;
-        }
-        case SDL_QUIT: {
-            m_running = false;
-            break;
-        }
-        case SDL_KEYDOWN: {
-
-            // TODO maybe rethink this a bit
-            auto keycode = static_cast<kogayonon_core::KeyCode>(e.key.keysym.sym);
-            kogayonon_core::KeyPressedEvent keyPressEvent(keycode, 0);
-            Logger::info("KeyPressedEvent - ", static_cast<int>(keycode));
-            EVENT_MANAGER()->dispatchEventToListeners(keyPressEvent);
-            break;
-        }
-        case SDL_KEYUP: {
-
-            // TODO maybe rethink this a bit
-            auto keycode = static_cast<kogayonon_core::KeyCode>(e.key.keysym.sym);
-            kogayonon_core::KeyReleasedEvent keyReleaseEvent(keycode);
-            Logger::info("KeyReleasedEvent - ", static_cast<int>(keycode));
-            EVENT_MANAGER()->dispatchEventToListeners(keyReleaseEvent);
-            break;
-        }
-        }
+    case SDL_WINDOWEVENT: {
+      if ( e.window.event == SDL_WINDOWEVENT_RESIZED )
+      {
+        int newWidth = e.window.data1;
+        int newHeight = e.window.data2;
+        kogayonon_core::WindowResizeEvent windowResizeEvent( newWidth, newHeight );
+        EVENT_MANAGER()->dispatchEventToListeners( windowResizeEvent );
+      }
+      break;
     }
+    case SDL_QUIT: {
+      m_running = false;
+      break;
+    }
+    case SDL_KEYDOWN: {
+
+      // TODO maybe rethink this a bit
+      auto keycode = static_cast<kogayonon_core::KeyCode>( e.key.keysym.sym );
+      kogayonon_core::KeyPressedEvent keyPressEvent( keycode, 0 );
+      Logger::info( "KeyPressedEvent - ", static_cast<int>( keycode ) );
+      EVENT_MANAGER()->dispatchEventToListeners( keyPressEvent );
+      break;
+    }
+    case SDL_KEYUP: {
+
+      // TODO maybe rethink this a bit
+      auto keycode = static_cast<kogayonon_core::KeyCode>( e.key.keysym.sym );
+      kogayonon_core::KeyReleasedEvent keyReleaseEvent( keycode );
+      Logger::info( "KeyReleasedEvent - ", static_cast<int>( keycode ) );
+      EVENT_MANAGER()->dispatchEventToListeners( keyReleaseEvent );
+      break;
+    }
+    }
+  }
 }
 
 void App::run()
 {
-    if (!init())
-    {
-        m_running = false;
-    }
+  if ( !init() )
+  {
+    m_running = false;
+  }
 
-    TIME_TRACKER()->start("deltaTime");
+  TIME_TRACKER()->start( "deltaTime" );
 
-    while (m_running)
-    {
-        TIME_TRACKER()->update("deltaTime");
-        pollEvents();
-        IMGUI_MANAGER()->draw();
-        m_pWindow->swapWindow();
-    }
+  while ( m_running )
+  {
+    TIME_TRACKER()->update( "deltaTime" );
+    pollEvents();
+    IMGUI_MANAGER()->draw();
+    m_pWindow->swapWindow();
+  }
 }
 
 bool App::initSDL()
 {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0)
-    {
-        Logger::critical("Could not initialize sdl");
-        return false;
-    }
+  if ( SDL_Init( SDL_INIT_VIDEO ) < 0 )
+  {
+    Logger::critical( "Could not initialize sdl" );
+    return false;
+  }
 
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-    auto pWinProps = m_pWindow->getWindowProps();
+  SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 4 );
+  SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 6 );
+  SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+  auto pWinProps = m_pWindow->getWindowProps();
 
-    auto flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
-    if (pWinProps->maximized)
-    {
-        flags |= SDL_WINDOW_MAXIMIZED;
-    }
+  auto flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
+  if ( pWinProps->maximized )
+  {
+    flags |= SDL_WINDOW_MAXIMIZED;
+  }
 
-    auto win = SDL_CreateWindow(pWinProps->title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, pWinProps->width,
-                                pWinProps->height, flags);
-    m_pWindow->setWindow(std::move(win));
+  auto win = SDL_CreateWindow( pWinProps->title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, pWinProps->width,
+                               pWinProps->height, flags );
+  m_pWindow->setWindow( std::move( win ) );
 
-    auto ctx = SDL_GL_CreateContext(m_pWindow->getWindow());
-    m_pWindow->setContext(std::move(ctx));
+  auto ctx = SDL_GL_CreateContext( m_pWindow->getWindow() );
+  m_pWindow->setContext( std::move( ctx ) );
 
-    SDL_GL_MakeCurrent(m_pWindow->getWindow(), m_pWindow->getContext());
+  SDL_GL_MakeCurrent( m_pWindow->getWindow(), m_pWindow->getContext() );
 
-    if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress))
-    {
-        Logger::critical("Failed to initialize GLAD");
-        return false;
-    }
+  if ( !gladLoadGLLoader( (GLADloadproc)SDL_GL_GetProcAddress ) )
+  {
+    Logger::critical( "Failed to initialize GLAD" );
+    return false;
+  }
 
 #ifdef _DEBUG
-    glEnable(GL_DEBUG_OUTPUT);
+  glEnable( GL_DEBUG_OUTPUT );
 #endif
-    glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-    rescaleMainViewport(pWinProps->width, pWinProps->height);
-    return true;
+  glCullFace( GL_CCW );
+  glClearColor( 0.5f, 0.5f, 0.5f, 1.0f );
+  rescaleMainViewport( pWinProps->width, pWinProps->height );
+  return true;
 }
 
 bool App::initRegistries()
 {
-    auto& mainRegistry = REGISTRY();
+  auto& mainRegistry = REGISTRY();
 
-    // init time tracker
-    auto timeTracker = std::make_shared<kogayonon_utilities::TimeTracker>();
-    assert(timeTracker && "could not initialise time tracker");
-    mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::TimeTracker>>(std::move(timeTracker));
+  // init time tracker
+  auto timeTracker = std::make_shared<kogayonon_utilities::TimeTracker>();
+  assert( timeTracker && "could not initialise time tracker" );
+  mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::TimeTracker>>( std::move( timeTracker ) );
 
-    // init imgui manager
-    auto imguiManager = std::make_shared<kogayonon_gui::ImGuiManager>(m_pWindow->getWindow(), m_pWindow->getContext());
-    assert(imguiManager && "could not initialise imgui manager");
-    mainRegistry.addToContext<std::shared_ptr<kogayonon_gui::ImGuiManager>>(std::move(imguiManager));
+  // init imgui manager
+  auto imguiManager = std::make_shared<kogayonon_gui::ImGuiManager>( m_pWindow->getWindow(), m_pWindow->getContext() );
+  assert( imguiManager && "could not initialise imgui manager" );
+  mainRegistry.addToContext<std::shared_ptr<kogayonon_gui::ImGuiManager>>( std::move( imguiManager ) );
 
-    // init event manager
-    auto eventManager = std::make_shared<kogayonon_core::EventManager>();
-    assert(eventManager && "could not initialise event manager");
-    mainRegistry.addToContext<std::shared_ptr<kogayonon_core::EventManager>>(std::move(eventManager));
+  // init event manager
+  auto eventManager = std::make_shared<kogayonon_core::EventManager>();
+  assert( eventManager && "could not initialise event manager" );
+  mainRegistry.addToContext<std::shared_ptr<kogayonon_core::EventManager>>( std::move( eventManager ) );
 
-    // init task manager
-    auto taskManager = std::make_shared<kogayonon_utilities::TaskManager>(10);
-    assert(taskManager && "could not initialise task manager");
-    mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::TaskManager>>(std::move(taskManager));
+  // init task manager
+  auto taskManager = std::make_shared<kogayonon_utilities::TaskManager>( 10 );
+  assert( taskManager && "could not initialise task manager" );
+  mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::TaskManager>>( std::move( taskManager ) );
 
-    // init shader manager
-    auto shaderManager = std::make_shared<kogayonon_utilities::ShaderManager>();
-    assert(shaderManager && "could not initialise shader manager");
-    shaderManager->pushShader("resources/shaders/3d_vertex.glsl", "resources/shaders/3d_fragment.glsl", "3d");
-    mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::ShaderManager>>(std::move(shaderManager));
+  // init shader manager
+  auto shaderManager = std::make_shared<kogayonon_utilities::ShaderManager>();
+  assert( shaderManager && "could not initialise shader manager" );
+  shaderManager->pushShader( "resources/shaders/3d_vertex.glsl", "resources/shaders/3d_fragment.glsl", "3d" );
+  mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::ShaderManager>>( std::move( shaderManager ) );
 
-    // init asset manager
-    auto assetManager = std::make_shared<kogayonon_utilities::AssetManager>();
-    assert(assetManager && "could not initialise asset manager");
-    mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::AssetManager>>(std::move(assetManager));
+  // init asset manager
+  auto assetManager = std::make_shared<kogayonon_utilities::AssetManager>();
+  assert( assetManager && "could not initialise asset manager" );
+  assetManager->addModel( "cube", "resources/models/untitled.gltf" );
+  mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::AssetManager>>( std::move( assetManager ) );
 
-    return true;
+  return true;
 }
 
 bool App::initGui()
 {
-    // insert windows
-    m_pFrameBuffer = std::make_shared<kogayonon_rendering::FrameBuffer>(400, 400);
-    auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>(ICON_FA_IMAGE " Scene", m_pFrameBuffer);
-    sceneViewport->setCallback([this]() { callbackTest(); });
+  // insert windows
+  m_pFrameBuffer = std::make_shared<kogayonon_rendering::FrameBuffer>( 400, 400 );
+  auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( ICON_FA_IMAGE " Scene", m_pFrameBuffer );
+  sceneViewport->setCallback( [this]() { callbackTest(); } );
 
-    auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>("Debug console");
+  auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>( "Debug console" );
 
-    // root for where the file explorer can see files or folders
-    std::string rootPath = "/";
-    auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>("Assets", std::move(rootPath));
+  // root for where the file explorer can see files or folders
+  std::string rootPath = "/";
+  auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets", std::move( rootPath ) );
 
-    auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>("Scene hierarchy");
+  auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>( "Scene hierarchy" );
 
-    IMGUI_MANAGER()->pushWindow("Scene", std::move(sceneViewport));
-    IMGUI_MANAGER()->pushWindow("Scene hierarchy", std::move(sceneHierarchy));
-    IMGUI_MANAGER()->pushWindow("Debug console", std::move(debugWindow));
-    IMGUI_MANAGER()->pushWindow("Assets", std::move(fileExplorerWindow));
+  IMGUI_MANAGER()->pushWindow( "Scene", std::move( sceneViewport ) );
+  IMGUI_MANAGER()->pushWindow( "Scene hierarchy", std::move( sceneHierarchy ) );
+  IMGUI_MANAGER()->pushWindow( "Debug console", std::move( debugWindow ) );
+  IMGUI_MANAGER()->pushWindow( "Assets", std::move( fileExplorerWindow ) );
 
-    return true;
+  return true;
 }
 
 bool App::initScenes()
 {
-    auto mainScene = std::make_shared<kogayonon_core::Scene>("MainScene");
+  auto mainScene = std::make_shared<kogayonon_core::Scene>( "MainScene" );
 
-    // add a test entity with a texture component
-    auto entity =
-        std::make_unique<kogayonon_core::Entity>(mainScene->getRegistry(), "oli (my cat) a cat that sleeps a lot");
-    auto tex = ASSET_MANAGER()->addTexture("textureTest", "resources/textures/paiangan.png");
-    entity->addComponent<kogayonon_core::TextureComponent>(tex);
-    kogayonon_core::SceneManager::getInstance().addScene(mainScene);
+  // add a test entity with a texture component
+  auto entity = std::make_unique<kogayonon_core::Entity>( mainScene->getRegistry(), "test texture from model" );
 
-    // set the current scene
-    kogayonon_core::SceneManager::getInstance().setCurrentScene("MainScene");
-    return true;
+  // auto tex = ASSET_MANAGER()->addTexture( "textureTest", "resources/textures/paiangan.png" );
+  //  ASSET_MANAGER()->getTexture( "material_base_color" )
+  entity->addComponent<kogayonon_core::TextureComponent>( ASSET_MANAGER()->getTexture( "material_base_color.png" ) );
+  kogayonon_core::SceneManager::getInstance().addScene( mainScene );
+
+  // set the current scene
+  kogayonon_core::SceneManager::getInstance().setCurrentScene( "MainScene" );
+  return true;
 }
 
 bool App::init()
 {
 #ifdef _DEBUG
-    m_pWindow = std::make_shared<kogayonon_window::Window>("kogayonon engine (DEBUG)", 1200, 800, 1, false);
+  m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine (DEBUG)", 1200, 800, 1, false );
 #else
-    m_pWindow = std::make_shared<kogayonon_window::Window>("kogayonon engine", 800, 600, 1, false);
+  m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine", 800, 600, 1, false );
 #endif
 
-    Logger::initialize("log.txt");
+  Logger::initialize( "log.txt" );
 
-    if (!initSDL())
-    {
-        return false;
-    }
+  if ( !initSDL() )
+  {
+    return false;
+  }
 
-    if (!initRegistries())
-    {
-        return false;
-    }
+  if ( !initRegistries() )
+  {
+    return false;
+  }
 
-    if (!initGui())
-    {
-        return false;
-    }
+  if ( !initGui() )
+  {
+    return false;
+  }
 
-    if (!initScenes())
-    {
-        return false;
-    }
+  if ( !initScenes() )
+  {
+    return false;
+  }
 
-    EVENT_MANAGER()->listenToEvent<kogayonon_core::WindowResizeEvent>([this](const kogayonon_core::Event& e) -> bool {
-        return this->onWindowResize((kogayonon_core::WindowResizeEvent&)e);
-    });
+  EVENT_MANAGER()->listenToEvent<kogayonon_core::WindowResizeEvent>( [this]( const kogayonon_core::Event& e ) -> bool {
+    return this->onWindowResize( (kogayonon_core::WindowResizeEvent&)e );
+  } );
 
-    return true;
+  return true;
 }
 
-void App::rescaleMainViewport(int w, int h)
+void App::rescaleMainViewport( int w, int h )
 {
-    m_pWindow->resize();
-    glViewport(0, 0, w, h);
+  m_pWindow->resize();
+  glViewport( 0, 0, w, h );
 }
 
-bool App::onWindowResize(kogayonon_core::WindowResizeEvent& e)
+bool App::onWindowResize( kogayonon_core::WindowResizeEvent& e )
 {
-    rescaleMainViewport(e.getWidth(), e.getHeight());
+  rescaleMainViewport( e.getWidth(), e.getHeight() );
 
-    // if we need to process the event further (in camera projection matrix for example) we return false
-    return true;
+  // if we need to process the event further (in camera projection matrix for example) we return false
+  return true;
 }
 
 void App::callbackTest()
 {
-    auto& sceneManager = kogayonon_core::SceneManager::getInstance();
-    auto scene = sceneManager.getCurrentScene();
+  auto& sceneManager = kogayonon_core::SceneManager::getInstance();
+  auto scene = sceneManager.getCurrentScene();
 
-    // check if the scene ptr is still valid
-    if (!scene.lock())
-        return;
+  // check if the scene ptr is still valid
+  if ( !scene.lock() )
+    return;
 
-    auto& registry = scene.lock()->getRegistry();
+  auto& registry = scene.lock()->getRegistry();
 
-    static GLuint quadVAO = 0, quadVBO = 0;
-    if (quadVAO == 0)
-    {
-        float quadVertices[] = {-1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f,  1.0f, 1.0f, 1.0f,
-                                -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,  1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f};
+  static GLuint quadVAO = 0, quadVBO = 0;
+  if ( quadVAO == 0 )
+  {
+    float quadVertices[] = { -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f,  1.0f, 1.0f, 1.0f,
+                             -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,  1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f };
 
-        glCreateVertexArrays(1, &quadVAO);
-        glCreateBuffers(1, &quadVBO);
-        glNamedBufferStorage(quadVBO, sizeof(quadVertices), quadVertices, 0);
-        glVertexArrayVertexBuffer(quadVAO, 0, quadVBO, 0, 4 * sizeof(float));
+    glCreateVertexArrays( 1, &quadVAO );
+    glCreateBuffers( 1, &quadVBO );
+    glNamedBufferStorage( quadVBO, sizeof( quadVertices ), quadVertices, 0 );
+    glVertexArrayVertexBuffer( quadVAO, 0, quadVBO, 0, 4 * sizeof( float ) );
 
-        glEnableVertexArrayAttrib(quadVAO, 0);
-        glVertexArrayAttribFormat(quadVAO, 0, 2, GL_FLOAT, GL_FALSE, 0);
-        glVertexArrayAttribBinding(quadVAO, 0, 0);
+    glEnableVertexArrayAttrib( quadVAO, 0 );
+    glVertexArrayAttribFormat( quadVAO, 0, 2, GL_FLOAT, GL_FALSE, 0 );
+    glVertexArrayAttribBinding( quadVAO, 0, 0 );
 
-        glEnableVertexArrayAttrib(quadVAO, 1);
-        glVertexArrayAttribFormat(quadVAO, 1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float));
-        glVertexArrayAttribBinding(quadVAO, 1, 0);
-    }
+    glEnableVertexArrayAttrib( quadVAO, 1 );
+    glVertexArrayAttribFormat( quadVAO, 1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof( float ) );
+    glVertexArrayAttribBinding( quadVAO, 1, 0 );
+  }
 
-    SHADER_MANAGER()->bindShader("3d");
+  SHADER_MANAGER()->bindShader( "3d" );
 
-    glBindVertexArray(quadVAO);
+  glBindVertexArray( quadVAO );
 
-    auto& view = registry.getRegistry().view<kogayonon_core::TextureComponent>();
-    for (auto [entity, textureComp] : view.each())
-    {
-        if (textureComp.getTexture() == 0)
-            continue;
+  auto& view = registry.getRegistry().view<kogayonon_core::TextureComponent>();
+  for ( auto [entity, textureComp] : view.each() )
+  {
+    if ( textureComp.getTexture() == 0 )
+      continue;
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, textureComp.getTexture());
+    glActiveTexture( GL_TEXTURE0 );
+    glBindTexture( GL_TEXTURE_2D, textureComp.getTexture() );
 
-        GLint loc = glGetUniformLocation(SHADER_MANAGER()->getShaderId("3d"), "uTexture");
+    GLint loc = glGetUniformLocation( SHADER_MANAGER()->getShaderId( "3d" ), "uTexture" );
 
-        // if uTexture is not found in the shader
-        if (loc >= 0)
-            glUniform1i(loc, 0);
+    // if uTexture is not found in the shader
+    if ( loc >= 0 )
+      glUniform1i( loc, 0 );
 
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-    }
+    glDrawArrays( GL_TRIANGLES, 0, 6 );
+  }
 
-    glBindVertexArray(0);
-    SHADER_MANAGER()->unbindShader("3d");
+  glBindVertexArray( 0 );
+  SHADER_MANAGER()->unbindShader( "3d" );
 }
 } // namespace kogayonon_app

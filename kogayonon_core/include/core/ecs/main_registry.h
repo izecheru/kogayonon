@@ -42,7 +42,7 @@ class MainRegistry
     inline static MainRegistry& getInstance()
     {
         static MainRegistry instance{};
-        if (!m_init)
+        if ( !m_init )
         {
             m_pRegistry = std::make_shared<Registry>();
             m_init = true;
@@ -51,9 +51,9 @@ class MainRegistry
     }
 
     template <typename TContext>
-    TContext& addToContext(TContext context)
+    TContext& addToContext( TContext context )
     {
-        return m_pRegistry->addToContext<TContext>(context);
+        return m_pRegistry->addToContext<TContext>( context );
     }
 
     template <typename TContext>
@@ -65,8 +65,8 @@ class MainRegistry
   private:
     MainRegistry() = default;
     ~MainRegistry() = default;
-    MainRegistry(const MainRegistry&) = delete;
-    MainRegistry& operator=(const MainRegistry&) = delete;
+    MainRegistry( const MainRegistry& ) = delete;
+    MainRegistry& operator=( const MainRegistry& ) = delete;
 
     inline static std::shared_ptr<Registry> m_pRegistry;
     inline static bool m_init = false;

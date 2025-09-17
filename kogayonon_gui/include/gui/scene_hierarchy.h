@@ -10,7 +10,7 @@ namespace kogayonon_gui
 class SceneHierarchyWindow : public ImGuiWindow
 {
   public:
-    explicit SceneHierarchyWindow(std::string name);
+    explicit SceneHierarchyWindow( std::string name );
     ~SceneHierarchyWindow() = default;
 
     void draw() override;
