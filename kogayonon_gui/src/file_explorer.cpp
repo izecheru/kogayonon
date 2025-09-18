@@ -1,16 +1,16 @@
-#include "gui/file_explorer.h"
+#include "gui/file_explorer.hpp"
 
 namespace kogayonon_gui
 {
 void FileExplorerWindow::draw()
 {
-    if (ImGui::Begin(m_props->name.c_str(), nullptr, m_props->flags))
+  if ( ImGui::Begin( m_props->name.c_str(), nullptr, m_props->flags ) )
+  {
+    for ( auto& it : m_displays )
     {
-        for (auto& it : m_displays)
-        {
-            it.second->draw();
-        }
+      it.second->draw();
     }
-    ImGui::End();
+  }
+  ImGui::End();
 }
 } // namespace kogayonon_gui

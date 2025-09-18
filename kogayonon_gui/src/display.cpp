@@ -1,3 +1,5 @@
-#include "gui/display.h"
+#include "gui/display.hpp"
 
-namespace kogayonon_gui {}
+namespace kogayonon_gui
+{
+}

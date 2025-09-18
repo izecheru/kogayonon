@@ -1,18 +1,18 @@
 add_library(
   kogayonon_gui
-  "include/gui/debug_window.h"
-  "include/gui/display.h"
-  "include/gui/file_explorer.h"
-  "include/gui/folder_display.h"
-  "include/gui/imgui_manager.h"
-  "include/gui/imgui_window.h"
-  "include/gui/scene_viewport.h"
+  "include/gui/debug_window.hpp"
+  "include/gui/display.hpp"
+  "include/gui/file_explorer.hpp"
+  "include/gui/folder_display.hpp"
+  "include/gui/imgui_manager.hpp"
+  "include/gui/imgui_window.hpp"
+  "include/gui/scene_viewport.hpp"
   "src/debug_window.cpp"
   "src/display.cpp"
   "src/file_explorer.cpp"
   "src/folder_display.cpp"
   "src/imgui_manager.cpp"
-  "src/scene_viewport.cpp" "src/imgui_window.cpp" "include/gui/scene_hierarchy.h" "src/scene_hierarchy.cpp")
+  "src/scene_viewport.cpp" "src/imgui_window.cpp" "include/gui/scene_hierarchy.hpp" "src/scene_hierarchy.cpp" "src/performance_window.cpp")
 
 target_include_directories(kogayonon_gui
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

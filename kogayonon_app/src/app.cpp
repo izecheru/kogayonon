@@ -1,30 +1,32 @@
-#include "app/app.h"
+#include "app/app.hpp"
 #include <glad/glad.h>
 #include <imgui_impl_sdl2.h>
 #include <memory>
-#include "core/ecs/components/mesh_component.h"
-#include "core/ecs/components/texture_component.h"
-#include "core/ecs/entity.h"
-#include "core/ecs/main_registry.h"
-#include "core/ecs/registry.h"
-#include "core/event/app_event.h"
-#include "core/event/event_manager.h"
-#include "core/input/keyboard_events.h"
-#include "core/scene/scene.h"
-#include "core/scene/scene_manager.h"
-#include "gui/debug_window.h"
-#include "gui/file_explorer.h"
-#include "gui/imgui_manager.h"
-#include "gui/scene_hierarchy.h"
-#include "gui/scene_viewport.h"
-#include "logger/logger.h"
-#include "rendering/framebuffer.h"
-#include "utilities/asset_manager/asset_manager.h"
+#include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/texture_component.hpp"
+#include "core/ecs/entity.hpp"
+#include "core/ecs/main_registry.hpp"
+#include "core/ecs/registry.hpp"
+#include "core/event/app_event.hpp"
+#include "core/event/event_manager.hpp"
+#include "core/input/keyboard_events.hpp"
+#include "core/scene/scene.hpp"
+#include "core/scene/scene_manager.hpp"
+#include "gui/debug_window.hpp"
+#include "gui/file_explorer.hpp"
+#include "gui/imgui_manager.hpp"
+#include "gui/performance_window.hpp"
+#include "gui/scene_hierarchy.hpp"
+#include "gui/scene_viewport.hpp"
+#include "logger/logger.hpp"
+#include "rendering/framebuffer.hpp"
+#include "rendering/renderer.hpp"
+#include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/fonts/icons_fontawesome5.h"
-#include "utilities/shader_manager/shader_manager.h"
-#include "utilities/task_manager/task_manager.h"
-#include "utilities/time_tracker/time_tracker.h"
-#include "window/window.h"
+#include "utilities/shader_manager/shader_manager.hpp"
+#include "utilities/task_manager/task_manager.hpp"
+#include "utilities/time_tracker/time_tracker.hpp"
+#include "window/window.hpp"
 
 using namespace kogayonon_logger;
 
@@ -68,7 +70,6 @@ void App::pollEvents()
       // TODO maybe rethink this a bit
       auto keycode = static_cast<kogayonon_core::KeyCode>( e.key.keysym.sym );
       kogayonon_core::KeyPressedEvent keyPressEvent( keycode, 0 );
-      Logger::info( "KeyPressedEvent - ", static_cast<int>( keycode ) );
       EVENT_MANAGER()->dispatchEventToListeners( keyPressEvent );
       break;
     }
@@ -77,7 +78,6 @@ void App::pollEvents()
       // TODO maybe rethink this a bit
       auto keycode = static_cast<kogayonon_core::KeyCode>( e.key.keysym.sym );
       kogayonon_core::KeyReleasedEvent keyReleaseEvent( keycode );
-      Logger::info( "KeyReleasedEvent - ", static_cast<int>( keycode ) );
       EVENT_MANAGER()->dispatchEventToListeners( keyReleaseEvent );
       break;
     }
@@ -150,6 +150,12 @@ bool App::initRegistries()
 {
   auto& mainRegistry = REGISTRY();
 
+  // init renderer
+  auto renderer = std::make_shared<kogayonon_rendering::Renderer>();
+  renderer->initialise();
+  assert( renderer && "could not initialise renderer" );
+  mainRegistry.addToContext<std::shared_ptr<kogayonon_rendering::Renderer>>( std::move( renderer ) );
+
   // init time tracker
   auto timeTracker = std::make_shared<kogayonon_utilities::TimeTracker>();
   assert( timeTracker && "could not initialise time tracker" );
@@ -179,7 +185,10 @@ bool App::initRegistries()
   // init asset manager
   auto assetManager = std::make_shared<kogayonon_utilities::AssetManager>();
   assert( assetManager && "could not initialise asset manager" );
-  assetManager->addModel( "cube", "resources/models/untitled.gltf" );
+
+  assetManager->addTexture( "play", "resources/textures/play.png" );
+  assetManager->addTexture( "stop", "resources/textures/stop.png" );
+
   mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::AssetManager>>( std::move( assetManager ) );
 
   return true;
@@ -189,7 +198,10 @@ bool App::initGui()
 {
   // insert windows
   m_pFrameBuffer = std::make_shared<kogayonon_rendering::FrameBuffer>( 400, 400 );
-  auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( ICON_FA_IMAGE " Scene", m_pFrameBuffer );
+  auto playTexture = ASSET_MANAGER()->getTexture( "play" ).lock()->getTextureId();
+  auto stopTexture = ASSET_MANAGER()->getTexture( "stop" ).lock()->getTextureId();
+  auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( ICON_FA_IMAGE " Scene", m_pFrameBuffer,
+                                                                             playTexture, stopTexture );
   sceneViewport->setCallback( [this]() { callbackTest(); } );
 
   auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>( "Debug console" );
@@ -200,7 +212,10 @@ bool App::initGui()
 
   auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>( "Scene hierarchy" );
 
+  auto performanceWindow = std::make_unique<kogayonon_gui::PerformanceWindow>( "Performance" );
+
   IMGUI_MANAGER()->pushWindow( "Scene", std::move( sceneViewport ) );
+  IMGUI_MANAGER()->pushWindow( "Performance", std::move( performanceWindow ) );
   IMGUI_MANAGER()->pushWindow( "Scene hierarchy", std::move( sceneHierarchy ) );
   IMGUI_MANAGER()->pushWindow( "Debug console", std::move( debugWindow ) );
   IMGUI_MANAGER()->pushWindow( "Assets", std::move( fileExplorerWindow ) );
@@ -210,18 +225,17 @@ bool App::initGui()
 
 bool App::initScenes()
 {
-  auto mainScene = std::make_shared<kogayonon_core::Scene>( "MainScene" );
+  auto mainScene = std::make_shared<kogayonon_core::Scene>( "Default scene" );
 
   // add a test entity with a texture component
   auto entity = std::make_unique<kogayonon_core::Entity>( mainScene->getRegistry(), "test texture from model" );
 
-  // auto tex = ASSET_MANAGER()->addTexture( "textureTest", "resources/textures/paiangan.png" );
-  //  ASSET_MANAGER()->getTexture( "material_base_color" )
-  entity->addComponent<kogayonon_core::TextureComponent>( ASSET_MANAGER()->getTexture( "material_base_color.png" ) );
+  auto tex = ASSET_MANAGER()->addTexture( "textureTest", "resources/textures/paiangan.png" );
+  entity->addComponent<kogayonon_core::TextureComponent>( tex );
   kogayonon_core::SceneManager::getInstance().addScene( mainScene );
 
   // set the current scene
-  kogayonon_core::SceneManager::getInstance().setCurrentScene( "MainScene" );
+  kogayonon_core::SceneManager::getInstance().setCurrentScene( "Default scene" );
   return true;
 }
 
@@ -287,48 +301,7 @@ void App::callbackTest()
 
   auto& registry = scene.lock()->getRegistry();
 
-  static GLuint quadVAO = 0, quadVBO = 0;
-  if ( quadVAO == 0 )
-  {
-    float quadVertices[] = { -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f,  1.0f, 1.0f, 1.0f,
-                             -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, 1.0f,  1.0f, 1.0f, -1.0f, 1.0f, 0.0f, 1.0f };
-
-    glCreateVertexArrays( 1, &quadVAO );
-    glCreateBuffers( 1, &quadVBO );
-    glNamedBufferStorage( quadVBO, sizeof( quadVertices ), quadVertices, 0 );
-    glVertexArrayVertexBuffer( quadVAO, 0, quadVBO, 0, 4 * sizeof( float ) );
-
-    glEnableVertexArrayAttrib( quadVAO, 0 );
-    glVertexArrayAttribFormat( quadVAO, 0, 2, GL_FLOAT, GL_FALSE, 0 );
-    glVertexArrayAttribBinding( quadVAO, 0, 0 );
-
-    glEnableVertexArrayAttrib( quadVAO, 1 );
-    glVertexArrayAttribFormat( quadVAO, 1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof( float ) );
-    glVertexArrayAttribBinding( quadVAO, 1, 0 );
-  }
-
   SHADER_MANAGER()->bindShader( "3d" );
-
-  glBindVertexArray( quadVAO );
-
-  auto& view = registry.getRegistry().view<kogayonon_core::TextureComponent>();
-  for ( auto [entity, textureComp] : view.each() )
-  {
-    if ( textureComp.getTexture() == 0 )
-      continue;
-
-    glActiveTexture( GL_TEXTURE0 );
-    glBindTexture( GL_TEXTURE_2D, textureComp.getTexture() );
-
-    GLint loc = glGetUniformLocation( SHADER_MANAGER()->getShaderId( "3d" ), "uTexture" );
-
-    // if uTexture is not found in the shader
-    if ( loc >= 0 )
-      glUniform1i( loc, 0 );
-
-    glDrawArrays( GL_TRIANGLES, 0, 6 );
-  }
-
   glBindVertexArray( 0 );
   SHADER_MANAGER()->unbindShader( "3d" );
 }

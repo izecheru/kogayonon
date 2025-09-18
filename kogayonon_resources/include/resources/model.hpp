@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 
-#include "resources/mesh.h"
+#include "resources/mesh.hpp"
 
 namespace kogayonon_resources
 {

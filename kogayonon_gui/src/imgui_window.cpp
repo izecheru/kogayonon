@@ -1,10 +1,10 @@
-#include "gui/imgui_window.h"
+#include "gui/imgui_window.hpp"
 
 namespace kogayonon_gui
 {
-ImGuiWindow::ImGuiWindow(std::string name)
+ImGuiWindow::ImGuiWindow( std::string name )
 {
-    m_props = std::make_unique<imgui_props>(name);
+  m_props = std::make_unique<imgui_props>( name );
 }
 
 ImGuiWindow::~ImGuiWindow()
@@ -13,41 +13,41 @@ ImGuiWindow::~ImGuiWindow()
 
 std::string ImGuiWindow::getName() const
 {
-    return m_props->name;
+  return m_props->name;
 }
 
-void ImGuiWindow::setDocked(bool status)
+void ImGuiWindow::setDocked( bool status )
 {
-    m_props->docked = status;
+  m_props->docked = status;
 }
 
-void ImGuiWindow::setVisible(bool status)
+void ImGuiWindow::setVisible( bool status )
 {
-    m_props->visible = status;
+  m_props->visible = status;
 }
 
-void ImGuiWindow::setX(double x)
+void ImGuiWindow::setX( double x )
 {
-    m_props->x = x;
+  m_props->x = x;
 }
 
-void ImGuiWindow::setY(double y)
+void ImGuiWindow::setY( double y )
 {
-    m_props->y = y;
+  m_props->y = y;
 }
 
 int ImGuiWindow::width()
 {
-    return m_props->width;
+  return m_props->width;
 }
 
 int ImGuiWindow::height()
 {
-    return m_props->height;
+  return m_props->height;
 }
 
-void ImGuiWindow::setCallback(const RenderCallbackFn& func)
+void ImGuiWindow::setCallback( const RenderCallbackFn& func )
 {
-    m_renderCallback = func;
+  m_renderCallback = func;
 }
 } // namespace kogayonon_gui

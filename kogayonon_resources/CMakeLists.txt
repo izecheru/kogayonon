@@ -1,9 +1,9 @@
 add_library(
   kogayonon_resources
-  "include/resources/mesh.h"
-  "include/resources/vertex.h"
-  "include/resources/model.h"
-  "include/resources/texture.h"
+  "include/resources/mesh.hpp"
+  "include/resources/vertex.hpp"
+  "include/resources/model.hpp"
+  "include/resources/texture.hpp"
   "src/mesh.cpp"
   "src/mesh_helper.cpp"
   "src/model.cpp" "src/texture.cpp")

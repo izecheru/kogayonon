@@ -3,8 +3,8 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
-#include "resources/model.h"
-#include "resources/texture.h"
+#include "resources/model.hpp"
+#include "resources/texture.hpp"
 
 struct cgltf_primitive;
 struct cgltf_accessor;

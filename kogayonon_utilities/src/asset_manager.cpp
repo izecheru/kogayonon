@@ -1,14 +1,13 @@
-#include "utilities/asset_manager/asset_manager.h"
+#include "utilities/asset_manager/asset_manager.hpp"
 #include <cgltf.h>
 #include <SOIL2/SOIL2.h>
 #include <assert.h>
 #include <filesystem>
 #include <glm/gtc/type_ptr.hpp>
-#include "logger/logger.h"
-#include "resources/mesh_helper.h"
-#include "resources/model.h"
-#include "resources/texture.h"
-#include "resources/vertex.h"
+#include "logger/logger.hpp"
+#include "resources/model.hpp"
+#include "resources/texture.hpp"
+#include "resources/vertex.hpp"
 using namespace kogayonon_logger;
 
 namespace kogayonon_utilities
@@ -25,10 +24,20 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std:
   // std::lock_guard lock( m_assetMutex );
   assert( std::filesystem::exists( texturePath ) && "Texture path does not exist" );
 
-  auto id = SOIL_load_OGL_texture( texturePath.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y );
-  auto tex = std::make_shared<kogayonon_resources::Texture>( id, texturePath, 0, 0, 0 );
+  int w = 0, h = 0, channels = 0;
+  unsigned char* data = SOIL_load_image( texturePath.c_str(), &w, &h, &channels, SOIL_LOAD_AUTO );
+  if ( !data )
+  {
+    Logger::error( "soil could not load data for texture ", texturePath );
+    return std::weak_ptr<kogayonon_resources::Texture>();
+  }
+  auto id =
+    SOIL_create_OGL_texture( data, &w, &h, channels, SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y | SOIL_FLAG_MIPMAPS );
+
+  auto tex = std::make_shared<kogayonon_resources::Texture>( id, texturePath, w, h, channels );
   m_loadedTextures.emplace( textureName, std::move( tex ) );
   Logger::info( "Loaded texture: ", textureName, ", ", texturePath );
+  SOIL_free_image_data( data );
   return m_loadedTextures.at( textureName );
 }
 
@@ -129,12 +138,13 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
   }
 
   auto model = std::make_shared<kogayonon_resources::Model>( std::move( meshes ) );
-  m_loadedModels.emplace( modelName, model );
+
+  m_loadedModels.emplace( modelName, std::move( model ) );
 
   cgltf_free( data );
 
   Logger::info( "Loaded model: ", modelName );
-  return model;
+  return getModel( modelName );
 }
 
 std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureFromMemory( const std::string& textureName,
@@ -233,6 +243,7 @@ void AssetManager::parseTextures( const cgltf_material* material, std::vector<un
     std::string uri = material->normal_texture.texture->image->uri;
     std::filesystem::path texturePath( "resources/" + uri );
     std::string textureName = texturePath.filename().string();
+
     auto pTexture = addTexture( textureName, texturePath.string() );
     if ( auto tex = pTexture.lock() )
       textureIDs.push_back( tex->getTextureId() );
@@ -242,6 +253,9 @@ void AssetManager::parseTextures( const cgltf_material* material, std::vector<un
        material->pbr_metallic_roughness.base_color_texture.texture->image )
   {
     std::string uri = material->pbr_metallic_roughness.base_color_texture.texture->image->uri;
+
+    // since the model is exported with textures it will have textures/texture.png as it's uri
+    // but we placed the textures dir in the resources one so we must have resources/textures/texture.png
     std::filesystem::path texturePath = std::filesystem::path( "resources" ) / uri;
     std::string textureName = texturePath.filename().string();
 

@@ -1,5 +1,5 @@
-#include "resources/mesh_helper.h"
-#include "resources/vertex.h"
+#include "resources/mesh_helper.hpp"
+#include "resources/vertex.hpp"
 
 namespace kogayonon_resources
 {

@@ -1,4 +1,4 @@
-#include "resources/model.h"
+#include "resources/model.hpp"
 #include <filesystem>
 
 namespace kogayonon_resources

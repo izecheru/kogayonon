@@ -1,29 +1,31 @@
-#include "core/scene/scene.h"
-#include "core/ecs/registry.h"
+#include "core/scene/scene.hpp"
+#include "core/ecs/registry.hpp"
 
 namespace kogayonon_core
 {
-Scene::Scene(const std::string& name) : m_pRegistry(std::make_unique<Registry>()), m_name(name)
+Scene::Scene( const std::string& name )
+    : m_pRegistry( std::make_unique<Registry>() )
+    , m_name( name )
 {
 }
 
 Registry& Scene::getRegistry()
 {
-    return *m_pRegistry.get();
+  return *m_pRegistry.get();
 }
 
 entt::registry& Scene::getEnttRegistry()
 {
-    return m_pRegistry->getRegistry();
+  return m_pRegistry->getRegistry();
 }
 
 std::string Scene::getName() const
 {
-    return m_name;
+  return m_name;
 }
 
-void Scene::changeName(const std::string& name)
+void Scene::changeName( const std::string& name )
 {
-    m_name = name;
+  m_name = name;
 }
 } // namespace kogayonon_core

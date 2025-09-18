@@ -1,3 +1,5 @@
-#include "core/event/event_manager.h"
+#include "core/event/event_manager.hpp"
 
-namespace kogayonon {} // namespace kogayonon
+namespace kogayonon
+{
+} // namespace kogayonon
