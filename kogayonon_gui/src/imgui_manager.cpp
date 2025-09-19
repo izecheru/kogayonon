@@ -100,8 +100,8 @@ void ImGuiManager::setupDockSpace( ImGuiViewport* viewport )
       ImGui::DockBuilderSetNodeSize( dockspaceId, viewport->Size );
 
       auto centerNodeId = dockspaceId;
-      auto leftNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Left, 0.3f, nullptr, &centerNodeId );
-      auto rightNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Right, 0.3f, nullptr, &centerNodeId );
+      auto leftNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Left, 0.2f, nullptr, &centerNodeId );
+      auto rightNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Right, 0.2f, nullptr, &centerNodeId );
       auto bottomCenterNodeId =
         ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Down, 0.3f, nullptr, &centerNodeId );
 

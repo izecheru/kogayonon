@@ -3,6 +3,7 @@
 namespace kogayonon_core
 {
 class Scene;
+struct TextureComponent;
 } // namespace kogayonon_core
 
 namespace kogayonon_gui
@@ -14,6 +15,7 @@ public:
   ~SceneHierarchyWindow() = default;
 
   void draw() override;
+  void drawTextureTooltip( kogayonon_core::TextureComponent* textureComp, ImVec2 size );
 
 private:
   std::weak_ptr<kogayonon_core::Scene> m_pCurrentScene;

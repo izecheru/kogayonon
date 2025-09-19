@@ -10,18 +10,24 @@ Texture::Texture( const std::string& p, int w, int h, int n )
 {
 }
 
-Texture::Texture( unsigned int id, const std::string& p, int w, int h, int n )
+Texture::Texture( unsigned int id, const std::string& p, const std::string& name, int w, int h, int n )
     : m_id( id )
     , m_path( p )
     , m_width( w )
     , m_height( h )
     , m_numComponents( n )
+    , m_name( name )
 {
 }
 
 std::string Texture::getPath() const
 {
   return m_path;
+}
+
+std::string Texture::getName() const
+{
+  return m_name;
 }
 
 int Texture::getWidth() const

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <glad/glad.h>
 #include <memory>
 
 namespace kogayonon_core
@@ -26,30 +27,33 @@ namespace kogayonon_app
 {
 class App
 {
-  public:
-    App() = default;
-    ~App();
-    void cleanup();
-    void pollEvents();
-    void run();
+public:
+  App() = default;
+  ~App();
+  void cleanup();
+  void pollEvents();
+  void run();
 
-    bool init();
-    bool initSDL();
-    bool initRegistries();
-    bool initGui();
-    bool initScenes();
+  bool init();
+  bool initSDL();
+  bool initRegistries();
+  bool initGui();
+  bool initScenes();
 
-    void rescaleMainViewport(int w, int h);
-    bool onWindowResize(kogayonon_core::WindowResizeEvent& e);
+  void rescaleMainViewport( int w, int h );
+  bool onWindowResize( kogayonon_core::WindowResizeEvent& e );
 
-    void callbackTest();
+  static void glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
+                               const GLchar* message, const void* userParam );
 
-  private:
-    std::shared_ptr<kogayonon_window::Window> m_pWindow;
+  void callbackTest();
 
-    // untill I manage to find a place for this buffer, it'll stay here
-    std::shared_ptr<kogayonon_rendering::FrameBuffer> m_pFrameBuffer;
+private:
+  std::shared_ptr<kogayonon_window::Window> m_pWindow;
 
-    bool m_running = true;
+  // untill I manage to find a place for this buffer, it'll stay here
+  std::shared_ptr<kogayonon_rendering::FrameBuffer> m_pFrameBuffer;
+
+  bool m_running = true;
 };
 } // namespace kogayonon_app

@@ -4,12 +4,12 @@
 namespace kogayonon_rendering
 {
 class FrameBuffer;
-}
+} // namespace kogayonon_rendering
 
 namespace kogayonon_core
 {
 class Scene;
-}
+} // namespace kogayonon_core
 
 namespace kogayonon_gui
 {

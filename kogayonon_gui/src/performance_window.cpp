@@ -7,7 +7,7 @@ namespace kogayonon_gui
 {
 // could also get more stats into this window like draw calls and so on
 PerformanceWindow::PerformanceWindow( std::string name )
-    : ImGuiWindow( name )
+    : ImGuiWindow( std::move( name ) )
 {
 }
 
