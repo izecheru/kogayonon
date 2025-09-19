@@ -1,27 +1,29 @@
 #pragma once
 #include <string>
 
-namespace kogayonon_core {
+namespace kogayonon_core
+{
 enum class EventType
 {
-    None = 0,
-    WindowClose,
-    WindowResize,
-    WindowFocus,
-    WindowLostFocus,
-    WindowMinimzed,
-    AppTick,
-    AppUpdate,
-    AppRender,
-    KeyPressed,
-    KeyReleased,
-    KeyTyped,
-    MouseButtonPressed,
-    MouseButtonReleased,
-    MouseMoved,
-    MouseScrolled,
-    MouseEntered,
-    MouseClicked
+  None = 0,
+  WindowClose,
+  WindowResize,
+  WindowFocus,
+  WindowLostFocus,
+  WindowMinimzed,
+  AppTick,
+  AppUpdate,
+  AppRender,
+  KeyPressed,
+  KeyReleased,
+  KeyTyped,
+  MouseButtonPressed,
+  MouseButtonReleased,
+  MouseMoved,
+  MouseScrolled,
+  MouseEntered,
+  MouseClicked,
+  EntityChanged,
 };
 
 // clang-format off
@@ -30,24 +32,24 @@ enum class EventType
 
 // clang-format on
 
-class Event
+class IEvent
 {
-  public:
-    Event() = default;
-    virtual ~Event() = default;
+public:
+  IEvent() = default;
+  virtual ~IEvent() = default;
 
-    virtual EventType getEventType() const = 0;
+  virtual EventType getEventType() const = 0;
 
-    inline bool isHandled() const
-    {
-        return m_handled;
-    }
+  inline bool isHandled() const
+  {
+    return m_handled;
+  }
 
-    inline void setHandled()
-    {
-        m_handled = true;
-    }
+  inline void setHandled()
+  {
+    m_handled = true;
+  }
 
-    bool m_handled = false;
+  bool m_handled = false;
 };
 } // namespace kogayonon_core

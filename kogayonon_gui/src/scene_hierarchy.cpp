@@ -2,10 +2,14 @@
 #include "core/ecs/components/name_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
 #include "core/ecs/entity.hpp"
+#include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
+#include "core/event/event_manager.hpp"
+#include "core/event/scene_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "logger/logger.hpp"
+
 using namespace kogayonon_logger;
 using namespace kogayonon_core;
 
@@ -24,9 +28,8 @@ void SceneHierarchyWindow::draw()
     return;
   }
 
-  auto& sceneManager = ::SceneManager::getInstance();
-  auto& currentScene = sceneManager.getCurrentScene();
-  auto& scene = currentScene.lock();
+  m_pCurrentScene = kogayonon_core::SceneManager::getCurrentScene();
+  auto& scene = m_pCurrentScene.lock();
   if ( !scene )
   {
     ImGui::End();
@@ -59,11 +62,12 @@ void SceneHierarchyWindow::draw()
         if ( selectedIndex != i )
         {
           selectedIndex = i;
-          Logger::info( "selected index = ", i );
+          EVENT_MANAGER()->dispatchEventToListeners( ChangeEntityEvent( entity.getEnttEntity() ) );
         }
       }
       if ( ImGui::IsItemHovered() )
       {
+
         if ( auto* pTexture = entity.tryGetComponent<TextureComponent>() )
         {
           drawTextureTooltip( pTexture, ImVec2{ 128.0f, 128.0f } );
@@ -77,6 +81,11 @@ void SceneHierarchyWindow::draw()
   ImGui::End();
 }
 
+/**
+ * @brief Draws some info of the texture loaded, currently only for texture components
+ * @param textureComp The texture component we get the texture id and width/ height, path and so on
+ * @param size The size of the tooltip window
+ */
 void SceneHierarchyWindow::drawTextureTooltip( TextureComponent* textureComp, ImVec2 size )
 {
   ImGui::BeginTooltip();

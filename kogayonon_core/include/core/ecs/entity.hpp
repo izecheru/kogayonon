@@ -68,6 +68,11 @@ public:
     }
   }
 
+  inline entt::entity getEnttEntity()
+  {
+    return m_entity;
+  }
+
 private:
   entt::entity m_entity;
   Registry& m_registry;

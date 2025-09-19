@@ -12,6 +12,7 @@
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "gui/debug_window.hpp"
+#include "gui/entity_properties.hpp"
 #include "gui/file_explorer.hpp"
 #include "gui/imgui_manager.hpp"
 #include "gui/performance_window.hpp"
@@ -190,6 +191,7 @@ bool App::initRegistries()
 
   assetManager->addTexture( "play", "resources/textures/play.png" );
   assetManager->addTexture( "stop", "resources/textures/stop.png" );
+  assetManager->addTexture( "slayerSword", "resources/textures/slayer_sword.png" );
 
   mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::AssetManager>>( std::move( assetManager ) );
 
@@ -216,7 +218,10 @@ bool App::initGui()
 
   auto performanceWindow = std::make_unique<kogayonon_gui::PerformanceWindow>( "Performance" );
 
+  auto entityPropertiesWindow = std::make_unique<kogayonon_gui::EntityPropertiesWindow>( "Object properties" );
+
   IMGUI_MANAGER()->pushWindow( "Scene", std::move( sceneViewport ) );
+  IMGUI_MANAGER()->pushWindow( "Object properties", std::move( entityPropertiesWindow ) );
   IMGUI_MANAGER()->pushWindow( "Debug console", std::move( debugWindow ) );
   IMGUI_MANAGER()->pushWindow( "Performance", std::move( performanceWindow ) );
   IMGUI_MANAGER()->pushWindow( "Scene hierarchy", std::move( sceneHierarchy ) );
@@ -232,13 +237,13 @@ bool App::initScenes()
   // add a test entity with a texture component
   auto tex = ASSET_MANAGER()->addTexture( "paiangan", "resources/textures/paiangan.png" );
   auto entity = std::make_unique<kogayonon_core::Entity>( mainScene->getRegistry(), "cat texture entity" );
-  auto entity2 = std::make_unique<kogayonon_core::Entity>( mainScene->getRegistry(), "play texture entity" );
+  auto entity2 = std::make_unique<kogayonon_core::Entity>( mainScene->getRegistry(), "slayer texture entity" );
   entity->addComponent<kogayonon_core::TextureComponent>( tex );
-  entity2->addComponent<kogayonon_core::TextureComponent>( ASSET_MANAGER()->getTexture( "play" ) );
-  kogayonon_core::SceneManager::getInstance().addScene( mainScene );
+  entity2->addComponent<kogayonon_core::TextureComponent>( ASSET_MANAGER()->getTexture( "slayerSword" ) );
+  kogayonon_core::SceneManager::addScene( mainScene );
 
   // set the current scene
-  kogayonon_core::SceneManager::getInstance().setCurrentScene( "Default scene" );
+  kogayonon_core::SceneManager::setCurrentScene( "Default scene" );
   return true;
 }
 
@@ -272,7 +277,7 @@ bool App::init()
     return false;
   }
 
-  EVENT_MANAGER()->listenToEvent<kogayonon_core::WindowResizeEvent>( [this]( const kogayonon_core::Event& e ) -> bool {
+  EVENT_MANAGER()->listenToEvent<kogayonon_core::WindowResizeEvent>( [this]( const kogayonon_core::IEvent& e ) -> bool {
     return this->onWindowResize( (kogayonon_core::WindowResizeEvent&)e );
   } );
 
@@ -305,8 +310,7 @@ void App::glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severit
 
 void App::callbackTest()
 {
-  auto& sceneManager = kogayonon_core::SceneManager::getInstance();
-  auto scene = sceneManager.getCurrentScene();
+  auto scene = kogayonon_core::SceneManager::getCurrentScene();
 
   // check if the scene ptr is still valid
   if ( !scene.lock() )

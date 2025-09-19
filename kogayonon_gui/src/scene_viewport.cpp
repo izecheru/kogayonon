@@ -54,7 +54,7 @@ void SceneViewportWindow::draw()
   ImGui::SameLine();
 
   // render the scene name
-  if ( auto& pScene = kogayonon_core::SceneManager::getInstance().getCurrentScene(); auto scene = pScene.lock() )
+  if ( auto& pScene = kogayonon_core::SceneManager::getCurrentScene(); auto scene = pScene.lock() )
   {
     ImGui::Text( "%s", scene->getName().c_str() );
   }

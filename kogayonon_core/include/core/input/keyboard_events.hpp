@@ -6,7 +6,7 @@
 
 namespace kogayonon_core
 {
-class KeyEvent : public Event
+class KeyEvent : public IEvent
 {
 public:
   KeyEvent( const KeyCode& code, bool isPressed )
@@ -62,7 +62,7 @@ public:
   EVENT_CLASS_TYPE( KeyReleased )
 };
 
-class KeyTypedEvent : public Event
+class KeyTypedEvent : public IEvent
 {
 public:
   KeyTypedEvent( KeyCode keycode )

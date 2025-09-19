@@ -5,14 +5,14 @@
 
 namespace kogayonon_core
 {
-class WindowCloseEvent : public Event
+class WindowCloseEvent : public IEvent
 {
 public:
   WindowCloseEvent() = default;
   EVENT_CLASS_TYPE( WindowClose )
 };
 
-class WindowResizeEvent : public Event
+class WindowResizeEvent : public IEvent
 {
 public:
   WindowResizeEvent( int width, int height )

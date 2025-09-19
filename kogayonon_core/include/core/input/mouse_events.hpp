@@ -8,7 +8,7 @@
 
 namespace kogayonon_core
 {
-class MouseEnteredEvent : public Event
+class MouseEnteredEvent : public IEvent
 {
 public:
   explicit MouseEnteredEvent( const int entered )
@@ -27,7 +27,7 @@ private:
   int m_entered;
 };
 
-class MouseMovedEvent : public Event
+class MouseMovedEvent : public IEvent
 {
 private:
   double m_mouse_x;
@@ -53,7 +53,7 @@ public:
   EVENT_CLASS_TYPE( MouseMoved )
 };
 
-class MouseClickedEvent : public Event
+class MouseClickedEvent : public IEvent
 {
 private:
   MouseCode m_button;
@@ -80,7 +80,7 @@ public:
   EVENT_CLASS_TYPE( MouseClicked )
 };
 
-class MouseScrolledEvent : public Event
+class MouseScrolledEvent : public IEvent
 {
 private:
   double m_x_offset = 0;
