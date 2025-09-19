@@ -6,8 +6,9 @@ namespace kogayonon_resources
 {
 struct Vertex;
 
-struct MeshData
+class MeshData
 {
+public:
   std::vector<Vertex> m_vertices{};
   std::vector<unsigned int> m_indices{};
   std::vector<unsigned int> m_textures{};

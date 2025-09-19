@@ -31,10 +31,9 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std:
     Logger::error( "soil could not load data for texture ", texturePath );
     return std::weak_ptr<kogayonon_resources::Texture>();
   }
-  auto id =
-    SOIL_create_OGL_texture( data, &w, &h, channels, SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y | SOIL_FLAG_MIPMAPS );
+  auto id = SOIL_create_OGL_texture( data, &w, &h, channels, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS );
 
-  auto tex = std::make_shared<kogayonon_resources::Texture>( id, texturePath, w, h, channels );
+  auto tex = std::make_shared<kogayonon_resources::Texture>( id, texturePath, textureName, w, h, channels );
   m_loadedTextures.emplace( textureName, std::move( tex ) );
   Logger::info( "Loaded texture: ", textureName, ", ", texturePath );
   SOIL_free_image_data( data );

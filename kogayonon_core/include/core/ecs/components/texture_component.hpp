@@ -11,7 +11,7 @@ struct TextureComponent
   explicit TextureComponent( std::weak_ptr<kogayonon_resources::Texture> texture );
   ~TextureComponent();
 
-  unsigned int getTexture();
-  std::weak_ptr<kogayonon_resources::Texture> m_texture;
+  unsigned int getTextureId();
+  std::weak_ptr<kogayonon_resources::Texture> pTexture;
 };
 } // namespace kogayonon_core

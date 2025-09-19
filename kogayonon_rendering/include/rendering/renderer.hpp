@@ -8,7 +8,7 @@
 namespace kogayonon_resources
 {
 class Model;
-class Vertex;
+struct Vertex;
 } // namespace kogayonon_resources
 
 namespace kogayonon_rendering

@@ -1,11 +1,10 @@
 #include "gui/scene_viewport.hpp"
 #include <glad/glad.h>
-#include "core/ecs/main_registry.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "logger/logger.hpp"
 #include "rendering/framebuffer.hpp"
-#include "utilities/asset_manager/asset_manager.hpp"
+
 using namespace kogayonon_logger;
 
 namespace kogayonon_gui
@@ -33,29 +32,33 @@ void SceneViewportWindow::draw()
     return;
   }
 
-  static constexpr float toolbarHeight = 65.0f;
-  static ImTextureRef play;
-  play._TexID = m_playTextureId;
-  static ImTextureRef stop;
-  stop._TexID = m_stopTextureId;
+  static constexpr float toolbarHeight = 25.0f;
   ImGui::BeginChild( "Toolbar", ImVec2( 0, toolbarHeight ), false );
+  ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) ); // no bg color for the button
+  if ( ImGui::ImageButton( "play", m_playTextureId, ImVec2( 18, 18 ) ) )
   {
-    if ( ImGui::ImageButton( "play", play, ImVec2( 18, 18 ) ) )
-    {
-      Logger::info( "Pressed play" );
-    }
-    ImGui::SameLine();
-    if ( ImGui::ImageButton( "stop", stop, ImVec2( 18, 18 ) ) )
-    {
-      Logger::info( "Pressed stop" );
-    }
-    ImGui::SameLine();
-
-    if ( auto& pScene = kogayonon_core::SceneManager::getInstance().getCurrentScene(); auto scene = pScene.lock() )
-    {
-      ImGui::Text( "%s", scene->getName().c_str() );
-    }
+    Logger::info( "Pressed play" );
   }
+  ImGui::PopStyleColor( 1 );
+
+  ImGui::SameLine();
+
+  ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) );
+  if ( ImGui::ImageButton( "stop", m_stopTextureId, ImVec2( 18, 18 ), ImVec2( 0, 0 ), ImVec2( 1, 1 ),
+                           ImVec4( 0, 0, 0, 0 ), ImVec4( 1, 1, 1, 1 ) ) )
+  {
+    Logger::info( "Pressed stop" );
+  }
+  ImGui::PopStyleColor( 1 );
+
+  ImGui::SameLine();
+
+  // render the scene name
+  if ( auto& pScene = kogayonon_core::SceneManager::getInstance().getCurrentScene(); auto scene = pScene.lock() )
+  {
+    ImGui::Text( "%s", scene->getName().c_str() );
+  }
+
   ImGui::EndChild();
 
   ImVec2 contentSize = ImGui::GetContentRegionAvail();
@@ -65,9 +68,8 @@ void SceneViewportWindow::draw()
     pFrameBuffer->bind();
     pFrameBuffer->rescale( contentSize.x, contentSize.y );
 
-    glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
+    // glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
+    // glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     m_renderCallback();
 
     pFrameBuffer->unbind();

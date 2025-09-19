@@ -3,13 +3,13 @@
 namespace kogayonon_core
 {
 TextureComponent::TextureComponent( std::weak_ptr<kogayonon_resources::Texture> texture )
-    : m_texture( texture )
+    : pTexture( texture )
 {
 }
 
-unsigned int TextureComponent::getTexture()
+unsigned int TextureComponent::getTextureId()
 {
-  return m_texture.lock()->getTextureId();
+  return pTexture.lock()->getTextureId();
 }
 
 TextureComponent::~TextureComponent()

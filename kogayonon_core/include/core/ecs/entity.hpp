@@ -27,6 +27,13 @@ public:
   }
 
   template <typename TComponent>
+  inline TComponent* tryGetComponent()
+  {
+    auto& registry = m_registry.getRegistry();
+    return registry.try_get<TComponent>( m_entity );
+  }
+
+  template <typename TComponent>
   inline TComponent& getComponent()
   {
     auto& registry = m_registry.getRegistry();

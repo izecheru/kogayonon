@@ -1,5 +1,4 @@
 #include "app/app.hpp"
-#include <glad/glad.h>
 #include <imgui_impl_sdl2.h>
 #include <memory>
 #include "core/ecs/components/mesh_component.hpp"
@@ -139,8 +138,10 @@ bool App::initSDL()
 
 #ifdef _DEBUG
   glEnable( GL_DEBUG_OUTPUT );
+  glDebugMessageCallback( glDebugCallback, nullptr );
 #endif
-  glCullFace( GL_CCW );
+
+  // glCullFace( GL_CCW );
   glClearColor( 0.5f, 0.5f, 0.5f, 1.0f );
   rescaleMainViewport( pWinProps->width, pWinProps->height );
   return true;
@@ -180,6 +181,7 @@ bool App::initRegistries()
   auto shaderManager = std::make_shared<kogayonon_utilities::ShaderManager>();
   assert( shaderManager && "could not initialise shader manager" );
   shaderManager->pushShader( "resources/shaders/3d_vertex.glsl", "resources/shaders/3d_fragment.glsl", "3d" );
+  shaderManager->pushShader( "resources/shaders/white_vertex.glsl", "resources/shaders/white_fragment.glsl", "white" );
   mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::ShaderManager>>( std::move( shaderManager ) );
 
   // init asset manager
@@ -215,9 +217,9 @@ bool App::initGui()
   auto performanceWindow = std::make_unique<kogayonon_gui::PerformanceWindow>( "Performance" );
 
   IMGUI_MANAGER()->pushWindow( "Scene", std::move( sceneViewport ) );
+  IMGUI_MANAGER()->pushWindow( "Debug console", std::move( debugWindow ) );
   IMGUI_MANAGER()->pushWindow( "Performance", std::move( performanceWindow ) );
   IMGUI_MANAGER()->pushWindow( "Scene hierarchy", std::move( sceneHierarchy ) );
-  IMGUI_MANAGER()->pushWindow( "Debug console", std::move( debugWindow ) );
   IMGUI_MANAGER()->pushWindow( "Assets", std::move( fileExplorerWindow ) );
 
   return true;
@@ -228,10 +230,11 @@ bool App::initScenes()
   auto mainScene = std::make_shared<kogayonon_core::Scene>( "Default scene" );
 
   // add a test entity with a texture component
-  auto entity = std::make_unique<kogayonon_core::Entity>( mainScene->getRegistry(), "test texture from model" );
-
-  auto tex = ASSET_MANAGER()->addTexture( "textureTest", "resources/textures/paiangan.png" );
+  auto tex = ASSET_MANAGER()->addTexture( "paiangan", "resources/textures/paiangan.png" );
+  auto entity = std::make_unique<kogayonon_core::Entity>( mainScene->getRegistry(), "cat texture entity" );
+  auto entity2 = std::make_unique<kogayonon_core::Entity>( mainScene->getRegistry(), "play texture entity" );
   entity->addComponent<kogayonon_core::TextureComponent>( tex );
+  entity2->addComponent<kogayonon_core::TextureComponent>( ASSET_MANAGER()->getTexture( "play" ) );
   kogayonon_core::SceneManager::getInstance().addScene( mainScene );
 
   // set the current scene
@@ -244,7 +247,7 @@ bool App::init()
 #ifdef _DEBUG
   m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine (DEBUG)", 1200, 800, 1, false );
 #else
-  m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine", 800, 600, 1, false );
+  m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine", 1800, 1000, 1, false );
 #endif
 
   Logger::initialize( "log.txt" );
@@ -290,6 +293,16 @@ bool App::onWindowResize( kogayonon_core::WindowResizeEvent& e )
   return true;
 }
 
+void App::glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
+                           const GLchar* message, const void* userParam )
+{
+  // i care about only medium to high severity for now
+  if ( severity == GL_DEBUG_SEVERITY_HIGH || severity == GL_DEBUG_SEVERITY_MEDIUM )
+  {
+    Logger::error( source, "type:", type, " severity:", severity, message );
+  }
+}
+
 void App::callbackTest()
 {
   auto& sceneManager = kogayonon_core::SceneManager::getInstance();
@@ -301,8 +314,45 @@ void App::callbackTest()
 
   auto& registry = scene.lock()->getRegistry();
 
-  SHADER_MANAGER()->bindShader( "3d" );
+  static GLuint quadVAO = 0, quadVBO = 0;
+  if ( quadVAO == 0 )
+  {
+    float quadVertices[] = {
+
+      // x, y, u, v
+      -1.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+      1.0f,  -1.0f, 1.0f, 0.0f, // bottom-right
+      1.0f,  1.0f,  1.0f, 1.0f, // top-right
+
+      -1.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+      1.0f,  1.0f,  1.0f, 1.0f, // top-right
+      -1.0f, 1.0f,  0.0f, 1.0f  // top-left
+    };
+
+    glCreateVertexArrays( 1, &quadVAO );
+    glCreateBuffers( 1, &quadVBO );
+
+    glNamedBufferStorage( quadVBO, sizeof( quadVertices ), quadVertices, 0 );
+    glVertexArrayVertexBuffer( quadVAO, 0, quadVBO, 0, 4 * sizeof( float ) );
+
+    // position attribute
+    glEnableVertexArrayAttrib( quadVAO, 0 );
+    glVertexArrayAttribFormat( quadVAO, 0, 2, GL_FLOAT, GL_FALSE, 0 );
+    glVertexArrayAttribBinding( quadVAO, 0, 0 );
+
+    // texcoord attribute
+    glEnableVertexArrayAttrib( quadVAO, 1 );
+    glVertexArrayAttribFormat( quadVAO, 1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof( float ) );
+    glVertexArrayAttribBinding( quadVAO, 1, 0 );
+
+    // ensure no element buffer is bound
+    GLuint dummy = 0;
+    glVertexArrayElementBuffer( quadVAO, dummy );
+  }
+  SHADER_MANAGER()->bindShader( "white" );
+  glBindVertexArray( quadVAO );
+  glDrawArrays( GL_TRIANGLES, 0, 6 );
   glBindVertexArray( 0 );
-  SHADER_MANAGER()->unbindShader( "3d" );
+  SHADER_MANAGER()->unbindShader( "white" );
 }
 } // namespace kogayonon_app
