@@ -1,4 +1,5 @@
 #pragma once
+#include <entt/entt.hpp>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -17,20 +18,19 @@ namespace kogayonon_core
 
 class SceneManager
 {
-  public:
-    static SceneManager& getInstance();
-    static void addScene(std::shared_ptr<Scene> scene);
-    static void removeScene(const std::string& name);
-    static std::weak_ptr<Scene> getCurrentScene();
-    static void setCurrentScene(const std::string& sceneName);
+public:
+  static void addScene( std::shared_ptr<Scene> scene );
+  static void removeScene( const std::string& name );
+  static std::weak_ptr<Scene> getCurrentScene();
+  static void setCurrentScene( const std::string& sceneName );
 
-  private:
-    SceneManager() = default;
-    ~SceneManager() = default;
-    SceneManager operator=(const SceneManager&) = delete;
+private:
+  SceneManager() = default;
+  ~SceneManager() = default;
+  SceneManager operator=( const SceneManager& ) = delete;
 
-  private:
-    static inline std::unordered_map<std::string, std::shared_ptr<Scene>> m_scenes;
-    static inline std::string m_currentScene;
+private:
+  static inline std::unordered_map<std::string, std::shared_ptr<Scene>> m_scenes;
+  static inline std::string m_currentScene;
 };
 } // namespace kogayonon_core

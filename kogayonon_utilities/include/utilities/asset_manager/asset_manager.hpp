@@ -1,7 +1,9 @@
 #pragma once
+#include <filesystem>
 #include <glm/glm.hpp>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include "resources/model.hpp"
 #include "resources/texture.hpp"
@@ -12,11 +14,12 @@ struct cgltf_material;
 
 namespace kogayonon_utilities
 {
+
 class AssetManager
 {
 public:
-  AssetManager() = default;
-  ~AssetManager() = default;
+  AssetManager();
+  ~AssetManager();
 
   // Textures
   std::weak_ptr<kogayonon_resources::Texture> addTexture( const std::string& textureName,
@@ -36,7 +39,9 @@ private:
   void parseTextures( const cgltf_material* material, std::vector<unsigned int>& textureIDs );
 
 private:
+  std::thread m_watchThread;
   std::mutex m_assetMutex;
+
   std::unordered_map<std::string, std::shared_ptr<kogayonon_resources::Texture>> m_loadedTextures;
   std::unordered_map<std::string, std::shared_ptr<kogayonon_resources::Model>> m_loadedModels;
 };

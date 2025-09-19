@@ -9,7 +9,7 @@ add_library(
   "include/utilities/asset_manager/asset_manager.hpp"
   "src/asset_manager.cpp"
   "include/utilities/time_tracker/time_tracker.hpp"
-  "src/time_tracker.cpp" "include/utilities/fonts/icons_fontawesome5.h")
+  "src/time_tracker.cpp" "include/utilities/fonts/icons_fontawesome5.h" "src/directory_watcher.cpp")
 
 target_include_directories(kogayonon_utilities
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

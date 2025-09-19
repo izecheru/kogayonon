@@ -9,7 +9,7 @@ namespace kogayonon_core
 {
 class EventManager
 {
-  using EventCallbackFn = std::function<bool( Event& )>;
+  using EventCallbackFn = std::function<bool( IEvent& )>;
 
 public:
   EventManager() = default;
@@ -30,7 +30,7 @@ public:
   {
   }
 
-  void dispatchEventToListeners( Event& e )
+  void dispatchEventToListeners( IEvent& e )
   {
     if ( auto it = m_callbacks.find( e.getEventType() ); it != m_callbacks.end() )
     {

@@ -3,12 +3,6 @@
 
 namespace kogayonon_core
 {
-SceneManager& SceneManager::getInstance()
-{
-  static SceneManager instance{};
-  return instance;
-}
-
 void kogayonon_core::SceneManager::addScene( std::shared_ptr<Scene> scene )
 {
   auto name = scene->getName();

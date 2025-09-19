@@ -24,13 +24,18 @@ void PerformanceWindow::draw()
   ImGui::Text( "FPS:" );
   ImGui::SameLine();
   static int fps = static_cast<int>( 1.0f / TIME_TRACKER()->getDuration( "deltaTime" ).count() );
+  static double frameTimeMilli =
+    std::chrono::duration<double, std::milli>( TIME_TRACKER()->getDuration( "deltaTime" ) ).count();
 
   if ( std::chrono::duration<double>( passed - initial ).count() > 1.0f )
   {
     initial = std::chrono::high_resolution_clock::now();
     fps = static_cast<int>( 1.0f / TIME_TRACKER()->getDuration( "deltaTime" ).count() );
+    frameTimeMilli = std::chrono::duration<double, std::milli>( TIME_TRACKER()->getDuration( "deltaTime" ) ).count();
   }
+
   ImGui::Text( "%d", fps );
+  ImGui::Text( "Frame time %.3f ms", frameTimeMilli );
 
   ImGui::End();
 }

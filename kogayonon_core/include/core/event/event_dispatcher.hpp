@@ -6,10 +6,10 @@ namespace kogayonon_core
 class EventDispatcher
 {
 private:
-  Event& m_event;
+  IEvent& m_event;
 
 public:
-  EventDispatcher( Event& event )
+  EventDispatcher( IEvent& event )
       : m_event( event )
   {
   }

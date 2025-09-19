@@ -12,7 +12,7 @@ add_library(
   "src/file_explorer.cpp"
   "src/folder_display.cpp"
   "src/imgui_manager.cpp"
-  "src/scene_viewport.cpp" "src/imgui_window.cpp" "include/gui/scene_hierarchy.hpp" "src/scene_hierarchy.cpp" "src/performance_window.cpp")
+  "src/scene_viewport.cpp" "src/imgui_window.cpp" "include/gui/scene_hierarchy.hpp" "src/scene_hierarchy.cpp" "src/performance_window.cpp" "src/entity_properties.cpp")
 
 target_include_directories(kogayonon_gui
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

@@ -2,7 +2,6 @@
 #include <cgltf.h>
 #include <SOIL2/SOIL2.h>
 #include <assert.h>
-#include <filesystem>
 #include <glm/gtc/type_ptr.hpp>
 #include "logger/logger.hpp"
 #include "resources/model.hpp"
@@ -12,6 +11,19 @@ using namespace kogayonon_logger;
 
 namespace kogayonon_utilities
 {
+AssetManager::AssetManager()
+{
+}
+
+AssetManager::~AssetManager()
+{
+  // don't forget to join the thread
+  if ( m_watchThread.joinable() )
+  {
+    m_watchThread.join();
+  }
+}
+
 std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std::string& textureName,
                                                                       const std::string& texturePath )
 {
