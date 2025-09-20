@@ -12,7 +12,7 @@ auto EventDispatcher::addHandler( TEventHandler& handler )
 template <typename TEvent>
 bool EventDispatcher::hasHandlers( TEvent& event )
 {
-  return !m_pDispatcher->sink<TEvent>().size().empty();
+  return !m_pDispatcher->sink<TEvent>().empty();
 }
 
 template <typename TEvent>
@@ -28,13 +28,13 @@ auto EventDispatcher::emitEvent( TEvent&& event )
 }
 
 template <typename TEvent, auto Func, typename THandler>
-void EventDispatcher::removeListener( TEvent& event, THandler& handler )
+void EventDispatcher::removeListener( THandler& handler )
 {
   m_pDispatcher->sink<TEvent>().template disconnect<Func>( handler );
 }
 
 template <typename TEvent, typename THandler>
-void EventDispatcher::removeAllListeners( TEvent& event, THandler& handler )
+void EventDispatcher::removeAllListeners( THandler& handler )
 {
   m_pDispatcher->sink<TEvent>().template disconnect( handler );
 }
