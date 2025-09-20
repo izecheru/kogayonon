@@ -41,7 +41,7 @@ void SceneHierarchyWindow::draw()
   for ( auto& [entity, nameComponent] : view.each() )
   {
     Entity ent( scene->getRegistry(), entity );
-    entities.push_back( ent );
+    entities.emplace_back( std::move( ent ) );
   }
   static int selectedIndex = -1;
   static int hoveredIndex = -1;
