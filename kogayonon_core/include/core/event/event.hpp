@@ -23,7 +23,7 @@ enum class EventType
   MouseScrolled,
   MouseEntered,
   MouseClicked,
-  EntityChanged,
+  SelectedEntity,
 };
 
 // clang-format off
@@ -37,19 +37,8 @@ class IEvent
 public:
   IEvent() = default;
   virtual ~IEvent() = default;
-
   virtual EventType getEventType() const = 0;
 
-  inline bool isHandled() const
-  {
-    return m_handled;
-  }
-
-  inline void setHandled()
-  {
-    m_handled = true;
-  }
-
-  bool m_handled = false;
+  bool handled = false;
 };
 } // namespace kogayonon_core

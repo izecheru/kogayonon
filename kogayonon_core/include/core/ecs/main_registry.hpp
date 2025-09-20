@@ -17,7 +17,7 @@ class ImGuiManager;
 
 namespace kogayonon_core
 {
-class EventManager;
+class EventDispatcher;
 } // namespace kogayonon_core
 
 namespace kogayonon_rendering
@@ -29,7 +29,7 @@ namespace kogayonon_core
 {
 // i used entt instead of implementing my own stuff just for the sake of speed and all the other features
 #define REGISTRY() kogayonon_core::MainRegistry::getInstance()
-#define EVENT_MANAGER() REGISTRY().getContext<std::shared_ptr<kogayonon_core::EventManager>>()
+#define EVENT_DISPATCHER() REGISTRY().getContext<std::shared_ptr<kogayonon_core::EventDispatcher>>()
 #define IMGUI_MANAGER() REGISTRY().getContext<std::shared_ptr<kogayonon_gui::ImGuiManager>>()
 #define TASK_MANAGER() REGISTRY().getContext<std::shared_ptr<kogayonon_utilities::TaskManager>>()
 #define ASSET_MANAGER() REGISTRY().getContext<std::shared_ptr<kogayonon_utilities::AssetManager>>()
