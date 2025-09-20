@@ -7,7 +7,7 @@
 #include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
 #include "core/event/app_event.hpp"
-#include "core/event/event_manager.hpp"
+#include "core/event/event_dispatcher.hpp"
 #include "core/input/keyboard_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
@@ -57,7 +57,7 @@ void App::pollEvents()
         int newWidth = e.window.data1;
         int newHeight = e.window.data2;
         kogayonon_core::WindowResizeEvent windowResizeEvent( newWidth, newHeight );
-        EVENT_MANAGER()->dispatchEventToListeners( windowResizeEvent );
+        EVENT_DISPATCHER()->emitEvent( windowResizeEvent );
       }
       break;
     }
@@ -70,7 +70,7 @@ void App::pollEvents()
       // TODO maybe rethink this a bit
       auto keycode = static_cast<kogayonon_core::KeyCode>( e.key.keysym.sym );
       kogayonon_core::KeyPressedEvent keyPressEvent( keycode, 0 );
-      EVENT_MANAGER()->dispatchEventToListeners( keyPressEvent );
+      EVENT_DISPATCHER()->emitEvent( keyPressEvent );
       break;
     }
     case SDL_KEYUP: {
@@ -78,7 +78,7 @@ void App::pollEvents()
       // TODO maybe rethink this a bit
       auto keycode = static_cast<kogayonon_core::KeyCode>( e.key.keysym.sym );
       kogayonon_core::KeyReleasedEvent keyReleaseEvent( keycode );
-      EVENT_MANAGER()->dispatchEventToListeners( keyReleaseEvent );
+      EVENT_DISPATCHER()->emitEvent( keyReleaseEvent );
       break;
     }
     }
@@ -169,9 +169,9 @@ bool App::initRegistries()
   mainRegistry.addToContext<std::shared_ptr<kogayonon_gui::ImGuiManager>>( std::move( imguiManager ) );
 
   // init event manager
-  auto eventManager = std::make_shared<kogayonon_core::EventManager>();
-  assert( eventManager && "could not initialise event manager" );
-  mainRegistry.addToContext<std::shared_ptr<kogayonon_core::EventManager>>( std::move( eventManager ) );
+  auto eventDispatcher = std::make_shared<kogayonon_core::EventDispatcher>();
+  assert( eventDispatcher && "could not initialise event manager" );
+  mainRegistry.addToContext<std::shared_ptr<kogayonon_core::EventDispatcher>>( std::move( eventDispatcher ) );
 
   // init task manager
   auto taskManager = std::make_shared<kogayonon_utilities::TaskManager>( 10 );
@@ -238,6 +238,8 @@ bool App::initScenes()
   auto tex = ASSET_MANAGER()->addTexture( "paiangan", "resources/textures/paiangan.png" );
   auto entity = std::make_unique<kogayonon_core::Entity>( mainScene->getRegistry(), "cat texture entity" );
   auto entity2 = std::make_unique<kogayonon_core::Entity>( mainScene->getRegistry(), "slayer texture entity" );
+  auto entity3 =
+    std::make_unique<kogayonon_core::Entity>( mainScene->getRegistry(), "entity with no component other than name" );
   entity->addComponent<kogayonon_core::TextureComponent>( tex );
   entity2->addComponent<kogayonon_core::TextureComponent>( ASSET_MANAGER()->getTexture( "slayerSword" ) );
   kogayonon_core::SceneManager::addScene( mainScene );
@@ -250,7 +252,7 @@ bool App::initScenes()
 bool App::init()
 {
 #ifdef _DEBUG
-  m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine (DEBUG)", 1200, 800, 1, false );
+  m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine (DEBUG)", 1800, 1000, 1, true );
 #else
   m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine", 1800, 1000, 1, false );
 #endif
@@ -277,10 +279,7 @@ bool App::init()
     return false;
   }
 
-  EVENT_MANAGER()->listenToEvent<kogayonon_core::WindowResizeEvent>( [this]( const kogayonon_core::IEvent& e ) -> bool {
-    return this->onWindowResize( (kogayonon_core::WindowResizeEvent&)e );
-  } );
-
+  EVENT_DISPATCHER()->addHandler<kogayonon_core::WindowResizeEvent, &App::onWindowResize>( *this );
   return true;
 }
 

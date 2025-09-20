@@ -4,7 +4,7 @@
 #include "core/ecs/entity.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
-#include "core/event/event_manager.hpp"
+#include "core/event/event_dispatcher.hpp"
 #include "core/event/scene_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
@@ -36,9 +36,9 @@ void SceneHierarchyWindow::draw()
     return;
   }
   auto& enttRegistry = scene->getEnttRegistry();
-  auto& view = enttRegistry.view<TextureComponent, NameComponent>();
+  auto& view = enttRegistry.view<NameComponent>();
   std::vector<Entity> entities;
-  for ( auto& [entity, textureComponent, nameComponent] : view.each() )
+  for ( auto& [entity, nameComponent] : view.each() )
   {
     Entity ent( scene->getRegistry(), entity );
     entities.push_back( ent );
@@ -62,15 +62,14 @@ void SceneHierarchyWindow::draw()
         if ( selectedIndex != i )
         {
           selectedIndex = i;
-          EVENT_MANAGER()->dispatchEventToListeners( ChangeEntityEvent( entity.getEnttEntity() ) );
+          EVENT_DISPATCHER()->emitEvent( SelectEntityEvent( entity.getEnttEntity() ) );
         }
       }
       if ( ImGui::IsItemHovered() )
       {
-
         if ( auto* pTexture = entity.tryGetComponent<TextureComponent>() )
         {
-          drawTextureTooltip( pTexture, ImVec2{ 128.0f, 128.0f } );
+          drawTextureTooltip( pTexture, ImVec2{ 250.0f, 250.0f } );
         }
       }
     }

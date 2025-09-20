@@ -5,7 +5,7 @@
 namespace kogayonon_core
 {
 class Scene;
-class ChangeEntityEvent;
+class SelectEntityEvent;
 } // namespace kogayonon_core
 
 namespace kogayonon_gui
@@ -18,7 +18,7 @@ public:
 
   void draw() override;
 
-  bool onEntityChange( kogayonon_core::ChangeEntityEvent& e );
+  bool onEnitySelect( kogayonon_core::SelectEntityEvent& e );
 
 private:
   entt::entity m_entity;

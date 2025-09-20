@@ -7,14 +7,14 @@ namespace kogayonon_core
 /**
  * @brief Type of event for entity change in SceneHierarchyWindow to propagate to the PropertiesWindow
  */
-class ChangeEntityEvent : public IEvent
+class SelectEntityEvent : public IEvent
 {
 public:
-  ChangeEntityEvent( entt::entity ent );
+  SelectEntityEvent( entt::entity ent );
 
   entt::entity getEntity() const;
 
-  EVENT_CLASS_TYPE( EntityChanged )
+  EVENT_CLASS_TYPE( SelectedEntity )
 private:
   entt::entity m_entity;
 };

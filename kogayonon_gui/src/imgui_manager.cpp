@@ -112,7 +112,7 @@ void ImGuiManager::setupDockSpace( ImGuiViewport* viewport )
       ImGui::DockBuilderDockWindow( "Object properties", lowerLeftNodeId );
       ImGui::DockBuilderDockWindow( ICON_FA_IMAGE " Scene", centerNodeId );
       ImGui::DockBuilderDockWindow( "Debug console", bottomCenterNodeId );
-      ImGui::DockBuilderDockWindow( "Performance", lowerLeftNodeId );
+      ImGui::DockBuilderDockWindow( "Performance", rightNodeId );
       ImGui::DockBuilderDockWindow( "Assets", bottomCenterNodeId );
 
       ImGui::DockBuilderFinish( dockspaceId );
