@@ -24,10 +24,43 @@ AssetManager::~AssetManager()
   }
 }
 
+std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureWithoutParams( const std::string& textureName,
+                                                                                   const std::string& texturePath )
+{
+  if ( const auto& it = m_loadedTextures.find( textureName ); it != m_loadedTextures.end() )
+  {
+    Logger::info( "We already have the texture: ", textureName, " from ", texturePath );
+    return it->second;
+  }
+
+  assert( std::filesystem::exists( texturePath ) && "Texture path does not exist" );
+
+  unsigned int id = SOIL_load_OGL_texture( texturePath.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS );
+
+  if ( id == 0 )
+  {
+    Logger::error( "SOIL failed to load texture: ", texturePath );
+    Logger::error( "Reason: ", SOIL_last_result() );
+    return {};
+  }
+
+  // For testing, just store with 0 width/height/channels
+  auto tex = std::make_shared<kogayonon_resources::Texture>( id, texturePath, textureName,
+                                                             0, // width unknown
+                                                             0, // height unknown
+                                                             0  // channels unknown
+  );
+
+  m_loadedTextures.emplace( textureName, tex );
+  Logger::info( "Loaded texture: ", textureName, ", ", texturePath );
+
+  return m_loadedTextures.at( textureName );
+}
+
 std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std::string& textureName,
                                                                       const std::string& texturePath )
 {
-  if ( auto& it = m_loadedTextures.find( textureName ); it != m_loadedTextures.end() )
+  if ( const auto& it = m_loadedTextures.find( textureName ); it != m_loadedTextures.end() )
   {
     Logger::info( "We already have the texture: ", textureName, " from ", texturePath );
     return it->second;
@@ -41,6 +74,7 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std:
   if ( !data )
   {
     Logger::error( "soil could not load data for texture ", texturePath );
+    Logger::error( "SOIL failed: ", SOIL_last_result() );
     return std::weak_ptr<kogayonon_resources::Texture>();
   }
   auto id = SOIL_create_OGL_texture( data, &w, &h, channels, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS );
@@ -144,7 +178,7 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
         vertices.push_back( v );
       }
 
-      meshes.emplace_back( vertices, indices, textureIDs );
+      meshes.emplace_back( std::move( vertices ), std::move( indices ), std::move( textureIDs ) );
     }
   }
 
@@ -166,14 +200,27 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureFromMemory( 
 
 std::weak_ptr<kogayonon_resources::Texture> AssetManager::getTexture( const std::string& textureName )
 {
-  auto& it = m_loadedTextures.find( textureName );
+  auto it = m_loadedTextures.find( textureName );
   assert( it != m_loadedTextures.end() && "texture must be in the map" );
   return m_loadedTextures.at( textureName );
 }
 
+void AssetManager::removeTexture( const std::string& path )
+{
+  for ( auto it = m_loadedTextures.begin(); it != m_loadedTextures.end(); ++it )
+  {
+    if ( it->second->getPath() == path )
+    {
+      Logger::info( "deleted ", path );
+      return;
+    }
+  }
+  Logger::info( "file was not loaded so we did not delete anything" );
+}
+
 std::weak_ptr<kogayonon_resources::Model> kogayonon_utilities::AssetManager::getModel( const std::string& modelName )
 {
-  auto& it = m_loadedModels.find( modelName );
+  auto it = m_loadedModels.find( modelName );
   assert( it != m_loadedModels.end() && "model must be in the map" );
   return m_loadedModels.at( modelName );
 }

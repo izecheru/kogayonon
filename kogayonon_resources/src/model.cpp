@@ -3,7 +3,7 @@
 
 namespace kogayonon_resources
 {
-Model::Model( std::vector<Mesh>& meshes )
+Model::Model( std::vector<Mesh> meshes )
     : m_meshes( std::move( meshes ) )
     , m_loaded( true )
 {

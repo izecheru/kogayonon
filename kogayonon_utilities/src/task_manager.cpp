@@ -48,7 +48,7 @@ void TaskManager::workerThread()
     catch ( const std::exception& e )
     {
       // Log the error instead of crashing the thread
-      Logger::log( LogType::ERROR, "Task execution error: ", e.what() );
+      Logger::log( LogType::ERR, "Task execution error: ", e.what() );
     }
   }
 }

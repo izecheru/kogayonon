@@ -30,7 +30,7 @@ ImGuiManager::ImGuiManager( SDL_Window* window, SDL_GLContext context )
   }
   else
   {
-    Logger::log( LogType::ERROR, "Imgui could not be initialised" );
+    Logger::log( LogType::ERR, "Imgui could not be initialised" );
   }
 }
 
@@ -107,13 +107,14 @@ void ImGuiManager::setupDockSpace( ImGuiViewport* viewport )
 
       auto upplerLeftNodeId = ImGui::DockBuilderSplitNode( leftNodeId, ImGuiDir_Up, 0.3f, nullptr, &leftNodeId );
       auto lowerLeftNodeId = ImGui::DockBuilderSplitNode( leftNodeId, ImGuiDir_Up, 0.3f, nullptr, &leftNodeId );
+
       // Dock windows
+      ImGui::DockBuilderDockWindow( "Assets", bottomCenterNodeId );
       ImGui::DockBuilderDockWindow( "Scene hierarchy", upplerLeftNodeId );
       ImGui::DockBuilderDockWindow( "Object properties", lowerLeftNodeId );
       ImGui::DockBuilderDockWindow( ICON_FA_IMAGE " Scene", centerNodeId );
       ImGui::DockBuilderDockWindow( "Debug console", bottomCenterNodeId );
       ImGui::DockBuilderDockWindow( "Performance", rightNodeId );
-      ImGui::DockBuilderDockWindow( "Assets", bottomCenterNodeId );
 
       ImGui::DockBuilderFinish( dockspaceId );
     }

@@ -23,7 +23,13 @@ enum class EventType
   MouseScrolled,
   MouseEntered,
   MouseClicked,
+
   SelectedEntity,
+
+  FileModified,
+  FileRenamed,
+  FileCreated,
+  FileDeleted,
 };
 
 // clang-format off

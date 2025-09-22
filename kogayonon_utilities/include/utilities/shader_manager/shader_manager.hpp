@@ -1,6 +1,4 @@
 #pragma once
-
-// #include <mutex>
 #include <unordered_map>
 #include "utilities/shader_manager/shader.hpp"
 

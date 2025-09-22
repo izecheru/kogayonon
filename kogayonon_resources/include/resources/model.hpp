@@ -8,7 +8,7 @@ namespace kogayonon_resources
 class Model
 {
 public:
-  explicit Model( std::vector<Mesh>& meshes );
+  explicit Model( std::vector<Mesh> meshes );
   explicit Model( Model&& other ) noexcept;
   Model() = default;
 

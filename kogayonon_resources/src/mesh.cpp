@@ -4,13 +4,13 @@
 
 namespace kogayonon_resources
 {
-kogayonon_resources::Mesh::Mesh( std::vector<Vertex>& vertices, std::vector<unsigned int>& indices,
-                                 std::vector<unsigned int>& textures )
+kogayonon_resources::Mesh::Mesh( std::vector<Vertex> vertices, std::vector<unsigned int> indices,
+                                 std::vector<unsigned int> textures )
     : m_data( std::make_shared<MeshData>( std::move( vertices ), std::move( indices ), std::move( textures ) ) )
 {
 }
 
-kogayonon_resources::Mesh::Mesh( std::vector<Vertex>& vertices, std::vector<unsigned int>& indices )
+kogayonon_resources::Mesh::Mesh( std::vector<Vertex> vertices, std::vector<unsigned int> indices )
     : m_data( std::make_shared<MeshData>( std::move( vertices ), std::move( indices ) ) )
 {
 }
