@@ -14,7 +14,6 @@ struct cgltf_material;
 
 namespace kogayonon_utilities
 {
-
 class AssetManager
 {
 public:
@@ -24,9 +23,19 @@ public:
   // Textures
   std::weak_ptr<kogayonon_resources::Texture> addTexture( const std::string& textureName,
                                                           const std::string& texturePath );
+  std::weak_ptr<kogayonon_resources::Texture> addTextureWithoutParams( const std::string& textureName,
+                                                                       const std::string& texturePath );
+
   std::weak_ptr<kogayonon_resources::Texture> addTextureFromMemory( const std::string& textureName,
                                                                     const unsigned char* data );
   std::weak_ptr<kogayonon_resources::Texture> getTexture( const std::string& textureName );
+  /**
+   * @brief Deletes a texture from the loaded map, even though we index with texture name which is not actual filename,
+   * we will loop through the map with an iterator it and look if the path == it->second->getPath() since we store the
+   * path in the texture object
+   * @param path Path of the texture file
+   */
+  void removeTexture( const std::string& path );
 
   // Models
   std::weak_ptr<kogayonon_resources::Model> addModel( const std::string& modelName, const std::string& modelPath );

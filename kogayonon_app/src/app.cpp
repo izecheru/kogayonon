@@ -189,9 +189,11 @@ bool App::initRegistries()
   auto assetManager = std::make_shared<kogayonon_utilities::AssetManager>();
   assert( assetManager && "could not initialise asset manager" );
 
+  assetManager->addTexture( "slayerSword", "resources/textures/slayer_sword.png" );
   assetManager->addTexture( "play", "resources/textures/play.png" );
   assetManager->addTexture( "stop", "resources/textures/stop.png" );
-  assetManager->addTexture( "slayerSword", "resources/textures/slayer_sword.png" );
+  assetManager->addTexture( "file", "resources/textures/file.png" );
+  assetManager->addTexture( "folder", "resources/textures/folder.png" );
 
   mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::AssetManager>>( std::move( assetManager ) );
 
@@ -204,15 +206,16 @@ bool App::initGui()
   m_pFrameBuffer = std::make_shared<kogayonon_rendering::FrameBuffer>( 400, 400 );
   auto playTexture = ASSET_MANAGER()->getTexture( "play" ).lock()->getTextureId();
   auto stopTexture = ASSET_MANAGER()->getTexture( "stop" ).lock()->getTextureId();
+
   auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( ICON_FA_IMAGE " Scene", m_pFrameBuffer,
                                                                              playTexture, stopTexture );
   sceneViewport->setCallback( [this]() { callbackTest(); } );
 
   auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>( "Debug console" );
 
-  // root for where the file explorer can see files or folders
-  std::string rootPath = "/";
-  auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets", std::move( rootPath ) );
+  auto fileTexture = ASSET_MANAGER()->getTexture( "file" ).lock()->getTextureId();
+  auto folderTexture = ASSET_MANAGER()->getTexture( "folder" ).lock()->getTextureId();
+  auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets", folderTexture, fileTexture );
 
   auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>( "Scene hierarchy" );
 
@@ -234,7 +237,6 @@ bool App::initScenes()
 {
   auto mainScene = std::make_shared<kogayonon_core::Scene>( "Default scene" );
 
-  // add a test entity with a texture component
   auto tex = ASSET_MANAGER()->addTexture( "paiangan", "resources/textures/paiangan.png" );
   auto entity = std::make_unique<kogayonon_core::Entity>( mainScene->getRegistry(), "cat texture entity" );
   auto entity2 = std::make_unique<kogayonon_core::Entity>( mainScene->getRegistry(), "slayer texture entity" );

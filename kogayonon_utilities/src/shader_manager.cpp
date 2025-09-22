@@ -36,7 +36,7 @@ void ShaderManager::unbindShader( const std::string& shader_name )
 
 void ShaderManager::removeShader( const std::string& shaderName )
 {
-  if ( auto& it = m_shaders.find( shaderName ); it != m_shaders.end() )
+  if ( const auto& it = m_shaders.find( shaderName ); it != m_shaders.end() )
   {
     m_shaders.erase( it );
   }

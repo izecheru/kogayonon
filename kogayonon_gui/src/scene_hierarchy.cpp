@@ -29,16 +29,16 @@ void SceneHierarchyWindow::draw()
   }
 
   m_pCurrentScene = kogayonon_core::SceneManager::getCurrentScene();
-  auto& scene = m_pCurrentScene.lock();
+  auto scene = m_pCurrentScene.lock();
   if ( !scene )
   {
     ImGui::End();
     return;
   }
   auto& enttRegistry = scene->getEnttRegistry();
-  auto& view = enttRegistry.view<NameComponent>();
+  auto view = enttRegistry.view<NameComponent>();
   std::vector<Entity> entities;
-  for ( auto& [entity, nameComponent] : view.each() )
+  for ( auto [entity, nameComponent] : view.each() )
   {
     Entity ent( scene->getRegistry(), entity );
     entities.emplace_back( std::move( ent ) );

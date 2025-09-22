@@ -24,9 +24,8 @@ public:
   Mesh& operator=( const Mesh& other );
   Mesh& operator=( Mesh&& other ) noexcept;
 
-  explicit Mesh( std::vector<Vertex>& vertices, std::vector<unsigned int>& indices,
-                 std::vector<unsigned int>& textures );
-  explicit Mesh( std::vector<Vertex>& vertices, std::vector<unsigned int>& indices );
+  explicit Mesh( std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<unsigned int> textures );
+  explicit Mesh( std::vector<Vertex> vertices, std::vector<unsigned int> indices );
 
   std::vector<Vertex>& getVertices();
   std::vector<unsigned int>& getIndices();

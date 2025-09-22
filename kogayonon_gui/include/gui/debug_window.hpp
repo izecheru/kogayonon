@@ -43,7 +43,7 @@ private:
       return ImVec4( 0.0f, 0.7f, 1.0f, 1.0f ); // Cyan / Blue
     case LogType::WARN:
       return ImVec4( 1.0f, 0.8f, 0.0f, 1.0f ); // Yellow/Orange
-    case LogType::ERROR:
+    case LogType::ERR:
       return ImVec4( 1.0f, 0.2f, 0.2f, 1.0f ); // Red
     case LogType::CRITICAL:
       return ImVec4( 0.8f, 0.0f, 0.0f, 1.0f ); // Darker Red

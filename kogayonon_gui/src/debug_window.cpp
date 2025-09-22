@@ -37,7 +37,7 @@ void DebugConsoleWindow::draw()
       }
       else if ( message.find( "error" ) != std::string::npos )
       {
-        ImGui::TextColored( logTypeToColor( LogType::ERROR ), message.c_str() );
+        ImGui::TextColored( logTypeToColor( LogType::ERR ), message.c_str() );
       }
       else if ( message.find( "info" ) != std::string::npos )
       {

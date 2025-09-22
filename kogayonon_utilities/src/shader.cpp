@@ -20,7 +20,7 @@ shader_source Shader::parseShaderFile( const std::string& vert_path, const std::
   std::ifstream vertex_stream( vert_path );
   if ( !vertex_stream.is_open() )
   {
-    Logger::log( LogType::ERROR, "Failed to open shader file: ", vert_path );
+    Logger::log( LogType::ERR, "Failed to open shader file: ", vert_path );
     std::string result = "";
     assert( result.size() > 0 );
     return { result, result };
@@ -37,7 +37,7 @@ shader_source Shader::parseShaderFile( const std::string& vert_path, const std::
   std::ifstream fragment_stream( frag_path );
   if ( !fragment_stream.is_open() )
   {
-    Logger::log( LogType::ERROR, "Failed to open shader file: ", frag_path );
+    Logger::log( LogType::ERR, "Failed to open shader file: ", frag_path );
     std::string result = "";
 
     assert( result.size() > 0 );
@@ -72,7 +72,7 @@ void Shader::setInt( const char* uniform, int value ) const
   if ( int location = glGetUniformLocation( m_programId, uniform ); location == -1 )
   {
     // Uniform not found, print a warning or error message
-    Logger::log( LogType::ERROR, "Uniform not found: ", uniform );
+    Logger::log( LogType::ERR, "Uniform not found: ", uniform );
   }
   else
   {
@@ -84,7 +84,7 @@ void Shader::setMat4( const char* uniform, glm::mat4& mat )
 {
   if ( int location = glGetUniformLocation( m_programId, uniform ); location == -1 )
   {
-    Logger::log( LogType::ERROR, "Uniform not found: ", uniform );
+    Logger::log( LogType::ERR, "Uniform not found: ", uniform );
   }
   else
   {
