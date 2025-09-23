@@ -1,7 +1,6 @@
 #include "utilities/task_manager/task_manager.hpp"
 
-#include "logger/logger.hpp"
-using namespace kogayonon_logger;
+#include <spdlog/spdlog.h>
 
 namespace kogayonon_utilities
 {
@@ -48,7 +47,7 @@ void TaskManager::workerThread()
     catch ( const std::exception& e )
     {
       // Log the error instead of crashing the thread
-      Logger::log( LogType::ERR, "Task execution error: ", e.what() );
+      spdlog::error( "Task execution error {} ", e.what() );
     }
   }
 }

@@ -1,6 +1,9 @@
 #include "app/app.hpp"
 #include <imgui_impl_sdl2.h>
+#include <iostream>
 #include <memory>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/spdlog.h>
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
 #include "core/ecs/entity.hpp"
@@ -18,7 +21,6 @@
 #include "gui/performance_window.hpp"
 #include "gui/scene_hierarchy.hpp"
 #include "gui/scene_viewport.hpp"
-#include "logger/logger.hpp"
 #include "rendering/framebuffer.hpp"
 #include "rendering/renderer.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
@@ -28,10 +30,38 @@
 #include "utilities/time_tracker/time_tracker.hpp"
 #include "window/window.hpp"
 
-using namespace kogayonon_logger;
-
 namespace kogayonon_app
 {
+App::App()
+{
+  try
+  {
+    if ( !init() )
+    {
+      m_running = false;
+    }
+
+    // had to do all this to setup the debug console print
+    auto defferedSink = std::make_shared<kogayonon_gui::DeferredImGuiSink<std::mutex>>();
+    auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>( "logs/basic-log.txt", true );
+    std::vector<spdlog::sink_ptr> sinks{ fileSink, defferedSink };
+
+    auto logger = std::make_shared<spdlog::logger>( "app_logger", sinks.begin(), sinks.end() );
+    spdlog::set_level( spdlog::level::debug );
+    spdlog::set_pattern( "[%H:%M:%S] [%^%L%$] %v" );
+
+    auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>( "Debug console" );
+    auto debgWin = dynamic_cast<kogayonon_gui::DebugConsoleWindow*>( debugWindow.get() );
+    defferedSink->setWindow( debgWin ); // sink stores raw pointer
+    spdlog::set_default_logger( logger );
+    IMGUI_MANAGER()->pushWindow( "Debug console", std::move( debugWindow ) );
+  }
+  catch ( const spdlog::spdlog_ex& ex )
+  {
+    std::cout << "Logger init failed " << ex.what();
+  }
+}
+
 App::~App()
 {
   cleanup();
@@ -39,8 +69,7 @@ App::~App()
 
 void App::cleanup()
 {
-  Logger::info( "Closing app and cleaning up" );
-  Logger::shutdown();
+  spdlog::info( "Closing app and cleaning up" );
 }
 
 void App::pollEvents()
@@ -87,11 +116,6 @@ void App::pollEvents()
 
 void App::run()
 {
-  if ( !init() )
-  {
-    m_running = false;
-  }
-
   TIME_TRACKER()->start( "deltaTime" );
 
   while ( m_running )
@@ -107,7 +131,7 @@ bool App::initSDL()
 {
   if ( SDL_Init( SDL_INIT_VIDEO ) < 0 )
   {
-    Logger::critical( "Could not initialize sdl" );
+    spdlog::critical( "Could not initialize sdl" );
     return false;
   }
 
@@ -133,7 +157,7 @@ bool App::initSDL()
 
   if ( !gladLoadGLLoader( (GLADloadproc)SDL_GL_GetProcAddress ) )
   {
-    Logger::critical( "Failed to initialize GLAD" );
+    spdlog::critical( "Failed to initialize GLAD" );
     return false;
   }
 
@@ -197,6 +221,17 @@ bool App::initRegistries()
 
   mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::AssetManager>>( std::move( assetManager ) );
 
+  auto future = TASK_MANAGER()->enqueue( []() -> int {
+    int sum = 0;
+    for ( int i = 0; i < 2000; i++ )
+    {
+      sum += i;
+    }
+    return sum;
+  } );
+  int result = future.get();
+  spdlog::info( "Result is {} and we got it pretty fast", result );
+
   return true;
 }
 
@@ -211,8 +246,6 @@ bool App::initGui()
                                                                              playTexture, stopTexture );
   sceneViewport->setCallback( [this]() { callbackTest(); } );
 
-  auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>( "Debug console" );
-
   auto fileTexture = ASSET_MANAGER()->getTexture( "file" ).lock()->getTextureId();
   auto folderTexture = ASSET_MANAGER()->getTexture( "folder" ).lock()->getTextureId();
   auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets", folderTexture, fileTexture );
@@ -225,7 +258,6 @@ bool App::initGui()
 
   IMGUI_MANAGER()->pushWindow( "Scene", std::move( sceneViewport ) );
   IMGUI_MANAGER()->pushWindow( "Object properties", std::move( entityPropertiesWindow ) );
-  IMGUI_MANAGER()->pushWindow( "Debug console", std::move( debugWindow ) );
   IMGUI_MANAGER()->pushWindow( "Performance", std::move( performanceWindow ) );
   IMGUI_MANAGER()->pushWindow( "Scene hierarchy", std::move( sceneHierarchy ) );
   IMGUI_MANAGER()->pushWindow( "Assets", std::move( fileExplorerWindow ) );
@@ -258,8 +290,6 @@ bool App::init()
 #else
   m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine", 1800, 1000, 1, false );
 #endif
-
-  Logger::initialize( "log.txt" );
 
   if ( !initSDL() )
   {
@@ -305,7 +335,7 @@ void App::glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severit
   // i care about only medium to high severity for now
   if ( severity == GL_DEBUG_SEVERITY_HIGH || severity == GL_DEBUG_SEVERITY_MEDIUM )
   {
-    Logger::error( source, "type:", type, " severity:", severity, message );
+    spdlog::error( "Severity-{} Type-{} Source-{} Message-{}", source, type, severity, message );
   }
 }
 

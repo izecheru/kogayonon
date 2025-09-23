@@ -9,7 +9,6 @@ void DebugConsoleWindow::clearLogs()
     return;
   }
   m_messages.clear();
-  Logger::log( LogType::INFO, "Cleared logs in debug console window" );
 }
 
 void DebugConsoleWindow::draw()
@@ -31,22 +30,7 @@ void DebugConsoleWindow::draw()
   {
     for ( auto& message : m_messages )
     {
-      if ( message.find( "critical" ) != std::string::npos )
-      {
-        ImGui::TextColored( logTypeToColor( LogType::CRITICAL ), message.c_str() );
-      }
-      else if ( message.find( "error" ) != std::string::npos )
-      {
-        ImGui::TextColored( logTypeToColor( LogType::ERR ), message.c_str() );
-      }
-      else if ( message.find( "info" ) != std::string::npos )
-      {
-        ImGui::TextColored( logTypeToColor( LogType::INFO ), message.c_str() );
-      }
-      else if ( message.find( "debug" ) != std::string::npos )
-      {
-        ImGui::TextColored( logTypeToColor( LogType::DEBUG ), message.c_str() );
-      }
+      ImGui::Text( message.c_str() );
     }
 
     if ( m_auto_scroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() )

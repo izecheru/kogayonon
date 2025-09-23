@@ -6,4 +6,4 @@ target_link_libraries(
   kogayonon_window
   PUBLIC $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
          $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
-  PRIVATE kogayonon_logger)
+  PRIVATE spdlog::spdlog)

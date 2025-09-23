@@ -5,7 +5,7 @@ target_link_libraries(
   kogayonon_app
   PRIVATE kogayonon_window
           glad
-          kogayonon_logger
+          spdlog::spdlog
           kogayonon_core
           kogayonon_gui
           kogayonon_utilities

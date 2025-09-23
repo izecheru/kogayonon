@@ -2,7 +2,6 @@
 #include <SDL2/SDL.h>
 #include <Windows.h>
 
-#include <consoleapi3.h>
 #include "app/app.hpp"
 
 int main( int argc, char* argv[] )

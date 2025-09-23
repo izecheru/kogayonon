@@ -28,7 +28,7 @@ namespace kogayonon_app
 class App
 {
 public:
-  App() = default;
+  App();
   ~App();
   void cleanup();
   void pollEvents();

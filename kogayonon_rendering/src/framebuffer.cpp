@@ -1,8 +1,6 @@
 #include "rendering/framebuffer.hpp"
 #include <glad/glad.h>
-#include "logger/logger.hpp"
-
-using namespace kogayonon_logger;
+#include <spdlog/spdlog.h>
 
 namespace kogayonon_rendering
 {
@@ -26,7 +24,7 @@ FrameBuffer::FrameBuffer( int width, int height )
                                   m_renderBufferObject );
   if ( glCheckFramebufferStatus( GL_FRAMEBUFFER ) != GL_FRAMEBUFFER_COMPLETE )
   {
-    Logger::error( "Framebuffer not complete!" );
+    spdlog::error( "Framebuffer not complete!" );
   }
 }
 
@@ -76,7 +74,7 @@ void FrameBuffer::rescale( int width, int height )
 
   if ( glCheckFramebufferStatus( GL_FRAMEBUFFER ) != GL_FRAMEBUFFER_COMPLETE )
   {
-    Logger::error( "Framebuffer is not complete after resize!" );
+    spdlog::error( "Framebuffer is not complete after resize!" );
   }
 }
 

@@ -1,11 +1,10 @@
 #include "gui/file_explorer.hpp"
+#include <spdlog/spdlog.h>
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
 #include "core/event/file_events.hpp"
-#include "logger/logger.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/directory_watcher/directory_watcher.hpp"
-using namespace kogayonon_logger;
 
 namespace kogayonon_gui
 {
@@ -65,22 +64,22 @@ bool FileExplorerWindow::isTexture( const std::string& path )
 
 void FileExplorerWindow::onFileModified( kogayonon_core::FileModifiedEvent& e )
 {
-  Logger::info( "FILE MODIFIED ", e.getPath(), " name ", e.getName() );
+  spdlog::info( "FILE MODIFIED {} name {}", e.getPath(), e.getName() );
 }
 
 void FileExplorerWindow::onFileCreated( kogayonon_core::FileCreatedEvent& e )
 {
-  Logger::info( "FILE CREATED ", e.getPath(), " name ", e.getName() );
+  spdlog::info( "FILE CREATED {} name {}", e.getPath(), e.getName() );
 }
 
 void FileExplorerWindow::onFileDeleted( kogayonon_core::FileDeletedEvent& e )
 {
-  Logger::info( "FILE DELETED ", e.getPath(), " name ", e.getName() );
+  spdlog::info( "FILE DELETED {} name {}", e.getPath(), e.getName() );
 }
 
 void FileExplorerWindow::onFileRenamed( kogayonon_core::FileRenamedEvent& e )
 {
-  Logger::info( "FILE RENAMED ", e.getPath(), " name ", e.getName() );
+  spdlog::info( "FILE RENAMED {} name {}", e.getPath(), e.getName() );
 }
 
 void FileExplorerWindow::draw()
@@ -120,7 +119,7 @@ void FileExplorerWindow::draw()
       ImGui::ImageButton( id.c_str(), (ImTextureID)m_fileTextureId, ImVec2( 40, 40 ) );
       if ( ImGui::BeginDragDropSource() )
       {
-        std::string test = relativePath.string(); // "assets/textures/xyz.png" etc
+        std::string test = relativePath.string();
         ImGui::SetDragDropPayload( "ASSET_DROP", test.c_str(), test.size(), ImGuiCond_Once );
         ImGui::EndDragDropSource();
       }

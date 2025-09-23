@@ -27,6 +27,7 @@ find_package(SDL2 CONFIG REQUIRED)
 find_package(soil2 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 
 add_subdirectory(dependencies/imgui)
 add_subdirectory(dependencies/glad)
@@ -34,7 +35,6 @@ add_subdirectory(dependencies/cgltf)
 
 # My own modules
 
-add_subdirectory(kogayonon_logger)
 add_subdirectory(kogayonon_utilities)
 add_subdirectory(kogayonon_window)
 add_subdirectory(kogayonon_core)

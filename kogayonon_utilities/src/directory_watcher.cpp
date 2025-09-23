@@ -3,9 +3,7 @@
 #include <Windows.h>
 #include <assert.h>
 #include <locale>
-#include "logger/logger.hpp"
-
-using namespace kogayonon_logger;
+#include <spdlog/spdlog.h>
 
 namespace kogayonon_utilities
 {
@@ -67,7 +65,7 @@ void DirectoryWatcher::run( std::filesystem::path root )
 
     if ( !success )
     {
-      Logger::error( "ReadDirectoryChangesW failed" );
+      spdlog::error( "ReadDirectoryChangesW failed" );
       break;
     }
 
@@ -86,7 +84,7 @@ void DirectoryWatcher::run( std::filesystem::path root )
       DWORD bytesTransferred = 0;
       if ( !GetOverlappedResult( m_dirHandle, &m_overlapped, &bytesTransferred, FALSE ) )
       {
-        std::cerr << "GetOverlappedResult failed\n";
+        spdlog::error( "GetOverlappedResult failed" );
         continue;
       }
 
@@ -134,7 +132,7 @@ void DirectoryWatcher::run( std::filesystem::path root )
           m_commands.at( "fileRenamedNew" )( pathFromResources.string(), nameOnly );
           break;
         default:
-          Logger::info( "Unknown action!" );
+          spdlog::info( "Unknown action!" );
           break;
         }
 
