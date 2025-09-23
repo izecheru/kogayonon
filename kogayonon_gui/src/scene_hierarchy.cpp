@@ -15,7 +15,7 @@ using namespace kogayonon_core;
 namespace kogayonon_gui
 {
 SceneHierarchyWindow::SceneHierarchyWindow( std::string name )
-    : ImGuiWindow( name )
+    : ImGuiWindow( std::move( name ) )
 {
 }
 
@@ -72,9 +72,9 @@ void SceneHierarchyWindow::draw()
         }
       }
     }
+    ImGui::EndListBox();
   }
   ImGui::PopStyleColor( 1 );
-  ImGui::EndListBox();
   ImGui::EndChild();
   ImGui::End();
 }
