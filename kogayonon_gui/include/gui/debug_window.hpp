@@ -1,10 +1,9 @@
 #pragma once
 #include <mutex>
+#include <spdlog/sinks/base_sink.h>
+#include <spdlog/spdlog.h>
 #include <vector>
 #include "gui/imgui_window.hpp"
-#include "logger/logger.hpp"
-
-using namespace kogayonon_logger;
 
 namespace kogayonon_gui
 {
@@ -12,7 +11,7 @@ class DebugConsoleWindow : public ImGuiWindow
 {
 public:
   DebugConsoleWindow( std::string name )
-      : ImGuiWindow( name )
+      : ImGuiWindow( std::move( name ) )
   {
   }
 
@@ -33,28 +32,37 @@ public:
   void draw() override;
 
 private:
-  inline ImVec4 logTypeToColor( LogType type )
-  {
-    switch ( type )
-    {
-    case LogType::DEBUG:
-      return ImVec4( 0.5f, 0.5f, 0.5f, 1.0f ); // Gray
-    case LogType::INFO:
-      return ImVec4( 0.0f, 0.7f, 1.0f, 1.0f ); // Cyan / Blue
-    case LogType::WARN:
-      return ImVec4( 1.0f, 0.8f, 0.0f, 1.0f ); // Yellow/Orange
-    case LogType::ERR:
-      return ImVec4( 1.0f, 0.2f, 0.2f, 1.0f ); // Red
-    case LogType::CRITICAL:
-      return ImVec4( 0.8f, 0.0f, 0.0f, 1.0f ); // Darker Red
-    default:
-      return ImVec4( 1.0f, 1.0f, 1.0f, 1.0f ); // White (fallback)
-    }
-  }
-
-private:
   bool m_auto_scroll = true;
   static inline std::mutex m_mutex;
   static inline std::vector<std::string> m_messages;
+};
+
+template <typename Mutex>
+class DeferredImGuiSink : public spdlog::sinks::base_sink<Mutex>
+{
+public:
+  void setWindow( DebugConsoleWindow* window )
+  {
+    m_window = window;
+  }
+
+protected:
+  void sink_it_( const spdlog::details::log_msg& msg ) override
+  {
+    if ( !m_window )
+      return;
+
+    spdlog::memory_buf_t formatted;
+    this->formatter_->format( msg, formatted );
+
+    m_window->log( std::string( formatted.data(), formatted.size() ) );
+  }
+
+  void flush_() override
+  {
+  }
+
+private:
+  DebugConsoleWindow* m_window;
 };
 } // namespace kogayonon_gui

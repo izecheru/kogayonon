@@ -3,11 +3,10 @@
 #include <SOIL2/SOIL2.h>
 #include <assert.h>
 #include <glm/gtc/type_ptr.hpp>
-#include "logger/logger.hpp"
+#include <spdlog/spdlog.h>
 #include "resources/model.hpp"
 #include "resources/texture.hpp"
 #include "resources/vertex.hpp"
-using namespace kogayonon_logger;
 
 namespace kogayonon_utilities
 {
@@ -29,7 +28,7 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureWithoutParam
 {
   if ( const auto& it = m_loadedTextures.find( textureName ); it != m_loadedTextures.end() )
   {
-    Logger::info( "We already have the texture: ", textureName, " from ", texturePath );
+    spdlog::info( "We already have the texture {} from {} ", textureName, texturePath );
     return it->second;
   }
 
@@ -39,8 +38,8 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureWithoutParam
 
   if ( id == 0 )
   {
-    Logger::error( "SOIL failed to load texture: ", texturePath );
-    Logger::error( "Reason: ", SOIL_last_result() );
+    spdlog::error( "SOIL failed to load texture {} ", texturePath );
+    spdlog::error( "Reason{} ", SOIL_last_result() );
     return {};
   }
 
@@ -52,7 +51,7 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureWithoutParam
   );
 
   m_loadedTextures.emplace( textureName, tex );
-  Logger::info( "Loaded texture: ", textureName, ", ", texturePath );
+  spdlog::info( "Loaded texture {} {}", textureName, texturePath );
 
   return m_loadedTextures.at( textureName );
 }
@@ -62,7 +61,7 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std:
 {
   if ( const auto& it = m_loadedTextures.find( textureName ); it != m_loadedTextures.end() )
   {
-    Logger::info( "We already have the texture: ", textureName, " from ", texturePath );
+    spdlog::info( "We already have the texture {} from {} ", textureName, texturePath );
     return it->second;
   }
 
@@ -73,15 +72,15 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std:
   unsigned char* data = SOIL_load_image( texturePath.c_str(), &w, &h, &channels, SOIL_LOAD_AUTO );
   if ( !data )
   {
-    Logger::error( "soil could not load data for texture ", texturePath );
-    Logger::error( "SOIL failed: ", SOIL_last_result() );
+    spdlog::error( "soil could not load data for texture {} ", texturePath );
+    spdlog::error( "SOIL failed {} ", SOIL_last_result() );
     return std::weak_ptr<kogayonon_resources::Texture>();
   }
   auto id = SOIL_create_OGL_texture( data, &w, &h, channels, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS );
 
   auto tex = std::make_shared<kogayonon_resources::Texture>( id, texturePath, textureName, w, h, channels );
   m_loadedTextures.emplace( textureName, std::move( tex ) );
-  Logger::info( "Loaded texture: ", textureName, ", ", texturePath );
+  spdlog::info( "Loaded texture {} from {} ", textureName, texturePath );
   SOIL_free_image_data( data );
   return m_loadedTextures.at( textureName );
 }
@@ -93,13 +92,13 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
 
   if ( auto it = m_loadedModels.find( modelName ); it != m_loadedModels.end() )
   {
-    Logger::info( "Model already loaded: ", modelName );
+    spdlog::info( "Model already loaded {} ", modelName );
     return it->second;
   }
 
   if ( !std::filesystem::exists( modelPath ) )
   {
-    Logger::error( "Model file does not exist: ", modelPath );
+    spdlog::error( "Model file does not exist {} ", modelPath );
     return {};
   }
 
@@ -109,20 +108,20 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
   // Parse GLTF
   if ( cgltf_parse_file( &options, modelPath.c_str(), &data ) != cgltf_result_success )
   {
-    Logger::error( "Failed to parse GLTF: ", modelPath );
+    spdlog::error( "Failed to parse GLTF {} ", modelPath );
     return {};
   }
 
   if ( cgltf_load_buffers( &options, data, modelPath.c_str() ) != cgltf_result_success )
   {
-    Logger::error( "Failed to load GLTF buffers: ", modelPath );
+    spdlog::error( "Failed to load GLTF buffers {} ", modelPath );
     cgltf_free( data );
     return {};
   }
 
   if ( cgltf_validate( data ) != cgltf_result_success )
   {
-    Logger::error( "GLTF validation failed: ", modelPath );
+    spdlog::error( "GLTF validation failed {} ", modelPath );
     cgltf_free( data );
     return {};
   }
@@ -188,7 +187,7 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
 
   cgltf_free( data );
 
-  Logger::info( "Loaded model: ", modelName );
+  spdlog::info( "Loaded model {} ", modelName );
   return getModel( modelName );
 }
 
@@ -211,11 +210,11 @@ void AssetManager::removeTexture( const std::string& path )
   {
     if ( it->second->getPath() == path )
     {
-      Logger::info( "deleted ", path );
+      spdlog::info( "deleted {} ", path );
       return;
     }
   }
-  Logger::info( "file was not loaded so we did not delete anything" );
+  spdlog::info( "file was not loaded so we did not delete anything" );
 }
 
 std::weak_ptr<kogayonon_resources::Model> kogayonon_utilities::AssetManager::getModel( const std::string& modelName )

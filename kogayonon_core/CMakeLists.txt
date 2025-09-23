@@ -27,4 +27,4 @@ target_include_directories(kogayonon_core
 target_link_libraries(
   kogayonon_core
   PUBLIC EnTT::EnTT glm::glm-header-only
-  PRIVATE soil2 kogayonon_utilities kogayonon_rendering kogayonon_logger kogayonon_resources glad)
+  PRIVATE soil2 kogayonon_utilities kogayonon_rendering spdlog::spdlog kogayonon_resources glad)

@@ -1,12 +1,10 @@
 #include "gui/scene_viewport.hpp"
 #include <codecvt>
 #include <glad/glad.h>
+#include <spdlog/spdlog.h>
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
-#include "logger/logger.hpp"
 #include "rendering/framebuffer.hpp"
-
-using namespace kogayonon_logger;
 
 namespace kogayonon_gui
 {
@@ -38,7 +36,7 @@ void SceneViewportWindow::draw()
   ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) ); // no bg color for the button
   if ( ImGui::ImageButton( "play", m_playTextureId, ImVec2( 18, 18 ) ) )
   {
-    Logger::info( "Pressed play" );
+    spdlog::info( "Pressed play" );
   }
   ImGui::PopStyleColor( 1 );
 
@@ -48,7 +46,7 @@ void SceneViewportWindow::draw()
   if ( ImGui::ImageButton( "stop", m_stopTextureId, ImVec2( 18, 18 ), ImVec2( 0, 0 ), ImVec2( 1, 1 ),
                            ImVec4( 0, 0, 0, 0 ), ImVec4( 1, 1, 1, 1 ) ) )
   {
-    Logger::info( "Pressed stop" );
+    spdlog::info( "Pressed stop" );
   }
   ImGui::PopStyleColor( 1 );
 
@@ -92,7 +90,7 @@ void SceneViewportWindow::draw()
       {
         const char* data = static_cast<const char*>( payload->Data );
         std::string dropResult( data, payload->DataSize );
-        Logger::info( "dropped payload data ", dropResult );
+        spdlog::info( "dropped payload data {}", dropResult );
       }
       ImGui::EndDragDropTarget();
     }

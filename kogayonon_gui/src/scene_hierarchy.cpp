@@ -1,4 +1,5 @@
 #include "gui/scene_hierarchy.hpp"
+#include <spdlog/spdlog.h>
 #include "core/ecs/components/name_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
 #include "core/ecs/entity.hpp"
@@ -8,9 +9,7 @@
 #include "core/event/scene_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
-#include "logger/logger.hpp"
 
-using namespace kogayonon_logger;
 using namespace kogayonon_core;
 
 namespace kogayonon_gui

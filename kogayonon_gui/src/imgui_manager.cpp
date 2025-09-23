@@ -1,13 +1,12 @@
 #include "gui/imgui_manager.hpp"
+#include <filesystem>
 #include <imgui.h>
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>
 #include <imgui_internal.h>
+#include <spdlog/spdlog.h>
 #include "gui/debug_window.hpp"
-#include "logger/logger.hpp"
 #include "utilities/fonts/icons_fontawesome5.h"
-
-using namespace kogayonon_logger;
 
 namespace kogayonon_gui
 {
@@ -23,14 +22,8 @@ ImGuiManager::ImGuiManager( SDL_Window* window, SDL_GLContext context )
 {
   if ( initImgui( window, context ) )
   {
-    Logger::log( LogType::INFO, "Imgui initialised" );
-
-    // add the callback for the debug console window
-    Logger::addCallback( []( const std::string& msg ) { DebugConsoleWindow::log( msg ); } );
-  }
-  else
-  {
-    Logger::log( LogType::ERR, "Imgui could not be initialised" );
+    spdlog::info( "Imgui initialised" );
+    // TODO add callback to the debug window
   }
 }
 
@@ -44,7 +37,7 @@ bool ImGuiManager::initImgui( SDL_Window* window, SDL_GLContext context )
   IMGUI_CHECKVERSION();
   if ( !ImGui::CreateContext() )
   {
-    Logger::error( "could not create imgui context" );
+    spdlog::error( "could not create imgui context" );
     return false;
   }
 
@@ -77,7 +70,7 @@ bool ImGuiManager::initImgui( SDL_Window* window, SDL_GLContext context )
 
   if ( !ImGui_ImplSDL2_InitForOpenGL( window, context ) || !ImGui_ImplOpenGL3_Init( "#version 460" ) )
   {
-    Logger::error( "could not init imgui" );
+    spdlog::error( "could not init imgui" );
     return false;
   }
   return true;
@@ -182,7 +175,7 @@ void ImGuiManager::mainMenu()
     {
       if ( ImGui::MenuItem( "Close", "Ctrl+X" ) )
       {
-        Logger::info( "Close pressed" );
+        spdlog::info( "Close pressed" );
       }
       ImGui::EndMenu();
     }

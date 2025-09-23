@@ -3,9 +3,7 @@
 #include <fstream>
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
-#include "logger/logger.hpp"
-
-using namespace kogayonon_logger;
+#include <spdlog/spdlog.h>
 
 namespace kogayonon_utilities
 {
@@ -20,7 +18,7 @@ shader_source Shader::parseShaderFile( const std::string& vert_path, const std::
   std::ifstream vertex_stream( vert_path );
   if ( !vertex_stream.is_open() )
   {
-    Logger::log( LogType::ERR, "Failed to open shader file: ", vert_path );
+    spdlog::error( "Failed to open shader file {}", vert_path );
     std::string result = "";
     assert( result.size() > 0 );
     return { result, result };
@@ -37,7 +35,7 @@ shader_source Shader::parseShaderFile( const std::string& vert_path, const std::
   std::ifstream fragment_stream( frag_path );
   if ( !fragment_stream.is_open() )
   {
-    Logger::log( LogType::ERR, "Failed to open shader file: ", frag_path );
+    spdlog::error( "Failed to open shader file {} ", frag_path );
     std::string result = "";
 
     assert( result.size() > 0 );
@@ -72,7 +70,7 @@ void Shader::setInt( const char* uniform, int value ) const
   if ( int location = glGetUniformLocation( m_programId, uniform ); location == -1 )
   {
     // Uniform not found, print a warning or error message
-    Logger::log( LogType::ERR, "Uniform not found: ", uniform );
+    spdlog::error( "Uniform not found {} ", uniform );
   }
   else
   {
@@ -84,7 +82,7 @@ void Shader::setMat4( const char* uniform, glm::mat4& mat )
 {
   if ( int location = glGetUniformLocation( m_programId, uniform ); location == -1 )
   {
-    Logger::log( LogType::ERR, "Uniform not found: ", uniform );
+    spdlog::error( "Uniform not found {} ", uniform );
   }
   else
   {
@@ -113,17 +111,25 @@ unsigned int Shader::compileShader( unsigned int shader_type, std::string& sourc
     glGetShaderInfoLog( id, length, &length, message );
     if ( shader_type == GL_VERTEX_SHADER )
     {
-      Logger::log( LogType::INFO, "Failed to compile vertex shader:\n", message, '\n' );
+      spdlog::info( "Failed to compile vertex shader:{}", message );
     }
     else if ( shader_type == GL_FRAGMENT_SHADER )
     {
-      Logger::log( LogType::INFO, "Failed to compile fragment shader:\n", message, '\n' );
+      spdlog::info( "Failed to compile fragment shader:{}", message );
     }
     glDeleteShader( id );
     return 0;
   }
-  Logger::log( LogType::INFO,
-               "Shader compiled successfully:", shader_type == GL_VERTEX_SHADER ? "Vertex Shader" : "Fragment Shader" );
+  const std::string vert = "Vertex shader";
+  const std::string frag = "Fragment shader";
+  if ( shader_type == GL_VERTEX_SHADER )
+  {
+    spdlog::info( "Shader compiled successfully:{}", vert );
+  }
+  else
+  {
+    spdlog::info( "Shader compiled successfully:{}", vert );
+  }
   return id;
 }
 
@@ -146,7 +152,7 @@ int Shader::createShader( shader_source& src )
     auto message = (char*)malloc( length * sizeof( char ) );
     glGetProgramInfoLog( program, length, &length, message );
 
-    Logger::log( LogType::INFO, "Failed to link shader program:\n", message, '\n' );
+    spdlog::info( "Failed to link shader program {}", message );
     free( message );
     glDeleteProgram( program );
     return 0;
@@ -155,7 +161,7 @@ int Shader::createShader( shader_source& src )
   glDeleteShader( vs );
   glDeleteShader( fs );
 
-  Logger::log( LogType::INFO, "Succesfully linked shaders", '\n' );
+  spdlog::info( "Succesfully linked shaders" );
   return program;
 }
 } // namespace kogayonon_utilities

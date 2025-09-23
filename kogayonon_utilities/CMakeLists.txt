@@ -15,4 +15,4 @@ add_library(
 target_include_directories(kogayonon_utilities
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-target_link_libraries(kogayonon_utilities PRIVATE cgltf kogayonon_logger glad glm::glm-header-only kogayonon_resources soil2)
+target_link_libraries(kogayonon_utilities PRIVATE cgltf spdlog::spdlog glad glm::glm-header-only kogayonon_resources soil2)

@@ -1,6 +1,5 @@
 #include "utilities/time_tracker/time_tracker.hpp"
-#include "logger/logger.hpp"
-using namespace kogayonon_logger;
+#include <spdlog/spdlog.h>
 
 namespace kogayonon_utilities
 {
@@ -31,7 +30,7 @@ TimeTracker::duration TimeTracker::getDuration( const std::string& key )
   {
     return it->second.second;
   }
-  Logger::critical( "Duration for ", key, " was not found!" );
+  spdlog::critical( "Duration for {} was not found ", key );
   return duration( 0 );
 }
 } // namespace kogayonon_utilities
