@@ -52,8 +52,8 @@ App::App()
     }
 
     auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>( "Debug console" );
-    auto debgWin = dynamic_cast<kogayonon_gui::DebugConsoleWindow*>( debugWindow.get() );
-    defferedSink->setWindow( debgWin );
+    auto pDbgWin = dynamic_cast<kogayonon_gui::DebugConsoleWindow*>( debugWindow.get() );
+    defferedSink->setWindow( pDbgWin );
     IMGUI_MANAGER()->pushWindow( "Debug console", std::move( debugWindow ) );
   }
   catch ( const spdlog::spdlog_ex& ex )
@@ -74,6 +74,7 @@ void App::cleanup()
 
 void App::pollEvents()
 {
+  auto& pEventDispatcher = EVENT_DISPATCHER();
   SDL_Event e;
   while ( SDL_PollEvent( &e ) )
   {
@@ -86,7 +87,7 @@ void App::pollEvents()
         int newWidth = e.window.data1;
         int newHeight = e.window.data2;
         kogayonon_core::WindowResizeEvent windowResizeEvent( newWidth, newHeight );
-        EVENT_DISPATCHER()->emitEvent( windowResizeEvent );
+        pEventDispatcher->emitEvent( windowResizeEvent );
       }
       break;
     }
@@ -99,7 +100,7 @@ void App::pollEvents()
       // TODO maybe rethink this a bit
       auto keycode = static_cast<kogayonon_core::KeyCode>( e.key.keysym.sym );
       kogayonon_core::KeyPressedEvent keyPressEvent( keycode, 0 );
-      EVENT_DISPATCHER()->emitEvent( keyPressEvent );
+      pEventDispatcher->emitEvent( keyPressEvent );
       break;
     }
     case SDL_KEYUP: {
@@ -107,7 +108,7 @@ void App::pollEvents()
       // TODO maybe rethink this a bit
       auto keycode = static_cast<kogayonon_core::KeyCode>( e.key.keysym.sym );
       kogayonon_core::KeyReleasedEvent keyReleaseEvent( keycode );
-      EVENT_DISPATCHER()->emitEvent( keyReleaseEvent );
+      pEventDispatcher->emitEvent( keyReleaseEvent );
       break;
     }
     }
@@ -116,13 +117,16 @@ void App::pollEvents()
 
 void App::run()
 {
-  TIME_TRACKER()->start( "deltaTime" );
+  auto& pTimeTracker = TIME_TRACKER();
+  auto& pImGuiManager = IMGUI_MANAGER();
+
+  pTimeTracker->start( "deltaTime" );
 
   while ( m_running )
   {
-    TIME_TRACKER()->update( "deltaTime" );
+    pTimeTracker->update( "deltaTime" );
     pollEvents();
-    IMGUI_MANAGER()->draw();
+    pImGuiManager->draw();
     m_pWindow->swapWindow();
   }
 }
@@ -221,40 +225,28 @@ bool App::initRegistries()
 
   mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::AssetManager>>( std::move( assetManager ) );
 
-  auto future = TASK_MANAGER()->enqueue( []() -> int {
-    int sum = 0;
-    for ( int i = 0; i < 2000; i++ )
-    {
-      sum += i;
-    }
-    return sum;
-  } );
-  int result = future.get();
-  spdlog::info( "Result is {} and we got it pretty fast", result );
-
   return true;
 }
 
 bool App::initGui()
 {
-  // insert windows
+  // frame buffer for the scene viewport
   m_pFrameBuffer = std::make_shared<kogayonon_rendering::FrameBuffer>( 400, 400 );
+
+  // textures for imgui buttons or windows and what not
   auto playTexture = ASSET_MANAGER()->getTexture( "play" ).lock()->getTextureId();
   auto stopTexture = ASSET_MANAGER()->getTexture( "stop" ).lock()->getTextureId();
+  auto fileTexture = ASSET_MANAGER()->getTexture( "file" ).lock()->getTextureId();
+  auto folderTexture = ASSET_MANAGER()->getTexture( "folder" ).lock()->getTextureId();
 
   auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( ICON_FA_IMAGE " Scene", m_pFrameBuffer,
                                                                              playTexture, stopTexture );
-  sceneViewport->setCallback( [this]() { callbackTest(); } );
-
-  auto fileTexture = ASSET_MANAGER()->getTexture( "file" ).lock()->getTextureId();
-  auto folderTexture = ASSET_MANAGER()->getTexture( "folder" ).lock()->getTextureId();
   auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets", folderTexture, fileTexture );
-
   auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>( "Scene hierarchy" );
-
   auto performanceWindow = std::make_unique<kogayonon_gui::PerformanceWindow>( "Performance" );
-
   auto entityPropertiesWindow = std::make_unique<kogayonon_gui::EntityPropertiesWindow>( "Object properties" );
+
+  sceneViewport->setCallback( [this]() { callbackTest(); } );
 
   IMGUI_MANAGER()->pushWindow( "Scene", std::move( sceneViewport ) );
   IMGUI_MANAGER()->pushWindow( "Object properties", std::move( entityPropertiesWindow ) );

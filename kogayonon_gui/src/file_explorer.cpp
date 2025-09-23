@@ -95,6 +95,7 @@ void FileExplorerWindow::draw()
   drawPathToolbar();
   ImGui::PopStyleColor( 1 );
 
+  ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) );
   // for each imgui element we need an id that is unique, so I use this dirId to add it to already defined const char*
   int dirId = 0;
   for ( auto const& dirEntry : std::filesystem::directory_iterator( m_currentPath ) )
@@ -104,8 +105,9 @@ void FileExplorerWindow::draw()
     auto relativePath = std::filesystem::relative( path );
     if ( dirEntry.is_directory() )
     {
+      ImVec2 textSize = ImGui::CalcTextSize( dirEntry.path().filename().string().c_str() );
       ImGui::BeginGroup();
-      if ( ImGui::ImageButton( id.c_str(), (ImTextureID)m_folderTextureId, ImVec2( 40, 40 ) ) )
+      if ( ImGui::ImageButton( id.c_str(), (ImTextureID)m_folderTextureId, ImVec2( 40.0f, 40.0f ) ) )
       {
         m_currentPath = dirEntry.path();
       }
@@ -128,6 +130,7 @@ void FileExplorerWindow::draw()
     }
     ImGui::SameLine();
   }
+  ImGui::PopStyleColor( 1 );
   ImGui::End();
 }
 
