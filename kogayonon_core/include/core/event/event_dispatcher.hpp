@@ -1,4 +1,5 @@
 #pragma once
+#include <mutex>
 
 #include <entt/entt.hpp>
 #include "core/event/event.hpp"
@@ -68,6 +69,7 @@ public:
   void removeAllListeners( THandler& handler );
 
 private:
+  std::mutex m_mutex;
   std::shared_ptr<entt::dispatcher> m_pDispatcher;
 };
 
