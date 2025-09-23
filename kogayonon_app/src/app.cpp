@@ -36,11 +36,6 @@ App::App()
 {
   try
   {
-    if ( !init() )
-    {
-      m_running = false;
-    }
-
     // had to do all this to setup the debug console print
     auto defferedSink = std::make_shared<kogayonon_gui::DeferredImGuiSink<std::mutex>>();
     auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>( "logs/basic-log.txt", true );
@@ -49,11 +44,16 @@ App::App()
     auto logger = std::make_shared<spdlog::logger>( "app_logger", sinks.begin(), sinks.end() );
     spdlog::set_level( spdlog::level::debug );
     spdlog::set_pattern( "[%H:%M:%S] [%^%L%$] %v" );
+    spdlog::set_default_logger( logger );
+
+    if ( !init() )
+    {
+      m_running = false;
+    }
 
     auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>( "Debug console" );
     auto debgWin = dynamic_cast<kogayonon_gui::DebugConsoleWindow*>( debugWindow.get() );
-    defferedSink->setWindow( debgWin ); // sink stores raw pointer
-    spdlog::set_default_logger( logger );
+    defferedSink->setWindow( debgWin );
     IMGUI_MANAGER()->pushWindow( "Debug console", std::move( debugWindow ) );
   }
   catch ( const spdlog::spdlog_ex& ex )
