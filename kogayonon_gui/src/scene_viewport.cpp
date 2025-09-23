@@ -1,4 +1,5 @@
 #include "gui/scene_viewport.hpp"
+#include <codecvt>
 #include <glad/glad.h>
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
@@ -68,8 +69,6 @@ void SceneViewportWindow::draw()
     pFrameBuffer->bind();
     pFrameBuffer->rescale( contentSize.x, contentSize.y );
 
-    // glClearColor( 0.0f, 0.0f, 0.0f, 1.0f );
-    // glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
     m_renderCallback();
 
     pFrameBuffer->unbind();
@@ -78,6 +77,25 @@ void SceneViewportWindow::draw()
     ImGui::GetWindowDrawList()->AddImage( (void*)pFrameBuffer->getTexture(), win_pos,
                                           ImVec2( win_pos.x + contentSize.x, win_pos.y + contentSize.y ),
                                           ImVec2( 0, 1 ), ImVec2( 1, 0 ) );
+
+    // we set the position to top left of this window to prepare for the drop zone
+    ImGui::SetCursorScreenPos( win_pos );
+
+    // this is just the viewport drop zone, it is after the framebuffer texture so it must remain invisible
+    ImGui::InvisibleButton( "viewportDropZone", contentSize );
+
+    // here we accept drag and drop payload from the assets window
+    if ( ImGui::BeginDragDropTarget() )
+    {
+      // if we have a payload
+      if ( const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "ASSET_DROP" ) )
+      {
+        const char* data = static_cast<const char*>( payload->Data );
+        std::string dropResult( data, payload->DataSize );
+        Logger::info( "dropped payload data ", dropResult );
+      }
+      ImGui::EndDragDropTarget();
+    }
   }
 
   ImGui::End();

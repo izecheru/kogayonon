@@ -90,50 +90,52 @@ void FileExplorerWindow::draw()
     ImGui::End();
     return;
   }
+
+  // I don't like default bg color
+  ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 1, 0, 0, 0.5f ) );
+  drawPathToolbar();
+  ImGui::PopStyleColor( 1 );
+
+  // for each imgui element we need an id that is unique, so I use this dirId to add it to already defined const char*
   int dirId = 0;
-  ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) );
-  static bool drawPath = false;
-  if ( drawPath )
-  {
-    drawPathToolbar();
-  }
   for ( auto const& dirEntry : std::filesystem::directory_iterator( m_currentPath ) )
   {
     std::string id = "##file" + std::to_string( dirId++ );
+    const auto& path = dirEntry.path();
+    auto relativePath = std::filesystem::relative( path );
     if ( dirEntry.is_directory() )
     {
       ImGui::BeginGroup();
       if ( ImGui::ImageButton( id.c_str(), (ImTextureID)m_folderTextureId, ImVec2( 40, 40 ) ) )
       {
         m_currentPath = dirEntry.path();
-        if ( m_currentPath != std::filesystem::path( std::filesystem::current_path() / "resources" ) )
-        {
-          drawPath = true;
-        }
-        else
-        {
-          drawPath = false;
-        }
       }
       ImGui::Text( "%s", dirEntry.path().filename().string().c_str() );
       ImGui::EndGroup();
     }
-    else if ( dirEntry.is_regular_file() )
+    else
     {
+      // if it is a file
       ImGui::BeginGroup();
       ImGui::ImageButton( id.c_str(), (ImTextureID)m_fileTextureId, ImVec2( 40, 40 ) );
+      if ( ImGui::BeginDragDropSource() )
+      {
+        std::string test = relativePath.string(); // "assets/textures/xyz.png" etc
+        ImGui::SetDragDropPayload( "ASSET_DROP", test.c_str(), test.size(), ImGuiCond_Once );
+        ImGui::EndDragDropSource();
+      }
       ImGui::Text( "%s", dirEntry.path().filename().string().c_str() );
       ImGui::EndGroup();
     }
     ImGui::SameLine();
   }
-  ImGui::PopStyleColor( 1 );
   ImGui::End();
 }
 
 void FileExplorerWindow::drawPathToolbar()
 {
   std::vector<std::string> pathItems;
+  // construct the path from D:/folder1/folder to to ["D","folde1","folder2"] for easier access
   if ( m_currentPath != std::filesystem::current_path() )
   {
     std::stringstream ss( m_currentPath.string() );
@@ -143,6 +145,7 @@ void FileExplorerWindow::drawPathToolbar()
     {
       if ( !item.empty() )
       {
+        // we only push back items right of resources (included)
         if ( item == "resources" )
         {
           resources = true;
@@ -152,18 +155,28 @@ void FileExplorerWindow::drawPathToolbar()
       }
     }
   }
+  // if last element is resources than we don't render since we're at Assets root
+  // if ( pathItems.at( pathItems.size() - 1 ) == "resources" )
+  //{
+  //  return;
+  //}
+
   static int currentIndex = -1;
+
   ImGui::BeginGroup();
+  ImVec2 pathSizeText = ImGui::CalcTextSize( "Current path" );
+  ImGui::Text( "Current path", ImVec2( pathSizeText.x + 20.0f, 20.0f ) );
   for ( int i = 0; i < pathItems.size(); ++i )
   {
     ImGui::SameLine();
-
     // if we press on a folder from path toolbar
-    ImVec2 size = ImGui::GetContentRegionAvail();
-    if ( ImGui::Button( pathItems.at( i ).c_str(), ImVec2( 20, 20 ) ) )
+    ImVec2 textSize = ImGui::CalcTextSize( pathItems.at( i ).c_str() );
+    if ( ImGui::Button( pathItems.at( i ).c_str(), ImVec2( textSize.x + 10.0f, 20.0f ) ) )
     {
+      // don't set currentIndex if it is already clicked once
       if ( currentIndex != i )
       {
+        // we get the index of the button we pressed
         currentIndex = i;
         break;
       }
@@ -171,16 +184,16 @@ void FileExplorerWindow::drawPathToolbar()
   }
   ImGui::EndGroup();
 
-  // construct the path from index to 0
+  // if we did not press any button
   if ( currentIndex != -1 )
   {
     std::filesystem::path result;
+    // from start to the index we got, we construct the path and update m_currentPath
     for ( int i = 0; i <= currentIndex; i++ )
     {
       result /= pathItems.at( i );
     }
     m_currentPath = std::filesystem::current_path() / result;
-    Logger::info( "changed path to ", m_currentPath.string() );
     currentIndex = -1;
   }
 }

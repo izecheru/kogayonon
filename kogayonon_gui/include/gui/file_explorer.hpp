@@ -25,9 +25,7 @@ class FileExplorerWindow : public ImGuiWindow
 public:
   explicit FileExplorerWindow( std::string name, unsigned int folderTextureId, unsigned int fileTextureId );
 
-  ~FileExplorerWindow() override
-  {
-  }
+  ~FileExplorerWindow() = default;
 
   void draw() override;
 
@@ -38,7 +36,14 @@ public:
 
 private:
   void drawPathToolbar();
+  /**
+   * @brief Sets a set of callbacks for the DirectoryWatcher to call on a file event
+   */
   void installCommands();
+
+  /**
+   * @brief Adds event handlers and ties them to onEvent from FilExplorerWindow class
+   */
   void installHandlers();
 
 private:
