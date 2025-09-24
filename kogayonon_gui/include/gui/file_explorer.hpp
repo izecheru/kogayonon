@@ -13,11 +13,6 @@ class FileRenamedEvent;
 class FileDeletedEvent;
 } // namespace kogayonon_core
 
-namespace kogayonon_utilities
-{
-class DirectoryWatcher;
-}
-
 namespace kogayonon_gui
 {
 class FileExplorerWindow : public ImGuiWindow
@@ -35,7 +30,11 @@ public:
   void onFileDeleted( kogayonon_core::FileDeletedEvent& e );
 
 private:
+  /**
+   * @brief Draw the path, relative from resources folder, we can navigate back to "root" using it
+   */
   void drawPathToolbar();
+
   /**
    * @brief Sets a set of callbacks for the DirectoryWatcher to call on a file event
    */
@@ -51,6 +50,7 @@ private:
 
 private:
   unsigned int m_folderTextureId = 0, m_fileTextureId = 0;
+
   std::filesystem::path m_currentPath;
   std::unique_ptr<kogayonon_utilities::DirectoryWatcher> m_pDirWatcher;
 };

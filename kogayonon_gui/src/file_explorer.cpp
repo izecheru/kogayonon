@@ -3,17 +3,17 @@
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
 #include "core/event/file_events.hpp"
-#include "utilities/asset_manager/asset_manager.hpp"
+#include "imgui_utils/imgui_utils.h"
 #include "utilities/directory_watcher/directory_watcher.hpp"
 
 namespace kogayonon_gui
 {
 FileExplorerWindow::FileExplorerWindow( std::string name, unsigned int folderTextureId, unsigned int fileTextureId )
-    : ImGuiWindow( std::move( name ) )
-    , m_currentPath( std::filesystem::current_path() / "resources" )
-    , m_pDirWatcher( std::make_unique<kogayonon_utilities::DirectoryWatcher>( "resources\\" ) )
-    , m_fileTextureId( fileTextureId )
-    , m_folderTextureId( folderTextureId )
+    : ImGuiWindow{ std::move( name ) }
+    , m_currentPath{ std::filesystem::current_path() / "resources" }
+    , m_pDirWatcher{ std::make_unique<kogayonon_utilities::DirectoryWatcher>( "resources\\" ) }
+    , m_fileTextureId{ fileTextureId }
+    , m_folderTextureId{ folderTextureId }
 {
   // installs the event listeners for file event types
   installHandlers();
@@ -57,7 +57,7 @@ void FileExplorerWindow::installCommands()
 
 bool FileExplorerWindow::isTexture( const std::string& path )
 {
-  std::filesystem::path p( path );
+  std::filesystem::path p{ path };
   auto ext = p.extension().string();
   return ext == ".jpg" || ext == ".png";
 }
@@ -90,47 +90,69 @@ void FileExplorerWindow::draw()
     return;
   }
 
-  // I don't like default bg color
-  ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 1, 0, 0, 0.5f ) );
+  // draw the path toolbar used for navigation
   drawPathToolbar();
-  ImGui::PopStyleColor( 1 );
 
-  ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) );
   // for each imgui element we need an id that is unique, so I use this dirId to add it to already defined const char*
   int dirId = 0;
+
+  // for easier entry size modifications
+  static ImVec2 entrySize = ImVec2( 100.f, 100.f );
+
   for ( auto const& dirEntry : std::filesystem::directory_iterator( m_currentPath ) )
   {
     std::string id = "##file" + std::to_string( dirId++ );
     const auto& path = dirEntry.path();
     auto relativePath = std::filesystem::relative( path );
+
     if ( dirEntry.is_directory() )
     {
-      ImVec2 textSize = ImGui::CalcTextSize( dirEntry.path().filename().string().c_str() );
-      ImGui::BeginGroup();
-      if ( ImGui::ImageButton( id.c_str(), (ImTextureID)m_folderTextureId, ImVec2( 40.0f, 40.0f ) ) )
+      // we don't want to see the "fonts" directory since we have no use for them rn
+      if ( path.string().find( "fonts" ) != std::string::npos )
       {
-        m_currentPath = dirEntry.path();
+        continue;
       }
-      ImGui::Text( "%s", dirEntry.path().filename().string().c_str() );
+
+      ImVec2 textSize = ImGui::CalcTextSize( path.filename().string().c_str() );
+      ImGui::BeginGroup();
+
+      if ( ImGui::ImageButton( id.c_str(), (ImTextureID)m_folderTextureId, entrySize ) )
+      {
+        m_currentPath = path;
+      }
+
+      ImGui::Text( "%s", ImGui_Utils::truncateText( path.filename().string(), entrySize.x ).c_str() );
       ImGui::EndGroup();
     }
     else
     {
       // if it is a file
       ImGui::BeginGroup();
-      ImGui::ImageButton( id.c_str(), (ImTextureID)m_fileTextureId, ImVec2( 40, 40 ) );
+
+      ImGui::ImageButton( id.c_str(), (ImTextureID)m_fileTextureId, entrySize );
+
+      // only files can be dragged and dropped, will add filters later so we don't even see .zip files for example
       if ( ImGui::BeginDragDropSource() )
       {
         std::string test = relativePath.string();
         ImGui::SetDragDropPayload( "ASSET_DROP", test.c_str(), test.size(), ImGuiCond_Once );
         ImGui::EndDragDropSource();
       }
-      ImGui::Text( "%s", dirEntry.path().filename().string().c_str() );
+
+      ImVec2 fileNameSize = ImGui::CalcTextSize( path.filename().string().c_str() );
+      ImGui::Text( "%s", ImGui_Utils::truncateText( path.filename().string(), entrySize.x ).c_str() );
       ImGui::EndGroup();
+      if ( ImGui::IsItemHovered() )
+      {
+        ImGui::BeginTooltip();
+        ImGui::Text( path.filename().string().c_str() );
+        ImGui::EndTooltip();
+      }
     }
+
     ImGui::SameLine();
   }
-  ImGui::PopStyleColor( 1 );
+
   ImGui::End();
 }
 
@@ -152,28 +174,31 @@ void FileExplorerWindow::drawPathToolbar()
         {
           resources = true;
         }
+
         if ( resources )
           pathItems.push_back( item );
       }
     }
   }
-  // if last element is resources than we don't render since we're at Assets root
-  // if ( pathItems.at( pathItems.size() - 1 ) == "resources" )
-  //{
-  //  return;
-  //}
 
   static int currentIndex = -1;
 
   ImGui::BeginGroup();
   ImVec2 pathSizeText = ImGui::CalcTextSize( "Current path" );
-  ImGui::Text( "Current path", ImVec2( pathSizeText.x + 20.0f, 20.0f ) );
+  auto cursor = ImGui::GetCursorPos();
+  // ImGui::SetCursorPos( ImVec2( cursor.x + 10.0f, cursor.y + 10.0f ) );
+  ImGui::Text( "Current path", ImVec2( pathSizeText.x + 20.0f, pathSizeText.y + 10.0f ) );
+
+  ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0, 0, 0, 0 ) );
+  ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 10.0f, 0.0f ) );
+
   for ( int i = 0; i < pathItems.size(); ++i )
   {
-    ImGui::SameLine();
+    ImGui::SameLine( 0.0f, 10.0f );
     // if we press on a folder from path toolbar
     ImVec2 textSize = ImGui::CalcTextSize( pathItems.at( i ).c_str() );
-    if ( ImGui::Button( pathItems.at( i ).c_str(), ImVec2( textSize.x + 10.0f, 20.0f ) ) )
+
+    if ( ImGui::Button( pathItems.at( i ).c_str() ) )
     {
       // don't set currentIndex if it is already clicked once
       if ( currentIndex != i )
@@ -183,7 +208,16 @@ void FileExplorerWindow::drawPathToolbar()
         break;
       }
     }
+    ImGui::SameLine();
+
+    // if we are on resources/  don't render the arrrow
+    // if we are at the last entry in the pathItems vec, also don't render cause we're pointing to nothing
+    if ( pathItems.size() > 1 && i != pathItems.size() - 1 )
+      ImGui::Text( "->", ImVec2( 20.0f, 20.0f ) );
   }
+  ImGui::PopStyleVar( 1 );
+  ImGui::PopStyleColor( 1 );
+
   ImGui::EndGroup();
 
   // if we did not press any button
