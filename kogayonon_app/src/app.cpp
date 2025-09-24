@@ -24,7 +24,6 @@
 #include "rendering/framebuffer.hpp"
 #include "rendering/renderer.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
-#include "utilities/fonts/icons_fontawesome5.h"
 #include "utilities/shader_manager/shader_manager.hpp"
 #include "utilities/task_manager/task_manager.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
@@ -180,12 +179,6 @@ bool App::initRegistries()
 {
   auto& mainRegistry = REGISTRY();
 
-  // init renderer
-  auto renderer = std::make_shared<kogayonon_rendering::Renderer>();
-  renderer->initialise();
-  assert( renderer && "could not initialise renderer" );
-  mainRegistry.addToContext<std::shared_ptr<kogayonon_rendering::Renderer>>( std::move( renderer ) );
-
   // init time tracker
   auto timeTracker = std::make_shared<kogayonon_utilities::TimeTracker>();
   assert( timeTracker && "could not initialise time tracker" );
@@ -239,8 +232,8 @@ bool App::initGui()
   auto fileTexture = ASSET_MANAGER()->getTexture( "file" ).lock()->getTextureId();
   auto folderTexture = ASSET_MANAGER()->getTexture( "folder" ).lock()->getTextureId();
 
-  auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( ICON_FA_IMAGE " Scene", m_pFrameBuffer,
-                                                                             playTexture, stopTexture );
+  auto sceneViewport =
+    std::make_unique<kogayonon_gui::SceneViewportWindow>( "Scene", m_pFrameBuffer, playTexture, stopTexture );
   auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets", folderTexture, fileTexture );
   auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>( "Scene hierarchy" );
   auto performanceWindow = std::make_unique<kogayonon_gui::PerformanceWindow>( "Performance" );

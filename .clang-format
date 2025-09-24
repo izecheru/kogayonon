@@ -7,6 +7,8 @@ ContinuationIndentWidth: 2
 UseTab: Never
 BreakConstructorInitializers: BeforeComma
 BreakBeforeBraces: Custom
+EmptyLineBeforeAccessModifier: Always
+MaxEmptyLinesToKeep: 1
 BraceWrapping:
   AfterClass: true
   AfterControlStatement: true
@@ -16,6 +18,9 @@ BraceWrapping:
   IndentBraces: false
   SplitEmptyFunction: true
 AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
 PointerAlignment: Left
 CompactNamespaces: false                
 SpacesInParentheses: true

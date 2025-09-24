@@ -36,6 +36,7 @@ void SceneHierarchyWindow::draw()
   }
   auto& enttRegistry = scene->getEnttRegistry();
   auto view = enttRegistry.view<NameComponent>();
+  auto& pEventDispatcher = EVENT_DISPATCHER();
   std::vector<Entity> entities;
   for ( auto [entity, nameComponent] : view.each() )
   {
@@ -61,14 +62,14 @@ void SceneHierarchyWindow::draw()
         if ( selectedIndex != i )
         {
           selectedIndex = i;
-          EVENT_DISPATCHER()->emitEvent( SelectEntityEvent( entity.getEnttEntity() ) );
+          pEventDispatcher->emitEvent( SelectEntityEvent( entity.getEnttEntity() ) );
         }
       }
       if ( ImGui::IsItemHovered() )
       {
         if ( auto* pTexture = entity.tryGetComponent<TextureComponent>() )
         {
-          drawTextureTooltip( pTexture, ImVec2{ 250.0f, 250.0f } );
+          drawTextureTooltip( pTexture, ImVec2( 250.0f, 250.0f ) );
         }
       }
     }
