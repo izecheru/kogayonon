@@ -2,8 +2,9 @@
 
 namespace kogayonon_core
 {
-// the purpose of this is just prepare the data for drawing
-// storing everything somewhere and then issue a draw call
+// this should instance draw
+// glDrawElementsInstanced(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0, modelCount.at(i))
+// where modelCount.at(i) is the number of instances of that model we need to draw
 class RenderingSystem
 {
 public:

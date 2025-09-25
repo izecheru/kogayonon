@@ -1,6 +1,7 @@
 #include "gui/entity_properties.hpp"
 #include <entt/entt.hpp>
 #include "core/ecs/components/name_component.hpp"
+#include "core/ecs/components/texture_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
@@ -11,8 +12,8 @@
 namespace kogayonon_gui
 {
 EntityPropertiesWindow::EntityPropertiesWindow( std::string name )
-    : ImGuiWindow( std::move( name ) )
-    , m_entity( entt::null )
+    : ImGuiWindow{ std::move( name ) }
+    , m_entity{ entt::null }
 {
   EVENT_DISPATCHER()->addHandler<kogayonon_core::SelectEntityEvent, &EntityPropertiesWindow::onEnitySelect>( *this );
 }
@@ -30,9 +31,13 @@ void EntityPropertiesWindow::draw()
     if ( m_entity != entt::null )
     {
       kogayonon_core::Entity entity( scene->getRegistry(), m_entity );
-      if ( auto* pNameComp = entity.tryGetComponent<kogayonon_core::NameComponent>() )
+      if ( auto pNameComp = entity.tryGetComponent<kogayonon_core::NameComponent>() )
       {
-        ImGui::Text( "Entity name: %s", pNameComp->name.c_str() );
+        ImGui::Text( "Name: %s", pNameComp->name.c_str() );
+      }
+      if ( auto pTextureComp = entity.tryGetComponent<kogayonon_core::TextureComponent>() )
+      {
+        ImGui::Image( (ImTextureID)pTextureComp->getTextureId(), ImVec2{ 220.0f, 220.0f } );
       }
     }
     else
@@ -43,7 +48,7 @@ void EntityPropertiesWindow::draw()
   ImGui::End();
 }
 
-bool EntityPropertiesWindow::onEnitySelect( kogayonon_core::SelectEntityEvent& e )
+bool EntityPropertiesWindow::onEnitySelect( const kogayonon_core::SelectEntityEvent& e )
 {
   m_entity = e.getEntity();
 

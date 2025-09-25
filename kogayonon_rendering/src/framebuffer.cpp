@@ -5,8 +5,8 @@
 namespace kogayonon_rendering
 {
 FrameBuffer::FrameBuffer( int width, int height )
-    : m_width( width )
-    , m_height( height )
+    : m_width{ width }
+    , m_height{ height }
 {
   glCreateFramebuffers( 1, &m_frameBufferObject );
 
@@ -17,7 +17,7 @@ FrameBuffer::FrameBuffer( int width, int height )
   glTextureParameteri( m_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
   glNamedFramebufferTexture( m_frameBufferObject, GL_COLOR_ATTACHMENT0, m_texture, 0 );
 
-  // create depth renderbuffer
+  // create depth render buffer
   glCreateRenderbuffers( 1, &m_renderBufferObject );
   glNamedRenderbufferStorage( m_renderBufferObject, GL_DEPTH24_STENCIL8, width, height );
   glNamedFramebufferRenderbuffer( m_frameBufferObject, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER,
@@ -66,7 +66,7 @@ void FrameBuffer::rescale( int width, int height )
   glTextureParameteri( m_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
   glNamedFramebufferTexture( m_frameBufferObject, GL_COLOR_ATTACHMENT0, m_texture, 0 );
 
-  // recreate renderbuffer
+  // recreate render buffer
   glCreateRenderbuffers( 1, &m_renderBufferObject );
   glNamedRenderbufferStorage( m_renderBufferObject, GL_DEPTH24_STENCIL8, width, height );
   glNamedFramebufferRenderbuffer( m_frameBufferObject, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER,
@@ -74,7 +74,7 @@ void FrameBuffer::rescale( int width, int height )
 
   if ( glCheckFramebufferStatus( GL_FRAMEBUFFER ) != GL_FRAMEBUFFER_COMPLETE )
   {
-    spdlog::error( "Framebuffer is not complete after resize!" );
+    spdlog::error( "Frame buffer is not complete after resize!" );
   }
 }
 

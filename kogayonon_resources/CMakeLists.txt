@@ -5,7 +5,7 @@ add_library(
   "include/resources/model.hpp"
   "include/resources/texture.hpp"
   "src/mesh.cpp"
-  "src/mesh_helper.cpp"
+
   "src/model.cpp" "src/texture.cpp")
 
 target_include_directories(kogayonon_resources

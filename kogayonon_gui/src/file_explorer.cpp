@@ -159,6 +159,7 @@ void FileExplorerWindow::draw()
 void FileExplorerWindow::drawPathToolbar()
 {
   std::vector<std::string> pathItems;
+
   // construct the path from D:/folder1/folder to to ["D","folde1","folder2"] for easier access
   if ( m_currentPath != std::filesystem::current_path() )
   {
@@ -186,8 +187,7 @@ void FileExplorerWindow::drawPathToolbar()
   ImGui::BeginGroup();
   ImVec2 pathSizeText = ImGui::CalcTextSize( "Current path" );
   auto cursor = ImGui::GetCursorPos();
-  // ImGui::SetCursorPos( ImVec2( cursor.x + 10.0f, cursor.y + 10.0f ) );
-  ImGui::Text( "Current path", ImVec2( pathSizeText.x + 20.0f, pathSizeText.y + 10.0f ) );
+  ImGui::Text( "Current path" );
 
   ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0, 0, 0, 0 ) );
   ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 10.0f, 0.0f ) );
@@ -195,6 +195,7 @@ void FileExplorerWindow::drawPathToolbar()
   for ( int i = 0; i < pathItems.size(); ++i )
   {
     ImGui::SameLine( 0.0f, 10.0f );
+
     // if we press on a folder from path toolbar
     ImVec2 textSize = ImGui::CalcTextSize( pathItems.at( i ).c_str() );
 
@@ -224,6 +225,7 @@ void FileExplorerWindow::drawPathToolbar()
   if ( currentIndex != -1 )
   {
     std::filesystem::path result;
+
     // from start to the index we got, we construct the path and update m_currentPath
     for ( int i = 0; i <= currentIndex; i++ )
     {

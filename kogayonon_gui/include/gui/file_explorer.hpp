@@ -49,7 +49,7 @@ private:
   bool isTexture( const std::string& path );
 
 private:
-  unsigned int m_folderTextureId = 0, m_fileTextureId = 0;
+  unsigned int m_folderTextureId, m_fileTextureId;
 
   std::filesystem::path m_currentPath;
   std::unique_ptr<kogayonon_utilities::DirectoryWatcher> m_pDirWatcher;

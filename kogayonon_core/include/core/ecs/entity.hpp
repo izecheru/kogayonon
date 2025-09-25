@@ -7,9 +7,9 @@ namespace kogayonon_core
 class Entity
 {
 public:
-  Entity( Registry& registry );
-  Entity( Registry& registry, const std::string& name );
-  Entity( Registry& registry, entt::entity entity );
+  explicit Entity( Registry& registry );
+  explicit Entity( Registry& registry, const std::string& name );
+  explicit Entity( Registry& registry, entt::entity entity );
   virtual ~Entity() = default;
 
   template <typename TComponent>

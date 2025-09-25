@@ -1,21 +1,34 @@
 #include "gui/scene_viewport.hpp"
 #include <codecvt>
+#include <filesystem>
 #include <glad/glad.h>
 #include <spdlog/spdlog.h>
+#include "core/ecs/components/texture_component.hpp"
+#include "core/ecs/entity.hpp"
+#include "core/ecs/main_registry.hpp"
+#include "core/event/event_dispatcher.hpp"
+#include "core/event/scene_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "rendering/framebuffer.hpp"
+#include "utilities/asset_manager/asset_manager.hpp"
 
 namespace kogayonon_gui
 {
-SceneViewportWindow::SceneViewportWindow( std::string name,
-                                          std::shared_ptr<kogayonon_rendering::FrameBuffer> frameBuffer,
+SceneViewportWindow::SceneViewportWindow( std::string name, std::weak_ptr<kogayonon_rendering::FrameBuffer> frameBuffer,
                                           unsigned int playTextureId, unsigned int stopTextureId )
-    : ImGuiWindow( std ::move( name ) )
-    , m_pFrameBuffer( frameBuffer )
-    , m_playTextureId( playTextureId )
-    , m_stopTextureId( stopTextureId )
+    : ImGuiWindow{ std ::move( name ) }
+    , m_pFrameBuffer{ frameBuffer }
+    , m_playTextureId{ playTextureId }
+    , m_stopTextureId{ stopTextureId }
+    , m_selectedEntity{ entt::null }
 {
+  EVENT_DISPATCHER()->addHandler<kogayonon_core::SelectEntityEvent, &SceneViewportWindow::onSelectedEntity>( *this );
+}
+
+void SceneViewportWindow::onSelectedEntity( kogayonon_core::SelectEntityEvent& e )
+{
+  m_selectedEntity = e.getEntity();
 }
 
 std::weak_ptr<kogayonon_rendering::FrameBuffer> SceneViewportWindow::getFrameBuffer()
@@ -86,16 +99,57 @@ void SceneViewportWindow::draw()
     if ( ImGui::BeginDragDropTarget() )
     {
       // if we have a payload
-      if ( const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "ASSET_DROP" ) )
-      {
-        const char* data = static_cast<const char*>( payload->Data );
-        std::string dropResult( data, payload->DataSize );
-        spdlog::info( "dropped payload data {}", dropResult );
-      }
+      manageAssetsPayload( ImGui::AcceptDragDropPayload( "ASSET_DROP" ) );
       ImGui::EndDragDropTarget();
     }
   }
 
   ImGui::End();
+}
+
+void SceneViewportWindow::manageAssetsPayload( const ImGuiPayload* payload ) const
+{
+  if ( payload )
+  {
+    const auto& pAssetManager = ASSET_MANAGER();
+    auto data = static_cast<const char*>( payload->Data );
+    std::string dropResult( data, payload->DataSize );
+    std::filesystem::path p{ dropResult };
+    if ( p.extension().string() == ".gltf" )
+    {
+      spdlog::info( "dropped a model file from {}, ext:{}", dropResult, p.extension().string() );
+      pAssetManager->addModel( p.filename().string(), p.string() );
+    }
+    else if ( p.extension().string() == ".png" || p.extension().string() == ".jpg" )
+    {
+      spdlog::info( "dropped a texture file from {}, ext:{}", dropResult, p.extension().string() );
+      auto s = kogayonon_core::SceneManager::getCurrentScene();
+      if ( auto pScene = s.lock() )
+      {
+        auto texture = pAssetManager->addTexture( p.filename().string(), p.string() );
+        if ( m_selectedEntity != entt::null )
+        {
+          auto ent = std::make_shared<kogayonon_core::Entity>( pScene->getRegistry(), m_selectedEntity );
+          if ( auto textureComponent = ent->tryGetComponent<kogayonon_core::TextureComponent>();
+               ent->hasComponent<kogayonon_core::TextureComponent>() )
+          {
+            std::string texturePath = textureComponent->pTexture.lock()->getPath();
+            ent->removeComponent<kogayonon_core::TextureComponent>();
+            ASSET_MANAGER()->removeTexture( texturePath );
+          }
+          ent->addComponent<kogayonon_core::TextureComponent>( texture );
+        }
+        else
+        {
+          auto ent = std::make_shared<kogayonon_core::Entity>( pScene->getRegistry(), "Object" );
+          ent->addComponent<kogayonon_core::TextureComponent>( texture );
+        }
+      }
+    }
+    else
+    {
+      spdlog::info( "format currently unsupported {}", p.extension().string() );
+    }
+  }
 }
 } // namespace kogayonon_gui

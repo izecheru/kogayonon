@@ -30,23 +30,23 @@ class App
 public:
   App();
   ~App();
-  void cleanup();
+  void cleanup() const;
   void pollEvents();
   void run();
 
   bool init();
   bool initSDL();
-  bool initRegistries();
+  bool initRegistries() const;
   bool initGui();
-  bool initScenes();
+  bool initScenes() const;
 
   void rescaleMainViewport( int w, int h );
-  bool onWindowResize( kogayonon_core::WindowResizeEvent& e );
+  bool onWindowResize( const kogayonon_core::WindowResizeEvent& e );
 
   static void glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
                                const GLchar* message, const void* userParam );
 
-  void callbackTest();
+  void callbackTest() const;
 
 private:
   std::shared_ptr<kogayonon_window::Window> m_pWindow;

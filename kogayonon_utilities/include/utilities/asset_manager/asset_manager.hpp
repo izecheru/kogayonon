@@ -43,13 +43,13 @@ public:
 
 private:
   void parseVertices( cgltf_primitive& primitive, std::vector<glm::vec3>& positions, std::vector<glm::vec3>& normals,
-                      std::vector<glm::vec2>& tex_coords, const glm::mat4& transformation );
-  void parseIndices( cgltf_accessor* accessor, std::vector<uint32_t>& indices );
+                      std::vector<glm::vec2>& tex_coords, const glm::mat4& transformation ) const;
+  void parseIndices( cgltf_accessor* accessor, std::vector<uint32_t>& indices ) const;
   void parseTextures( const cgltf_material* material, std::vector<unsigned int>& textureIDs );
 
 private:
-  std::thread m_watchThread;
-  std::mutex m_assetMutex;
+  std::thread m_watchThread{};
+  std::mutex m_assetMutex{};
 
   std::unordered_map<std::string, std::shared_ptr<kogayonon_resources::Texture>> m_loadedTextures;
   std::unordered_map<std::string, std::shared_ptr<kogayonon_resources::Model>> m_loadedModels;

@@ -66,7 +66,7 @@ App::~App()
   cleanup();
 }
 
-void App::cleanup()
+void App::cleanup() const
 {
   spdlog::info( "Closing app and cleaning up" );
 }
@@ -116,8 +116,8 @@ void App::pollEvents()
 
 void App::run()
 {
-  auto& pTimeTracker = TIME_TRACKER();
-  auto& pImGuiManager = IMGUI_MANAGER();
+  const auto& pTimeTracker = TIME_TRACKER();
+  const auto& pImGuiManager = IMGUI_MANAGER();
 
   pTimeTracker->start( "deltaTime" );
 
@@ -169,13 +169,12 @@ bool App::initSDL()
   glDebugMessageCallback( glDebugCallback, nullptr );
 #endif
 
-  // glCullFace( GL_CCW );
   glClearColor( 0.5f, 0.5f, 0.5f, 1.0f );
   rescaleMainViewport( pWinProps->width, pWinProps->height );
   return true;
 }
 
-bool App::initRegistries()
+bool App::initRegistries() const
 {
   auto& mainRegistry = REGISTRY();
 
@@ -226,11 +225,13 @@ bool App::initGui()
   // frame buffer for the scene viewport
   m_pFrameBuffer = std::make_shared<kogayonon_rendering::FrameBuffer>( 400, 400 );
 
+  const auto& pAssetManager = ASSET_MANAGER();
+
   // textures for imgui buttons or windows and what not
-  auto playTexture = ASSET_MANAGER()->getTexture( "play" ).lock()->getTextureId();
-  auto stopTexture = ASSET_MANAGER()->getTexture( "stop" ).lock()->getTextureId();
-  auto fileTexture = ASSET_MANAGER()->getTexture( "file" ).lock()->getTextureId();
-  auto folderTexture = ASSET_MANAGER()->getTexture( "folder" ).lock()->getTextureId();
+  auto playTexture = pAssetManager->getTexture( "play" ).lock()->getTextureId();
+  auto stopTexture = pAssetManager->getTexture( "stop" ).lock()->getTextureId();
+  auto fileTexture = pAssetManager->getTexture( "file" ).lock()->getTextureId();
+  auto folderTexture = pAssetManager->getTexture( "folder" ).lock()->getTextureId();
 
   auto sceneViewport =
     std::make_unique<kogayonon_gui::SceneViewportWindow>( "Scene", m_pFrameBuffer, playTexture, stopTexture );
@@ -250,7 +251,7 @@ bool App::initGui()
   return true;
 }
 
-bool App::initScenes()
+bool App::initScenes() const
 {
   auto mainScene = std::make_shared<kogayonon_core::Scene>( "Default scene" );
 
@@ -306,7 +307,7 @@ void App::rescaleMainViewport( int w, int h )
   glViewport( 0, 0, w, h );
 }
 
-bool App::onWindowResize( kogayonon_core::WindowResizeEvent& e )
+bool App::onWindowResize( const kogayonon_core::WindowResizeEvent& e )
 {
   rescaleMainViewport( e.getWidth(), e.getHeight() );
 
@@ -324,17 +325,16 @@ void App::glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severit
   }
 }
 
-void App::callbackTest()
+void App::callbackTest() const
 {
-  auto scene = kogayonon_core::SceneManager::getCurrentScene();
-
   // check if the scene ptr is still valid
-  if ( !scene.lock() )
+  if ( auto scene = kogayonon_core::SceneManager::getCurrentScene(); !scene.lock() )
     return;
 
-  auto& registry = scene.lock()->getRegistry();
+  // auto& registry = scene.lock()->getRegistry();
 
-  static GLuint quadVAO = 0, quadVBO = 0;
+  static GLuint quadVAO = 0;
+  static GLuint quadVBO = 0;
   if ( quadVAO == 0 )
   {
     float quadVertices[] = {
@@ -369,10 +369,10 @@ void App::callbackTest()
     GLuint dummy = 0;
     glVertexArrayElementBuffer( quadVAO, dummy );
   }
-  SHADER_MANAGER()->bindShader( "white" );
+  SHADER_MANAGER()->bindShader( "3d" );
   glBindVertexArray( quadVAO );
   glDrawArrays( GL_TRIANGLES, 0, 6 );
   glBindVertexArray( 0 );
-  SHADER_MANAGER()->unbindShader( "white" );
+  SHADER_MANAGER()->unbindShader( "3d" );
 }
 } // namespace kogayonon_app
