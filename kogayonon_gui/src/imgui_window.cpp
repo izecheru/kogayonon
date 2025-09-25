@@ -3,8 +3,8 @@
 namespace kogayonon_gui
 {
 ImGuiWindow::ImGuiWindow( std::string name )
+    : m_props{ std::make_unique<imgui_props>( name ) }
 {
-  m_props = std::make_unique<imgui_props>( name );
 }
 
 ImGuiWindow::~ImGuiWindow()
@@ -44,10 +44,5 @@ int ImGuiWindow::width()
 int ImGuiWindow::height()
 {
   return m_props->height;
-}
-
-void ImGuiWindow::setCallback( const RenderCallbackFn& func )
-{
-  m_renderCallback = func;
 }
 } // namespace kogayonon_gui

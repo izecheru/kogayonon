@@ -11,7 +11,6 @@ add_library(
   "include/core/input/keyboard_state.hpp"
   "include/core/scene/scene.hpp"
   "include/core/ecs/entity.hpp"
-  "include/core/ecs/components/mesh_component.hpp"
 
   "src/main_registry.cpp"
   "src/entity.cpp"
@@ -19,8 +18,8 @@ add_library(
   "include/core/scene/scene_manager.hpp"
   "src/scene_manager.cpp"
   "include/core/ecs/components/texture_component.hpp"
-  "src/components/texture_component.cpp" "include/core/ecs/components/name_component.hpp" "src/scene_events.cpp"
-  "include/core/event/file_events.hpp" "include/core/systems/rendering_system.h")
+  "include/core/ecs/components/name_component.hpp" "src/scene_events.cpp" "include/core/ecs/components/transform_component.hpp"
+  "include/core/event/file_events.hpp" "include/core/systems/rendering_system.h" "src/rendering_system.cpp")
 
 target_include_directories(kogayonon_core
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

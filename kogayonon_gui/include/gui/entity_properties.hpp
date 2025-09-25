@@ -18,7 +18,10 @@ public:
 
   void draw() override;
 
-  bool onEnitySelect( const kogayonon_core::SelectEntityEvent& e );
+  void onEntitySelect( const kogayonon_core::SelectEntityEvent& e );
+
+private:
+  void drawEnttProperties( std::shared_ptr<kogayonon_core::Scene> scene ) const;
 
 private:
   entt::entity m_entity;

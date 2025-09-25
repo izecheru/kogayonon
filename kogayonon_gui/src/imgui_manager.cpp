@@ -22,6 +22,7 @@ ImGuiManager::ImGuiManager( SDL_Window* window, SDL_GLContext context )
   if ( initImgui( window, context ) )
   {
     spdlog::info( "Imgui initialised" );
+
     // TODO add callback to the debug window
   }
 }
@@ -134,12 +135,12 @@ void ImGuiManager::setupDockSpace( ImGuiViewport* viewport )
       auto lowerLeftNodeId = ImGui::DockBuilderSplitNode( leftNodeId, ImGuiDir_Up, 0.3f, nullptr, &leftNodeId );
 
       // Dock windows
-      ImGui::DockBuilderDockWindow( "Debug console", bottomCenterNodeId );
-      ImGui::DockBuilderDockWindow( "Assets", bottomCenterNodeId );
-      ImGui::DockBuilderDockWindow( "Scene hierarchy", upplerLeftNodeId );
-      ImGui::DockBuilderDockWindow( "Object properties", lowerLeftNodeId );
-      ImGui::DockBuilderDockWindow( "Performance", rightNodeId );
-      ImGui::DockBuilderDockWindow( "Scene", centerNodeId );
+      ImGui::DockBuilderDockWindow( "Debug console##win", bottomCenterNodeId );
+      ImGui::DockBuilderDockWindow( "Assets##win", bottomCenterNodeId );
+      ImGui::DockBuilderDockWindow( "Scene hierarchy##win", upplerLeftNodeId );
+      ImGui::DockBuilderDockWindow( "Object properties##win", lowerLeftNodeId );
+      ImGui::DockBuilderDockWindow( "Performance##win", rightNodeId );
+      ImGui::DockBuilderDockWindow( "Scene##win", centerNodeId );
 
       ImGui::DockBuilderFinish( dockspaceId );
     }

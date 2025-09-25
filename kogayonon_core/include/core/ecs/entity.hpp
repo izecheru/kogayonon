@@ -60,11 +60,11 @@ public:
     auto& registry = m_registry.getRegistry();
     if ( registry.all_of<TComponent>( m_entity ) )
     {
-      return registry.replace<TComponent>( m_entity, std::forward<Args>( args )... );
+      registry.replace<TComponent>( m_entity, std::forward<Args>( args )... );
     }
     else
     {
-      return registry.emplace<TComponent>( m_entity, std::forward<Args>( args )... );
+      registry.emplace<TComponent>( m_entity, std::forward<Args>( args )... );
     }
   }
 

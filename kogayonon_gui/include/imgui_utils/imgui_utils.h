@@ -11,7 +11,7 @@ namespace ImGui_Utils
  * @return String representing the resulted text after truncation, or just the text if it does not go above the limit
  * imposed
  */
-std::string truncateText( const std::string& text, float truncateWidth )
+static std::string truncateText( const std::string& text, float truncateWidth )
 {
   std::string truncatedText = text;
 
@@ -38,5 +38,10 @@ std::string truncateText( const std::string& text, float truncateWidth )
   }
 
   return truncatedText;
+}
+
+static bool isFocusedAndHovered( bool focused, bool hovered )
+{
+  return focused && hovered;
 }
 } // namespace ImGui_Utils

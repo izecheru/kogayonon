@@ -7,6 +7,7 @@
 #include "core/ecs/registry.hpp"
 #include "core/event/event_dispatcher.hpp"
 #include "core/event/scene_events.hpp"
+#include "core/input/keyboard_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
 
@@ -15,8 +16,18 @@ using namespace kogayonon_core;
 namespace kogayonon_gui
 {
 SceneHierarchyWindow::SceneHierarchyWindow( std::string name )
-    : ImGuiWindow( std::move( name ) )
+    : ImGuiWindow{ std::move( name ) }
+    , m_selectedIndex{ -1 }
 {
+  EVENT_DISPATCHER()->addHandler<kogayonon_core::KeyPressedEvent, &SceneHierarchyWindow::onKeyPressed>( *this );
+}
+
+void SceneHierarchyWindow::onKeyPressed( const kogayonon_core::KeyPressedEvent& e )
+{
+  if ( e.getKeyCode() == KeyCode::Escape && m_selectedIndex != -1 )
+  {
+    m_selectedIndex = -1;
+  }
 }
 
 void SceneHierarchyWindow::draw()
@@ -29,53 +40,65 @@ void SceneHierarchyWindow::draw()
 
   m_pCurrentScene = kogayonon_core::SceneManager::getCurrentScene();
   auto scene = m_pCurrentScene.lock();
+
+  // if there is no scene to render return
   if ( !scene )
   {
     ImGui::End();
     return;
   }
+
   auto& enttRegistry = scene->getEnttRegistry();
   auto view = enttRegistry.view<NameComponent>();
-  auto& pEventDispatcher = EVENT_DISPATCHER();
+  const auto& pEventDispatcher = EVENT_DISPATCHER();
   std::vector<Entity> entities;
+
+  static int entSize = 0;
   for ( auto [entity, nameComponent] : view.each() )
   {
     Entity ent( scene->getRegistry(), entity );
-    entities.emplace_back( std::move( ent ) );
+    entities.emplace_back( ent );
   }
-  static int selectedIndex = -1;
-  static int hoveredIndex = -1;
 
-  ImVec2 listSize = ImVec2( -FLT_MIN, ImGui::GetContentRegionAvail().y );
-  ImVec2 avail = ImGui::GetContentRegionAvail();
+  if ( entSize != entities.size() )
+  {
+    entSize = entities.size();
+    m_selectedIndex = -1;
+  }
+
+  auto listSize = ImVec2( -FLT_MIN, ImGui::GetContentRegionAvail().y );
+  auto avail = ImGui::GetContentRegionAvail();
   ImGui::BeginChild( "EntityListRegion", avail, ImGuiChildFlags_ResizeY );
+
+  // Push the style color
   ImGui::PushStyleColor( ImGuiCol_FrameBg, ImVec4( 0, 0, 0, 0 ) );
+
   if ( ImGui::BeginListBox( "##EntityList", listSize ) )
   {
     for ( int i = 0; i < entities.size(); i++ )
     {
-      bool isSelected = selectedIndex == i;
+      bool isSelected = ( m_selectedIndex == i );
       auto& entity = entities.at( i );
-      auto& nameComp = entity.getComponent<NameComponent>();
-      if ( ImGui::Selectable( nameComp.name.c_str(), isSelected ) )
+      const auto& nameComp = entity.getComponent<NameComponent>();
+
+      std::string label = std::format( "{}{}{}", nameComp.name, "##", std::to_string( i ) );
+      if ( ImGui::Selectable( label.c_str(), isSelected ) )
       {
-        if ( selectedIndex != i )
-        {
-          selectedIndex = i;
-          pEventDispatcher->emitEvent( SelectEntityEvent( entity.getEnttEntity() ) );
-        }
+        m_selectedIndex = i;
+        pEventDispatcher->emitEvent( SelectEntityEvent( entity.getEnttEntity() ) );
       }
-      if ( ImGui::IsItemHovered() )
+
+      auto pTexture = entity.tryGetComponent<TextureComponent>();
+      if ( ImGui::IsItemHovered() && pTexture )
       {
-        if ( auto* pTexture = entity.tryGetComponent<TextureComponent>() )
-        {
-          drawTextureTooltip( pTexture, ImVec2( 250.0f, 250.0f ) );
-        }
+        drawTextureTooltip( pTexture, ImVec2( 250.0f, 250.0f ) );
       }
     }
     ImGui::EndListBox();
   }
+
   ImGui::PopStyleColor( 1 );
+
   ImGui::EndChild();
   ImGui::End();
 }
