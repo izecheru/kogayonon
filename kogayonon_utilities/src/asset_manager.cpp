@@ -50,7 +50,7 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureWithoutParam
                                                              0  // channels unknown
   );
 
-  m_loadedTextures.emplace( textureName, tex );
+  m_loadedTextures.try_emplace( textureName, tex );
   spdlog::info( "Loaded texture {} {}", textureName, texturePath );
 
   return m_loadedTextures.at( textureName );
@@ -68,7 +68,9 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std:
   // std::lock_guard lock( m_assetMutex );
   assert( std::filesystem::exists( texturePath ) && "Texture path does not exist" );
 
-  int w = 0, h = 0, channels = 0;
+  int w = 0;
+  int h = 0;
+  int channels = 0;
   unsigned char* data = SOIL_load_image( texturePath.c_str(), &w, &h, &channels, SOIL_LOAD_AUTO );
   if ( !data )
   {
@@ -79,7 +81,7 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std:
   auto id = SOIL_create_OGL_texture( data, &w, &h, channels, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS );
 
   auto tex = std::make_shared<kogayonon_resources::Texture>( id, texturePath, textureName, w, h, channels );
-  m_loadedTextures.emplace( textureName, std::move( tex ) );
+  m_loadedTextures.try_emplace( textureName, tex );
   spdlog::info( "Loaded texture {} from {} ", textureName, texturePath );
   SOIL_free_image_data( data );
   return m_loadedTextures.at( textureName );
@@ -136,7 +138,7 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
 
     cgltf_mesh& mesh = *node.mesh;
 
-    glm::mat4 transform = glm::mat4( 1.0f );
+    auto transform = glm::mat4( 1.0f );
     if ( node.has_matrix )
       transform = glm::make_mat4( node.matrix );
     else
@@ -183,7 +185,7 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
 
   auto model = std::make_shared<kogayonon_resources::Model>( std::move( meshes ) );
 
-  m_loadedModels.emplace( modelName, std::move( model ) );
+  m_loadedModels.try_emplace( modelName, model );
 
   cgltf_free( data );
 
@@ -208,7 +210,7 @@ void AssetManager::removeTexture( const std::string& path )
 {
   for ( auto it = m_loadedTextures.begin(); it != m_loadedTextures.end(); ++it )
   {
-    if ( it->second->getPath() == path )
+    if ( it->second->getPath() == path.data() )
     {
       spdlog::info( "deleted {} ", path );
       return;
@@ -226,7 +228,7 @@ std::weak_ptr<kogayonon_resources::Model> kogayonon_utilities::AssetManager::get
 
 void AssetManager::parseVertices( cgltf_primitive& primitive, std::vector<glm::vec3>& positions,
                                   std::vector<glm::vec3>& normals, std::vector<glm::vec2>& tex_coords,
-                                  const glm::mat4& transformation )
+                                  const glm::mat4& transformation ) const
 {
   for ( size_t attr_index = 0; attr_index < primitive.attributes_count; attr_index++ )
   {
@@ -266,7 +268,7 @@ void AssetManager::parseVertices( cgltf_primitive& primitive, std::vector<glm::v
   }
 }
 
-void AssetManager::parseIndices( cgltf_accessor* accessor, std::vector<uint32_t>& indices )
+void AssetManager::parseIndices( cgltf_accessor* accessor, std::vector<uint32_t>& indices ) const
 {
   cgltf_buffer_view* buffer_view = accessor->buffer_view;
   uint8_t* buffer_data = (uint8_t*)buffer_view->buffer->data + buffer_view->offset;

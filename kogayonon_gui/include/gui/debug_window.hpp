@@ -10,8 +10,8 @@ namespace kogayonon_gui
 class DebugConsoleWindow : public ImGuiWindow
 {
 public:
-  DebugConsoleWindow( std::string name )
-      : ImGuiWindow( std::move( name ) )
+  explicit DebugConsoleWindow( std::string name )
+      : ImGuiWindow{ std::move( name ) }
   {
   }
 
@@ -24,7 +24,7 @@ public:
 
     ( str_stream << ... << args );
     {
-      std::unique_lock<std::mutex> lock( m_mutex );
+      std::unique_lock lock( m_mutex );
       m_messages.push_back( str_stream.str() );
     }
   }

@@ -5,7 +5,7 @@
 namespace ImGui_Utils
 {
 /**
- * @brief Trucate the text if the strlen(text) > is bigger than the truncateWidth
+ * @brief Truncate the text if the strlen(text) > is bigger than the truncateWidth
  * @param text Text we will truncate
  * @param truncateWidth The limit at which we place the ellipsis if the text len surpasses the limit
  * @return String representing the resulted text after truncation, or just the text if it does not go above the limit
@@ -34,7 +34,7 @@ std::string truncateText( const std::string& text, float truncateWidth )
       visibleChars = i;
     }
 
-    truncatedText = ( text.substr( 0, visibleChars ) + ELLIPSIS ).c_str();
+    truncatedText = text.substr( 0, visibleChars ) + ELLIPSIS;
   }
 
   return truncatedText;

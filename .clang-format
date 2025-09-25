@@ -6,6 +6,7 @@ TabWidth: 2
 ContinuationIndentWidth: 2
 UseTab: Never
 BreakConstructorInitializers: BeforeComma
+AllowAllConstructorInitializersOnNextLine: false
 BreakBeforeBraces: Custom
 EmptyLineBeforeAccessModifier: Always
 MaxEmptyLinesToKeep: 1
@@ -25,7 +26,6 @@ PointerAlignment: Left
 CompactNamespaces: false                
 SpacesInParentheses: true
 FixNamespaceComments: true               
-AllowAllConstructorInitializersOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
 BinPackParameters: true
 AlwaysBreakAfterReturnType: None

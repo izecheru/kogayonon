@@ -18,7 +18,7 @@ public:
 
   void draw() override;
 
-  bool onEnitySelect( kogayonon_core::SelectEntityEvent& e );
+  bool onEnitySelect( const kogayonon_core::SelectEntityEvent& e );
 
 private:
   entt::entity m_entity;
