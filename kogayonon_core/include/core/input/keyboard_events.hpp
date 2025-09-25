@@ -9,8 +9,8 @@ namespace kogayonon_core
 class KeyEvent : public IEvent
 {
 public:
-  KeyEvent( const KeyCode& code, bool isPressed )
-      : m_keyCode( code )
+  explicit KeyEvent( const KeyCode& code, bool isPressed )
+      : m_keyCode{ code }
   {
     if ( isPressed )
     {
@@ -34,9 +34,9 @@ protected:
 class KeyPressedEvent : public KeyEvent
 {
 public:
-  KeyPressedEvent( KeyCode keycode, int repeatCount )
-      : KeyEvent( keycode, true )
-      , m_RepeatCount( repeatCount )
+  explicit KeyPressedEvent( KeyCode keycode, int repeatCount )
+      : KeyEvent{ keycode, true }
+      , m_RepeatCount{ repeatCount }
   {
   }
 
@@ -54,8 +54,8 @@ private:
 class KeyReleasedEvent : public KeyEvent
 {
 public:
-  KeyReleasedEvent( KeyCode keycode )
-      : KeyEvent( keycode, false )
+  explicit KeyReleasedEvent( KeyCode keycode )
+      : KeyEvent{ keycode, false }
   {
   }
 
@@ -65,7 +65,7 @@ public:
 class KeyTypedEvent : public IEvent
 {
 public:
-  KeyTypedEvent( KeyCode keycode )
+  explicit KeyTypedEvent( KeyCode keycode )
   {
   }
   EVENT_CLASS_TYPE( KeyTyped )

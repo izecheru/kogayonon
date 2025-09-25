@@ -2,6 +2,7 @@
 #include <cgltf.h>
 #include <SOIL2/SOIL2.h>
 #include <assert.h>
+#include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <spdlog/spdlog.h>
 #include "resources/model.hpp"
@@ -98,11 +99,7 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
     return it->second;
   }
 
-  if ( !std::filesystem::exists( modelPath ) )
-  {
-    spdlog::error( "Model file does not exist {} ", modelPath );
-    return {};
-  }
+  assert( std::filesystem::exists( modelPath ) && "model file does not exist" );
 
   cgltf_options options{};
   cgltf_data* data = nullptr;
@@ -182,7 +179,7 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
       meshes.emplace_back( std::move( vertices ), std::move( indices ), std::move( textureIDs ) );
     }
   }
-
+  prepareMeshes( meshes );
   auto model = std::make_shared<kogayonon_resources::Model>( std::move( meshes ) );
 
   m_loadedModels.try_emplace( modelName, model );
@@ -191,6 +188,55 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
 
   spdlog::info( "Loaded model {} ", modelName );
   return getModel( modelName );
+}
+
+void AssetManager::prepareMeshes( std::vector<kogayonon_resources::Mesh>& meshes ) const
+{
+  for ( auto& mesh : meshes )
+  {
+    auto& vao = mesh.getVao();
+    auto& vbo = mesh.getVbo();
+    auto& ebo = mesh.getEbo();
+
+    auto& vertices = mesh.getVertices();
+    auto& indices = mesh.getIndices();
+
+    // prepare the buffers to tell OpenGL how to interpret our data
+    glCreateVertexArrays( 1, &vao );
+
+    // upload data to vertex buffer
+    glCreateBuffers( 1, &vbo );
+    glNamedBufferData( vbo, vertices.size() * sizeof( kogayonon_resources::Vertex ), vertices.data(), GL_DYNAMIC_DRAW );
+
+    // upload indices to element buffer
+    glCreateBuffers( 1, &ebo );
+    glNamedBufferData( ebo, indices.size() * sizeof( unsigned int ), indices.data(), GL_DYNAMIC_DRAW );
+
+    // link vbo to vao
+    glVertexArrayVertexBuffer( vao, 0, vbo, 0, sizeof( kogayonon_resources::Vertex ) );
+
+    // link ebo to vao
+    glVertexArrayElementBuffer( vao, ebo );
+
+    // tell OpenGL how the data layout looks
+
+    // position
+    glEnableVertexArrayAttrib( vao, 0 );
+
+    // normal
+    glEnableVertexArrayAttrib( vao, 1 );
+
+    // texture coordinates
+    glEnableVertexArrayAttrib( vao, 2 );
+
+    glVertexArrayAttribFormat( vao, 0, 3, GL_FLOAT, GL_FLOAT, offsetof( kogayonon_resources::Vertex, position ) );
+    glVertexArrayAttribFormat( vao, 1, 3, GL_FLOAT, GL_FLOAT, offsetof( kogayonon_resources::Vertex, normal ) );
+    glVertexArrayAttribFormat( vao, 2, 2, GL_FLOAT, GL_FLOAT, offsetof( kogayonon_resources::Vertex, textureCoords ) );
+
+    glVertexArrayAttribBinding( vao, 0, 0 );
+    glVertexArrayAttribBinding( vao, 1, 0 );
+    glVertexArrayAttribBinding( vao, 2, 0 );
+  }
 }
 
 std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureFromMemory( const std::string& textureName,

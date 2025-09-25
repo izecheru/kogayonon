@@ -4,7 +4,6 @@
 #include <memory>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/spdlog.h>
-#include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -12,6 +11,7 @@
 #include "core/event/app_event.hpp"
 #include "core/event/event_dispatcher.hpp"
 #include "core/input/keyboard_events.hpp"
+#include "core/input/mouse_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "gui/debug_window.hpp"
@@ -50,8 +50,8 @@ App::App()
       m_running = false;
     }
 
-    auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>( "Debug console" );
-    auto pDbgWin = dynamic_cast<kogayonon_gui::DebugConsoleWindow*>( debugWindow.get() );
+    auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>( "Debug console##win" );
+    auto pDbgWin = debugWindow.get();
     defferedSink->setWindow( pDbgWin );
     IMGUI_MANAGER()->pushWindow( "Debug console", std::move( debugWindow ) );
   }
@@ -85,7 +85,7 @@ void App::pollEvents()
       {
         int newWidth = e.window.data1;
         int newHeight = e.window.data2;
-        kogayonon_core::WindowResizeEvent windowResizeEvent( newWidth, newHeight );
+        kogayonon_core::WindowResizeEvent windowResizeEvent{ newWidth, newHeight };
         pEventDispatcher->emitEvent( windowResizeEvent );
       }
       break;
@@ -98,7 +98,7 @@ void App::pollEvents()
 
       // TODO maybe rethink this a bit
       auto keycode = static_cast<kogayonon_core::KeyCode>( e.key.keysym.sym );
-      kogayonon_core::KeyPressedEvent keyPressEvent( keycode, 0 );
+      kogayonon_core::KeyPressedEvent keyPressEvent{ keycode, 0 };
       pEventDispatcher->emitEvent( keyPressEvent );
       break;
     }
@@ -106,9 +106,22 @@ void App::pollEvents()
 
       // TODO maybe rethink this a bit
       auto keycode = static_cast<kogayonon_core::KeyCode>( e.key.keysym.sym );
-      kogayonon_core::KeyReleasedEvent keyReleaseEvent( keycode );
+      kogayonon_core::KeyReleasedEvent keyReleaseEvent{ keycode };
       pEventDispatcher->emitEvent( keyReleaseEvent );
       break;
+    }
+    case SDL_MOUSEMOTION: {
+      double x = e.motion.x;
+      double y = e.motion.y;
+      kogayonon_core::MouseMovedEvent mouseMovedEvent{ x, y };
+      pEventDispatcher->emitEvent( mouseMovedEvent );
+      break;
+    }
+    case SDL_MOUSEWHEEL: {
+      double xOff = e.wheel.x;
+      double yOff = e.wheel.y;
+      kogayonon_core::MouseScrolledEvent mouseScrolled{ xOff, yOff };
+      pEventDispatcher->emitEvent( mouseScrolled );
     }
     }
   }
@@ -234,13 +247,12 @@ bool App::initGui()
   auto folderTexture = pAssetManager->getTexture( "folder" ).lock()->getTextureId();
 
   auto sceneViewport =
-    std::make_unique<kogayonon_gui::SceneViewportWindow>( "Scene", m_pFrameBuffer, playTexture, stopTexture );
-  auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets", folderTexture, fileTexture );
-  auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>( "Scene hierarchy" );
-  auto performanceWindow = std::make_unique<kogayonon_gui::PerformanceWindow>( "Performance" );
-  auto entityPropertiesWindow = std::make_unique<kogayonon_gui::EntityPropertiesWindow>( "Object properties" );
-
-  sceneViewport->setCallback( [this]() { callbackTest(); } );
+    std::make_unique<kogayonon_gui::SceneViewportWindow>( "Scene##win", m_pFrameBuffer, playTexture, stopTexture );
+  auto fileExplorerWindow =
+    std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets##win", folderTexture, fileTexture );
+  auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>( "Scene hierarchy##win" );
+  auto performanceWindow = std::make_unique<kogayonon_gui::PerformanceWindow>( "Performance##win" );
+  auto entityPropertiesWindow = std::make_unique<kogayonon_gui::EntityPropertiesWindow>( "Object properties##win" );
 
   IMGUI_MANAGER()->pushWindow( "Scene", std::move( sceneViewport ) );
   IMGUI_MANAGER()->pushWindow( "Object properties", std::move( entityPropertiesWindow ) );
@@ -323,56 +335,5 @@ void App::glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severit
   {
     spdlog::error( "Severity-{} Type-{} Source-{} Message-{}", source, type, severity, message );
   }
-}
-
-void App::callbackTest() const
-{
-  // check if the scene ptr is still valid
-  if ( auto scene = kogayonon_core::SceneManager::getCurrentScene(); !scene.lock() )
-    return;
-
-  // auto& registry = scene.lock()->getRegistry();
-
-  static GLuint quadVAO = 0;
-  static GLuint quadVBO = 0;
-  if ( quadVAO == 0 )
-  {
-    float quadVertices[] = {
-
-      // x, y, u, v
-      -1.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-      1.0f,  -1.0f, 1.0f, 0.0f, // bottom-right
-      1.0f,  1.0f,  1.0f, 1.0f, // top-right
-
-      -1.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-      1.0f,  1.0f,  1.0f, 1.0f, // top-right
-      -1.0f, 1.0f,  0.0f, 1.0f  // top-left
-    };
-
-    glCreateVertexArrays( 1, &quadVAO );
-    glCreateBuffers( 1, &quadVBO );
-
-    glNamedBufferStorage( quadVBO, sizeof( quadVertices ), quadVertices, 0 );
-    glVertexArrayVertexBuffer( quadVAO, 0, quadVBO, 0, 4 * sizeof( float ) );
-
-    // position attribute
-    glEnableVertexArrayAttrib( quadVAO, 0 );
-    glVertexArrayAttribFormat( quadVAO, 0, 2, GL_FLOAT, GL_FALSE, 0 );
-    glVertexArrayAttribBinding( quadVAO, 0, 0 );
-
-    // texcoord attribute
-    glEnableVertexArrayAttrib( quadVAO, 1 );
-    glVertexArrayAttribFormat( quadVAO, 1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof( float ) );
-    glVertexArrayAttribBinding( quadVAO, 1, 0 );
-
-    // ensure no element buffer is bound
-    GLuint dummy = 0;
-    glVertexArrayElementBuffer( quadVAO, dummy );
-  }
-  SHADER_MANAGER()->bindShader( "3d" );
-  glBindVertexArray( quadVAO );
-  glDrawArrays( GL_TRIANGLES, 0, 6 );
-  glBindVertexArray( 0 );
-  SHADER_MANAGER()->unbindShader( "3d" );
 }
 } // namespace kogayonon_app

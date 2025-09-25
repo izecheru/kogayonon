@@ -8,10 +8,18 @@ namespace kogayonon_core
 {
 struct TextureComponent
 {
-  explicit TextureComponent( std::weak_ptr<kogayonon_resources::Texture> texture );
-  ~TextureComponent();
+  explicit TextureComponent( std::weak_ptr<kogayonon_resources::Texture> texture )
+      : pTexture{ texture }
+  {
+  }
 
-  unsigned int getTextureId();
+  ~TextureComponent() = default;
+
+  inline unsigned int getTextureId() const
+  {
+    return pTexture.lock()->getTextureId();
+  }
+
   std::weak_ptr<kogayonon_resources::Texture> pTexture;
 };
 } // namespace kogayonon_core

@@ -1,16 +1,23 @@
 #pragma once
 #include <entt/entt.hpp>
+#include <filesystem>
 #include "imgui_window.hpp"
 
 namespace kogayonon_rendering
 {
 class FrameBuffer;
+class Camera;
 } // namespace kogayonon_rendering
 
 namespace kogayonon_core
 {
 class Scene;
 class SelectEntityEvent;
+class KeyPressedEvent;
+class MouseMovedEvent;
+class MouseScrolledEvent;
+class MouseClickedEvent;
+class RenderingSystem;
 } // namespace kogayonon_core
 
 namespace kogayonon_gui
@@ -25,8 +32,13 @@ public:
   void draw() override;
   std::weak_ptr<kogayonon_rendering::FrameBuffer> getFrameBuffer();
 
-  void onSelectedEntity( kogayonon_core::SelectEntityEvent& e );
+  void onSelectedEntity( const kogayonon_core::SelectEntityEvent& e );
+  void onMouseMoved( const kogayonon_core::MouseMovedEvent& e );
+  void onMouseClicked( const kogayonon_core::MouseClickedEvent& e );
+  void onKeyPressed( const kogayonon_core::KeyPressedEvent& e );
+  void onMouseScrolled( const kogayonon_core::MouseScrolledEvent& e );
 
+private:
   /**
    * @brief Processes the payload from the Assets window
    * @param payload The payload we drag and dropped on the viewport
@@ -36,6 +48,9 @@ public:
 private:
   entt::entity m_selectedEntity;
   std::weak_ptr<kogayonon_rendering::FrameBuffer> m_pFrameBuffer;
-  unsigned int m_playTextureId = 0, m_stopTextureId = 0;
+  unsigned int m_playTextureId;
+  unsigned int m_stopTextureId;
+  std::unique_ptr<kogayonon_core::RenderingSystem> m_pRenderingSystem;
+  std::unique_ptr<kogayonon_rendering::Camera> m_pCamera;
 };
 } // namespace kogayonon_gui

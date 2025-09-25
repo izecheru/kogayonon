@@ -5,12 +5,13 @@ namespace kogayonon_core
 {
 struct NameComponent
 {
-    NameComponent( std::string n ) : name( n )
-    {
-    }
+  explicit NameComponent( const std::string& n )
+      : name{ n }
+  {
+  }
 
-    ~NameComponent() = default;
+  ~NameComponent() = default;
 
-    std::string name;
+  std::string name;
 };
 } // namespace kogayonon_core

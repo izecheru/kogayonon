@@ -44,10 +44,17 @@ public:
 private:
   void parseVertices( cgltf_primitive& primitive, std::vector<glm::vec3>& positions, std::vector<glm::vec3>& normals,
                       std::vector<glm::vec2>& tex_coords, const glm::mat4& transformation ) const;
+
   void parseIndices( cgltf_accessor* accessor, std::vector<uint32_t>& indices ) const;
+
   void parseTextures( const cgltf_material* material, std::vector<unsigned int>& textureIDs );
 
-private:
+  /**
+   * @brief Uploads each mesh data to the gpu and tells it how to interpret every buffer
+   * @param meshes A vector of meshes that will need to be prepared for rendering
+   */
+  void prepareMeshes( std::vector<kogayonon_resources::Mesh>& meshes ) const;
+
   std::thread m_watchThread{};
   std::mutex m_assetMutex{};
 
