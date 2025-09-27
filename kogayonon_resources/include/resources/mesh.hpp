@@ -22,27 +22,24 @@ public:
   Mesh( Mesh&& other ) noexcept = default;            // move constructor
   Mesh& operator=( Mesh&& other ) noexcept = default; // move assignment
 
-  explicit Mesh( std::vector<Vertex>&& vertices, std::vector<unsigned int>&& indices,
-                 std::vector<unsigned int>&& textures );
-  explicit Mesh( std::vector<Vertex>&& vertices, std::vector<unsigned int>&& indices );
+  explicit Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices, std::vector<uint32_t>&& textures );
+  explicit Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices );
 
   std::vector<Vertex>& getVertices();
-  std::vector<unsigned int>& getIndices();
-  std::vector<unsigned int>& getTextures();
+  std::vector<uint32_t>& getIndices();
+  std::vector<uint32_t>& getTextures();
 
-  unsigned int& getVao();
-  unsigned int& getVbo();
-  unsigned int& getEbo();
+  uint32_t& getVao();
+  uint32_t& getVbo();
+  uint32_t& getEbo();
 
 private:
-  std::vector<unsigned int> m_textures;
+  std::vector<uint32_t> m_texturesIDs;
   std::vector<Vertex> m_vertices;
-  std::vector<unsigned int> m_indices;
+  std::vector<uint32_t> m_indices;
 
-  unsigned int vao{ 0 };
-  unsigned int vbo{ 0 };
-  unsigned int ebo{ 0 };
-
-  bool m_init = false;
+  uint32_t vao;
+  uint32_t vbo;
+  uint32_t ebo;
 };
 } // namespace kogayonon_resources

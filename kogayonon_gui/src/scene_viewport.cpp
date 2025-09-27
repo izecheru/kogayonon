@@ -2,6 +2,7 @@
 #include <codecvt>
 #include <filesystem>
 #include <glad/glad.h>
+#include <glm/ext/matrix_clip_space.hpp>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
@@ -35,7 +36,7 @@ SceneViewportWindow::SceneViewportWindow( std::string name, std::weak_ptr<kogayo
     , m_pFrameBuffer{ frameBuffer }
     , m_playTextureId{ playTextureId }
     , m_stopTextureId{ stopTextureId }
-    , m_pRenderingSystem( std::make_unique<RenderingSystem>() )
+    , m_pRenderingSystem{ std::make_unique<RenderingSystem>() }
     , m_pCamera{ std::make_unique<kogayonon_rendering::Camera>() }
 {
   EVENT_DISPATCHER()->addHandler<SelectEntityEvent, &SceneViewportWindow::onSelectedEntity>( *this );
@@ -47,14 +48,10 @@ SceneViewportWindow::SceneViewportWindow( std::string name, std::weak_ptr<kogayo
 
 void SceneViewportWindow::onMouseScrolled( const MouseScrolledEvent& e )
 {
-  if ( !m_props )
+  if ( !m_props || !m_props->hovered )
     return;
 
-  if ( !ImGui_Utils::isFocusedAndHovered( m_props->hovered, m_props->focused ) )
-    return;
-
-  auto& pos = m_pCamera->getPosition();
-  pos.z -= e.getYOff() * 4.0f;
+  m_pCamera->zoom( e.getYOff() );
 }
 
 void SceneViewportWindow::onSelectedEntity( const SelectEntityEvent& e )
@@ -64,13 +61,17 @@ void SceneViewportWindow::onSelectedEntity( const SelectEntityEvent& e )
 
 void SceneViewportWindow::onMouseMoved( const MouseMovedEvent& e )
 {
-  if ( !m_props )
+  if ( !m_props || !m_props->hovered )
     return;
 
-  if ( !ImGui_Utils::isFocusedAndHovered( m_props->hovered, m_props->focused ) )
-    return;
-
-  // m_pCamera->processMouseMoved( e.getX(), e.getY(), true );
+  const auto& io = ImGui::GetIO();
+  if ( io.MouseDown[ImGuiMouseButton_Middle] )
+  {
+    auto pos = ImGui::GetMousePos();
+    const glm::vec2& mouse{ pos.x, pos.y };
+    auto& props = m_pCamera->getProps();
+    m_pCamera->processMouseMoved( e.getX(), e.getY(), true );
+  }
 }
 
 void SceneViewportWindow::onMouseClicked( const MouseClickedEvent& e )
@@ -92,8 +93,13 @@ void SceneViewportWindow::draw()
   {
     ImGui::End();
     return;
-  }
+  };
 
+  // hide the mouse if we move the camera
+  if ( const ImGuiIO& io = ImGui::GetIO(); io.MouseDown[ImGuiMouseButton_Middle] )
+  {
+    ImGui::SetMouseCursor( ImGuiMouseCursor_None );
+  }
   m_props->focused = ImGui::IsWindowFocused();
   m_props->hovered = ImGui::IsWindowHovered();
 
@@ -115,7 +121,9 @@ void SceneViewportWindow::draw()
   ImGui::SameLine();
 
   // render the scene name
-  if ( auto pScene = SceneManager::getCurrentScene(); auto scene = pScene.lock() )
+  auto pScene = SceneManager::getCurrentScene();
+  auto scene = pScene.lock();
+  if ( scene )
   {
     ImGui::Text( "%s", scene->getName().c_str() );
   }
@@ -133,7 +141,10 @@ void SceneViewportWindow::draw()
   pFrameBuffer->bind();
   pFrameBuffer->rescale( contentSize.x, contentSize.y );
   auto& shader = SHADER_MANAGER()->getShader( "3d" );
-  m_pRenderingSystem->render( pFrameBuffer->getWidth(), pFrameBuffer->getHeight(), m_pCamera.get(), shader );
+  glm::mat4 proj = glm::perspective( glm::radians( 45.0f ), contentSize.x / contentSize.y, 0.1f, 4000.0f );
+
+  auto& viewMatrix = m_pCamera->getViewMatrix();
+  m_pRenderingSystem->render( scene, viewMatrix, proj, shader );
   pFrameBuffer->unbind();
 
   ImVec2 win_pos = ImGui::GetCursorScreenPos();
@@ -144,7 +155,7 @@ void SceneViewportWindow::draw()
   // we set the position to top left of this window to prepare for the drop zone
   ImGui::SetCursorScreenPos( win_pos );
 
-  // this is just the viewport drop zone, it is after the framebuffer texture so it must remain invisible
+  // this is just the viewport drop zone, it is on top of frame buffer so we need to make it invisible
   ImGui::InvisibleButton( "viewportDropZone", contentSize );
 
   // here we accept drag and drop payload from the assets window

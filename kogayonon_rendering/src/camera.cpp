@@ -20,27 +20,30 @@ void Camera::setupCamera()
   m_props.movement_speed = 90.0f;
 }
 
-const glm::mat4& Camera::getViewMatrix() const
+glm::mat4& Camera::getViewMatrix() const
 {
   static glm::mat4 view;
   view = glm::lookAt( m_props.position, m_props.position + m_props.direction, m_props.cameraUp );
   return view;
 }
 
-void Camera::processMouseMoved( float x, float y, bool constrain_pitch )
+void Camera::processMouseMoved( float x, float y, bool constrainPitch )
 {
-  static float lastX = x;
-  static float lastY = y;
+  static float lastX = 0.0f;
+  static float lastY = 0.0f;
+  static bool firstMove = true;
 
-  if ( first_move )
+  if ( firstMove )
   {
     lastX = x;
     lastY = y;
-    first_move = false;
+    firstMove = false;
+    return;
   }
 
   float xoffset = x - lastX;
   float yoffset = lastY - y;
+
   lastX = x;
   lastY = y;
 
@@ -51,7 +54,7 @@ void Camera::processMouseMoved( float x, float y, bool constrain_pitch )
   m_props.pitch += yoffset;
 
   // this is to no go deaberbeleacu
-  if ( constrain_pitch )
+  if ( constrainPitch )
   {
     if ( m_props.pitch > 89.0f )
       m_props.pitch = 89.0f;
@@ -78,6 +81,12 @@ void Camera::updateCameraVectors()
 
   m_props.right = glm::normalize( glm::cross( m_props.direction, m_props.worldUp ) );
   m_props.cameraUp = glm::normalize( glm::cross( m_props.right, m_props.direction ) );
+}
+
+void Camera::zoom( float amount )
+{
+  static float zoomSpeed = 0.2f;
+  m_props.position += m_props.direction * amount * zoomSpeed;
 }
 
 } // namespace kogayonon_rendering

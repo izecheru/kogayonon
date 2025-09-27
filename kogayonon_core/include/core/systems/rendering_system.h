@@ -1,15 +1,7 @@
 #pragma once
-#include <entt/entt.hpp>
-#include <glm/ext/matrix_transform.hpp>
 #include <glm/glm.hpp>
+#include <memory>
 #include <vector>
-#include "core/ecs/entity.hpp"
-#include "resources/model.hpp"
-
-namespace kogayonon_core
-{
-class TransformComponent;
-}
 
 namespace kogayonon_rendering
 {
@@ -23,17 +15,26 @@ class Shader;
 
 namespace kogayonon_core
 {
+class Scene;
+}
+
+namespace kogayonon_core
+{
+
+// sort renderable objects based on camera pos,
+// if let's say we have a house of a said z and then another smaller house with a z that's
+// behind the big house, we don't render the object, probably will have to look into drawing just
+// the right meshes but will get to that at some point in time
 class RenderingSystem
 {
 public:
   RenderingSystem() = default;
   ~RenderingSystem() = default;
 
-  void render( int w, int h, kogayonon_rendering::Camera* camera, kogayonon_utilities::Shader& shader );
-  void begin( kogayonon_utilities::Shader& shader ) const;
-  void end( kogayonon_utilities::Shader& shader ) const;
+  void render( std::shared_ptr<Scene> scene, glm::mat4& viewMatrix, glm::mat4& projection,
+               kogayonon_utilities::Shader& shader );
 
-private:
-  glm::mat4 computeModelMatrix( TransformComponent& transform ) const;
+  void begin( const kogayonon_utilities::Shader& shader ) const;
+  void end( const kogayonon_utilities::Shader& shader ) const;
 };
 } // namespace kogayonon_core

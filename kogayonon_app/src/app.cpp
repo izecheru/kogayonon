@@ -4,13 +4,16 @@
 #include <memory>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/spdlog.h>
+#include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
+#include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
 #include "core/event/app_event.hpp"
 #include "core/event/event_dispatcher.hpp"
 #include "core/input/keyboard_events.hpp"
+#include "core/input/mouse_codes.hpp"
 #include "core/input/mouse_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
@@ -28,6 +31,8 @@
 #include "utilities/task_manager/task_manager.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
 #include "window/window.hpp"
+
+using namespace kogayonon_core;
 
 namespace kogayonon_app
 {
@@ -85,7 +90,7 @@ void App::pollEvents()
       {
         int newWidth = e.window.data1;
         int newHeight = e.window.data2;
-        kogayonon_core::WindowResizeEvent windowResizeEvent{ newWidth, newHeight };
+        WindowResizeEvent windowResizeEvent{ newWidth, newHeight };
         pEventDispatcher->emitEvent( windowResizeEvent );
       }
       break;
@@ -95,33 +100,39 @@ void App::pollEvents()
       break;
     }
     case SDL_KEYDOWN: {
-
-      // TODO maybe rethink this a bit
-      auto keycode = static_cast<kogayonon_core::KeyCode>( e.key.keysym.sym );
-      kogayonon_core::KeyPressedEvent keyPressEvent{ keycode, 0 };
+      auto keycode = static_cast<KeyCode>( e.key.keysym.sym );
+      KeyPressedEvent keyPressEvent{ keycode, 0 };
       pEventDispatcher->emitEvent( keyPressEvent );
       break;
     }
     case SDL_KEYUP: {
-
-      // TODO maybe rethink this a bit
-      auto keycode = static_cast<kogayonon_core::KeyCode>( e.key.keysym.sym );
-      kogayonon_core::KeyReleasedEvent keyReleaseEvent{ keycode };
+      auto keycode = static_cast<KeyCode>( e.key.keysym.sym );
+      KeyReleasedEvent keyReleaseEvent{ keycode };
       pEventDispatcher->emitEvent( keyReleaseEvent );
       break;
     }
     case SDL_MOUSEMOTION: {
       double x = e.motion.x;
       double y = e.motion.y;
-      kogayonon_core::MouseMovedEvent mouseMovedEvent{ x, y };
+      MouseMovedEvent mouseMovedEvent{ x, y };
       pEventDispatcher->emitEvent( mouseMovedEvent );
       break;
     }
     case SDL_MOUSEWHEEL: {
       double xOff = e.wheel.x;
       double yOff = e.wheel.y;
-      kogayonon_core::MouseScrolledEvent mouseScrolled{ xOff, yOff };
+      MouseScrolledEvent mouseScrolled{ xOff, yOff };
       pEventDispatcher->emitEvent( mouseScrolled );
+    }
+    case SDL_MOUSEBUTTONDOWN: {
+      UINT32 buttonState = SDL_GetMouseState( NULL, NULL );
+      if ( buttonState & SDL_BUTTON( SDL_BUTTON_MIDDLE ) )
+      {
+        MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_MIDDLE ),
+                                        static_cast<int>( MouseAction::Press ),
+                                        static_cast<int>( MouseModifier::None ) };
+        pEventDispatcher->emitEvent( mouseClicked );
+      }
     }
     }
   }
@@ -181,8 +192,8 @@ bool App::initSDL()
   glEnable( GL_DEBUG_OUTPUT );
   glDebugMessageCallback( glDebugCallback, nullptr );
 #endif
-
-  glClearColor( 0.5f, 0.5f, 0.5f, 1.0f );
+  glEnable( GL_CULL_FACE );
+  glCullFace( GL_BACK );
   rescaleMainViewport( pWinProps->width, pWinProps->height );
   return true;
 }
@@ -202,9 +213,9 @@ bool App::initRegistries() const
   mainRegistry.addToContext<std::shared_ptr<kogayonon_gui::ImGuiManager>>( std::move( imguiManager ) );
 
   // init event manager
-  auto eventDispatcher = std::make_shared<kogayonon_core::EventDispatcher>();
+  auto eventDispatcher = std::make_shared<EventDispatcher>();
   assert( eventDispatcher && "could not initialise event manager" );
-  mainRegistry.addToContext<std::shared_ptr<kogayonon_core::EventDispatcher>>( std::move( eventDispatcher ) );
+  mainRegistry.addToContext<std::shared_ptr<EventDispatcher>>( std::move( eventDispatcher ) );
 
   // init task manager
   auto taskManager = std::make_shared<kogayonon_utilities::TaskManager>( 10 );
@@ -265,19 +276,19 @@ bool App::initGui()
 
 bool App::initScenes() const
 {
-  auto mainScene = std::make_shared<kogayonon_core::Scene>( "Default scene" );
+  auto mainScene = std::make_shared<Scene>( "Default scene" );
 
   auto tex = ASSET_MANAGER()->addTexture( "paiangan", "resources/textures/paiangan.png" );
-  auto entity = std::make_unique<kogayonon_core::Entity>( mainScene->getRegistry(), "cat texture entity" );
-  auto entity2 = std::make_unique<kogayonon_core::Entity>( mainScene->getRegistry(), "slayer texture entity" );
-  auto entity3 =
-    std::make_unique<kogayonon_core::Entity>( mainScene->getRegistry(), "entity with no component other than name" );
-  entity->addComponent<kogayonon_core::TextureComponent>( tex );
-  entity2->addComponent<kogayonon_core::TextureComponent>( ASSET_MANAGER()->getTexture( "slayerSword" ) );
-  kogayonon_core::SceneManager::addScene( mainScene );
+  auto entity = std::make_unique<Entity>( mainScene->getRegistry(), "slayer texture entity" );
+  entity->addComponent<TextureComponent>( ASSET_MANAGER()->getTexture( "slayerSword" ) );
+  auto entity2 = std::make_unique<Entity>( mainScene->getRegistry(), "ModelObject" );
+  auto model = ASSET_MANAGER()->addModel( "modelObject", "resources/models/untitled.gltf" );
+  entity2->addComponent<ModelComponent>( model );
+  entity2->addComponent<TransformComponent>();
+  SceneManager::addScene( mainScene );
 
   // set the current scene
-  kogayonon_core::SceneManager::setCurrentScene( "Default scene" );
+  SceneManager::setCurrentScene( "Default scene" );
   return true;
 }
 
@@ -309,7 +320,7 @@ bool App::init()
     return false;
   }
 
-  EVENT_DISPATCHER()->addHandler<kogayonon_core::WindowResizeEvent, &App::onWindowResize>( *this );
+  EVENT_DISPATCHER()->addHandler<WindowResizeEvent, &App::onWindowResize>( *this );
   return true;
 }
 
@@ -319,12 +330,77 @@ void App::rescaleMainViewport( int w, int h )
   glViewport( 0, 0, w, h );
 }
 
-bool App::onWindowResize( const kogayonon_core::WindowResizeEvent& e )
+bool App::onWindowResize( const WindowResizeEvent& e )
 {
   rescaleMainViewport( e.getWidth(), e.getHeight() );
 
   // if we need to process the event further (in camera projection matrix for example) we return false
   return true;
+}
+
+static const char* glSourceToStr( GLenum source )
+{
+  switch ( source )
+  {
+  case GL_DEBUG_SOURCE_API:
+    return "API";
+  case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+    return "Window System";
+  case GL_DEBUG_SOURCE_SHADER_COMPILER:
+    return "Shader Compiler";
+  case GL_DEBUG_SOURCE_THIRD_PARTY:
+    return "Third Party";
+  case GL_DEBUG_SOURCE_APPLICATION:
+    return "Application";
+  case GL_DEBUG_SOURCE_OTHER:
+    return "Other";
+  default:
+    return "Unknown";
+  }
+}
+
+static const char* glTypeToStr( GLenum type )
+{
+  switch ( type )
+  {
+  case GL_DEBUG_TYPE_ERROR:
+    return "Error";
+  case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+    return "Deprecated Behaviour";
+  case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+    return "Undefined Behaviour";
+  case GL_DEBUG_TYPE_PORTABILITY:
+    return "Portability";
+  case GL_DEBUG_TYPE_PERFORMANCE:
+    return "Performance";
+  case GL_DEBUG_TYPE_MARKER:
+    return "Marker";
+  case GL_DEBUG_TYPE_PUSH_GROUP:
+    return "Push Group";
+  case GL_DEBUG_TYPE_POP_GROUP:
+    return "Pop Group";
+  case GL_DEBUG_TYPE_OTHER:
+    return "Other";
+  default:
+    return "Unknown";
+  }
+}
+
+static const char* glSeverityToStr( GLenum severity )
+{
+  switch ( severity )
+  {
+  case GL_DEBUG_SEVERITY_HIGH:
+    return "High";
+  case GL_DEBUG_SEVERITY_MEDIUM:
+    return "Medium";
+  case GL_DEBUG_SEVERITY_LOW:
+    return "Low";
+  case GL_DEBUG_SEVERITY_NOTIFICATION:
+    return "Notification";
+  default:
+    return "Unknown";
+  }
 }
 
 void App::glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
@@ -333,7 +409,8 @@ void App::glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severit
   // i care about only medium to high severity for now
   if ( severity == GL_DEBUG_SEVERITY_HIGH || severity == GL_DEBUG_SEVERITY_MEDIUM )
   {
-    spdlog::error( "Severity-{} Type-{} Source-{} Message-{}", source, type, severity, message );
+    spdlog::error( "[OpenGL Debug] Severity: {} | Type: {} | Source: {} | ID: {} | Message: {}",
+                   glSeverityToStr( severity ), glTypeToStr( type ), glSourceToStr( source ), id, message );
   }
 }
 } // namespace kogayonon_app

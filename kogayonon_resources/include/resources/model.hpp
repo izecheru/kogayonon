@@ -18,8 +18,27 @@ public:
   Model() = default;
 
   std::vector<Mesh>& getMeshes();
+  int getAmount() const;
+  void setAmount( int amount );
+  void setInstanced( bool value );
+
+  uint32_t& getInstanceBuffer();
+  std::vector<glm::mat4>& getInstances();
+
+  void addInstance( const glm::mat4 instanceM );
+
+  inline bool& isInstanced()
+  {
+    return m_isIstanced;
+  }
 
 private:
   std::vector<Mesh> m_meshes;
+
+  // this should not be here
+  std::vector<glm::mat4> m_instanceMatrices;
+  uint32_t m_instanceBuffer;
+  int m_amount;
+  bool m_isIstanced{ false };
 };
 } // namespace kogayonon_resources

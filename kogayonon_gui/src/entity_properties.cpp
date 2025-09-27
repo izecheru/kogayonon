@@ -1,5 +1,7 @@
 #include "gui/entity_properties.hpp"
 #include <entt/entt.hpp>
+#include <glad/glad.h>
+#include <spdlog/spdlog.h>
 #include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/name_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
@@ -63,8 +65,26 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
   if ( !model )
     return;
 
+  auto transform = entity.tryGetComponent<kogayonon_core::TransformComponent>();
+
+  if ( transform )
+  {
+    auto& pos = transform->pos;
+    ImGui::SliderFloat( "x", &pos.x, 0.0f, 100.0f );
+    ImGui::SliderFloat( "y", &pos.y, 0.0f, 100.0f );
+    ImGui::SliderFloat( "z", &pos.z, 0.0f, 100.0f );
+    ImGui::SliderFloat( "scale", &transform->scale.x, 0.0f, 100.0f );
+    transform->updateMatrix();
+  }
+
   const auto& meshes = model->getMeshes();
+  int amount = model->getAmount();
   ImGui::Text( "Mesh vector size <%d>", static_cast<int>( meshes.size() ) );
+  ImGui::Text( "Current instances number %d", amount );
+  if ( ImGui::Button( "Add 10000 instances of this object" ) )
+  {
+    model->setAmount( amount + 100000 );
+  }
 }
 
 void EntityPropertiesWindow::onEntitySelect( const kogayonon_core::SelectEntityEvent& e )
