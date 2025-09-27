@@ -26,10 +26,12 @@ public:
 
   void setupCamera();
 
-  const glm::mat4& getViewMatrix() const;
+  glm::mat4& getViewMatrix() const;
   void processMouseMoved( float x, float y, bool constrain_pitch );
   void updateCameraVectors();
   void cameraUniform( unsigned int shader_id, const char* uniform );
+
+  void zoom( float amount );
 
   inline float getX() const
   {
@@ -58,6 +60,5 @@ public:
 
 private:
   CameraProps m_props;
-  bool first_move = false;
 };
 } // namespace kogayonon_rendering

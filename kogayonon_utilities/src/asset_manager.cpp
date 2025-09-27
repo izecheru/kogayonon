@@ -96,6 +96,8 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
   if ( auto it = m_loadedModels.find( modelName ); it != m_loadedModels.end() )
   {
     spdlog::info( "Model already loaded {} ", modelName );
+    int amount = it->second->getAmount() + 1;
+    it->second->setAmount( amount );
     return it->second;
   }
 
@@ -179,7 +181,7 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
       meshes.emplace_back( std::move( vertices ), std::move( indices ), std::move( textureIDs ) );
     }
   }
-  prepareMeshes( meshes );
+  uploadMeshGeometry( meshes );
   auto model = std::make_shared<kogayonon_resources::Model>( std::move( meshes ) );
 
   m_loadedModels.try_emplace( modelName, model );
@@ -190,7 +192,7 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
   return getModel( modelName );
 }
 
-void AssetManager::prepareMeshes( std::vector<kogayonon_resources::Mesh>& meshes ) const
+void AssetManager::uploadMeshGeometry( std::vector<kogayonon_resources::Mesh>& meshes ) const
 {
   for ( auto& mesh : meshes )
   {
@@ -203,16 +205,20 @@ void AssetManager::prepareMeshes( std::vector<kogayonon_resources::Mesh>& meshes
 
     // prepare the buffers to tell OpenGL how to interpret our data
     glCreateVertexArrays( 1, &vao );
+    assert( vao != 0 && "vao cannot be 0" );
 
     // upload data to vertex buffer
     glCreateBuffers( 1, &vbo );
-    glNamedBufferData( vbo, vertices.size() * sizeof( kogayonon_resources::Vertex ), vertices.data(), GL_DYNAMIC_DRAW );
+    assert( vbo != 0 && "vbo cannot be 0" );
+
+    glNamedBufferData( vbo, vertices.size() * sizeof( kogayonon_resources::Vertex ), vertices.data(), GL_STATIC_DRAW );
 
     // upload indices to element buffer
     glCreateBuffers( 1, &ebo );
-    glNamedBufferData( ebo, indices.size() * sizeof( unsigned int ), indices.data(), GL_DYNAMIC_DRAW );
+    assert( ebo != 0 && "ebo cannot be 0" );
+    glNamedBufferData( ebo, indices.size() * sizeof( unsigned int ), indices.data(), GL_STATIC_DRAW );
 
-    // link vbo to vao
+    // link vao to vbo (vbo will be binded by this call)
     glVertexArrayVertexBuffer( vao, 0, vbo, 0, sizeof( kogayonon_resources::Vertex ) );
 
     // link ebo to vao

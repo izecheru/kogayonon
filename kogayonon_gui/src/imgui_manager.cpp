@@ -68,6 +68,7 @@ bool ImGuiManager::initImgui( SDL_Window* window, SDL_GLContext context )
   style.TabBarBorderSize = 0.0f;
   style.TabBarOverlineSize = 0.0f;
   style.TabRounding = 0.0f;
+  style.WindowPadding = ImVec2{ 0.0f, 0.0f };
 
   // colors
   ImVec4* colors = style.Colors;

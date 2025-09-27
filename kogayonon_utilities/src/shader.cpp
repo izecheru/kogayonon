@@ -90,6 +90,18 @@ void Shader::setMat4( const char* uniform, glm::mat4& mat )
   }
 }
 
+void Shader::setBool( const char* uniform, bool value ) const
+{
+  if ( int location = glGetUniformLocation( m_programId, uniform ); location == -1 )
+  {
+    spdlog::error( "Uniform not found {} ", uniform );
+  }
+  else
+  {
+    glUniform1i( location, value );
+  }
+}
+
 unsigned int Shader::getShaderId() const
 {
   return m_programId;

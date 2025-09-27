@@ -1,55 +1,65 @@
 #include "core/systems/rendering_system.h"
+#include <assert.h>
 #include <entt/entt.hpp>
 #include <glad/glad.h>
-#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/glm.hpp>
+#include <spdlog/spdlog.h>
 #include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
-#include "core/ecs/main_registry.hpp"
+#include "core/ecs/entity.hpp"
 #include "core/scene/scene.hpp"
-#include "core/scene/scene_manager.hpp"
-#include "rendering/camera/camera.hpp"
-#include "resources/vertex.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
 
 namespace kogayonon_core
 {
-
-void RenderingSystem::render( int w, int h, kogayonon_rendering::Camera* camera, kogayonon_utilities::Shader& shader )
+void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatrix, glm::mat4& projection,
+                              kogayonon_utilities::Shader& shader )
 {
   begin( shader );
 
-  auto scene = SceneManager::getCurrentScene();
-  auto pScene = scene.lock();
-
-  // if scene does not exist return
-  if ( !pScene )
-    return;
-
-  auto view = pScene->getEnttRegistry().view<TransformComponent, ModelComponent>();
+  auto view = scene->getEnttRegistry().view<TransformComponent, ModelComponent>();
   for ( auto [entity, transformComp, modelComp] : view.each() )
   {
-    Entity ent{ pScene->getRegistry(), entity };
-    auto& model = ent.getComponent<ModelComponent>();
+    if ( !modelComp.loaded )
+      continue;
 
-    if ( !model.loaded )
+    auto model = modelComp.pModel.lock();
+
+    if ( !model )
       continue;
 
     // then draw
-    glm::mat4 viewMat = camera->getViewMatrix();
-    glm::mat4 modelMat = computeModelMatrix( transformComp );
-    glm::mat4 proj = glm::perspective( glm::radians( 45.0f ), (float)w / (float)h, 0.1f, 4000.0f );
-    shader.setMat4( "projection", proj );
-    shader.setMat4( "view", viewMat );
-    shader.setMat4( "model", modelMat );
-    for ( auto& mesh : model.pModel.lock()->getMeshes() )
+    shader.setMat4( "projection", projection );
+    shader.setMat4( "view", viewMatrix );
+
+    for ( auto& mesh : modelComp.pModel.lock()->getMeshes() )
     {
-      auto& textures = mesh.getTextures();
-      for ( int i = 0; i < textures.size(); i++ )
-      {
-        glBindTextureUnit( 1, textures.at( i ) );
-      }
       glBindVertexArray( mesh.getVao() );
-      glDrawElements( GL_TRIANGLES, (GLsizei)mesh.getIndices().size(), GL_UNSIGNED_INT, nullptr );
+
+      auto& textures = mesh.getTextures();
+      for ( auto& texture : textures )
+      {
+        // bind the texture we need (this is bad)
+        glBindTextureUnit( 1, texture );
+      }
+
+      // this will help us determine what type of rendering we have so the vertex shader knows which matrices to
+      // multiply , shader.setBool( "instanced", true );
+      if ( model->getAmount() != 1 )
+      {
+        shader.setBool( "instanced", true );
+        // draw the instances
+        glDrawElementsInstanced( GL_TRIANGLES, (GLsizei)mesh.getIndices().size(), GL_UNSIGNED_INT, 0,
+                                 model->getAmount() );
+      }
+      else
+      {
+        shader.setBool( "instanced", false );
+        // draw the indices
+        glDrawElements( GL_TRIANGLES, (GLsizei)mesh.getIndices().size(), GL_UNSIGNED_INT, nullptr );
+      }
+
+      // unbind everything
       glBindVertexArray( 0 );
       glBindTextureUnit( 1, 0 );
     }
@@ -57,32 +67,14 @@ void RenderingSystem::render( int w, int h, kogayonon_rendering::Camera* camera,
   end( shader );
 }
 
-void RenderingSystem::begin( kogayonon_utilities::Shader& shader ) const
+void RenderingSystem::begin( const kogayonon_utilities::Shader& shader ) const
 {
+  glUseProgram( 0 );
   shader.bind();
 }
 
-void RenderingSystem::end( kogayonon_utilities::Shader& shader ) const
+void RenderingSystem::end( const kogayonon_utilities::Shader& shader ) const
 {
   shader.unbind();
 }
-
-glm::mat4 RenderingSystem::computeModelMatrix( TransformComponent& transform ) const
-{
-  glm::mat4 model( 1.0f );
-
-  // translate
-  model = glm::translate( model, transform.pos );
-
-  // rotate (Z * Y * X)
-  model = glm::rotate( model, transform.rotation.z, glm::vec3( 0, 0, 1 ) );
-  model = glm::rotate( model, transform.rotation.y, glm::vec3( 0, 1, 0 ) );
-  model = glm::rotate( model, transform.rotation.x, glm::vec3( 1, 0, 0 ) );
-
-  // scale
-  model = glm::scale( model, transform.scale );
-
-  return model;
-}
-
 } // namespace kogayonon_core

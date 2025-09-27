@@ -3,24 +3,33 @@
 
 namespace kogayonon_resources
 {
-Mesh::Mesh( std::vector<Vertex>&& vertices, std::vector<unsigned int>&& indices, std::vector<unsigned int>&& textures )
-    : m_textures{ std::move( textures ) }
+Mesh::Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices, std::vector<uint32_t>&& textures )
+    : m_texturesIDs{ std::move( textures ) }
     , m_vertices{ std::move( vertices ) }
     , m_indices{ std::move( indices ) }
+    , vao{ 0 }
+    , vbo{ 0 }
+    , ebo{ 0 }
 {
 }
 
-Mesh::Mesh( std::vector<Vertex>&& vertices, std::vector<unsigned int>&& indices )
+Mesh::Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices )
     : m_vertices{ std::move( vertices ) }
     , m_indices{ std::move( indices ) }
+    , vao{ 0 }
+    , vbo{ 0 }
+    , ebo{ 0 }
+
 {
 }
 
 Mesh::Mesh( const Mesh& other )
-    : m_textures( other.m_textures )
+    : m_texturesIDs( other.m_texturesIDs )
     , m_vertices( other.m_vertices )
     , m_indices( other.m_indices )
-    , m_init( other.m_init )
+    , vao{ other.vao }
+    , vbo{ other.vbo }
+    , ebo{ other.ebo }
 {
 }
 
@@ -28,10 +37,12 @@ Mesh& Mesh::operator=( const Mesh& other )
 {
   if ( this == &other )
     return *this;
-  m_textures = other.m_textures;
+  m_texturesIDs = other.m_texturesIDs;
   m_vertices = other.m_vertices;
   m_indices = other.m_indices;
-  m_init = other.m_init;
+  vao = other.vao;
+  vbo = other.vbo;
+  ebo = other.ebo;
   return *this;
 }
 
@@ -45,22 +56,22 @@ std::vector<uint32_t>& Mesh::getIndices()
   return m_indices;
 }
 
-std::vector<unsigned int>& Mesh::getTextures()
+std::vector<uint32_t>& Mesh::getTextures()
 {
-  return m_textures;
+  return m_texturesIDs;
 }
 
-unsigned int& Mesh::getVao()
+uint32_t& Mesh::getVao()
 {
   return vao;
 }
 
-unsigned int& Mesh::getVbo()
+uint32_t& Mesh::getVbo()
 {
   return vbo;
 }
 
-unsigned int& Mesh::getEbo()
+uint32_t& Mesh::getEbo()
 {
   return ebo;
 }

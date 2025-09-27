@@ -53,7 +53,7 @@ private:
    * @brief Uploads each mesh data to the gpu and tells it how to interpret every buffer
    * @param meshes A vector of meshes that will need to be prepared for rendering
    */
-  void prepareMeshes( std::vector<kogayonon_resources::Mesh>& meshes ) const;
+  void uploadMeshGeometry( std::vector<kogayonon_resources::Mesh>& meshes ) const;
 
   std::thread m_watchThread{};
   std::mutex m_assetMutex{};
