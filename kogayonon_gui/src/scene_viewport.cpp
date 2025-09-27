@@ -29,10 +29,12 @@ using namespace kogayonon_core;
 
 namespace kogayonon_gui
 {
-SceneViewportWindow::SceneViewportWindow( std::string name, std::weak_ptr<kogayonon_rendering::FrameBuffer> frameBuffer,
+SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string name,
+                                          std::weak_ptr<kogayonon_rendering::FrameBuffer> frameBuffer,
                                           unsigned int playTextureId, unsigned int stopTextureId )
     : ImGuiWindow{ std ::move( name ) }
     , m_selectedEntity{ entt::null }
+    , m_mainWindow{ mainWindow }
     , m_pFrameBuffer{ frameBuffer }
     , m_playTextureId{ playTextureId }
     , m_stopTextureId{ stopTextureId }
@@ -67,10 +69,12 @@ void SceneViewportWindow::onMouseMoved( const MouseMovedEvent& e )
   const auto& io = ImGui::GetIO();
   if ( io.MouseDown[ImGuiMouseButton_Middle] )
   {
-    auto pos = ImGui::GetMousePos();
-    const glm::vec2& mouse{ pos.x, pos.y };
-    auto& props = m_pCamera->getProps();
-    m_pCamera->processMouseMoved( e.getX(), e.getY(), true );
+    SDL_SetRelativeMouseMode( SDL_TRUE );
+    m_pCamera->processMouseMoved( e.getXRel(), e.getYRel(), true );
+  }
+  else
+  {
+    SDL_SetRelativeMouseMode( SDL_FALSE );
   }
 }
 
@@ -100,6 +104,10 @@ void SceneViewportWindow::draw()
   {
     ImGui::SetMouseCursor( ImGuiMouseCursor_None );
   }
+  m_props->width = ImGui::GetWindowSize().x;
+  m_props->height = ImGui::GetWindowSize().y;
+  m_props->x = ImGui::GetWindowPos().x;
+  m_props->y = ImGui::GetWindowPos().y;
   m_props->focused = ImGui::IsWindowFocused();
   m_props->hovered = ImGui::IsWindowHovered();
 

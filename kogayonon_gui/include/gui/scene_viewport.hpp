@@ -1,4 +1,5 @@
 #pragma once
+#include <SDL2/SDL.h>
 #include <entt/entt.hpp>
 #include <filesystem>
 #include "imgui_window.hpp"
@@ -25,8 +26,9 @@ namespace kogayonon_gui
 class SceneViewportWindow : public ImGuiWindow
 {
 public:
-  explicit SceneViewportWindow( std::string name, std::weak_ptr<kogayonon_rendering::FrameBuffer> frameBuffer,
-                                unsigned int playTexture, unsigned int stopTexture );
+  explicit SceneViewportWindow( SDL_Window* mainWindow, std::string name,
+                                std::weak_ptr<kogayonon_rendering::FrameBuffer> frameBuffer, unsigned int playTexture,
+                                unsigned int stopTexture );
   ~SceneViewportWindow() = default;
 
   void draw() override;
@@ -50,6 +52,7 @@ private:
   std::weak_ptr<kogayonon_rendering::FrameBuffer> m_pFrameBuffer;
   unsigned int m_playTextureId;
   unsigned int m_stopTextureId;
+  SDL_Window* m_mainWindow;
   std::unique_ptr<kogayonon_core::RenderingSystem> m_pRenderingSystem;
   std::unique_ptr<kogayonon_rendering::Camera> m_pCamera;
 };

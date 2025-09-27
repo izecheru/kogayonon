@@ -34,9 +34,11 @@ private:
   double m_mouse_y;
 
 public:
-  MouseMovedEvent( const double x, const double y )
-      : m_mouse_x( x )
-      , m_mouse_y( y )
+  MouseMovedEvent( const double x, const double y, const double xRel, const double yRel )
+      : m_mouse_x{ x }
+      , m_mouse_y{ y }
+      , m_xRel{ xRel }
+      , m_yRel{ yRel }
   {
   }
 
@@ -50,7 +52,21 @@ public:
     return m_mouse_y;
   }
 
+  inline double getXRel() const
+  {
+    return m_xRel;
+  }
+
+  inline double getYRel() const
+  {
+    return m_yRel;
+  }
+
   EVENT_CLASS_TYPE( MouseMoved )
+
+private:
+  double m_xRel;
+  double m_yRel;
 };
 
 class MouseClickedEvent : public IEvent

@@ -114,7 +114,9 @@ void App::pollEvents()
     case SDL_MOUSEMOTION: {
       double x = e.motion.x;
       double y = e.motion.y;
-      MouseMovedEvent mouseMovedEvent{ x, y };
+      double xRel = e.motion.xrel;
+      double yRel = e.motion.yrel;
+      MouseMovedEvent mouseMovedEvent{ x, y, xRel, yRel };
       pEventDispatcher->emitEvent( mouseMovedEvent );
       break;
     }
@@ -257,8 +259,8 @@ bool App::initGui()
   auto fileTexture = pAssetManager->getTexture( "file" ).lock()->getTextureId();
   auto folderTexture = pAssetManager->getTexture( "folder" ).lock()->getTextureId();
 
-  auto sceneViewport =
-    std::make_unique<kogayonon_gui::SceneViewportWindow>( "Scene##win", m_pFrameBuffer, playTexture, stopTexture );
+  auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( m_pWindow->getWindow(), "Scene##win",
+                                                                             m_pFrameBuffer, playTexture, stopTexture );
   auto fileExplorerWindow =
     std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets##win", folderTexture, fileTexture );
   auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>( "Scene hierarchy##win" );
