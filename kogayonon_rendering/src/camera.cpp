@@ -1,5 +1,6 @@
 #include "rendering/camera/camera.hpp"
 #include <glm/ext/matrix_transform.hpp>
+#include <spdlog/spdlog.h>
 
 namespace kogayonon_rendering
 {
@@ -29,29 +30,9 @@ glm::mat4& Camera::getViewMatrix() const
 
 void Camera::processMouseMoved( float x, float y, bool constrainPitch )
 {
-  static float lastX = 0.0f;
-  static float lastY = 0.0f;
-  static bool firstMove = true;
-
-  if ( firstMove )
-  {
-    lastX = x;
-    lastY = y;
-    firstMove = false;
-    return;
-  }
-
-  float xoffset = x - lastX;
-  float yoffset = lastY - y;
-
-  lastX = x;
-  lastY = y;
-
-  xoffset *= m_props.mouse_sens;
-  yoffset *= m_props.mouse_sens;
-
-  m_props.yaw += xoffset;
-  m_props.pitch += yoffset;
+  spdlog::info( "{} {}", x, y );
+  m_props.yaw += x * m_props.mouse_sens;
+  m_props.pitch += y * m_props.mouse_sens;
 
   // this is to no go deaberbeleacu
   if ( constrainPitch )
