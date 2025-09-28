@@ -5,12 +5,18 @@
 
 namespace kogayonon_resources
 {
-Model::Model( std::vector<Mesh>&& meshes )
+Model::Model( std::vector<Mesh>&& meshes, const std::string& path )
     : m_meshes{ std::move( meshes ) }
+    , m_path{ path }
     , m_instanceMatrices{ glm::mat4{ 1.0f } }
     , m_instanceBuffer{ 0 }
     , m_amount{ 1 }
 {
+}
+
+std::string Model::getPath()
+{
+  return m_path;
 }
 
 void Model::addInstance( const glm::mat4 instanceM )
@@ -53,6 +59,7 @@ void Model::setAmount( int amount )
   if ( m_instanceBuffer == 0 )
   {
     glCreateBuffers( 1, &m_instanceBuffer );
+
     // did not use glNamedBufferStorage cause it is immutable and instances change based on the amount of them
     glNamedBufferData( m_instanceBuffer, sizeof( glm::mat4 ) * m_instanceMatrices.size(), m_instanceMatrices.data(),
                        GL_DYNAMIC_DRAW );

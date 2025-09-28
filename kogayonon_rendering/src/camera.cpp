@@ -17,8 +17,9 @@ void Camera::setupCamera()
   m_props.worldUp = glm::vec3( 0.0f, 1.0f, 0.0f );
   m_props.yaw = -90.0f;
   m_props.pitch = 0.0f;
-  m_props.mouse_sens = 0.2f;
-  m_props.movement_speed = 90.0f;
+  m_props.mouseSensitivity = 0.2f;
+  m_props.movementSpeed = 90.0f;
+  m_props.mouseZoomSpeed = 1.0f;
 }
 
 glm::mat4& Camera::getViewMatrix() const
@@ -28,11 +29,10 @@ glm::mat4& Camera::getViewMatrix() const
   return view;
 }
 
-void Camera::processMouseMoved( float x, float y, bool constrainPitch )
+void Camera::onMouseMoved( float x, float y, bool constrainPitch = true )
 {
-  spdlog::info( "{} {}", x, y );
-  m_props.yaw += x * m_props.mouse_sens;
-  m_props.pitch += y * m_props.mouse_sens;
+  m_props.yaw += x * m_props.mouseSensitivity;
+  m_props.pitch -= y * m_props.mouseSensitivity;
 
   // this is to no go deaberbeleacu
   if ( constrainPitch )
@@ -66,8 +66,7 @@ void Camera::updateCameraVectors()
 
 void Camera::zoom( float amount )
 {
-  static float zoomSpeed = 0.2f;
-  m_props.position += m_props.direction * amount * zoomSpeed;
+  m_props.position += m_props.direction * amount * m_props.mouseZoomSpeed;
 }
 
 } // namespace kogayonon_rendering

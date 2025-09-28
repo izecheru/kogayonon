@@ -26,14 +26,23 @@ namespace kogayonon_gui
 class SceneViewportWindow : public ImGuiWindow
 {
 public:
+  /**
+   * @brief The Viewport where we draw our scene
+   * @param mainWindow This is injected for the camera movement (SDL_MouseRelativeMode)
+   * @param name The name of the ImGuiWindow
+   * @param frameBuffer The frame buffer where everything is drawn
+   * @param playTexture The play button texture ID
+   * @param stopTexture The stop button texture ID
+   */
   explicit SceneViewportWindow( SDL_Window* mainWindow, std::string name,
                                 std::weak_ptr<kogayonon_rendering::FrameBuffer> frameBuffer, unsigned int playTexture,
                                 unsigned int stopTexture );
   ~SceneViewportWindow() = default;
 
   void draw() override;
-  std::weak_ptr<kogayonon_rendering::FrameBuffer> getFrameBuffer();
+  std::weak_ptr<kogayonon_rendering::FrameBuffer> getFrameBuffer() const;
 
+  // Events
   void onSelectedEntity( const kogayonon_core::SelectEntityEvent& e );
   void onMouseMoved( const kogayonon_core::MouseMovedEvent& e );
   void onMouseClicked( const kogayonon_core::MouseClickedEvent& e );

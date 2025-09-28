@@ -36,8 +36,8 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
     {
       glBindVertexArray( mesh.getVao() );
 
-      auto& textures = mesh.getTextures();
-      for ( auto& texture : textures )
+      const auto& textures = mesh.getTextures();
+      for ( const auto& texture : textures )
       {
         // bind the texture we need (this is bad)
         glBindTextureUnit( 1, texture );
@@ -48,13 +48,15 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
       if ( model->getAmount() != 1 )
       {
         shader.setBool( "instanced", true );
+
         // draw the instances
-        glDrawElementsInstanced( GL_TRIANGLES, (GLsizei)mesh.getIndices().size(), GL_UNSIGNED_INT, 0,
+        glDrawElementsInstanced( GL_TRIANGLES, (GLsizei)mesh.getIndices().size(), GL_UNSIGNED_INT, nullptr,
                                  model->getAmount() );
       }
       else
       {
         shader.setBool( "instanced", false );
+
         // draw the indices
         glDrawElements( GL_TRIANGLES, (GLsizei)mesh.getIndices().size(), GL_UNSIGNED_INT, nullptr );
       }

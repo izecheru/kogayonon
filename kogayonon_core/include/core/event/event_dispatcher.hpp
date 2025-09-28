@@ -11,7 +11,7 @@ class EventDispatcher
 {
 public:
   EventDispatcher()
-      : m_pDispatcher( std::make_shared<entt::dispatcher>() )
+      : m_pDispatcher{ std::make_shared<entt::dispatcher>() }
   {
   }
 

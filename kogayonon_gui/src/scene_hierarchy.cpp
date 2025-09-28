@@ -1,4 +1,5 @@
 #include "gui/scene_hierarchy.hpp"
+#include <entt/entity/entity.hpp>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/name_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
@@ -8,6 +9,8 @@
 #include "core/event/event_dispatcher.hpp"
 #include "core/event/scene_events.hpp"
 #include "core/input/keyboard_events.hpp"
+#include "core/input/mouse_codes.hpp"
+#include "core/input/mouse_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
 
@@ -18,6 +21,7 @@ namespace kogayonon_gui
 SceneHierarchyWindow::SceneHierarchyWindow( std::string name )
     : ImGuiWindow{ std::move( name ) }
     , m_selectedIndex{ -1 }
+    , m_popUp{}
 {
   EVENT_DISPATCHER()->addHandler<kogayonon_core::KeyPressedEvent, &SceneHierarchyWindow::onKeyPressed>( *this );
 }
@@ -38,8 +42,16 @@ void SceneHierarchyWindow::draw()
     return;
   }
 
+  m_props->hovered = ImGui::IsWindowHovered();
+  m_props->focused = ImGui::IsWindowFocused();
+
   m_pCurrentScene = kogayonon_core::SceneManager::getCurrentScene();
   auto scene = m_pCurrentScene.lock();
+  if ( m_selectedIndex == -1 )
+  {
+    SelectEntityEvent entEvent;
+    EVENT_DISPATCHER()->emitEvent<SelectEntityEvent>( entEvent );
+  }
 
   // if there is no scene to render return
   if ( !scene )
@@ -56,8 +68,7 @@ void SceneHierarchyWindow::draw()
   static int entSize = 0;
   for ( auto [entity, nameComponent] : view.each() )
   {
-    Entity ent( scene->getRegistry(), entity );
-    entities.emplace_back( ent );
+    entities.emplace_back( scene->getRegistry(), entity );
   }
 
   if ( entSize != entities.size() )
@@ -66,14 +77,15 @@ void SceneHierarchyWindow::draw()
     m_selectedIndex = -1;
   }
 
-  auto listSize = ImVec2( -FLT_MIN, ImGui::GetContentRegionAvail().y );
+  const auto& io = ImGui::GetIO();
   auto avail = ImGui::GetContentRegionAvail();
-  ImGui::BeginChild( "EntityListRegion", avail, ImGuiChildFlags_ResizeY );
+  ImGui::BeginChild( "EntityListRegion", avail, false, ImGuiChildFlags_ResizeY );
 
   // Push the style color
-  ImGui::PushStyleColor( ImGuiCol_FrameBg, ImVec4( 0, 0, 0, 0 ) );
+  ImGui::Text( "Selected index: %d", m_selectedIndex );
+  ImGui::PushStyleColor( ImGuiCol_FrameBg, ImVec4( 0.05f, 0.05f, 0.05f, 1.0f ) );
 
-  if ( ImGui::BeginListBox( "##EntityList", listSize ) )
+  if ( ImGui::BeginListBox( "##EntityList", avail ) )
   {
     for ( int i = 0; i < entities.size(); i++ )
     {
@@ -87,27 +99,45 @@ void SceneHierarchyWindow::draw()
         m_selectedIndex = i;
         pEventDispatcher->emitEvent( SelectEntityEvent( entity.getEnttEntity() ) );
       }
-
-      auto pTexture = entity.tryGetComponent<TextureComponent>();
-      if ( ImGui::IsItemHovered() && pTexture )
-      {
-        drawTextureTooltip( pTexture, ImVec2( 250.0f, 250.0f ) );
-      }
+      drawItemContexMenu( label, "just a test string" );
     }
+    drawContextMenu();
     ImGui::EndListBox();
   }
 
   ImGui::PopStyleColor( 1 );
-
   ImGui::EndChild();
   ImGui::End();
 }
 
-/**
- * @brief Draws some info of the texture loaded, currently only for texture components
- * @param textureComp The texture component we get the texture id and width/ height, path and so on
- * @param size The size of the tooltip window
- */
+void SceneHierarchyWindow::drawContextMenu()
+{
+  if ( ImGui::BeginPopupContextWindow( "SceneHierarchyContext",
+                                       ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight ) )
+  {
+    ImGui::Text( "Window context menu" );
+    if ( ImGui::MenuItem( "Create Entity" ) )
+    {
+      spdlog::info( "Create entity clicked" );
+    }
+    if ( ImGui::MenuItem( "Clear Selection" ) )
+    {
+      m_selectedIndex = -1;
+    }
+    ImGui::EndPopup();
+  }
+}
+
+void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, std::string name )
+{
+  if ( ImGui::BeginPopupContextItem( itemId.c_str() ) )
+  {
+    ImGui::Text( "%s", name.c_str() );
+    ImGui::Button( "test button" );
+    ImGui::EndPopup();
+  }
+}
+
 void SceneHierarchyWindow::drawTextureTooltip( TextureComponent* textureComp, ImVec2 size )
 {
   ImGui::BeginTooltip();

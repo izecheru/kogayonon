@@ -1,6 +1,7 @@
 #pragma once
 #include <string_view>
 #include "core/event/event.hpp"
+#include "core/event/event_dispatcher.hpp"
 #include "folder_display.hpp"
 #include "imgui_window.hpp"
 #include "utilities/directory_watcher/directory_watcher.hpp"
@@ -18,7 +19,7 @@ namespace kogayonon_gui
 class FileExplorerWindow : public ImGuiWindow
 {
 public:
-  explicit FileExplorerWindow( std::string name, unsigned int folderTextureId, unsigned int fileTextureId );
+  explicit FileExplorerWindow( std::string name, uint32_t folderTextureId, uint32_t fileTextureId );
 
   ~FileExplorerWindow() = default;
 
@@ -49,9 +50,11 @@ private:
   bool isTexture( const std::string& path );
 
 private:
-  unsigned int m_folderTextureId, m_fileTextureId;
+  uint32_t m_folderTextureId;
+  uint32_t m_fileTextureId;
 
   std::filesystem::path m_currentPath;
   std::unique_ptr<kogayonon_utilities::DirectoryWatcher> m_pDirWatcher;
+  std::unique_ptr<kogayonon_core::EventDispatcher> m_pDispatcher;
 };
 } // namespace kogayonon_gui

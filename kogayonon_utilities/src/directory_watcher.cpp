@@ -73,63 +73,45 @@ void DirectoryWatcher::run( std::filesystem::path root )
 
     DWORD waitResult = WaitForMultipleObjects( 2, handles, FALSE, INFINITE );
 
-    if ( waitResult == WAIT_OBJECT_0 + 1 )
-    {
-      // shutdown requested
-      break;
-    }
-
     if ( waitResult == WAIT_OBJECT_0 )
     {
       DWORD bytesTransferred = 0;
       if ( !GetOverlappedResult( m_dirHandle, &m_overlapped, &bytesTransferred, FALSE ) )
       {
-        spdlog::error( "GetOverlappedResult failed" );
-        continue;
+        spdlog::error( "GetOverlappedResult failed {}", GetLastError() );
+        break;
       }
 
       FILE_NOTIFY_INFORMATION* event = reinterpret_cast<FILE_NOTIFY_INFORMATION*>( buffer );
 
-      for ( ;; )
+      do
       {
-        DWORD nameLen = event->FileNameLength / sizeof( wchar_t );
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
-        std::wstring wFilename( event->FileName, nameLen );
-        std::filesystem::path relativePath = conv.to_bytes( wFilename ); // path relative to watched folder
+        std::wstring filename( event->FileName, event->FileNameLength / sizeof( WCHAR ) );
 
         // Full path relative to project root
-        std::filesystem::path fullPath = m_root / relativePath;
+        std::filesystem::path relativePath = m_root / filename;
 
         // Get name without extension
-        std::string nameOnly = fullPath.stem().string();
+        std::string nameOnly = relativePath.stem().string();
 
-        // Get path starting from "resources/"
-        std::filesystem::path pathFromResources;
-        auto it = std::find( fullPath.begin(), fullPath.end(), "resources" );
-        if ( it != fullPath.end() )
-        {
-          pathFromResources = std::filesystem::path( "" );
-          for ( ; it != fullPath.end(); ++it )
-            pathFromResources /= *it;
-        }
         switch ( event->Action )
         {
         case FILE_ACTION_ADDED:
-          m_commands.at( "fileCreated" )( pathFromResources.string(), nameOnly );
+          m_commands.at( "fileCreated" )( relativePath.string(), nameOnly );
           break;
         case FILE_ACTION_REMOVED:
-          m_commands.at( "fileDeleted" )( pathFromResources.string(), nameOnly );
+          m_commands.at( "fileDeleted" )( relativePath.string(), nameOnly );
           break;
         case FILE_ACTION_MODIFIED:
 
-          m_commands.at( "fileModified" )( pathFromResources.string(), nameOnly );
+          m_commands.at( "fileModified" )( relativePath.string(), nameOnly );
           break;
         case FILE_ACTION_RENAMED_OLD_NAME:
 
           // m_commands.at( "fileRenamedOld" )( m_root, filename );
           break;
         case FILE_ACTION_RENAMED_NEW_NAME:
-          m_commands.at( "fileRenamedNew" )( pathFromResources.string(), nameOnly );
+          m_commands.at( "fileRenamedNew" )( relativePath.string(), nameOnly );
           break;
         default:
           spdlog::info( "Unknown action!" );
@@ -145,7 +127,7 @@ void DirectoryWatcher::run( std::filesystem::path root )
         {
           break;
         }
-      }
+      } while ( true );
     }
   }
 }
