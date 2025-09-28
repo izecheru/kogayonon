@@ -43,5 +43,4 @@ void EventDispatcher::removeAllListeners( THandler& handler )
   std::lock_guard lock( m_mutex );
   m_pDispatcher->sink<TEvent>().template disconnect( handler );
 }
-
 } // namespace kogayonon_core

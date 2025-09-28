@@ -8,12 +8,14 @@
 
 namespace kogayonon_gui
 {
-FileExplorerWindow::FileExplorerWindow( std::string name, unsigned int folderTextureId, unsigned int fileTextureId )
+kogayonon_gui::FileExplorerWindow::FileExplorerWindow( std::string name, uint32_t folderTextureId,
+                                                       uint32_t fileTextureId )
     : ImGuiWindow{ std::move( name ) }
+    , m_folderTextureId{ folderTextureId }
+    , m_fileTextureId{ fileTextureId }
     , m_currentPath{ std::filesystem::current_path() / "resources" }
     , m_pDirWatcher{ std::make_unique<kogayonon_utilities::DirectoryWatcher>( "resources\\" ) }
-    , m_fileTextureId{ fileTextureId }
-    , m_folderTextureId{ folderTextureId }
+    , m_pDispatcher{ std::make_unique<kogayonon_core::EventDispatcher>() }
 {
   // installs the event listeners for file event types
   installHandlers();
@@ -25,33 +27,32 @@ FileExplorerWindow::FileExplorerWindow( std::string name, unsigned int folderTex
 
 void FileExplorerWindow::installHandlers()
 {
-  EVENT_DISPATCHER()->addHandler<kogayonon_core::FileCreatedEvent, &FileExplorerWindow::onFileCreated>( *this );
-  EVENT_DISPATCHER()->addHandler<kogayonon_core::FileRenamedEvent, &FileExplorerWindow::onFileRenamed>( *this );
-  EVENT_DISPATCHER()->addHandler<kogayonon_core::FileDeletedEvent, &FileExplorerWindow::onFileDeleted>( *this );
-  EVENT_DISPATCHER()->addHandler<kogayonon_core::FileModifiedEvent, &FileExplorerWindow::onFileModified>( *this );
+  m_pDispatcher->addHandler<kogayonon_core::FileCreatedEvent, &FileExplorerWindow::onFileCreated>( *this );
+  m_pDispatcher->addHandler<kogayonon_core::FileRenamedEvent, &FileExplorerWindow::onFileRenamed>( *this );
+  m_pDispatcher->addHandler<kogayonon_core::FileDeletedEvent, &FileExplorerWindow::onFileDeleted>( *this );
+  m_pDispatcher->addHandler<kogayonon_core::FileModifiedEvent, &FileExplorerWindow::onFileModified>( *this );
 }
 
 void FileExplorerWindow::installCommands()
 {
-  m_pDirWatcher->setCommand( "fileCreated", [dispatcher = EVENT_DISPATCHER()]( std::string path, std::string name ) {
+  m_pDirWatcher->setCommand( "fileCreated", [this]( std::string path, std::string name ) {
     kogayonon_core::FileCreatedEvent e( path, name );
-    dispatcher->emitEvent<kogayonon_core::FileCreatedEvent>( e );
+    m_pDispatcher->emitEvent<kogayonon_core::FileCreatedEvent>( e );
   } );
 
-  m_pDirWatcher->setCommand( "fileDeleted", [dispatcher = EVENT_DISPATCHER()]( std::string path, std::string name ) {
+  m_pDirWatcher->setCommand( "fileDeleted", [this]( std::string path, std::string name ) {
     kogayonon_core::FileDeletedEvent e( path, name );
-    dispatcher->emitEvent<kogayonon_core::FileDeletedEvent>( e );
+    m_pDispatcher->emitEvent<kogayonon_core::FileDeletedEvent>( e );
   } );
 
-  m_pDirWatcher->setCommand( "fileRenamedNew",
-                             [dispatcher = EVENT_DISPATCHER()]( std::string path, std::string newName ) {
-                               kogayonon_core::FileRenamedEvent e( path, "", newName );
-                               dispatcher->emitEvent<kogayonon_core::FileRenamedEvent>( e );
-                             } );
+  m_pDirWatcher->setCommand( "fileRenamedNew", [this]( std::string path, std::string newName ) {
+    kogayonon_core::FileRenamedEvent e( path, "", newName );
+    m_pDispatcher->emitEvent<kogayonon_core::FileRenamedEvent>( e );
+  } );
 
-  m_pDirWatcher->setCommand( "fileModified", [dispatcher = EVENT_DISPATCHER()]( std::string path, std::string name ) {
+  m_pDirWatcher->setCommand( "fileModified", [this]( std::string path, std::string name ) {
     kogayonon_core::FileModifiedEvent e( path, name );
-    dispatcher->emitEvent<kogayonon_core::FileModifiedEvent>( e );
+    m_pDispatcher->emitEvent<kogayonon_core::FileModifiedEvent>( e );
   } );
 }
 
@@ -97,11 +98,11 @@ void FileExplorerWindow::draw()
   int dirId = 0;
 
   // for easier entry size modifications
-  static ImVec2 entrySize = ImVec2( 100.f, 100.f );
+  static auto entrySize = ImVec2( 100.f, 100.f );
 
   for ( auto const& dirEntry : std::filesystem::directory_iterator( m_currentPath ) )
   {
-    std::string id = "##file" + std::to_string( dirId++ );
+    std::string id = std::format( "{}{}", "##file", std::to_string( dirId++ ) );
     const auto& path = dirEntry.path();
     auto relativePath = std::filesystem::relative( path );
 
@@ -113,7 +114,7 @@ void FileExplorerWindow::draw()
         continue;
       }
 
-      ImVec2 textSize = ImGui::CalcTextSize( path.filename().string().c_str() );
+      auto textSize = ImGui::CalcTextSize( path.filename().string().c_str() );
       ImGui::BeginGroup();
 
       if ( ImGui::ImageButton( id.c_str(), (ImTextureID)m_folderTextureId, entrySize ) )

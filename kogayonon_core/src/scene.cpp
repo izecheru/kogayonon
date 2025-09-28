@@ -4,8 +4,8 @@
 namespace kogayonon_core
 {
 Scene::Scene( const std::string& name )
-    : m_pRegistry( std::make_unique<Registry>() )
-    , m_name( name )
+    : m_name( name )
+    , m_pRegistry( std::make_unique<Registry>() )
 {
 }
 

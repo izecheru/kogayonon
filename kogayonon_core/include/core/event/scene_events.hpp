@@ -10,11 +10,13 @@ namespace kogayonon_core
 class SelectEntityEvent : public IEvent
 {
 public:
-  SelectEntityEvent( entt::entity ent );
+  SelectEntityEvent();
+  explicit SelectEntityEvent( entt::entity ent );
 
   entt::entity getEntity() const;
 
   EVENT_CLASS_TYPE( SelectedEntity )
+
 private:
   entt::entity m_entity;
 };

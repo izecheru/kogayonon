@@ -182,7 +182,7 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
     }
   }
   uploadMeshGeometry( meshes );
-  auto model = std::make_shared<kogayonon_resources::Model>( std::move( meshes ) );
+  auto model = std::make_shared<kogayonon_resources::Model>( std::move( meshes ), modelPath );
 
   m_loadedModels.try_emplace( modelName, model );
 
@@ -211,12 +211,12 @@ void AssetManager::uploadMeshGeometry( std::vector<kogayonon_resources::Mesh>& m
     glCreateBuffers( 1, &vbo );
     assert( vbo != 0 && "vbo cannot be 0" );
 
-    glNamedBufferData( vbo, vertices.size() * sizeof( kogayonon_resources::Vertex ), vertices.data(), GL_STATIC_DRAW );
+    glNamedBufferData( vbo, vertices.size() * sizeof( kogayonon_resources::Vertex ), vertices.data(), GL_DYNAMIC_DRAW );
 
     // upload indices to element buffer
     glCreateBuffers( 1, &ebo );
     assert( ebo != 0 && "ebo cannot be 0" );
-    glNamedBufferData( ebo, indices.size() * sizeof( unsigned int ), indices.data(), GL_STATIC_DRAW );
+    glNamedBufferData( ebo, indices.size() * sizeof( unsigned int ), indices.data(), GL_DYNAMIC_DRAW );
 
     // link vao to vbo (vbo will be binded by this call)
     glVertexArrayVertexBuffer( vao, 0, vbo, 0, sizeof( kogayonon_resources::Vertex ) );

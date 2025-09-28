@@ -13,9 +13,10 @@ struct CameraProps
   glm::mat4x4 view;
   float yaw;
   float pitch;
-  float movement_speed;
+  float movementSpeed;
   float zoom;
-  float mouse_sens;
+  float mouseSensitivity;
+  float mouseZoomSpeed;
 };
 
 class Camera
@@ -27,7 +28,7 @@ public:
   void setupCamera();
 
   glm::mat4& getViewMatrix() const;
-  void processMouseMoved( float x, float y, bool constrain_pitch );
+  void onMouseMoved( float x, float y, bool constrainPitch );
   void updateCameraVectors();
   void cameraUniform( unsigned int shader_id, const char* uniform );
 

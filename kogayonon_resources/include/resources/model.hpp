@@ -7,7 +7,7 @@ namespace kogayonon_resources
 class Model
 {
 public:
-  explicit Model( std::vector<Mesh>&& meshes );
+  explicit Model( std::vector<Mesh>&& meshes, const std::string& path );
 
   Model( const Model& other ) = default;            // copy
   Model& operator=( const Model& other ) = default; // copy assignment
@@ -22,6 +22,8 @@ public:
   void setAmount( int amount );
   void setInstanced( bool value );
 
+  std::string getPath();
+
   uint32_t& getInstanceBuffer();
   std::vector<glm::mat4>& getInstances();
 
@@ -34,6 +36,7 @@ public:
 
 private:
   std::vector<Mesh> m_meshes;
+  std::string m_path;
 
   // this should not be here
   std::vector<glm::mat4> m_instanceMatrices;

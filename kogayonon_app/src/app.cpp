@@ -135,6 +135,20 @@ void App::pollEvents()
                                         static_cast<int>( MouseModifier::None ) };
         pEventDispatcher->emitEvent( mouseClicked );
       }
+      if ( buttonState & SDL_BUTTON( SDL_BUTTON_LEFT ) )
+      {
+        MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_LEFT ),
+                                        static_cast<int>( MouseAction::Press ),
+                                        static_cast<int>( MouseModifier::None ) };
+        pEventDispatcher->emitEvent( mouseClicked );
+      }
+      if ( buttonState & SDL_BUTTON( SDL_BUTTON_RIGHT ) )
+      {
+        MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_RIGHT ),
+                                        static_cast<int>( MouseAction::Press ),
+                                        static_cast<int>( MouseModifier::None ) };
+        pEventDispatcher->emitEvent( mouseClicked );
+      }
     }
     }
   }
@@ -285,7 +299,7 @@ bool App::initScenes() const
   entity->addComponent<TextureComponent>( ASSET_MANAGER()->getTexture( "slayerSword" ) );
   auto entity2 = std::make_unique<Entity>( mainScene->getRegistry(), "ModelObject" );
   auto model = ASSET_MANAGER()->addModel( "modelObject", "resources/models/untitled.gltf" );
-  entity2->addComponent<ModelComponent>( model );
+  entity2->addComponent<ModelComponent>( ModelComponent{ .pModel = model, .loaded = true } );
   entity2->addComponent<TransformComponent>();
   SceneManager::addScene( mainScene );
 

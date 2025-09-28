@@ -2,9 +2,14 @@
 
 namespace kogayonon_core
 {
-SelectEntityEvent::SelectEntityEvent( entt::entity ent )
+SelectEntityEvent::SelectEntityEvent()
+    : m_entity{ entt::null }
 {
-  m_entity = ent;
+}
+
+SelectEntityEvent::SelectEntityEvent( entt::entity ent )
+    : m_entity{ ent }
+{
 }
 
 entt::entity SelectEntityEvent::getEntity() const

@@ -34,10 +34,10 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
                                           unsigned int playTextureId, unsigned int stopTextureId )
     : ImGuiWindow{ std ::move( name ) }
     , m_selectedEntity{ entt::null }
-    , m_mainWindow{ mainWindow }
     , m_pFrameBuffer{ frameBuffer }
     , m_playTextureId{ playTextureId }
     , m_stopTextureId{ stopTextureId }
+    , m_mainWindow{ mainWindow }
     , m_pRenderingSystem{ std::make_unique<RenderingSystem>() }
     , m_pCamera{ std::make_unique<kogayonon_rendering::Camera>() }
 {
@@ -53,7 +53,8 @@ void SceneViewportWindow::onMouseScrolled( const MouseScrolledEvent& e )
   if ( !m_props || !m_props->hovered )
     return;
 
-  m_pCamera->zoom( e.getYOff() );
+  auto yOffset = static_cast<float>( e.getYOff() );
+  m_pCamera->zoom( yOffset );
 }
 
 void SceneViewportWindow::onSelectedEntity( const SelectEntityEvent& e )
@@ -63,14 +64,16 @@ void SceneViewportWindow::onSelectedEntity( const SelectEntityEvent& e )
 
 void SceneViewportWindow::onMouseMoved( const MouseMovedEvent& e )
 {
-  if ( !m_props || !m_props->hovered )
+  if ( !m_props || !m_props->focused )
     return;
 
   const auto& io = ImGui::GetIO();
   if ( io.MouseDown[ImGuiMouseButton_Middle] )
   {
     SDL_SetRelativeMouseMode( SDL_TRUE );
-    m_pCamera->processMouseMoved( e.getXRel(), e.getYRel(), true );
+    auto x = static_cast<float>( e.getXRel() );
+    auto y = static_cast<float>( e.getYRel() );
+    m_pCamera->onMouseMoved( x, y, true );
   }
   else
   {
@@ -86,7 +89,7 @@ void SceneViewportWindow::onKeyPressed( const KeyPressedEvent& e )
 {
 }
 
-std::weak_ptr<kogayonon_rendering::FrameBuffer> SceneViewportWindow::getFrameBuffer()
+std::weak_ptr<kogayonon_rendering::FrameBuffer> SceneViewportWindow::getFrameBuffer() const
 {
   return std::weak_ptr<kogayonon_rendering::FrameBuffer>( m_pFrameBuffer );
 }
@@ -97,17 +100,8 @@ void SceneViewportWindow::draw()
   {
     ImGui::End();
     return;
-  };
-
-  // hide the mouse if we move the camera
-  if ( const ImGuiIO& io = ImGui::GetIO(); io.MouseDown[ImGuiMouseButton_Middle] )
-  {
-    ImGui::SetMouseCursor( ImGuiMouseCursor_None );
   }
-  m_props->width = ImGui::GetWindowSize().x;
-  m_props->height = ImGui::GetWindowSize().y;
-  m_props->x = ImGui::GetWindowPos().x;
-  m_props->y = ImGui::GetWindowPos().y;
+
   m_props->focused = ImGui::IsWindowFocused();
   m_props->hovered = ImGui::IsWindowHovered();
 
@@ -203,7 +197,7 @@ void SceneViewportWindow::manageAssetsPayload( const ImGuiPayload* payload ) con
     {
       auto pModel = pAssetManager->addModel( p.filename().string(), p.string() );
       auto ent = std::make_shared<Entity>( pScene->getRegistry(), "ModelObject" );
-      ent->addComponent<ModelComponent>( pModel );
+      ent->addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
       ent->addComponent<TransformComponent>();
       return;
     }

@@ -6,12 +6,6 @@ namespace kogayonon_core
 {
 struct ModelComponent
 {
-  explicit ModelComponent( std::weak_ptr<kogayonon_resources::Model> model )
-      : pModel{ model }
-      , loaded{ true }
-  {
-  }
-
   std::weak_ptr<kogayonon_resources::Model> pModel;
   bool loaded;
 };

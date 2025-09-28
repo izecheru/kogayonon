@@ -81,9 +81,9 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
   int amount = model->getAmount();
   ImGui::Text( "Mesh vector size <%d>", static_cast<int>( meshes.size() ) );
   ImGui::Text( "Current instances number %d", amount );
-  if ( ImGui::Button( "Add 10000 instances of this object" ) )
+  if ( ImGui::Button( "Add 100 instances of this object" ) )
   {
-    model->setAmount( amount + 100000 );
+    model->setAmount( amount + 100 );
   }
 }
 
