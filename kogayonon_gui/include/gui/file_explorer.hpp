@@ -46,10 +46,18 @@ private:
    */
   void installHandlers();
 
-private:
   bool isTexture( const std::string& path );
+  void buildFileVector();
+
+  struct File_
+  {
+    bool isDir{ false };
+    std::string imguiId{ "##" };
+    std::filesystem::path path;
+  };
 
 private:
+  std::vector<File_> m_files;
   std::atomic_bool m_update;
   uint32_t m_folderTextureId;
   uint32_t m_fileTextureId;
