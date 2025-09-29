@@ -1,5 +1,6 @@
 #include "gui/file_explorer.hpp"
-#include <format>
+
+
 #include <spdlog/spdlog.h>
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
@@ -97,25 +98,6 @@ void FileExplorerWindow::onFileRenamed( kogayonon_core::FileRenamedEvent& e )
   m_update.store( true );
 }
 
-void FileExplorerWindow::buildFileVector()
-{
-  m_files.clear();
-  int dirId = 0;
-  for ( auto const& dirEntry : std::filesystem::directory_iterator( m_currentPath ) )
-  {
-    // we don't want to see the "fonts" directory since we have no use for them rn
-    if ( dirEntry.path().string().find( "fonts" ) != std::string::npos )
-    {
-      continue;
-    }
-    File_ file{ .isDir = dirEntry.is_directory(),
-                .imguiId = std::format( "{}{}", "##file", std::to_string( dirId ) ),
-                .path = dirEntry.path() };
-    dirId++;
-    m_files.emplace_back( file );
-  }
-}
-
 void FileExplorerWindow::draw()
 {
   ImGui_Utils::ScopedPadding padd{ ImVec2{ 10.0f, 10.0f } };
@@ -125,41 +107,7 @@ void FileExplorerWindow::draw()
     return;
   }
 
-  static std::filesystem::path lastPath{ "" };
-  drawPathToolbar();
 
-  // we build the vector of files only when we change the path or get a file event
-  if ( m_update == true || m_currentPath != lastPath )
-  {
-    lastPath = m_currentPath;
-    buildFileVector();
-    m_update.store( false );
-  }
-
-  for ( const auto& file : m_files )
-  {
-    if ( file.isDir )
-    {
-      auto filename = file.path.filename();
-      ImGui::BeginGroup();
-      if ( ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_folderTextureId, ImVec2{ 100.0f, 100.0f } ) )
-      {
-        m_currentPath = file.path;
-      }
-      ImGui::Text( "%s", ImGui_Utils::truncateText( filename.string(), 100.0f ).c_str() );
-      ImGui::EndGroup();
-    }
-    else
-    {
-      auto filename = file.path.filename();
-      ImGui::BeginGroup();
-      if ( ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_fileTextureId, ImVec2{ 100.0f, 100.0f } ) )
-      {
-        m_currentPath = file.path;
-      }
-      ImGui::Text( "%s", ImGui_Utils::truncateText( filename.string(), 100.0f ).c_str() );
-      ImGui::EndGroup();
-    }
     ImGui::SameLine();
   }
 
@@ -168,31 +116,11 @@ void FileExplorerWindow::draw()
 
 void FileExplorerWindow::drawPathToolbar()
 {
-  ImGui::BeginGroup();
-  ImVec2 pathSizeText = ImGui::CalcTextSize( "Current path" );
-  auto cursor = ImGui::GetCursorPos();
-  ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0, 0, 0, 0 ) );
-  ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 10.0f, 0.0f ) );
-
-  static auto path = std::filesystem::current_path() / "resources";
-  if ( m_currentPath == path )
-  {
-    ImGui::BeginDisabled();
-    ImGui::Button( "<" );
-    ImGui::EndDisabled();
-  }
-  else
-  {
-    if ( ImGui::Button( "<" ) )
-    {
-      m_currentPath = m_currentPath.parent_path();
-      buildFileVector();
-    }
-  }
 
   ImGui::PopStyleVar( 1 );
   ImGui::PopStyleColor( 1 );
 
   ImGui::EndGroup();
+
 }
 } // namespace kogayonon_gui
