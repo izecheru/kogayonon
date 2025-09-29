@@ -28,4 +28,15 @@ void Scene::changeName( const std::string& name )
 {
   m_name = name;
 }
+
+void Scene::removeEntity( entt::entity ent )
+{
+  auto& registry = m_pRegistry->getRegistry();
+  registry.destroy( ent );
+}
+
+void Scene::addDefaultEntity()
+{
+  Entity ent{ *m_pRegistry, "DefaultEntity" };
+}
 } // namespace kogayonon_core

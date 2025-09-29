@@ -4,6 +4,7 @@
 namespace kogayonon_core
 {
 class Scene;
+class Entity;
 struct TextureComponent;
 class KeyPressedEvent;
 class MouseClickedEvent;
@@ -40,7 +41,7 @@ public:
    * @param id Id of the element we draw the context menu for
    * @param name Just a test parameter for the moment
    */
-  void drawItemContexMenu( const std::string& itemId, std::string name );
+  void drawItemContexMenu( const std::string& itemId, kogayonon_core::Entity& ent );
 
   void drawContextMenu();
 

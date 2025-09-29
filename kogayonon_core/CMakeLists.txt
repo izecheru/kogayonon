@@ -19,7 +19,7 @@ add_library(
   "src/scene_manager.cpp"
   "include/core/ecs/components/texture_component.hpp"
   "include/core/ecs/components/name_component.hpp" "src/scene_events.cpp" "include/core/ecs/components/transform_component.hpp"
-  "include/core/event/file_events.hpp" "include/core/systems/rendering_system.h" "src/rendering_system.cpp")
+  "include/core/event/file_events.hpp" "include/core/systems/rendering_system.h" "src/rendering_system.cpp" "include/core/ecs/components/index_component.h")
 
 target_include_directories(kogayonon_core
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

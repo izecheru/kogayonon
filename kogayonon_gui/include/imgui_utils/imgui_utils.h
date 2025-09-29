@@ -1,9 +1,49 @@
 #pragma once
+#include <assert.h>
 #include <imgui.h>
 #include <string>
 
 namespace ImGui_Utils
 {
+template <typename Func>
+auto addPaddedGui( Func&& func, ImVec2 padding )
+{
+  auto cursor = ImGui::GetCursorPos();
+  ImGui::SetCursorPos( { cursor.x + padding.x, cursor.y + padding.y } );
+  func();
+
+  // this needs to be here cause imgui will hit an assert
+  if ( padding.x > 0 || padding.y > 0 )
+    ImGui::Dummy( padding );
+}
+
+/**
+ * @brief Structure for window padding, since this is created on the stack it will get destroyed after ImGui::End() so
+ * the next window won't get the padding values
+ */
+struct ScopedPadding
+{
+  explicit ScopedPadding( ImVec2 padding )
+  {
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, padding );
+  }
+
+  ~ScopedPadding()
+  {
+    ImGui::PopStyleVar();
+  }
+};
+
+static void addPadding( ImVec2 padding = ImVec2{ 10.0f, 10.0f } )
+{
+  ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, padding );
+}
+
+static void removePadding()
+{
+  ImGui::PopStyleVar();
+}
+
 /**
  * @brief Truncate the text if the strlen(text) > is bigger than the truncateWidth
  * @param text Text we will truncate

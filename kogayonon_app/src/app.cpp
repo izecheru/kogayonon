@@ -254,6 +254,8 @@ bool App::initRegistries() const
   assetManager->addTexture( "stop", "resources/textures/stop.png" );
   assetManager->addTexture( "file", "resources/textures/file.png" );
   assetManager->addTexture( "folder", "resources/textures/folder.png" );
+  assetManager->addTexture( "default", "resources/textures/default.png" );
+  assetManager->addModel( "default", "resources/models/Cube.gltf" );
 
   mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::AssetManager>>( std::move( assetManager ) );
 

@@ -11,6 +11,7 @@ namespace kogayonon_gui
 kogayonon_gui::FileExplorerWindow::FileExplorerWindow( std::string name, uint32_t folderTextureId,
                                                        uint32_t fileTextureId )
     : ImGuiWindow{ std::move( name ) }
+    , m_update{ false }
     , m_folderTextureId{ folderTextureId }
     , m_fileTextureId{ fileTextureId }
     , m_currentPath{ std::filesystem::current_path() / "resources" }
@@ -65,26 +66,39 @@ bool FileExplorerWindow::isTexture( const std::string& path )
 
 void FileExplorerWindow::onFileModified( kogayonon_core::FileModifiedEvent& e )
 {
-  spdlog::info( "FILE MODIFIED {} name {}", e.getPath(), e.getName() );
+  if ( m_update == true )
+    return;
+
+  m_update.store( true );
 }
 
 void FileExplorerWindow::onFileCreated( kogayonon_core::FileCreatedEvent& e )
 {
-  spdlog::info( "FILE CREATED {} name {}", e.getPath(), e.getName() );
+  if ( m_update == true )
+    return;
+
+  m_update.store( true );
 }
 
 void FileExplorerWindow::onFileDeleted( kogayonon_core::FileDeletedEvent& e )
 {
-  spdlog::info( "FILE DELETED {} name {}", e.getPath(), e.getName() );
+  if ( m_update == true )
+    return;
+
+  m_update.store( true );
 }
 
 void FileExplorerWindow::onFileRenamed( kogayonon_core::FileRenamedEvent& e )
 {
-  spdlog::info( "FILE RENAMED {} name {}", e.getPath(), e.getName() );
+  if ( m_update == true )
+    return;
+
+  m_update.store( true );
 }
 
 void FileExplorerWindow::draw()
 {
+  ImGui_Utils::ScopedPadding padd{ ImVec2{ 10.0f, 10.0f } };
   if ( !ImGui::Begin( m_props->name.c_str(), nullptr, m_props->flags ) )
   {
     ImGui::End();
@@ -100,6 +114,14 @@ void FileExplorerWindow::draw()
   // for easier entry size modifications
   static auto entrySize = ImVec2( 100.f, 100.f );
 
+  // todo build a vector or map of dirs and files and iterate over them once and then update if we get an event
+  if ( m_update == true )
+  {
+  }
+  else
+  {
+    m_update.store( false );
+  }
   for ( auto const& dirEntry : std::filesystem::directory_iterator( m_currentPath ) )
   {
     std::string id = std::format( "{}{}", "##file", std::to_string( dirId++ ) );
@@ -159,31 +181,31 @@ void FileExplorerWindow::draw()
 
 void FileExplorerWindow::drawPathToolbar()
 {
-  std::vector<std::string> pathItems;
+  // std::vector<std::string> pathItems;
 
   // construct the path from D:/folder1/folder to to ["D","folde1","folder2"] for easier access
-  if ( m_currentPath != std::filesystem::current_path() )
-  {
-    std::stringstream ss( m_currentPath.string() );
-    std::string item;
-    bool resources = false;
-    while ( std::getline( ss, item, '\\' ) )
-    {
-      if ( !item.empty() )
-      {
-        // we only push back items right of resources (included)
-        if ( item == "resources" )
-        {
-          resources = true;
-        }
+  // if ( m_currentPath != std::filesystem::current_path() )
+  //{
+  //  std::stringstream ss( m_currentPath.string() );
+  //  std::string item;
+  //  bool resources = false;
+  //  while ( std::getline( ss, item, '\\' ) )
+  //  {
+  //    if ( !item.empty() )
+  //    {
+  //      // we only push back items right of resources (included)
+  //      if ( item == "resources" )
+  //      {
+  //        resources = true;
+  //      }
 
-        if ( resources )
-          pathItems.push_back( item );
-      }
-    }
-  }
+  //      if ( resources )
+  //        pathItems.push_back( item );
+  //    }
+  //  }
+  //}
 
-  static int currentIndex = -1;
+  // static int currentIndex = -1;
 
   ImGui::BeginGroup();
   ImVec2 pathSizeText = ImGui::CalcTextSize( "Current path" );
@@ -193,47 +215,47 @@ void FileExplorerWindow::drawPathToolbar()
   ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0, 0, 0, 0 ) );
   ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 10.0f, 0.0f ) );
 
-  for ( int i = 0; i < pathItems.size(); ++i )
-  {
-    ImGui::SameLine( 0.0f, 10.0f );
+  // for ( int i = 0; i < pathItems.size(); ++i )
+  //{
+  //   ImGui::SameLine( 0.0f, 10.0f );
 
-    // if we press on a folder from path toolbar
-    ImVec2 textSize = ImGui::CalcTextSize( pathItems.at( i ).c_str() );
+  //  // if we press on a folder from path toolbar
+  //  ImVec2 textSize = ImGui::CalcTextSize( pathItems.at( i ).c_str() );
 
-    if ( ImGui::Button( pathItems.at( i ).c_str() ) )
-    {
-      // don't set currentIndex if it is already clicked once
-      if ( currentIndex != i )
-      {
-        // we get the index of the button we pressed
-        currentIndex = i;
-        break;
-      }
-    }
-    ImGui::SameLine();
+  //  if ( ImGui::Button( pathItems.at( i ).c_str() ) )
+  //  {
+  //    //// don't set currentIndex if it is already clicked once
+  //    //if ( currentIndex != i )
+  //    //{
+  //    //  // we get the index of the button we pressed
+  //    //  currentIndex = i;
+  //    //  break;
+  //    //}
+  //  }
+  ImGui::SameLine();
 
-    // if we are on resources/  don't render the arrrow
-    // if we are at the last entry in the pathItems vec, also don't render cause we're pointing to nothing
-    if ( pathItems.size() > 1 && i != pathItems.size() - 1 )
-      ImGui::Text( "->", ImVec2( 20.0f, 20.0f ) );
-  }
+  // if we are on resources/  don't render the arrrow
+  // if we are at the last entry in the pathItems vec, also don't render cause we're pointing to nothing
+  // if ( pathItems.size() > 1 && i != pathItems.size() - 1 )
+  //  ImGui::Text( "->", ImVec2( 20.0f, 20.0f ) );
+  //}
   ImGui::PopStyleVar( 1 );
   ImGui::PopStyleColor( 1 );
 
   ImGui::EndGroup();
 
   // if we did not press any button
-  if ( currentIndex != -1 )
-  {
-    std::filesystem::path result;
+  // if ( currentIndex != -1 )
+  //{
+  //  std::filesystem::path result;
 
-    // from start to the index we got, we construct the path and update m_currentPath
-    for ( int i = 0; i <= currentIndex; i++ )
-    {
-      result /= pathItems.at( i );
-    }
-    m_currentPath = std::filesystem::current_path() / result;
-    currentIndex = -1;
-  }
+  //  // from start to the index we got, we construct the path and update m_currentPath
+  //  for ( int i = 0; i <= currentIndex; i++ )
+  //  {
+  //    result /= pathItems.at( i );
+  //  }
+  //  m_currentPath = std::filesystem::current_path() / result;
+  //  currentIndex = -1;
+  //}
 }
 } // namespace kogayonon_gui

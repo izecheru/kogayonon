@@ -196,9 +196,9 @@ void SceneViewportWindow::manageAssetsPayload( const ImGuiPayload* payload ) con
     if ( m_selectedEntity == entt::null )
     {
       auto pModel = pAssetManager->addModel( p.filename().string(), p.string() );
-      auto ent = std::make_shared<Entity>( pScene->getRegistry(), "ModelObject" );
-      ent->addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
-      ent->addComponent<TransformComponent>();
+      Entity ent{ pScene->getRegistry(), "ModelObject" };
+      ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
+      ent.addComponent<TransformComponent>();
       return;
     }
   }
@@ -214,8 +214,7 @@ void SceneViewportWindow::manageAssetsPayload( const ImGuiPayload* payload ) con
     // if no entity is selected we create one ad add the TextureComponent to it
     if ( m_selectedEntity == entt::null )
     {
-      auto ent = std::make_shared<Entity>( pScene->getRegistry(), "TextureObject" );
-      ent->addComponent<TextureComponent>( texture );
+      // pScene->createEntity<TextureComponent>( texture );
       return;
     }
 
