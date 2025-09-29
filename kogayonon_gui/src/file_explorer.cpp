@@ -153,9 +153,12 @@ void FileExplorerWindow::draw()
     {
       auto filename = file.path.filename();
       ImGui::BeginGroup();
-      if ( ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_fileTextureId, ImVec2{ 100.0f, 100.0f } ) )
+      ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_fileTextureId, ImVec2{ 100.0f, 100.0f } );
+      if ( ImGui::BeginDragDropSource() )
       {
-        m_currentPath = file.path;
+        std::string path = file.path.string();
+        ImGui::SetDragDropPayload( "ASSET_DROP", path.c_str(), path.size() );
+        ImGui::EndDragDropSource();
       }
       ImGui::Text( "%s", ImGui_Utils::truncateText( filename.string(), 100.0f ).c_str() );
       ImGui::EndGroup();
