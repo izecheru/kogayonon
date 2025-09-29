@@ -153,54 +153,21 @@ void FileExplorerWindow::draw()
     {
       auto filename = file.path.filename();
       ImGui::BeginGroup();
-      ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_fileTextureId, ImVec2{ 100.0f, 100.0f } );
-      if ( ImGui::BeginDragDropSource() )
+      if ( ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_fileTextureId, ImVec2{ 100.0f, 100.0f } ) )
       {
-        std::string path = file.path.string();
-        ImGui::SetDragDropPayload( "ASSET_DROP", path.c_str(), path.size(), ImGuiCond_Once );
-        ImGui::EndDragDropSource();
+        m_currentPath = file.path;
       }
       ImGui::Text( "%s", ImGui_Utils::truncateText( filename.string(), 100.0f ).c_str() );
       ImGui::EndGroup();
-      if ( ImGui::IsItemHovered() )
-      {
-        ImGui::BeginTooltip();
-        ImGui::Text( filename.string().c_str() );
-        ImGui::EndTooltip();
-      }
     }
-      // if it is a file
-      ImGui::BeginGroup();
+    ImGui::SameLine();
+  }
 
-      ImGui::ImageButton( id.c_str(), (ImTextureID)m_fileTextureId, entrySize );
+  ImGui::End();
+}
 
-      // only files can be dragged and dropped, will add filters later so we don't even see .zip files for example
-      if ( ImGui::BeginDragDropSource() )
-      {
-        std::string test = relativePath.string();
-        ImGui::SetDragDropPayload( "ASSET_DROP", test.c_str(), test.size(), ImGuiCond_Once );
-        ImGui::EndDragDropSource();
-      }
-
-      ImVec2 fileNameSize = ImGui::CalcTextSize( path.filename().string().c_str() );
-      ImGui::Text( "%s", ImGui_Utils::truncateText( path.filename().string(), entrySize.x ).c_str() );
-      ImGui::EndGroup();
-      if ( ImGui::IsItemHovered() )
-      {
-        ImGui::BeginTooltip();
-        ImGui::Text( path.filename().string().c_str() );
-        ImGui::EndTooltip();
-      }
-    }
-
-      // if it is a file
-      ImGui::BeginGroup();
-
-      ImGui::ImageButton( id.c_str(), (ImTextureID)m_fileTextureId, entrySize );
-
-      // only files can be dragged and dropped, will add filters later so we don't even see .zip files for example
-      if ( ImGui::BeginDragDropSource() )
-      {
+void FileExplorerWindow::drawPathToolbar()
+{
   ImGui::BeginGroup();
   ImVec2 pathSizeText = ImGui::CalcTextSize( "Current path" );
   auto cursor = ImGui::GetCursorPos();
@@ -223,77 +190,9 @@ void FileExplorerWindow::draw()
     }
   }
 
-void FileExplorerWindow::drawPathToolbar()
-{
-  // std::vector<std::string> pathItems;
-
-  // if ( m_currentPath != std::filesystem::current_path() )
-  //{
-  //  std::stringstream ss( m_currentPath.string() );
-  //  std::string item;
-  //  bool resources = false;
-  //  while ( std::getline( ss, item, '\\' ) )
-  //  {
-  //    if ( !item.empty() )
-  //    {
-  //      // we only push back items right of resources (included)
-  //      if ( item == "resources" )
-  //      {
-  //        resources = true;
-  //      }
-
-  //      if ( resources )
-  //        pathItems.push_back( item );
-  //    }
-  //  }
-  //}
-
-  // static int currentIndex = -1;
-
-  ImGui::BeginGroup();
-  ImVec2 pathSizeText = ImGui::CalcTextSize( "Current path" );
-  auto cursor = ImGui::GetCursorPos();
-  ImGui::Text( "Current path" );
-
-  ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0, 0, 0, 0 ) );
-  ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 10.0f, 0.0f ) );
-
-  // for ( int i = 0; i < pathItems.size(); ++i )
-  //{
-  //   ImGui::SameLine( 0.0f, 10.0f );
-
-  //  // if we press on a folder from path toolbar
-  //  ImVec2 textSize = ImGui::CalcTextSize( pathItems.at( i ).c_str() );
-
-  //  if ( ImGui::Button( pathItems.at( i ).c_str() ) )
-  //  {
-  //    //// don't set currentIndex if it is already clicked once
-  //    //if ( currentIndex != i )
-  //    //{
-  //    //  // we get the index of the button we pressed
-  //    //  currentIndex = i;
-  //    //  break;
-  //    //}
-  //  }
-  ImGui::SameLine();
-
   ImGui::PopStyleVar( 1 );
   ImGui::PopStyleColor( 1 );
 
   ImGui::EndGroup();
-
-  // if we did not press any button
-  // if ( currentIndex != -1 )
-  //{
-  //  std::filesystem::path result;
-
-  //  // from start to the index we got, we construct the path and update m_currentPath
-  //  for ( int i = 0; i <= currentIndex; i++ )
-  //  {
-  //    result /= pathItems.at( i );
-  //  }
-  //  m_currentPath = std::filesystem::current_path() / result;
-  //  currentIndex = -1;
-  //}
 }
 } // namespace kogayonon_gui
