@@ -45,11 +45,9 @@ private:
    * @brief Adds event handlers and ties them to onEvent from FilExplorerWindow class
    */
   void installHandlers();
-
 private:
-  bool isTexture( const std::string& path );
-
-private:
+  bool isTexture(const std::string& path);
+  
   std::atomic_bool m_update;
   uint32_t m_folderTextureId;
   uint32_t m_fileTextureId;

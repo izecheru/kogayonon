@@ -1,4 +1,6 @@
 #include "gui/file_explorer.hpp"
+
+
 #include <spdlog/spdlog.h>
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
@@ -105,73 +107,6 @@ void FileExplorerWindow::draw()
     return;
   }
 
-  // draw the path toolbar used for navigation
-  drawPathToolbar();
-
-  // for each imgui element we need an id that is unique, so I use this dirId to add it to already defined const char*
-  int dirId = 0;
-
-  // for easier entry size modifications
-  static auto entrySize = ImVec2( 100.f, 100.f );
-
-  // todo build a vector or map of dirs and files and iterate over them once and then update if we get an event
-  if ( m_update == true )
-  {
-  }
-  else
-  {
-    m_update.store( false );
-  }
-  for ( auto const& dirEntry : std::filesystem::directory_iterator( m_currentPath ) )
-  {
-    std::string id = std::format( "{}{}", "##file", std::to_string( dirId++ ) );
-    const auto& path = dirEntry.path();
-    auto relativePath = std::filesystem::relative( path );
-
-    if ( dirEntry.is_directory() )
-    {
-      // we don't want to see the "fonts" directory since we have no use for them rn
-      if ( path.string().find( "fonts" ) != std::string::npos )
-      {
-        continue;
-      }
-
-      auto textSize = ImGui::CalcTextSize( path.filename().string().c_str() );
-      ImGui::BeginGroup();
-
-      if ( ImGui::ImageButton( id.c_str(), (ImTextureID)m_folderTextureId, entrySize ) )
-      {
-        m_currentPath = path;
-      }
-
-      ImGui::Text( "%s", ImGui_Utils::truncateText( path.filename().string(), entrySize.x ).c_str() );
-      ImGui::EndGroup();
-    }
-    else
-    {
-      // if it is a file
-      ImGui::BeginGroup();
-
-      ImGui::ImageButton( id.c_str(), (ImTextureID)m_fileTextureId, entrySize );
-
-      // only files can be dragged and dropped, will add filters later so we don't even see .zip files for example
-      if ( ImGui::BeginDragDropSource() )
-      {
-        std::string test = relativePath.string();
-        ImGui::SetDragDropPayload( "ASSET_DROP", test.c_str(), test.size(), ImGuiCond_Once );
-        ImGui::EndDragDropSource();
-      }
-
-      ImVec2 fileNameSize = ImGui::CalcTextSize( path.filename().string().c_str() );
-      ImGui::Text( "%s", ImGui_Utils::truncateText( path.filename().string(), entrySize.x ).c_str() );
-      ImGui::EndGroup();
-      if ( ImGui::IsItemHovered() )
-      {
-        ImGui::BeginTooltip();
-        ImGui::Text( path.filename().string().c_str() );
-        ImGui::EndTooltip();
-      }
-    }
 
     ImGui::SameLine();
   }
@@ -181,81 +116,11 @@ void FileExplorerWindow::draw()
 
 void FileExplorerWindow::drawPathToolbar()
 {
-  // std::vector<std::string> pathItems;
 
-  // construct the path from D:/folder1/folder to to ["D","folde1","folder2"] for easier access
-  // if ( m_currentPath != std::filesystem::current_path() )
-  //{
-  //  std::stringstream ss( m_currentPath.string() );
-  //  std::string item;
-  //  bool resources = false;
-  //  while ( std::getline( ss, item, '\\' ) )
-  //  {
-  //    if ( !item.empty() )
-  //    {
-  //      // we only push back items right of resources (included)
-  //      if ( item == "resources" )
-  //      {
-  //        resources = true;
-  //      }
-
-  //      if ( resources )
-  //        pathItems.push_back( item );
-  //    }
-  //  }
-  //}
-
-  // static int currentIndex = -1;
-
-  ImGui::BeginGroup();
-  ImVec2 pathSizeText = ImGui::CalcTextSize( "Current path" );
-  auto cursor = ImGui::GetCursorPos();
-  ImGui::Text( "Current path" );
-
-  ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0, 0, 0, 0 ) );
-  ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 10.0f, 0.0f ) );
-
-  // for ( int i = 0; i < pathItems.size(); ++i )
-  //{
-  //   ImGui::SameLine( 0.0f, 10.0f );
-
-  //  // if we press on a folder from path toolbar
-  //  ImVec2 textSize = ImGui::CalcTextSize( pathItems.at( i ).c_str() );
-
-  //  if ( ImGui::Button( pathItems.at( i ).c_str() ) )
-  //  {
-  //    //// don't set currentIndex if it is already clicked once
-  //    //if ( currentIndex != i )
-  //    //{
-  //    //  // we get the index of the button we pressed
-  //    //  currentIndex = i;
-  //    //  break;
-  //    //}
-  //  }
-  ImGui::SameLine();
-
-  // if we are on resources/  don't render the arrrow
-  // if we are at the last entry in the pathItems vec, also don't render cause we're pointing to nothing
-  // if ( pathItems.size() > 1 && i != pathItems.size() - 1 )
-  //  ImGui::Text( "->", ImVec2( 20.0f, 20.0f ) );
-  //}
   ImGui::PopStyleVar( 1 );
   ImGui::PopStyleColor( 1 );
 
   ImGui::EndGroup();
 
-  // if we did not press any button
-  // if ( currentIndex != -1 )
-  //{
-  //  std::filesystem::path result;
-
-  //  // from start to the index we got, we construct the path and update m_currentPath
-  //  for ( int i = 0; i <= currentIndex; i++ )
-  //  {
-  //    result /= pathItems.at( i );
-  //  }
-  //  m_currentPath = std::filesystem::current_path() / result;
-  //  currentIndex = -1;
-  //}
 }
 } // namespace kogayonon_gui
