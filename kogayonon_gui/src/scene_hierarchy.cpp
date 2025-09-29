@@ -13,6 +13,7 @@
 #include "core/input/mouse_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
+#include "imgui_utils/imgui_utils.h"
 
 using namespace kogayonon_core;
 
@@ -36,6 +37,8 @@ void SceneHierarchyWindow::onKeyPressed( const kogayonon_core::KeyPressedEvent& 
 
 void SceneHierarchyWindow::draw()
 {
+  ImGui_Utils::ScopedPadding padd{ ImVec2{ 10.0f, 10.0f } };
+
   if ( !ImGui::Begin( m_props->name.c_str(), nullptr, m_props->flags ) )
   {
     ImGui::End();
@@ -81,10 +84,6 @@ void SceneHierarchyWindow::draw()
   auto avail = ImGui::GetContentRegionAvail();
   ImGui::BeginChild( "EntityListRegion", avail, false, ImGuiChildFlags_ResizeY );
 
-  // Push the style color
-  ImGui::Text( "Selected index: %d", m_selectedIndex );
-  ImGui::PushStyleColor( ImGuiCol_FrameBg, ImVec4( 0.05f, 0.05f, 0.05f, 1.0f ) );
-
   if ( ImGui::BeginListBox( "##EntityList", avail ) )
   {
     for ( int i = 0; i < entities.size(); i++ )
@@ -99,13 +98,12 @@ void SceneHierarchyWindow::draw()
         m_selectedIndex = i;
         pEventDispatcher->emitEvent( SelectEntityEvent( entity.getEnttEntity() ) );
       }
-      drawItemContexMenu( label, "just a test string" );
+      drawItemContexMenu( label, entity );
     }
     drawContextMenu();
     ImGui::EndListBox();
   }
 
-  ImGui::PopStyleColor( 1 );
   ImGui::EndChild();
   ImGui::End();
 }
@@ -115,10 +113,12 @@ void SceneHierarchyWindow::drawContextMenu()
   if ( ImGui::BeginPopupContextWindow( "SceneHierarchyContext",
                                        ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight ) )
   {
-    ImGui::Text( "Window context menu" );
     if ( ImGui::MenuItem( "Create Entity" ) )
     {
-      spdlog::info( "Create entity clicked" );
+      if ( auto scene = SceneManager::getCurrentScene().lock() )
+      {
+        scene->addDefaultEntity();
+      }
     }
     if ( ImGui::MenuItem( "Clear Selection" ) )
     {
@@ -128,12 +128,19 @@ void SceneHierarchyWindow::drawContextMenu()
   }
 }
 
-void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, std::string name )
+void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity& ent )
 {
+
   if ( ImGui::BeginPopupContextItem( itemId.c_str() ) )
   {
-    ImGui::Text( "%s", name.c_str() );
-    ImGui::Button( "test button" );
+    if ( ImGui::MenuItem( "Delete entity" ) )
+    {
+      auto pScene = SceneManager::getCurrentScene();
+      if ( auto scene = pScene.lock() )
+      {
+        scene->removeEntity( ent.getEnttEntity() );
+      }
+    }
     ImGui::EndPopup();
   }
 }

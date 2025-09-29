@@ -22,14 +22,12 @@ ImGuiManager::ImGuiManager( SDL_Window* window, SDL_GLContext context )
   if ( initImgui( window, context ) )
   {
     spdlog::info( "Imgui initialised" );
-
-    // TODO add callback to the debug window
   }
 }
 
 void ImGuiManager::pushWindow( std::string name, std::unique_ptr<ImGuiWindow> window )
 {
-  m_windows.emplace( std::move( name ), std::move( window ) );
+  m_windows.try_emplace( std::move( name ), std::move( window ) );
 }
 
 bool ImGuiManager::initImgui( SDL_Window* window, SDL_GLContext context )

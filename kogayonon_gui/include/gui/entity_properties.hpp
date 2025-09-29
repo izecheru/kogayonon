@@ -6,6 +6,10 @@ namespace kogayonon_core
 {
 class Scene;
 class SelectEntityEvent;
+struct TextureComponent;
+class Entity;
+struct ModelComponent;
+struct TransformComponent;
 } // namespace kogayonon_core
 
 namespace kogayonon_gui
@@ -21,7 +25,11 @@ public:
   void onEntitySelect( const kogayonon_core::SelectEntityEvent& e );
 
 private:
-  void drawEnttProperties( std::shared_ptr<kogayonon_core::Scene> scene ) const;
+  void drawEnttProperties( std::shared_ptr<kogayonon_core::Scene> scene );
+
+  void drawTextureComponent( kogayonon_core::Entity& ent );
+  void drawModelComponent( kogayonon_core::Entity& ent );
+  void drawTransformComponent( kogayonon_core::Entity& ent );
 
 private:
   entt::entity m_entity;

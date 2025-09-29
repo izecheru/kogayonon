@@ -50,6 +50,7 @@ private:
   bool isTexture( const std::string& path );
 
 private:
+  std::atomic_bool m_update;
   uint32_t m_folderTextureId;
   uint32_t m_fileTextureId;
 

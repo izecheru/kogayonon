@@ -1,6 +1,7 @@
 #include "gui/performance_window.hpp"
 #include <chrono>
 #include "core/ecs/main_registry.hpp"
+#include "imgui_utils/imgui_utils.h"
 #include "utilities/time_tracker/time_tracker.hpp"
 
 namespace kogayonon_gui
@@ -13,6 +14,7 @@ PerformanceWindow::PerformanceWindow( std::string name )
 
 void PerformanceWindow::draw()
 {
+  ImGui_Utils::ScopedPadding padd{ ImVec2{ 10.0f, 10.0f } };
   if ( !ImGui::Begin( m_props->name.c_str(), nullptr, m_props->flags ) )
   {
     ImGui::End();
