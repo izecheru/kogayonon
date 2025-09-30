@@ -172,8 +172,6 @@ void FileExplorerWindow::draw()
 void FileExplorerWindow::drawPathToolbar()
 {
   ImGui::BeginGroup();
-  ImVec2 pathSizeText = ImGui::CalcTextSize( "Current path" );
-  auto cursor = ImGui::GetCursorPos();
   ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0, 0, 0, 0 ) );
   ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 10.0f, 0.0f ) );
 

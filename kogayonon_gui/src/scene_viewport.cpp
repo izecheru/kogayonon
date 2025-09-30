@@ -196,9 +196,7 @@ void SceneViewportWindow::manageAssetsPayload( const ImGuiPayload* payload ) con
     if ( m_selectedEntity == entt::null )
     {
       auto pModel = pAssetManager->addModel( p.filename().string(), p.string() );
-      Entity ent{ pScene->getRegistry(), "ModelObject" };
-      ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
-      ent.addComponent<TransformComponent>();
+      pScene->addEntity( pModel );
       return;
     }
   }
@@ -208,19 +206,16 @@ void SceneViewportWindow::manageAssetsPayload( const ImGuiPayload* payload ) con
     if ( !pScene )
       return;
 
+    // if no entity is selected we don't go further
+    if ( m_selectedEntity == entt::null )
+      return;
+
     // we load the texture
     auto texture = pAssetManager->addTexture( p.filename().string(), p.string() );
 
-    // if no entity is selected we create one ad add the TextureComponent to it
-    if ( m_selectedEntity == entt::null )
-    {
-      // pScene->createEntity<TextureComponent>( texture );
-      return;
-    }
-
-    // if we have a selected entity then we replace the texture with the new one
+    // we replace the texture with the new one
     auto ent = std::make_shared<Entity>( pScene->getRegistry(), m_selectedEntity );
-    if ( auto textureComponent = ent->tryGetComponent<TextureComponent>(); ent->hasComponent<TextureComponent>() )
+    if ( auto textureComponent = ent->tryGetComponent<TextureComponent>() )
     {
       std::string texturePath = textureComponent->pTexture.lock()->getPath();
       ASSET_MANAGER()->removeTexture( texturePath );

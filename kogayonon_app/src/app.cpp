@@ -255,7 +255,6 @@ bool App::initRegistries() const
   assetManager->addTexture( "file", "resources/textures/file.png" );
   assetManager->addTexture( "folder", "resources/textures/folder.png" );
   assetManager->addTexture( "default", "resources/textures/default.png" );
-  assetManager->addModel( "default", "resources/models/Cube.gltf" );
 
   mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::AssetManager>>( std::move( assetManager ) );
 
@@ -295,14 +294,6 @@ bool App::initGui()
 bool App::initScenes() const
 {
   auto mainScene = std::make_shared<Scene>( "Default scene" );
-
-  auto tex = ASSET_MANAGER()->addTexture( "paiangan", "resources/textures/paiangan.png" );
-  auto entity = std::make_unique<Entity>( mainScene->getRegistry(), "slayer texture entity" );
-  entity->addComponent<TextureComponent>( ASSET_MANAGER()->getTexture( "slayerSword" ) );
-  auto entity2 = std::make_unique<Entity>( mainScene->getRegistry(), "ModelObject" );
-  auto model = ASSET_MANAGER()->addModel( "modelObject", "resources/models/untitled.gltf" );
-  entity2->addComponent<ModelComponent>( ModelComponent{ .pModel = model, .loaded = true } );
-  entity2->addComponent<TransformComponent>();
   SceneManager::addScene( mainScene );
 
   // set the current scene

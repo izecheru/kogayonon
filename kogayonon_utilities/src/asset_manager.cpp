@@ -96,8 +96,6 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
   if ( auto it = m_loadedModels.find( modelName ); it != m_loadedModels.end() )
   {
     spdlog::info( "Model already loaded {} ", modelName );
-    int amount = it->second->getAmount() + 1;
-    it->second->setAmount( amount );
     return it->second;
   }
 

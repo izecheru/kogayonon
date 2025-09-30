@@ -117,7 +117,7 @@ void SceneHierarchyWindow::drawContextMenu()
     {
       if ( auto scene = SceneManager::getCurrentScene().lock() )
       {
-        scene->addDefaultEntity();
+        scene->addEntity();
       }
     }
     if ( ImGui::MenuItem( "Clear Selection" ) )
@@ -130,7 +130,6 @@ void SceneHierarchyWindow::drawContextMenu()
 
 void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity& ent )
 {
-
   if ( ImGui::BeginPopupContextItem( itemId.c_str() ) )
   {
     if ( ImGui::MenuItem( "Delete entity" ) )

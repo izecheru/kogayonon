@@ -4,8 +4,6 @@
 #include <spdlog/spdlog.h>
 #include <string>
 #include <unordered_map>
-#include "core/ecs/components/index_component.h"
-#include "core/ecs/components/model_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "resources/model.hpp"
 
@@ -19,11 +17,15 @@ namespace kogayonon_core
 struct InstanceData
 {
   // one per model
-  uint32_t instanceBuffer;
+  uint32_t instanceBuffer{ 0 };
+
   // one per model
-  std::vector<glm::mat4> instanceMatrices;
+  std::vector<glm::mat4> instanceMatrices{};
+
   // one per model
   int count = 1;
+
+  kogayonon_resources::Model* pModel{ nullptr };
 };
 
 class Scene
@@ -38,12 +40,16 @@ public:
   void changeName( const std::string& name );
 
   void removeEntity( entt::entity ent );
-  void addDefaultEntity();
-  void addModelEntity();
+  void addEntity();
+  void addEntity( std::weak_ptr<kogayonon_resources::Model> pModel );
+  InstanceData* getData( kogayonon_resources::Model* pModel );
+
+private:
+  void setupInstance( InstanceData* data );
 
 private:
   std::string m_name;
   std::unique_ptr<Registry> m_pRegistry;
-  std::unordered_map<std::string, std::unique_ptr<InstanceData>> m_instances;
+  std::unordered_map<kogayonon_resources::Model*, std::unique_ptr<InstanceData>> m_instances;
 };
 } // namespace kogayonon_core
