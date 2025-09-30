@@ -141,7 +141,14 @@ void SceneViewportWindow::draw()
   }
 
   pFrameBuffer->bind();
+
   pFrameBuffer->rescale( contentSize.x, contentSize.y );
+
+  // set clear color first
+  glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
+
+  // then clear
+  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
   auto& shader = SHADER_MANAGER()->getShader( "3d" );
   glm::mat4 proj = glm::perspective( glm::radians( 45.0f ), contentSize.x / contentSize.y, 0.1f, 4000.0f );
 

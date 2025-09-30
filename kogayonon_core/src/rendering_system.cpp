@@ -8,7 +8,9 @@
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/scene/scene.hpp"
+#include "utilities/math/math.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
+using namespace kogayonon_utilities;
 
 namespace kogayonon_core
 {
@@ -45,8 +47,7 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
 
       // this will help us determine what type of rendering we have so the vertex shader knows which matrices to
       // multiply , shader.setBool( "instanced", true );
-      auto instanceData = scene->getData( model.get() );
-      if ( instanceData != nullptr && instanceData->count > 1 )
+      if ( auto instanceData = scene->getData( model.get() ); instanceData != nullptr && instanceData->count > 1 )
       {
         shader.setBool( "instanced", true );
 
@@ -57,6 +58,8 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
       else
       {
         shader.setBool( "instanced", false );
+        transformComp.updateMatrix();
+        shader.setMat4( "model", transformComp.modelMatrix );
 
         // draw the indices
         glDrawElements( GL_TRIANGLES, (GLsizei)mesh.getIndices().size(), GL_UNSIGNED_INT, nullptr );

@@ -44,6 +44,7 @@ public:
   void addEntity();
   void addEntity( std::weak_ptr<kogayonon_resources::Model> pModel );
   InstanceData* getData( kogayonon_resources::Model* pModel );
+  void setupMultipleInstances( InstanceData* data );
   void setupInstance( InstanceData* data );
 
 private:

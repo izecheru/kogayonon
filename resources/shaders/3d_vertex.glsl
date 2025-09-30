@@ -7,6 +7,7 @@ layout (location = 3) in mat4 instanceMatrix;
 uniform mat4 view;
 uniform mat4 projection;
 uniform bool instanced;
+uniform mat4 model;
 
 out vec2 TexCoord;
 
@@ -16,7 +17,7 @@ void main()
         gl_Position = projection * view * instanceMatrix * vec4(aPos, 1.0);
     }
     else{
-        gl_Position = projection * view * vec4(aPos,1.0);
+        gl_Position = projection * view * model *  vec4(aPos,1.0);
     }
     TexCoord = aTexCoord;
 }

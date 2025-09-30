@@ -70,7 +70,7 @@ void Scene::removeEntity( entt::entity ent )
         }
       }
 
-      setupInstance( instance.get() );
+      setupMultipleInstances( instance.get() );
     }
   }
 
@@ -111,7 +111,7 @@ void Scene::addEntity( std::weak_ptr<kogayonon_resources::Model> pModel )
         uint32_t size = instanceData->instanceMatrices.size();
         ent.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
 
-        setupInstance( instanceData.get() );
+        setupMultipleInstances( instanceData.get() );
       }
     }
   }
@@ -128,7 +128,7 @@ void Scene::addEntity( std::weak_ptr<kogayonon_resources::Model> pModel )
     uint32_t size = instanceData->instanceMatrices.size();
     ent.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
 
-    setupInstance( instanceData.get() );
+    setupMultipleInstances( instanceData.get() );
     m_instances.try_emplace( pModel.lock().get(), std::move( instanceData ) );
   }
 }
@@ -141,7 +141,7 @@ InstanceData* Scene::getData( kogayonon_resources::Model* pModel )
   return m_instances.at( pModel ).get();
 }
 
-void Scene::setupInstance( InstanceData* data )
+void Scene::setupMultipleInstances( InstanceData* data )
 {
   if ( data->instanceBuffer == 0 )
   {
@@ -184,5 +184,9 @@ void Scene::setupInstance( InstanceData* data )
     // Upload new data
     glNamedBufferSubData( data->instanceBuffer, 0, sizeof( glm::mat4 ) * data->count, data->instanceMatrices.data() );
   }
+}
+
+void Scene::setupInstance( InstanceData* data )
+{
 }
 } // namespace kogayonon_core

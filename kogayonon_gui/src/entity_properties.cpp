@@ -142,6 +142,7 @@ void EntityPropertiesWindow::drawModelComponent( kogayonon_core::Entity& ent )
     // they are tied together
     ent.removeComponent<kogayonon_core::ModelComponent>();
     ent.removeComponent<kogayonon_core::TransformComponent>();
+    ent.removeComponent<kogayonon_core::IndexComponent>();
   }
   ImGui::Text( "Model has %d meshes", model->getMeshes().size() );
 }
@@ -156,20 +157,27 @@ void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent
   const auto& modelComponent = ent.tryGetComponent<kogayonon_core::ModelComponent>();
 
   ImGui::Text( "Transformation" );
-  auto& pos = transformComponent->pos;
   bool changed = false;
+  auto& pos = transformComponent->pos;
+  auto& scale = transformComponent->scale;
   changed |= ImGui::SliderFloat( "x", &pos.x, 0.0f, 100.0f );
   changed |= ImGui::SliderFloat( "y", &pos.y, 0.0f, 100.0f );
   changed |= ImGui::SliderFloat( "z", &pos.z, 0.0f, 100.0f );
-  changed |= ImGui::SliderFloat( "scale", &transformComponent->scale.x, 0.0f, 100.0f );
+
+  ImGui::Text( "Scale" );
+  changed |= ImGui::SliderFloat( "##scale x", &scale.x, 0.0f, 100.0f );
+  changed |= ImGui::SliderFloat( "##scale y", &scale.y, 0.0f, 100.0f );
+  changed |= ImGui::SliderFloat( "##scale z", &scale.z, 0.0f, 100.0f );
 
   if ( changed )
   {
-    transformComponent->dirty = true;
     auto scene = m_pCurrentScene.lock();
 
     if ( !scene )
       return;
+
+    transformComponent->dirty = true;
+    transformComponent->updateMatrix();
 
     // we need the index of the instance
     const auto& indexComponent = ent.getComponent<kogayonon_core::IndexComponent>();
@@ -178,11 +186,15 @@ void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent
     const auto data = scene->getData( modelComponent->pModel.lock().get() );
 
     // get the instance matrix
-    data->instanceMatrices.at( indexComponent.index ) =
-      math::computeModelMatrix( transformComponent->pos, transformComponent->rotation, transformComponent->scale );
+    data->instanceMatrices.at( indexComponent.index ) = transformComponent->modelMatrix;
 
-    transformComponent->dirty = false;
-    scene->setupInstance( data );
+    // if we have only one instance it works
+
+    // if we have a multiple instances
+    if ( data->count > 1 )
+    {
+      scene->setupMultipleInstances( data );
+    }
   }
 }
 } // namespace kogayonon_gui
