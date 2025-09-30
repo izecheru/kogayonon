@@ -4,6 +4,8 @@
 #include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/registry.hpp"
+#include "utilities/math/math.hpp"
+using namespace kogayonon_utilities;
 
 namespace kogayonon_core
 {
@@ -61,7 +63,6 @@ void Scene::removeEntity( entt::entity ent )
         Entity ent{ *m_pRegistry, entity };
 
         // if the index from the iteration is >= to the index component we erased from the instances
-        // if we delete entity 0 we get a higher index
         if ( indexComp.index >= toErase )
         {
           // we subtract one since we deleted it above
@@ -102,11 +103,9 @@ void Scene::addEntity( std::weak_ptr<kogayonon_resources::Model> pModel )
         ++instanceData->count;
 
         // we create a new instance matrix
-        float x = ( static_cast<float>( rand() ) / static_cast<float>( RAND_MAX ) * 2.0f - 1.0f ) * scale;
-        float y = ( static_cast<float>( rand() ) / static_cast<float>( RAND_MAX ) * 2.0f - 1.0f ) * scale;
-        float z = ( static_cast<float>( rand() ) / static_cast<float>( RAND_MAX ) * 2.0f - 1.0f ) * scale;
-
-        instanceData->instanceMatrices.emplace_back( glm::translate( glm::mat4{ 1.0f }, glm::vec3{ x, y, z } ) );
+        const auto& transform = ent.getComponent<TransformComponent>();
+        instanceData->instanceMatrices.push_back(
+          math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) );
 
         // first we get the index of the instance matrix
         uint32_t size = instanceData->instanceMatrices.size();
@@ -118,16 +117,12 @@ void Scene::addEntity( std::weak_ptr<kogayonon_resources::Model> pModel )
   }
   else
   {
-    // we create a new instance matrix
-    float x = ( static_cast<float>( rand() ) / static_cast<float>( RAND_MAX ) * 2.0f - 1.0f ) * scale;
-    float y = ( static_cast<float>( rand() ) / static_cast<float>( RAND_MAX ) * 2.0f - 1.0f ) * scale;
-    float z = ( static_cast<float>( rand() ) / static_cast<float>( RAND_MAX ) * 2.0f - 1.0f ) * scale;
-
-    auto instanceData = std::make_unique<InstanceData>(
-      InstanceData{ .instanceBuffer = 0,
-                    .instanceMatrices = { glm::translate( glm::mat4{ 1.0f }, glm::vec3{ x, y, z } ) },
-                    .count = 1,
-                    .pModel = pModel.lock().get() } );
+    const auto& transform = ent.getComponent<TransformComponent>();
+    auto instanceData = std::make_unique<InstanceData>( InstanceData{
+      .instanceBuffer = 0,
+      .instanceMatrices = { math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) },
+      .count = 1,
+      .pModel = pModel.lock().get() } );
 
     // first we get the index of the instance matrix
     uint32_t size = instanceData->instanceMatrices.size();

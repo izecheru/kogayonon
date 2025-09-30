@@ -2,6 +2,7 @@
 #include <entt/entt.hpp>
 #include <glad/glad.h>
 #include <spdlog/spdlog.h>
+#include "core/ecs/components/index_component.h"
 #include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/name_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
@@ -14,6 +15,8 @@
 #include "core/scene/scene_manager.hpp"
 #include "imgui_utils/imgui_utils.h"
 #include "utilities/asset_manager/asset_manager.hpp"
+#include "utilities/math/math.hpp"
+using namespace kogayonon_utilities;
 
 namespace kogayonon_gui
 {
@@ -145,16 +148,41 @@ void EntityPropertiesWindow::drawModelComponent( kogayonon_core::Entity& ent )
 
 void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent )
 {
-  auto transformComponent = ent.tryGetComponent<kogayonon_core::TransformComponent>();
+  const auto& transformComponent = ent.tryGetComponent<kogayonon_core::TransformComponent>();
   if ( !transformComponent )
     return;
 
+  // if it has transform, it definetely has a model component
+  const auto& modelComponent = ent.tryGetComponent<kogayonon_core::ModelComponent>();
+
   ImGui::Text( "Transformation" );
   auto& pos = transformComponent->pos;
-  ImGui::SliderFloat( "x", &pos.x, 0.0f, 100.0f );
-  ImGui::SliderFloat( "y", &pos.y, 0.0f, 100.0f );
-  ImGui::SliderFloat( "z", &pos.z, 0.0f, 100.0f );
-  ImGui::SliderFloat( "scale", &transformComponent->scale.x, 0.0f, 100.0f );
-  transformComponent->updateMatrix();
+  bool changed = false;
+  changed |= ImGui::SliderFloat( "x", &pos.x, 0.0f, 100.0f );
+  changed |= ImGui::SliderFloat( "y", &pos.y, 0.0f, 100.0f );
+  changed |= ImGui::SliderFloat( "z", &pos.z, 0.0f, 100.0f );
+  changed |= ImGui::SliderFloat( "scale", &transformComponent->scale.x, 0.0f, 100.0f );
+
+  if ( changed )
+  {
+    transformComponent->dirty = true;
+    auto scene = m_pCurrentScene.lock();
+
+    if ( !scene )
+      return;
+
+    // we need the index of the instance
+    const auto& indexComponent = ent.getComponent<kogayonon_core::IndexComponent>();
+
+    // get the instance data of this model
+    const auto data = scene->getData( modelComponent->pModel.lock().get() );
+
+    // get the instance matrix
+    data->instanceMatrices.at( indexComponent.index ) =
+      math::computeModelMatrix( transformComponent->pos, transformComponent->rotation, transformComponent->scale );
+
+    transformComponent->dirty = false;
+    scene->setupInstance( data );
+  }
 }
 } // namespace kogayonon_gui

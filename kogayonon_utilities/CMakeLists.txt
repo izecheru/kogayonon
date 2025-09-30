@@ -11,7 +11,7 @@ add_library(
   "include/utilities/time_tracker/time_tracker.hpp"
   "src/time_tracker.cpp"
   "src/directory_watcher.cpp"
-  "include/utilities/directory_watcher/directory_watcher.hpp")
+  "include/utilities/directory_watcher/directory_watcher.hpp" "include/utilities/math/math.hpp")
 
 target_include_directories(kogayonon_utilities
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

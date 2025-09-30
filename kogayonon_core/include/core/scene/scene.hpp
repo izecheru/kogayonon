@@ -16,15 +16,16 @@ namespace kogayonon_core
 {
 struct InstanceData
 {
-  // one per model
+  // the buffer in which we upload the instance matrices
   uint32_t instanceBuffer{ 0 };
 
-  // one per model
+  // each instance has it's own instance matrix that enables transformations
   std::vector<glm::mat4> instanceMatrices{};
 
-  // one per model
+  // the amount of instances that will be drawn for a specific model using glDrawElementsInstanced
   int count = 1;
 
+  // pointer to the model, we use this as a key in unordered_map<Model*,unique_ptr<InstanceData>>
   kogayonon_resources::Model* pModel{ nullptr };
 };
 
@@ -43,8 +44,6 @@ public:
   void addEntity();
   void addEntity( std::weak_ptr<kogayonon_resources::Model> pModel );
   InstanceData* getData( kogayonon_resources::Model* pModel );
-
-private:
   void setupInstance( InstanceData* data );
 
 private:
