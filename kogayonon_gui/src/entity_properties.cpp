@@ -80,7 +80,16 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
     {
       if ( ImGui::MenuItem( "Texture" ) )
       {
-        entity.addComponent<kogayonon_core::TextureComponent>( ASSET_MANAGER()->getTexture( "default" ) );
+        if ( const auto& modelComponent = entity.tryGetComponent<kogayonon_core::ModelComponent>() )
+        {
+          const auto& model = modelComponent->pModel.lock();
+          if ( model )
+          {
+            model->getMeshes();
+          }
+        }
+
+        // entity.addComponent<kogayonon_core::TextureComponent>( ASSET_MANAGER()->getTexture( "default" ) );
       }
     }
 
@@ -165,9 +174,9 @@ void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent
   changed |= ImGui::SliderFloat( "z", &pos.z, 0.0f, 100.0f );
 
   ImGui::Text( "Scale" );
-  changed |= ImGui::SliderFloat( "##scale x", &scale.x, 0.0f, 100.0f );
-  changed |= ImGui::SliderFloat( "##scale y", &scale.y, 0.0f, 100.0f );
-  changed |= ImGui::SliderFloat( "##scale z", &scale.z, 0.0f, 100.0f );
+  changed |= ImGui::SliderFloat( "##scale x", &scale.x, 1.0f, 100.0f );
+  changed |= ImGui::SliderFloat( "##scale y", &scale.y, 1.0f, 100.0f );
+  changed |= ImGui::SliderFloat( "##scale z", &scale.z, 1.0f, 100.0f );
 
   if ( changed )
   {

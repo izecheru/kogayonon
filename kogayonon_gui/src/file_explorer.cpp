@@ -105,9 +105,9 @@ void FileExplorerWindow::buildFileVector()
   {
     // we don't want to see the "fonts" directory since we have no use for them rn
     if ( dirEntry.path().string().find( "fonts" ) != std::string::npos )
-    {
       continue;
-    }
+
+    // TODO add filters here
     File_ file{ .isDir = dirEntry.is_directory(),
                 .imguiId = std::format( "{}{}", "##file", std::to_string( dirId ) ),
                 .path = dirEntry.path() };

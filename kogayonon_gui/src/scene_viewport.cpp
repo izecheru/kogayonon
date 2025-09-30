@@ -141,7 +141,6 @@ void SceneViewportWindow::draw()
   }
 
   pFrameBuffer->bind();
-
   pFrameBuffer->rescale( contentSize.x, contentSize.y );
 
   // set clear color first
