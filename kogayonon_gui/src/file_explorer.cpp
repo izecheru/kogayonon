@@ -37,22 +37,22 @@ void FileExplorerWindow::installHandlers()
 
 void FileExplorerWindow::installCommands()
 {
-  m_pDirWatcher->setCommand( "fileCreated", [this]( std::string path, std::string name ) {
+  m_pDirWatcher->setCommand( "fileCreated", [this]( const std::string& path, const std::string& name ) {
     kogayonon_core::FileCreatedEvent e( path, name );
     m_pDispatcher->emitEvent<kogayonon_core::FileCreatedEvent>( e );
   } );
 
-  m_pDirWatcher->setCommand( "fileDeleted", [this]( std::string path, std::string name ) {
+  m_pDirWatcher->setCommand( "fileDeleted", [this]( const std::string& path, const std::string& name ) {
     kogayonon_core::FileDeletedEvent e( path, name );
     m_pDispatcher->emitEvent<kogayonon_core::FileDeletedEvent>( e );
   } );
 
-  m_pDirWatcher->setCommand( "fileRenamedNew", [this]( std::string path, std::string newName ) {
+  m_pDirWatcher->setCommand( "fileRenamedNew", [this]( const std::string& path, const std::string& newName ) {
     kogayonon_core::FileRenamedEvent e( path, "", newName );
     m_pDispatcher->emitEvent<kogayonon_core::FileRenamedEvent>( e );
   } );
 
-  m_pDirWatcher->setCommand( "fileModified", [this]( std::string path, std::string name ) {
+  m_pDirWatcher->setCommand( "fileModified", [this]( const std::string& path, const std::string& name ) {
     kogayonon_core::FileModifiedEvent e( path, name );
     m_pDispatcher->emitEvent<kogayonon_core::FileModifiedEvent>( e );
   } );
@@ -136,8 +136,11 @@ void FileExplorerWindow::draw()
     m_update.store( false );
   }
 
+  // we only want 10 files per line
+  int count = 0;
   for ( const auto& file : m_files )
   {
+    ++count;
     if ( file.isDir )
     {
       auto filename = file.path.filename();
@@ -163,7 +166,12 @@ void FileExplorerWindow::draw()
       ImGui::Text( "%s", ImGui_Utils::truncateText( filename.string(), 100.0f ).c_str() );
       ImGui::EndGroup();
     }
-    ImGui::SameLine();
+
+    if ( count != 10 )
+      ImGui::SameLine();
+
+    if ( count == 10 )
+      count = 0;
   }
 
   ImGui::End();
@@ -175,8 +183,7 @@ void FileExplorerWindow::drawPathToolbar()
   ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0, 0, 0, 0 ) );
   ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 10.0f, 0.0f ) );
 
-  static auto path = std::filesystem::current_path() / "resources";
-  if ( m_currentPath == path )
+  if ( static auto path = std::filesystem::current_path() / "resources"; m_currentPath == path )
   {
     ImGui::BeginDisabled();
     ImGui::Button( "<" );

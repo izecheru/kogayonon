@@ -126,7 +126,7 @@ void SceneHierarchyWindow::drawContextMenu()
   }
 }
 
-void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity& ent )
+void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity& ent ) const
 {
   if ( ImGui::BeginPopupContextItem( itemId.c_str() ) )
   {
@@ -140,18 +140,5 @@ void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity
     }
     ImGui::EndPopup();
   }
-}
-
-void SceneHierarchyWindow::drawTextureTooltip( TextureComponent* textureComp, ImVec2 size )
-{
-  ImGui::BeginTooltip();
-  if ( auto tex = textureComp->pTexture.lock() )
-  {
-    ImGui::Text( "%s", tex->getName().c_str() );
-    ImGui::Text( "%d/%d", tex->getWidth(), tex->getHeight() );
-    ImGui::Text( "%s", tex->getPath().c_str() );
-    ImGui::Image( (ImTextureID)(intptr_t)tex->getTextureId(), size );
-  }
-  ImGui::EndTooltip();
 }
 } // namespace kogayonon_gui

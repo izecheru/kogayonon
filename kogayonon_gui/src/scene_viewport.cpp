@@ -229,16 +229,7 @@ void SceneViewportWindow::manageAssetsPayload( const ImGuiPayload* payload ) con
       return;
 
     // we load the texture
-    auto texture = pAssetManager->addTexture( p.filename().string(), p.string() );
-
-    // we replace the texture with the new one
-    auto ent = std::make_shared<Entity>( pScene->getRegistry(), m_selectedEntity );
-    if ( auto textureComponent = ent->tryGetComponent<TextureComponent>() )
-    {
-      std::string texturePath = textureComponent->pTexture.lock()->getPath();
-      ASSET_MANAGER()->removeTexture( texturePath );
-    }
-    ent->replaceComponent<TextureComponent>( texture );
+    pAssetManager->addTexture( p.filename().string(), p.string() );
   }
   else
   {

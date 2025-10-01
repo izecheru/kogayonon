@@ -2,14 +2,11 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "resources/texture.hpp"
 #include "resources/vertex.hpp"
 
 namespace kogayonon_resources
 {
-struct MeshGPU
-{
-};
-
 class Mesh
 {
 public:
@@ -22,19 +19,20 @@ public:
   Mesh( Mesh&& other ) noexcept = default;            // move constructor
   Mesh& operator=( Mesh&& other ) noexcept = default; // move assignment
 
-  explicit Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices, std::vector<uint32_t>&& textures );
+  explicit Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices,
+                 std::vector<std::weak_ptr<Texture>>&& textures );
   explicit Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices );
 
   std::vector<Vertex>& getVertices();
   std::vector<uint32_t>& getIndices();
-  std::vector<uint32_t>& getTextures();
+  std::vector<std::weak_ptr<Texture>>& getTextures();
 
   uint32_t& getVao();
   uint32_t& getVbo();
   uint32_t& getEbo();
 
 private:
-  std::vector<uint32_t> m_texturesIDs;
+  std::vector<std::weak_ptr<Texture>> m_textures;
   std::vector<Vertex> m_vertices;
   std::vector<uint32_t> m_indices;
 

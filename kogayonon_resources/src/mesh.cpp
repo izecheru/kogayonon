@@ -3,8 +3,9 @@
 
 namespace kogayonon_resources
 {
-Mesh::Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices, std::vector<uint32_t>&& textures )
-    : m_texturesIDs{ std::move( textures ) }
+Mesh::Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices,
+            std::vector<std::weak_ptr<Texture>>&& textures )
+    : m_textures{ std::move( textures ) }
     , m_vertices{ std::move( vertices ) }
     , m_indices{ std::move( indices ) }
     , vao{ 0 }
@@ -24,7 +25,7 @@ Mesh::Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices )
 }
 
 Mesh::Mesh( const Mesh& other )
-    : m_texturesIDs( other.m_texturesIDs )
+    : m_textures( other.m_textures )
     , m_vertices( other.m_vertices )
     , m_indices( other.m_indices )
     , vao{ other.vao }
@@ -37,7 +38,7 @@ Mesh& Mesh::operator=( const Mesh& other )
 {
   if ( this == &other )
     return *this;
-  m_texturesIDs = other.m_texturesIDs;
+  m_textures = other.m_textures;
   m_vertices = other.m_vertices;
   m_indices = other.m_indices;
   vao = other.vao;
@@ -56,9 +57,9 @@ std::vector<uint32_t>& Mesh::getIndices()
   return m_indices;
 }
 
-std::vector<uint32_t>& Mesh::getTextures()
+std::vector<std::weak_ptr<Texture>>& Mesh::getTextures()
 {
-  return m_texturesIDs;
+  return m_textures;
 }
 
 uint32_t& Mesh::getVao()

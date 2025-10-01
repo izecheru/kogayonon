@@ -27,10 +27,10 @@ AssetManager::~AssetManager()
 std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureWithoutParams( const std::string& textureName,
                                                                                    const std::string& texturePath )
 {
-  if ( const auto& it = m_loadedTextures.find( textureName ); it != m_loadedTextures.end() )
+  if ( m_loadedTextures.contains( textureName ) )
   {
     spdlog::info( "We already have the texture {} from {} ", textureName, texturePath );
-    return it->second;
+    return m_loadedTextures.at( textureName );
   }
 
   assert( std::filesystem::exists( texturePath ) && "Texture path does not exist" );
@@ -60,10 +60,10 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureWithoutParam
 std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std::string& textureName,
                                                                       const std::string& texturePath )
 {
-  if ( const auto& it = m_loadedTextures.find( textureName ); it != m_loadedTextures.end() )
+  if ( m_loadedTextures.contains( textureName ) )
   {
     spdlog::info( "We already have the texture {} from {} ", textureName, texturePath );
-    return it->second;
+    return m_loadedTextures.at( textureName );
   }
 
   // std::lock_guard lock( m_assetMutex );
@@ -155,8 +155,8 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
       std::vector<glm::vec3> positions;
       std::vector<glm::vec3> normals;
       std::vector<glm::vec2> texCoords;
-      std::vector<unsigned int> textureIDs;
-      std::vector<unsigned int> indices;
+      std::vector<std::weak_ptr<kogayonon_resources::Texture>> textures;
+      std::vector<uint32_t> indices;
 
       parseVertices( primitive, positions, normals, texCoords, transform );
 
@@ -164,7 +164,7 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
         parseIndices( primitive.indices, indices );
 
       if ( primitive.material )
-        parseTextures( primitive.material, textureIDs );
+        parseTextures( primitive.material, textures );
 
       std::vector<kogayonon_resources::Vertex> vertices;
       for ( size_t x = 0; x < positions.size(); ++x )
@@ -176,7 +176,7 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
         vertices.push_back( v );
       }
 
-      meshes.emplace_back( std::move( vertices ), std::move( indices ), std::move( textureIDs ) );
+      meshes.emplace_back( std::move( vertices ), std::move( indices ), std::move( textures ) );
     }
   }
   uploadMeshGeometry( meshes );
@@ -190,6 +190,8 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
   return getModel( modelName );
 }
 
+// THIS SHOULD BE CALLED ON THE MAIN THREAD
+// so we need some kind of flag to set for each mesh vector
 void AssetManager::uploadMeshGeometry( std::vector<kogayonon_resources::Mesh>& meshes ) const
 {
   for ( auto& mesh : meshes )
@@ -269,6 +271,16 @@ void AssetManager::removeTexture( const std::string& path )
   spdlog::info( "file was not loaded so we did not delete anything" );
 }
 
+std::weak_ptr<kogayonon_resources::Texture> AssetManager::getTextureById( uint32_t id )
+{
+  for ( const auto& [texturePath, texture] : m_loadedTextures )
+  {
+    if ( texture->getTextureId() == id )
+      return texture;
+  }
+  return getTexture( "default" );
+}
+
 std::weak_ptr<kogayonon_resources::Model> kogayonon_utilities::AssetManager::getModel( const std::string& modelName )
 {
   auto it = m_loadedModels.find( modelName );
@@ -342,7 +354,8 @@ void AssetManager::parseIndices( cgltf_accessor* accessor, std::vector<uint32_t>
   }
 }
 
-void AssetManager::parseTextures( const cgltf_material* material, std::vector<unsigned int>& textureIDs )
+void AssetManager::parseTextures( const cgltf_material* material,
+                                  std::vector<std::weak_ptr<kogayonon_resources::Texture>>& textures )
 {
   if ( !material )
     return;
@@ -354,8 +367,7 @@ void AssetManager::parseTextures( const cgltf_material* material, std::vector<un
     std::string textureName = texturePath.filename().string();
 
     auto pTexture = addTexture( textureName, texturePath.string() );
-    if ( auto tex = pTexture.lock() )
-      textureIDs.push_back( tex->getTextureId() );
+    textures.push_back( pTexture );
   }
 
   if ( material->has_pbr_metallic_roughness && material->pbr_metallic_roughness.base_color_texture.texture &&
@@ -369,8 +381,7 @@ void AssetManager::parseTextures( const cgltf_material* material, std::vector<un
     std::string textureName = texturePath.filename().string();
 
     auto pTexture = addTexture( textureName, texturePath.string() );
-    if ( auto tex = pTexture.lock() )
-      textureIDs.push_back( tex->getTextureId() );
+    textures.push_back( pTexture );
   }
 }
 } // namespace kogayonon_utilities

@@ -32,8 +32,8 @@ void EntityPropertiesWindow::draw()
     ImGui::End();
     return;
   }
-  m_pCurrentScene = kogayonon_core::SceneManager::getCurrentScene();
-  if ( auto scene = m_pCurrentScene.lock() )
+  auto pScene = kogayonon_core::SceneManager::getCurrentScene();
+  if ( auto scene = pScene.lock() )
   {
     if ( m_entity != entt::null )
     {
@@ -51,7 +51,6 @@ void EntityPropertiesWindow::draw()
 void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core::Scene> scene )
 {
   kogayonon_core::Entity entity{ scene->getRegistry(), m_entity };
-  auto pTexture = entity.tryGetComponent<kogayonon_core::TextureComponent>();
 
   // entity always has a name
   auto pNameComp = entity.tryGetComponent<kogayonon_core::NameComponent>();
@@ -64,48 +63,6 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
   {
     std::string result{ buffer };
     pNameComp->name = result;
-  }
-
-  if ( ImGui::BeginCombo( "##test", "Add component" ) )
-  {
-    // if we dont have a texture we can add
-    if ( !pTexture )
-    {
-      auto pTexture = ASSET_MANAGER()->getTexture( "default" );
-      if ( ImGui::MenuItem( "Texture" ) )
-      {
-        entity.addComponent<kogayonon_core::TextureComponent>( pTexture );
-        if ( const auto& modelComponent = entity.tryGetComponent<kogayonon_core::ModelComponent>() )
-        {
-          const auto& model = modelComponent->pModel.lock();
-          if ( model )
-          {
-            auto& meshes = model->getMeshes();
-            for ( auto& mesh : meshes )
-            {
-              auto& textures = mesh.getTextures();
-
-              // if the meshes do not have any texture we push back one
-              if ( textures.size() == 0 )
-              {
-                textures.push_back( pTexture.lock()->getTextureId() );
-              }
-              else
-              {
-                // if we have textures we assign all of the ids to the one we just loaded
-                for ( int i = 0; i < textures.size(); ++i )
-                {
-                  if ( auto texture = pTexture.lock() )
-                    textures.at( i ) = texture->getTextureId();
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-    ImGui::EndCombo();
   }
 
   // has textures?
@@ -125,35 +82,93 @@ void EntityPropertiesWindow::onEntitySelect( const kogayonon_core::SelectEntityE
 
 void EntityPropertiesWindow::drawTextureComponent( kogayonon_core::Entity& ent ) const
 {
-  auto pTextureComponent = ent.tryGetComponent<kogayonon_core::TextureComponent>();
+  ImGui::Text( "Textures" );
 
-  if ( !pTextureComponent )
+  const auto& pModelComponent = ent.tryGetComponent<kogayonon_core::ModelComponent>();
+  if ( !pModelComponent )
     return;
 
-  ImGui::Text( "Texture" );
-  ImGui::Image( (ImTextureID)pTextureComponent->getTextureId(), ImVec2{ 100.0f, 100.0f } );
+  auto& meshes = pModelComponent->pModel.lock()->getMeshes();
+  if ( meshes.empty() )
+    return;
 
-  // can remove it
-  if ( ImGui::BeginPopupContextItem( "TextureComponentContextMenu",
-                                     ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight ) )
+  ImGui::BeginGroup();
+  if ( ImGui::BeginDragDropTarget() )
   {
-    if ( ImGui::MenuItem( "Remove" ) )
-    {
-      ent.removeComponent<kogayonon_core::TextureComponent>();
+    manageAssetPayload( ImGui::AcceptDragDropPayload( "ASSET_DROP" ) );
+    ImGui::EndDragDropTarget();
+  }
 
-      // we need to remove the textures from the mesh vector too
-      if ( const auto& model = ent.tryGetComponent<kogayonon_core::ModelComponent>() )
+  ImGui::BeginListBox( "##texture_list" );
+
+  for ( auto& mesh : meshes )
+  {
+    auto& textures = mesh.getTextures();
+    for ( int i = 0; i < textures.size(); i++ )
+    {
+      const auto& texture = textures.at( i ).lock();
+      ImGui::Text( "%s", texture->getName().c_str() );
+      if ( ImGui::IsItemHovered() )
       {
-        auto& meshes = model->pModel.lock()->getMeshes();
-        for ( auto& mesh : meshes )
+        ImGui::BeginTooltip();
+        if ( texture )
         {
-          auto& textures = mesh.getTextures();
-          for ( int i = 0; i < textures.size(); i++ )
-          {
-            textures.at( i ) = 0;
-          }
+          ImGui::Image( (ImTextureID)texture->getTextureId(), ImVec2{ 100.0f, 100.0f } );
         }
+        ImGui::EndTooltip();
       }
+
+      drawTextureContextMenu( textures, i );
+    }
+  }
+
+  ImGui::EndListBox();
+  ImGui::EndGroup();
+}
+
+void EntityPropertiesWindow::manageAssetPayload( const ImGuiPayload* payload ) const
+{
+  if ( !payload )
+    return;
+
+  const auto& pAssetManager = ASSET_MANAGER();
+  auto data = static_cast<const char*>( payload->Data );
+  std::string dropResult( data, payload->DataSize );
+  std::filesystem::path p{ dropResult };
+
+  if ( p.extension().string() != ".png" && p.extension().string() != ".jpg" )
+  {
+    spdlog::info( "format currently unsupported {}", p.extension().string() );
+    return;
+  }
+
+  auto pTexture = ASSET_MANAGER()->addTexture( p.filename().string(), p.string() );
+  auto scene = kogayonon_core::SceneManager::getCurrentScene().lock();
+  kogayonon_core::Entity ent{ scene->getRegistry(), m_entity };
+
+  if ( const auto& model = ent.tryGetComponent<kogayonon_core::ModelComponent>() )
+  {
+    auto& meshes = model->pModel.lock()->getMeshes();
+    for ( auto& mesh : meshes )
+    {
+      // get the textures vector for each mesh
+      auto& textures = mesh.getTextures();
+
+      // add it to the vector
+      textures.push_back( pTexture );
+    }
+  }
+}
+
+void EntityPropertiesWindow::drawTextureContextMenu( std::vector<std::weak_ptr<kogayonon_resources::Texture>>& textures,
+                                                     int index ) const
+{
+  std::string label = std::format( "##{}", index );
+  if ( ImGui::BeginPopupContextItem( label.c_str() ) )
+  {
+    if ( ImGui::MenuItem( "Delete texture" ) )
+    {
+      textures.erase( textures.begin() + index );
     }
     ImGui::EndPopup();
   }
@@ -161,6 +176,8 @@ void EntityPropertiesWindow::drawTextureComponent( kogayonon_core::Entity& ent )
 
 void EntityPropertiesWindow::drawModelComponent( kogayonon_core::Entity& ent ) const
 {
+  ImGui::Text( "Model component" );
+
   auto pModelComponent = ent.tryGetComponent<kogayonon_core::ModelComponent>();
   if ( !pModelComponent )
     return;
@@ -170,12 +187,13 @@ void EntityPropertiesWindow::drawModelComponent( kogayonon_core::Entity& ent ) c
   if ( !model )
     return;
 
-  ImGui::Text( "Model component" );
   ImGui::Text( "Model has %d meshes", model->getMeshes().size() );
 }
 
 void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent ) const
 {
+  ImGui::Text( "Transformation" );
+
   const auto& transformComponent = ent.tryGetComponent<kogayonon_core::TransformComponent>();
   if ( !transformComponent )
     return;
@@ -183,7 +201,6 @@ void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent
   // if it has transform, it definetely has a model component
   const auto& modelComponent = ent.tryGetComponent<kogayonon_core::ModelComponent>();
 
-  ImGui::Text( "Transformation" );
   bool changed = false;
   auto& pos = transformComponent->pos;
   auto& scale = transformComponent->scale;
@@ -198,7 +215,7 @@ void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent
 
   if ( changed )
   {
-    auto scene = m_pCurrentScene.lock();
+    auto scene = kogayonon_core::SceneManager::getCurrentScene().lock();
 
     if ( !scene )
       return;

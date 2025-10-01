@@ -37,6 +37,8 @@ public:
    */
   void removeTexture( const std::string& path );
 
+  std::weak_ptr<kogayonon_resources::Texture> getTextureById( uint32_t id );
+
   // Models
   std::weak_ptr<kogayonon_resources::Model> addModel( const std::string& modelName, const std::string& modelPath );
   std::weak_ptr<kogayonon_resources::Model> getModel( const std::string& modelName );
@@ -47,7 +49,8 @@ private:
 
   void parseIndices( cgltf_accessor* accessor, std::vector<uint32_t>& indices ) const;
 
-  void parseTextures( const cgltf_material* material, std::vector<unsigned int>& textureIDs );
+  void parseTextures( const cgltf_material* material,
+                      std::vector<std::weak_ptr<kogayonon_resources::Texture>>& textures );
 
   /**
    * @brief Uploads each mesh data to the gpu and tells it how to interpret every buffer
