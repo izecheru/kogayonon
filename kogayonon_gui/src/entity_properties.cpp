@@ -58,23 +58,21 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
   auto pTexture = entity.tryGetComponent<kogayonon_core::TextureComponent>();
 
   // entity always has a name
-  auto pNameComp = entity.tryGetComponent<kogayonon_core::NameComponent>();
-  if ( pNameComp )
+  auto& pNameComp = entity.getComponent<kogayonon_core::NameComponent>();
+
+  // change the entity name
+
+  ImGui::TextUnformatted( "Change name" );
+  ImGui::SameLine();
+  if ( char buffer[50] = { 0 };
+       ImGui::InputText( "##change_name", buffer, IM_ARRAYSIZE( buffer ), ImGuiInputTextFlags_EnterReturnsTrue ) )
   {
-    ImGui::Text( "%s", pNameComp->name.c_str() );
+    std::string result{ buffer };
+    pNameComp.name = result;
   }
 
   if ( ImGui::BeginCombo( "##test", "Add component" ) )
   {
-    // if we dont have a model we can add
-    if ( !pModel )
-    {
-      if ( ImGui::MenuItem( "Model" ) )
-      {
-        entity.addComponent<kogayonon_core::ModelComponent>( ASSET_MANAGER()->getModel( "default" ) );
-      }
-    }
-
     // if we dont have a texture we can add
     if ( !pTexture )
     {
@@ -88,8 +86,6 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
             model->getMeshes();
           }
         }
-
-        // entity.addComponent<kogayonon_core::TextureComponent>( ASSET_MANAGER()->getTexture( "default" ) );
       }
     }
 
@@ -111,7 +107,7 @@ void EntityPropertiesWindow::onEntitySelect( const kogayonon_core::SelectEntityE
   m_entity = e.getEntity();
 }
 
-void EntityPropertiesWindow::drawTextureComponent( kogayonon_core::Entity& ent )
+void EntityPropertiesWindow::drawTextureComponent( kogayonon_core::Entity& ent ) const
 {
   auto pTextureComponent = ent.tryGetComponent<kogayonon_core::TextureComponent>();
 
@@ -133,7 +129,7 @@ void EntityPropertiesWindow::drawTextureComponent( kogayonon_core::Entity& ent )
   }
 }
 
-void EntityPropertiesWindow::drawModelComponent( kogayonon_core::Entity& ent )
+void EntityPropertiesWindow::drawModelComponent( kogayonon_core::Entity& ent ) const
 {
   auto pModelComponent = ent.tryGetComponent<kogayonon_core::ModelComponent>();
   if ( !pModelComponent )
@@ -145,18 +141,10 @@ void EntityPropertiesWindow::drawModelComponent( kogayonon_core::Entity& ent )
     return;
 
   ImGui::Text( "Model component" );
-
-  if ( ImGui::Button( "Remove" ) )
-  {
-    // they are tied together
-    ent.removeComponent<kogayonon_core::ModelComponent>();
-    ent.removeComponent<kogayonon_core::TransformComponent>();
-    ent.removeComponent<kogayonon_core::IndexComponent>();
-  }
   ImGui::Text( "Model has %d meshes", model->getMeshes().size() );
 }
 
-void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent )
+void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent ) const
 {
   const auto& transformComponent = ent.tryGetComponent<kogayonon_core::TransformComponent>();
   if ( !transformComponent )
