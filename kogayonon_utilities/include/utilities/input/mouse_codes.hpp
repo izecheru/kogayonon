@@ -1,6 +1,6 @@
 #pragma once
 
-namespace kogayonon_core
+namespace kogayonon_utilities
 {
 enum class MouseCode
 {
@@ -34,4 +34,4 @@ enum class MouseModifier
   CapsLock = 10,
   NumLock = 20,
 };
-} // namespace kogayonon_core
+} // namespace kogayonon_utilities

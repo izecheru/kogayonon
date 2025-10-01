@@ -1,6 +1,7 @@
 #include "rendering/camera/camera.hpp"
 #include <glm/ext/matrix_transform.hpp>
-#include <spdlog/spdlog.h>
+#include "utilities/input/keyboard_state.hpp"
+using namespace kogayonon_utilities;
 
 namespace kogayonon_rendering
 {
@@ -52,6 +53,39 @@ void Camera::onMouseMoved( float x, float y, bool constrainPitch = true )
   updateCameraVectors();
 }
 
+void Camera::onKeyPressed( float delta )
+{
+  float velocity = m_props.movementSpeed * delta * 20.0f;
+
+  if ( KeyboardState::getKeyState( KeyCode::W ) )
+  {
+    m_props.position += m_props.direction * velocity;
+  }
+  if ( KeyboardState::getKeyState( KeyCode::S ) )
+  {
+    m_props.position -= m_props.direction * velocity;
+  }
+  if ( KeyboardState::getKeyState( KeyCode::D ) )
+  {
+    m_props.position += m_props.right * velocity;
+  }
+  if ( KeyboardState::getKeyState( KeyCode::A ) )
+  {
+    m_props.position -= m_props.right * velocity;
+  }
+  if ( KeyboardState::getKeyState( KeyCode::Space ) )
+  {
+    m_props.position.y += 1.4f * velocity;
+  }
+  if ( KeyboardState::getKeyState( KeyCode::LeftControl ) )
+  {
+    m_props.position.y -= 1.4f * velocity;
+  }
+
+  // m_props.position.y = 0.0f;
+  updateCameraVectors();
+}
+
 void Camera::updateCameraVectors()
 {
   glm::vec3 direction;
@@ -68,5 +102,4 @@ void Camera::zoom( float amount )
 {
   m_props.position += m_props.direction * amount * m_props.mouseZoomSpeed;
 }
-
 } // namespace kogayonon_rendering

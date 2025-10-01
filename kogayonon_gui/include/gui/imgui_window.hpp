@@ -9,7 +9,7 @@ namespace kogayonon_gui
 class ImGuiWindow
 {
 public:
-  ImGuiWindow( std::string name );
+  explicit ImGuiWindow( std::string name );
   virtual ~ImGuiWindow();
   virtual void draw() = 0;
 
@@ -19,6 +19,12 @@ public:
   virtual void setVisible( bool status );
   virtual void setX( double x );
   virtual void setY( double y );
+
+  /**
+   * @brief Sets up width, height, x, y when called
+   * @param dirty If dirty is true it will set proportions every frame, false is for first setup
+   */
+  virtual void setupProportions( bool dirty = false );
 
   int width();
   int height();

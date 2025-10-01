@@ -1,8 +1,9 @@
 #pragma once
 
 #include "core/event/event.hpp"
-#include "core/input/key_codes.hpp"
-#include "core/input/keyboard_state.hpp"
+#include "utilities/input/key_codes.hpp"
+#include "utilities/input/keyboard_state.hpp"
+using namespace kogayonon_utilities;
 
 namespace kogayonon_core
 {

@@ -1,5 +1,6 @@
 #include "gui/scene_viewport.hpp"
 #include <codecvt>
+#include <Windows.h>
 #include <filesystem>
 #include <glad/glad.h>
 #include <glm/ext/matrix_clip_space.hpp>
@@ -11,7 +12,6 @@
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
 #include "core/event/scene_events.hpp"
-#include "core/input/key_codes.hpp"
 #include "core/input/keyboard_events.hpp"
 #include "core/input/mouse_events.hpp"
 #include "core/scene/scene.hpp"
@@ -21,6 +21,7 @@
 #include "rendering/camera/camera.hpp"
 #include "rendering/framebuffer.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
+#include "utilities/input/key_codes.hpp"
 #include "utilities/shader_manager/shader.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
@@ -74,6 +75,10 @@ void SceneViewportWindow::onMouseMoved( const MouseMovedEvent& e )
     auto x = static_cast<float>( e.getXRel() );
     auto y = static_cast<float>( e.getYRel() );
     m_pCamera->onMouseMoved( x, y, true );
+
+    // move mouse in the center
+    SDL_WarpMouseInWindow( m_mainWindow, static_cast<int>( m_props->x + m_props->width / 2 ),
+                           static_cast<int>( m_props->y + m_props->height / 2 ) );
   }
   else
   {
@@ -104,6 +109,12 @@ void SceneViewportWindow::draw()
 
   m_props->focused = ImGui::IsWindowFocused();
   m_props->hovered = ImGui::IsWindowHovered();
+
+  setupProportions();
+
+  // this must be called every frame, not on key press function because it would never move smoothly
+  if ( m_props->focused )
+    m_pCamera->onKeyPressed( static_cast<float>( TIME_TRACKER()->getDuration( "deltaTime" ).count() ) );
 
   static constexpr float toolbarHeight = 25.0f;
   ImGui::BeginChild( "Toolbar", ImVec2( 0, toolbarHeight ), false );

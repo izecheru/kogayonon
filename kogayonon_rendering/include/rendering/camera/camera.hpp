@@ -29,6 +29,7 @@ public:
 
   glm::mat4& getViewMatrix() const;
   void onMouseMoved( float x, float y, bool constrainPitch );
+  void onKeyPressed( float delta );
   void updateCameraVectors();
   void cameraUniform( unsigned int shader_id, const char* uniform );
 

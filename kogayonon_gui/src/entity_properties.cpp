@@ -58,17 +58,16 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
   auto pTexture = entity.tryGetComponent<kogayonon_core::TextureComponent>();
 
   // entity always has a name
-  auto& pNameComp = entity.getComponent<kogayonon_core::NameComponent>();
+  auto pNameComp = entity.tryGetComponent<kogayonon_core::NameComponent>();
 
   // change the entity name
-
   ImGui::TextUnformatted( "Change name" );
   ImGui::SameLine();
   if ( char buffer[50] = { 0 };
        ImGui::InputText( "##change_name", buffer, IM_ARRAYSIZE( buffer ), ImGuiInputTextFlags_EnterReturnsTrue ) )
   {
     std::string result{ buffer };
-    pNameComp.name = result;
+    pNameComp->name = result;
   }
 
   if ( ImGui::BeginCombo( "##test", "Add component" ) )
@@ -76,6 +75,7 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
     // if we dont have a texture we can add
     if ( !pTexture )
     {
+      auto pTexture = ASSET_MANAGER()->getTexture( "default" );
       if ( ImGui::MenuItem( "Texture" ) )
       {
         if ( const auto& modelComponent = entity.tryGetComponent<kogayonon_core::ModelComponent>() )
@@ -83,7 +83,26 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
           const auto& model = modelComponent->pModel.lock();
           if ( model )
           {
-            model->getMeshes();
+            auto& meshes = model->getMeshes();
+            for ( auto& mesh : meshes )
+            {
+              auto& textures = mesh.getTextures();
+
+              // if the meshes do not have any texture we push back one
+              if ( textures.size() == 0 )
+              {
+                textures.push_back( pTexture.lock()->getTextureId() );
+              }
+              else
+              {
+                // if we have textures we assign all of the ids to the one we just loaded
+                for ( int i = 0; i < textures.size(); ++i )
+                {
+                  if ( auto texture = pTexture.lock() )
+                    textures.at( i ) = texture->getTextureId();
+                }
+              }
+            }
           }
         }
       }

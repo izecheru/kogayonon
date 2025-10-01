@@ -3,8 +3,8 @@
 #include <string>
 
 #include "core/event/event.hpp"
-#include "core/input/mouse_codes.hpp"
 #include "core/input/mouse_events.hpp"
+#include "utilities/input/mouse_codes.hpp"
 
 namespace kogayonon_core
 {

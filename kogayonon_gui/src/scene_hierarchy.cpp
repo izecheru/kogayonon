@@ -9,11 +9,11 @@
 #include "core/event/event_dispatcher.hpp"
 #include "core/event/scene_events.hpp"
 #include "core/input/keyboard_events.hpp"
-#include "core/input/mouse_codes.hpp"
 #include "core/input/mouse_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "imgui_utils/imgui_utils.h"
+#include "utilities/input/mouse_codes.hpp"
 
 using namespace kogayonon_core;
 
