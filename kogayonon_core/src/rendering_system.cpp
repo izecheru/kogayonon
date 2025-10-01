@@ -20,7 +20,12 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
   begin( shader );
 
   auto view = scene->getEnttRegistry().view<TransformComponent, ModelComponent>();
-  for ( auto [entity, transformComp, modelComp] : view.each() )
+
+  for ( const auto& [entity, transformComp, modelComp] : view.each() )
+  {
+  }
+
+  for ( const auto& [entity, transformComp, modelComp] : view.each() )
   {
     if ( !modelComp.loaded )
       continue;
@@ -50,6 +55,8 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
       if ( auto instanceData = scene->getData( model.get() ); instanceData != nullptr && instanceData->count > 1 )
       {
         shader.setBool( "instanced", true );
+
+        // sort instance data based on Z position
 
         // draw the instances
         glDrawElementsInstanced( GL_TRIANGLES, (GLsizei)mesh.getIndices().size(), GL_UNSIGNED_INT, nullptr,

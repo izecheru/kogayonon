@@ -55,7 +55,7 @@ void Camera::onMouseMoved( float x, float y, bool constrainPitch = true )
 
 void Camera::onKeyPressed( float delta )
 {
-  float velocity = m_props.movementSpeed * delta * 20.0f;
+  float velocity = m_props.movementSpeed * delta * 2.0f;
 
   if ( KeyboardState::getKeyState( KeyCode::W ) )
   {

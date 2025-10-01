@@ -70,6 +70,7 @@ void Scene::removeEntity( entt::entity ent )
         }
       }
 
+      // finally set up instances again to update the instance buffer
       setupMultipleInstances( instance.get() );
     }
   }

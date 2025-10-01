@@ -52,7 +52,6 @@ void FrameBuffer::rescale( int width, int height )
 {
   m_width = width;
   m_height = height;
-  glClearColor( 0.1, 0.1, 0.1, 1.0 );
   glViewport( 0, 0, m_width, m_height );
 
   // delete old
@@ -78,17 +77,17 @@ void FrameBuffer::rescale( int width, int height )
   }
 }
 
-unsigned int FrameBuffer::getTexture() const
+uint32_t FrameBuffer::getTexture() const
 {
   return m_texture;
 }
 
-unsigned int FrameBuffer::getFrameBufferObject() const
+uint32_t FrameBuffer::getFrameBufferObject() const
 {
   return m_frameBufferObject;
 }
 
-unsigned int FrameBuffer::getRenderBufferObject() const
+uint32_t FrameBuffer::getRenderBufferObject() const
 {
   return m_renderBufferObject;
 }

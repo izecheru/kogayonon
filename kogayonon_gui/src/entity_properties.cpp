@@ -1,7 +1,4 @@
 #include "gui/entity_properties.hpp"
-#include <entt/entt.hpp>
-#include <glad/glad.h>
-#include <spdlog/spdlog.h>
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/name_component.hpp"
@@ -53,8 +50,7 @@ void EntityPropertiesWindow::draw()
 
 void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core::Scene> scene )
 {
-  kogayonon_core::Entity entity( scene->getRegistry(), m_entity );
-  auto pModel = entity.tryGetComponent<kogayonon_core::ModelComponent>();
+  kogayonon_core::Entity entity{ scene->getRegistry(), m_entity };
   auto pTexture = entity.tryGetComponent<kogayonon_core::TextureComponent>();
 
   // entity always has a name
@@ -78,6 +74,7 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
       auto pTexture = ASSET_MANAGER()->getTexture( "default" );
       if ( ImGui::MenuItem( "Texture" ) )
       {
+        entity.addComponent<kogayonon_core::TextureComponent>( pTexture );
         if ( const auto& modelComponent = entity.tryGetComponent<kogayonon_core::ModelComponent>() )
         {
           const auto& model = modelComponent->pModel.lock();
@@ -143,6 +140,20 @@ void EntityPropertiesWindow::drawTextureComponent( kogayonon_core::Entity& ent )
     if ( ImGui::MenuItem( "Remove" ) )
     {
       ent.removeComponent<kogayonon_core::TextureComponent>();
+
+      // we need to remove the textures from the mesh vector too
+      if ( const auto& model = ent.tryGetComponent<kogayonon_core::ModelComponent>() )
+      {
+        auto& meshes = model->pModel.lock()->getMeshes();
+        for ( auto& mesh : meshes )
+        {
+          auto& textures = mesh.getTextures();
+          for ( int i = 0; i < textures.size(); i++ )
+          {
+            textures.at( i ) = 0;
+          }
+        }
+      }
     }
     ImGui::EndPopup();
   }

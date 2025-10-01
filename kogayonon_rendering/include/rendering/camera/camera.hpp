@@ -31,7 +31,6 @@ public:
   void onMouseMoved( float x, float y, bool constrainPitch );
   void onKeyPressed( float delta );
   void updateCameraVectors();
-  void cameraUniform( unsigned int shader_id, const char* uniform );
 
   void zoom( float amount );
 

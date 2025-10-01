@@ -1,5 +1,6 @@
 #include "gui/scene_viewport.hpp"
 #include <codecvt>
+#include <cstdint>
 #include <Windows.h>
 #include <filesystem>
 #include <glad/glad.h>
@@ -152,7 +153,7 @@ void SceneViewportWindow::draw()
   }
 
   pFrameBuffer->bind();
-  pFrameBuffer->rescale( contentSize.x, contentSize.y );
+  pFrameBuffer->rescale( static_cast<int>( contentSize.x ), static_cast<int>( contentSize.y ) );
 
   // set clear color first
   glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
@@ -167,7 +168,7 @@ void SceneViewportWindow::draw()
   pFrameBuffer->unbind();
 
   ImVec2 win_pos = ImGui::GetCursorScreenPos();
-  ImGui::GetWindowDrawList()->AddImage( (void*)pFrameBuffer->getTexture(), win_pos,
+  ImGui::GetWindowDrawList()->AddImage( (ImTextureID)pFrameBuffer->getTexture(), win_pos,
                                         ImVec2( win_pos.x + contentSize.x, win_pos.y + contentSize.y ), ImVec2( 0, 1 ),
                                         ImVec2( 1, 0 ) );
 

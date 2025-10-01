@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 namespace kogayonon_rendering
 {
@@ -13,9 +14,9 @@ public:
 
   void rescale( int width, int height );
 
-  unsigned int getTexture() const;
-  unsigned int getFrameBufferObject() const;
-  unsigned int getRenderBufferObject() const;
+  uint32_t getTexture() const;
+  uint32_t getFrameBufferObject() const;
+  uint32_t getRenderBufferObject() const;
 
   int getWidth() const;
   int getHeight() const;
@@ -23,8 +24,8 @@ public:
 private:
   int m_width;
   int m_height;
-  unsigned int m_renderBufferObject;
-  unsigned int m_frameBufferObject;
-  unsigned int m_texture;
+  uint32_t m_renderBufferObject;
+  uint32_t m_frameBufferObject;
+  uint32_t m_texture;
 };
 } // namespace kogayonon_rendering

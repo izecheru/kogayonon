@@ -1,5 +1,4 @@
 #include "gui/scene_hierarchy.hpp"
-#include <entt/entity/entity.hpp>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/name_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
@@ -13,7 +12,6 @@
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "imgui_utils/imgui_utils.h"
-#include "utilities/input/mouse_codes.hpp"
 
 using namespace kogayonon_core;
 

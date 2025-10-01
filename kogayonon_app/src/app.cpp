@@ -78,7 +78,7 @@ void App::cleanup() const
 
 void App::pollEvents()
 {
-  auto& pEventDispatcher = EVENT_DISPATCHER();
+  const auto& pEventDispatcher = EVENT_DISPATCHER();
   SDL_Event e;
   while ( SDL_PollEvent( &e ) )
   {
@@ -125,6 +125,7 @@ void App::pollEvents()
       double yOff = e.wheel.y;
       MouseScrolledEvent mouseScrolled{ xOff, yOff };
       pEventDispatcher->emitEvent( mouseScrolled );
+      break;
     }
     case SDL_MOUSEBUTTONDOWN: {
       UINT32 buttonState = SDL_GetMouseState( NULL, NULL );
@@ -149,7 +150,10 @@ void App::pollEvents()
                                         static_cast<int>( MouseModifier::None ) };
         pEventDispatcher->emitEvent( mouseClicked );
       }
+      break;
     }
+    default:
+      break;
     }
   }
 }
@@ -208,6 +212,8 @@ bool App::initSDL()
   glEnable( GL_DEBUG_OUTPUT );
   glDebugMessageCallback( glDebugCallback, nullptr );
 #endif
+  glEnable( GL_DEPTH_TEST );
+  glDepthFunc( GL_LESS );
   glEnable( GL_CULL_FACE );
   glCullFace( GL_BACK );
   rescaleMainViewport( pWinProps->width, pWinProps->height );
