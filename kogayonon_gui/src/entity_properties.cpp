@@ -100,22 +100,24 @@ void EntityPropertiesWindow::drawTextureComponent( kogayonon_core::Entity& ent )
   }
 
   ImGui::BeginListBox( "##texture_list" );
-
+  std::unordered_set<uint32_t> seen;
   for ( auto& mesh : meshes )
   {
     auto& textures = mesh.getTextures();
     for ( int i = 0; i < textures.size(); i++ )
     {
-      const auto& texture = textures.at( i ).lock();
-      ImGui::Text( "%s", texture->getName().c_str() );
-      if ( ImGui::IsItemHovered() )
+      if ( const auto& texture = textures.at( i ).lock(); seen.insert( texture->getTextureId() ).second )
       {
-        ImGui::BeginTooltip();
-        if ( texture )
+        ImGui::Text( "%s", texture->getName().c_str() );
+        if ( ImGui::IsItemHovered() )
         {
-          ImGui::Image( (ImTextureID)texture->getTextureId(), ImVec2{ 100.0f, 100.0f } );
+          ImGui::BeginTooltip();
+          if ( texture )
+          {
+            ImGui::Image( (ImTextureID)texture->getTextureId(), ImVec2{ 100.0f, 100.0f } );
+          }
+          ImGui::EndTooltip();
         }
-        ImGui::EndTooltip();
       }
 
       drawTextureContextMenu( textures, i );
