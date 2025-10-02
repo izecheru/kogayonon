@@ -1,4 +1,5 @@
 #include "rendering/camera/camera.hpp"
+#include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include "utilities/input/keyboard_state.hpp"
 using namespace kogayonon_utilities;
@@ -12,7 +13,7 @@ Camera::Camera()
 
 void Camera::setupCamera()
 {
-  m_props.position = glm::vec3( 0.0f, 0.0f, 3.0f );
+  m_props.position = glm::vec3( 0.0f, 0.0f, 0.0f );
   m_props.direction = glm::vec3( 0.0f, 0.0f, -1.0f );
   m_props.cameraUp = glm::vec3( 0.0f, 1.0f, 0.0f );
   m_props.worldUp = glm::vec3( 0.0f, 1.0f, 0.0f );
@@ -101,5 +102,10 @@ void Camera::updateCameraVectors()
 void Camera::zoom( float amount )
 {
   m_props.position += m_props.direction * amount * m_props.mouseZoomSpeed;
+}
+
+glm::mat4 Camera::getProjectionMatrix( const glm::vec2& contentSize ) const
+{
+  return glm::perspective( glm::radians( 45.0f ), contentSize.x / contentSize.y, 0.1f, 400.0f );
 }
 } // namespace kogayonon_rendering

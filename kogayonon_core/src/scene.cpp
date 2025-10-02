@@ -10,8 +10,10 @@ using namespace kogayonon_utilities;
 namespace kogayonon_core
 {
 Scene::Scene( const std::string& name )
-    : m_name( name )
-    , m_pRegistry( std::make_unique<Registry>() )
+    : m_entityCount{ 0 }
+    , m_name{ name }
+    , m_pRegistry{ std::make_unique<Registry>() }
+
 {
 }
 
@@ -77,11 +79,14 @@ void Scene::removeEntity( entt::entity ent )
 
   if ( registry.valid( ent ) )
     registry.destroy( ent );
+
+  --m_entityCount;
 }
 
 void Scene::addEntity()
 {
   Entity ent{ *m_pRegistry, "DefaultEntity" };
+  ++m_entityCount;
 }
 
 constexpr float scale = 10.0f;
@@ -91,6 +96,7 @@ void Scene::addEntity( std::weak_ptr<kogayonon_resources::Model> pModel )
   Entity ent{ *m_pRegistry, "ModelEntity" };
   ent.addComponent<kogayonon_core::ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
   ent.addComponent<kogayonon_core::TransformComponent>();
+  ++m_entityCount;
 
   // now that we created the entity using the scene registry and added a model and transform components to it
   // we must look for model pointer in the map to check for instances

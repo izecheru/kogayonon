@@ -17,4 +17,18 @@ static glm::mat4 computeModelMatrix( const glm::vec3& pos, const glm::vec3& rota
   model = glm::scale( model, scale );
   return model;
 }
+
+static glm::vec3 getRayTracedObject( const glm::vec3& pos, const glm::vec2& mousePos, int w, int h )
+{
+  float xNormalDevCoord = ( 2 * mousePos.x / w ) - 1;
+  float yNormalDevCoord = 1 - ( 2 * mousePos.y / h );
+}
+
+static glm::vec3 screenToWorld( const glm::mat4& view, const glm::mat4& projection, const glm::vec2& mousePos,
+                                const glm::vec4& viewportSize )
+{
+  glm::vec3 win{ mousePos.x, viewportSize.x - mousePos.y, 0.0f };
+  glm::vec3 point = glm::unProject( win, view, projection, viewportSize );
+  return point;
+}
 } // namespace kogayonon_utilities::math

@@ -19,6 +19,7 @@ public:
 
   std::vector<Mesh>& getMeshes();
   std::string getPath();
+  glm::vec2 getAABB();
 
 private:
   std::vector<Mesh> m_meshes;

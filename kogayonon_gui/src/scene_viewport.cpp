@@ -7,6 +7,7 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/model_component.hpp"
+#include "core/ecs/components/name_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
@@ -25,6 +26,7 @@
 #include "utilities/input/key_codes.hpp"
 #include "utilities/shader_manager/shader.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
+#include "utilities/task_manager/task_manager.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
 
 using namespace kogayonon_core;
@@ -66,7 +68,7 @@ void SceneViewportWindow::onSelectedEntity( const SelectEntityEvent& e )
 
 void SceneViewportWindow::onMouseMoved( const MouseMovedEvent& e )
 {
-  if ( !m_props || !m_props->focused )
+  if ( !m_props->focused )
     return;
 
   const auto& io = ImGui::GetIO();
@@ -87,8 +89,77 @@ void SceneViewportWindow::onMouseMoved( const MouseMovedEvent& e )
   }
 }
 
+struct Ray
+{
+  glm::vec3 Origin;
+  glm::vec3 Direction;
+};
+
+void SceneViewportWindow::traceRay()
+{
+  auto [mx, my] = ImGui::GetMousePos();
+
+  mx -= m_props->x;
+  my -= m_props->y;
+
+  auto width = m_pFrameBuffer.lock()->getWidth();
+  auto height = m_pFrameBuffer.lock()->getHeight();
+
+  float x = ( 2.0f * mx ) / width - 1.0f;
+  float y = 1.0f - ( 2.0f * my ) / height;
+  float z = 1.0f;
+  spdlog::info( "mouse rel {},{} / viewport {},{}", mx, my, m_props->width, m_props->height );
+  spdlog::info( "ndc {},{}", x, y );
+
+  if ( mx < 0 || my < 0 || mx > width || my > height )
+    return;
+
+  int closestEntityIndex = -1;
+  auto scene = SceneManager::getCurrentScene().lock();
+  float closestDistance = std::numeric_limits<float>::max();
+
+  glm::vec4 rayClip{ x, y, -1.0f, 1.0f };
+
+  // Ray in eye space
+  glm::vec4 rayEye = glm::inverse( m_pCamera->getProjectionMatrix( { width, height } ) ) * rayClip;
+  rayEye = glm::vec4( rayEye.x, rayEye.y, -1.0f, 0.0f );
+
+  // Ray in world space
+  glm::vec3 rayWorld = glm::normalize( glm::vec3( glm::inverse( m_pCamera->getViewMatrix() ) * rayEye ) );
+  Ray ray{ .Origin = m_pCamera->getPosition(), .Direction = rayWorld };
+  for ( const auto& [entity, transform] : scene->getEnttRegistry().view<TransformComponent>().each() )
+  {
+    float radius = 2.0f;
+    glm::vec3 oc = ray.Origin - transform.pos;
+
+    float a = glm::dot( ray.Direction, ray.Direction );
+    float b = 2.0f * glm::dot( oc, ray.Direction );
+    float c = glm::dot( oc, oc ) - radius * radius;
+
+    float discriminant = b * b - 4 * a * c;
+    if ( discriminant < 0.0f )
+      continue;
+
+    float t = ( -b - glm::sqrt( discriminant ) ) / ( 2.0f * a );
+    if ( t > 0.0f && t < closestDistance )
+    {
+      closestDistance = t;
+      closestEntityIndex = (int)entity;
+    }
+  }
+  if ( closestEntityIndex >= 0 )
+  {
+    m_selectedEntity = static_cast<entt::entity>( closestEntityIndex );
+  }
+  else
+  {
+    spdlog::info( "No entity hit" );
+  }
+}
+
 void SceneViewportWindow::onMouseClicked( const MouseClickedEvent& e )
 {
+  traceRay();
 }
 
 void SceneViewportWindow::onKeyPressed( const KeyPressedEvent& e )
@@ -112,37 +183,22 @@ void SceneViewportWindow::draw()
   m_props->hovered = ImGui::IsWindowHovered();
 
   setupProportions();
+  if ( m_selectedEntity != entt::null )
+  {
+    static entt::entity prevSelected = entt::null;
+
+    if ( m_selectedEntity != prevSelected )
+    {
+      prevSelected = m_selectedEntity;
+
+      SelectEntityEvent e{ m_selectedEntity };
+      EVENT_DISPATCHER()->emitEvent<SelectEntityEvent>( e );
+    }
+  }
 
   // this must be called every frame, not on key press function because it would never move smoothly
   if ( m_props->focused )
     m_pCamera->onKeyPressed( static_cast<float>( TIME_TRACKER()->getDuration( "deltaTime" ).count() ) );
-
-  static constexpr float toolbarHeight = 25.0f;
-  ImGui::BeginChild( "Toolbar", ImVec2( 0, toolbarHeight ), false );
-  if ( ImGui::ImageButton( "play", m_playTextureId, ImVec2( 18, 18 ), ImVec2( 0, 0 ), ImVec2( 1, 1 ),
-                           ImVec4( 0, 0, 0, 0 ), ImVec4( 1, 1, 1, 1 ) ) )
-  {
-    spdlog::info( "Pressed play" );
-  }
-
-  ImGui::SameLine();
-
-  if ( ImGui::ImageButton( "stop", m_stopTextureId, ImVec2( 18, 18 ), ImVec2( 0, 0 ), ImVec2( 1, 1 ),
-                           ImVec4( 0, 0, 0, 0 ), ImVec4( 1, 1, 1, 1 ) ) )
-  {
-    spdlog::info( "Pressed stop" );
-  }
-  ImGui::SameLine();
-
-  // render the scene name
-  auto pScene = SceneManager::getCurrentScene();
-  auto scene = pScene.lock();
-  if ( scene )
-  {
-    ImGui::Text( "%s", scene->getName().c_str() );
-  }
-
-  ImGui::EndChild();
 
   ImVec2 contentSize = ImGui::GetContentRegionAvail();
   auto pFrameBuffer = m_pFrameBuffer.lock();
@@ -152,6 +208,7 @@ void SceneViewportWindow::draw()
     return;
   }
 
+  const auto& scene = SceneManager::getCurrentScene().lock();
   pFrameBuffer->bind();
   pFrameBuffer->rescale( static_cast<int>( contentSize.x ), static_cast<int>( contentSize.y ) );
 
@@ -161,10 +218,12 @@ void SceneViewportWindow::draw()
   // then clear
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
   auto& shader = SHADER_MANAGER()->getShader( "3d" );
-  glm::mat4 proj = glm::perspective( glm::radians( 45.0f ), contentSize.x / contentSize.y, 0.1f, 4000.0f );
-
-  auto& viewMatrix = m_pCamera->getViewMatrix();
-  m_pRenderingSystem->render( scene, viewMatrix, proj, shader );
+  const auto& size = glm::vec2{
+    m_pFrameBuffer.lock()->getWidth(),
+    m_pFrameBuffer.lock()->getHeight(),
+  };
+  glm::mat4 proj = m_pCamera->getProjectionMatrix( size );
+  m_pRenderingSystem->render( scene, m_pCamera->getViewMatrix(), proj, shader );
   pFrameBuffer->unbind();
 
   ImVec2 win_pos = ImGui::GetCursorScreenPos();

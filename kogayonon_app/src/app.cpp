@@ -2,7 +2,8 @@
 #include <imgui_impl_sdl2.h>
 #include <iostream>
 #include <memory>
-#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/daily_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
@@ -40,14 +41,24 @@ App::App()
 {
   try
   {
-    // had to do all this to setup the debug console print
-    auto defferedSink = std::make_shared<kogayonon_gui::DeferredImGuiSink<std::mutex>>();
-    auto fileSink = std::make_shared<spdlog::sinks::basic_file_sink_mt>( "logs/basic-log.txt", true );
-    std::vector<spdlog::sink_ptr> sinks{ fileSink, defferedSink };
+    // Console sink (all levels)
+    auto consoleSink = std::make_shared<spdlog::sinks::wincolor_stdout_sink_st>();
+    consoleSink->set_level( spdlog::level::debug ); // log everything to console
 
+    // File sink (only error and above)
+    auto fileSink = std::make_shared<spdlog::sinks::daily_file_sink_st>( "logs/log.txt", 23, 59 );
+    fileSink->set_level( spdlog::level::err ); // only error+
+
+    // Collect sinks
+    std::vector<spdlog::sink_ptr> sinks{ consoleSink, fileSink };
+
+    // Create logger with both sinks
     auto logger = std::make_shared<spdlog::logger>( "app_logger", sinks.begin(), sinks.end() );
-    spdlog::set_level( spdlog::level::debug );
-    spdlog::set_pattern( "[%H:%M:%S] [%^%L%$] %v" );
+
+    // Set global settings
+    logger->set_level( spdlog::level::debug ); // logger accepts everything, sinks decide what to filter
+    logger->set_pattern( "[%H:%M:%S] [%^%L%$] %v" );
+
     spdlog::set_default_logger( logger );
 
     if ( !init() )
@@ -55,10 +66,10 @@ App::App()
       m_running = false;
     }
 
-    auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>( "Debug console##win" );
-    auto pDbgWin = debugWindow.get();
-    defferedSink->setWindow( pDbgWin );
-    IMGUI_MANAGER()->pushWindow( "Debug console", std::move( debugWindow ) );
+    // auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>( "Debug console##win" );
+    // auto pDbgWin = debugWindow.get();
+    // defferedSink->setWindow( pDbgWin );
+    // IMGUI_MANAGER()->pushWindow( "Debug console", std::move( debugWindow ) );
   }
   catch ( const spdlog::spdlog_ex& ex )
   {
@@ -310,7 +321,7 @@ bool App::initScenes() const
 bool App::init()
 {
 #ifdef _DEBUG
-  m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine (DEBUG)", 1800, 1000, 1, true );
+  m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine (DEBUG)", 1400, 900, 1, false );
 #else
   m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine", 1800, 1000, 1, false );
 #endif

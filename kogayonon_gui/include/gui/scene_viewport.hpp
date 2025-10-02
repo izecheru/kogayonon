@@ -49,6 +49,8 @@ public:
   void onKeyPressed( const kogayonon_core::KeyPressedEvent& e );
   void onMouseScrolled( const kogayonon_core::MouseScrolledEvent& e );
 
+  void traceRay();
+
 private:
   /**
    * @brief Processes the payload from the Assets window

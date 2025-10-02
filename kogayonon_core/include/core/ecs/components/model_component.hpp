@@ -1,5 +1,4 @@
 #pragma once
-#include <glm/glm.hpp>
 #include "resources/model.hpp"
 
 namespace kogayonon_core

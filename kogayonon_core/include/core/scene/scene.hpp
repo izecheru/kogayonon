@@ -60,7 +60,13 @@ public:
   void setupMultipleInstances( InstanceData* data );
   void setupInstance( InstanceData* data );
 
+  inline uint32_t getEntityCount() const
+  {
+    return m_entityCount;
+  }
+
 private:
+  uint32_t m_entityCount;
   std::string m_name;
   std::unique_ptr<Registry> m_pRegistry;
   std::unordered_map<kogayonon_resources::Model*, std::unique_ptr<InstanceData>> m_instances;

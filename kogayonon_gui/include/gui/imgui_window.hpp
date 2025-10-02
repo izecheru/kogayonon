@@ -24,7 +24,7 @@ public:
    * @brief Sets up width, height, x, y when called
    * @param dirty If dirty is true it will set proportions every frame, false is for first setup
    */
-  virtual void setupProportions( bool dirty = false );
+  virtual void setupProportions( bool dirty = true );
 
   int width();
   int height();
