@@ -5,6 +5,7 @@ namespace kogayonon_core
 {
 class Scene;
 class Entity;
+class SelectEntityInViewportEvent;
 struct TextureComponent;
 class KeyPressedEvent;
 class MouseClickedEvent;
@@ -12,18 +13,13 @@ class MouseClickedEvent;
 
 namespace kogayonon_gui
 {
-struct PopUp
-{
-  bool draw{ false };
-  int x{ 0 };
-  int y{ 0 };
-};
-
 class SceneHierarchyWindow : public ImGuiWindow
 {
 public:
   explicit SceneHierarchyWindow( std::string name );
   ~SceneHierarchyWindow() = default;
+
+  void onEntitySelectInViewport( const kogayonon_core::SelectEntityInViewportEvent& e );
 
   void onKeyPressed( const kogayonon_core::KeyPressedEvent& e );
 
@@ -39,8 +35,6 @@ public:
   void drawContextMenu();
 
 private:
-  int m_selectedIndex;
-  std::weak_ptr<kogayonon_core::Scene> m_pCurrentScene;
-  PopUp m_popUp;
+  entt::entity m_selectedEntity;
 };
 } // namespace kogayonon_gui

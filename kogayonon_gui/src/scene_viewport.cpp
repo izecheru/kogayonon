@@ -1,14 +1,9 @@
 #include "gui/scene_viewport.hpp"
-#include <codecvt>
-#include <cstdint>
-#include <Windows.h>
 #include <filesystem>
 #include <glad/glad.h>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/model_component.hpp"
-#include "core/ecs/components/name_component.hpp"
-#include "core/ecs/components/texture_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -19,12 +14,9 @@
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "core/systems/rendering_system.h"
-#include "imgui_utils/imgui_utils.h"
 #include "rendering/camera/camera.hpp"
 #include "rendering/framebuffer.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
-#include "utilities/input/key_codes.hpp"
-#include "utilities/shader_manager/shader.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
 #include "utilities/task_manager/task_manager.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
@@ -150,6 +142,9 @@ void SceneViewportWindow::traceRay()
   if ( closestEntityIndex >= 0 )
   {
     m_selectedEntity = static_cast<entt::entity>( closestEntityIndex );
+    kogayonon_core::SelectEntityInViewportEvent e{ m_selectedEntity };
+
+    TASK_MANAGER()->enqueue( [&e]() { EVENT_DISPATCHER()->emitEvent( e ); } );
   }
   else
   {
@@ -183,18 +178,6 @@ void SceneViewportWindow::draw()
   m_props->hovered = ImGui::IsWindowHovered();
 
   setupProportions();
-  if ( m_selectedEntity != entt::null )
-  {
-    static entt::entity prevSelected = entt::null;
-
-    if ( m_selectedEntity != prevSelected )
-    {
-      prevSelected = m_selectedEntity;
-
-      SelectEntityEvent e{ m_selectedEntity };
-      EVENT_DISPATCHER()->emitEvent<SelectEntityEvent>( e );
-    }
-  }
 
   // this must be called every frame, not on key press function because it would never move smoothly
   if ( m_props->focused )

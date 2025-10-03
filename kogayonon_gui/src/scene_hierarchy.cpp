@@ -1,7 +1,7 @@
 #include "gui/scene_hierarchy.hpp"
 #include <spdlog/spdlog.h>
+#include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/name_component.hpp"
-#include "core/ecs/components/texture_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
@@ -12,6 +12,7 @@
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "imgui_utils/imgui_utils.h"
+#include "utilities/task_manager/task_manager.hpp"
 
 using namespace kogayonon_core;
 
@@ -19,17 +20,25 @@ namespace kogayonon_gui
 {
 SceneHierarchyWindow::SceneHierarchyWindow( std::string name )
     : ImGuiWindow{ std::move( name ) }
-    , m_selectedIndex{ -1 }
-    , m_popUp{}
+    , m_selectedEntity{ entt::null }
 {
   EVENT_DISPATCHER()->addHandler<kogayonon_core::KeyPressedEvent, &SceneHierarchyWindow::onKeyPressed>( *this );
+  EVENT_DISPATCHER()
+    ->addHandler<kogayonon_core::SelectEntityInViewportEvent, &SceneHierarchyWindow::onEntitySelectInViewport>( *this );
+}
+
+void SceneHierarchyWindow::onEntitySelectInViewport( const kogayonon_core::SelectEntityInViewportEvent& e )
+{
+  m_selectedEntity = e.getEntity();
+  TASK_MANAGER()->enqueue( [&e]() { EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{ e.getEntity() } ); } );
 }
 
 void SceneHierarchyWindow::onKeyPressed( const kogayonon_core::KeyPressedEvent& e )
 {
-  if ( e.getKeyCode() == KeyCode::Escape && m_selectedIndex != -1 )
+  if ( e.getKeyCode() == KeyCode::Escape && m_selectedEntity != entt::null )
   {
-    m_selectedIndex = -1;
+    m_selectedEntity = entt::null;
+    TASK_MANAGER()->enqueue( []() { EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{} ); } );
   }
 }
 
@@ -46,13 +55,7 @@ void SceneHierarchyWindow::draw()
   m_props->hovered = ImGui::IsWindowHovered();
   m_props->focused = ImGui::IsWindowFocused();
 
-  m_pCurrentScene = kogayonon_core::SceneManager::getCurrentScene();
-  auto scene = m_pCurrentScene.lock();
-  if ( m_selectedIndex == -1 )
-  {
-    SelectEntityEvent entEvent;
-    EVENT_DISPATCHER()->emitEvent<SelectEntityEvent>( entEvent );
-  }
+  auto scene = SceneManager::getCurrentScene().lock();
 
   // if there is no scene to render return
   if ( !scene )
@@ -75,7 +78,7 @@ void SceneHierarchyWindow::draw()
   if ( entSize != entities.size() )
   {
     entSize = entities.size();
-    m_selectedIndex = -1;
+    m_selectedEntity = entt::null;
   }
 
   const auto& io = ImGui::GetIO();
@@ -86,15 +89,14 @@ void SceneHierarchyWindow::draw()
   {
     for ( int i = 0; i < entities.size(); i++ )
     {
-      bool isSelected = ( m_selectedIndex == i );
       auto& entity = entities.at( i );
       const auto& nameComp = entity.getComponent<NameComponent>();
 
       std::string label = std::format( "{}{}{}", nameComp.name, "##", std::to_string( i ) );
-      if ( ImGui::Selectable( label.c_str(), isSelected ) )
+      if ( ImGui::Selectable( label.c_str(), m_selectedEntity == entity.getEnttEntity() ) )
       {
-        m_selectedIndex = i;
-        pEventDispatcher->emitEvent( SelectEntityEvent( entity.getEnttEntity() ) );
+        m_selectedEntity = entity.getEnttEntity();
+        pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
       }
       drawItemContexMenu( label, entity );
     }
@@ -120,7 +122,7 @@ void SceneHierarchyWindow::drawContextMenu()
     }
     if ( ImGui::MenuItem( "Clear Selection" ) )
     {
-      m_selectedIndex = -1;
+      m_selectedEntity = entt::null;
     }
     ImGui::EndPopup();
   }

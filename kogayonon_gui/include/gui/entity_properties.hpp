@@ -12,9 +12,9 @@ namespace kogayonon_core
 class Scene;
 class SelectEntityEvent;
 struct TextureComponent;
-class Entity;
 struct ModelComponent;
 struct TransformComponent;
+class Entity;
 } // namespace kogayonon_core
 
 namespace kogayonon_gui
