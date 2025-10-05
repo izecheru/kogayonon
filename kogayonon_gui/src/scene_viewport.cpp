@@ -121,7 +121,9 @@ void SceneViewportWindow::traceRay()
   Ray ray{ .Origin = m_pCamera->getPosition(), .Direction = rayWorld };
   for ( const auto& [entity, transform] : scene->getEnttRegistry().view<TransformComponent>().each() )
   {
-    float radius = 2.0f;
+    auto firstMax = std::max( transform.scale.x, transform.scale.y );
+    float radius = 2.0f * std::max( firstMax, transform.scale.z );
+
     glm::vec3 toObject = ray.Origin - transform.pos;
 
     float a = glm::dot( ray.Direction, ray.Direction );
@@ -179,7 +181,7 @@ std::weak_ptr<kogayonon_rendering::FrameBuffer> SceneViewportWindow::getFrameBuf
 
 void SceneViewportWindow::draw()
 {
-  ImGui::Begin( m_props->name.c_str(), nullptr, ImGuiWindowFlags_NoTitleBar );
+  begin();
   m_props->focused = ImGui::IsWindowFocused();
   m_props->hovered = ImGui::IsWindowHovered();
 

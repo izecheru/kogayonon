@@ -208,9 +208,9 @@ void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent
   bool changed = false;
   auto& pos = transformComponent->pos;
   auto& scale = transformComponent->scale;
-  changed |= ImGui::SliderFloat( "x", &pos.x, 0.0f, 100.0f );
-  changed |= ImGui::SliderFloat( "y", &pos.y, 0.0f, 100.0f );
-  changed |= ImGui::SliderFloat( "z", &pos.z, 0.0f, 100.0f );
+  changed |= ImGui::SliderFloat( "x", &pos.x, -100.0f, 100.0f );
+  changed |= ImGui::SliderFloat( "y", &pos.y, -100.0f, 100.0f );
+  changed |= ImGui::SliderFloat( "z", &pos.z, -100.0f, 100.0f );
 
   ImGui::Text( "Scale" );
   changed |= ImGui::SliderFloat( "##scale x", &scale.x, 1.0f, 100.0f );
