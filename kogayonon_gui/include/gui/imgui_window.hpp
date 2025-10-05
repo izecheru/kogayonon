@@ -10,6 +10,7 @@ class ImGuiWindow
 {
 public:
   explicit ImGuiWindow( std::string name );
+  explicit ImGuiWindow( std::string name, ImGuiWindowFlags flags );
   virtual ~ImGuiWindow();
   virtual void draw() = 0;
 
@@ -19,6 +20,9 @@ public:
   virtual void setVisible( bool status );
   virtual void setX( double x );
   virtual void setY( double y );
+
+  virtual void begin();
+  virtual void end();
 
   /**
    * @brief Sets up width, height, x, y when called
@@ -30,7 +34,6 @@ public:
   int height();
 
 protected:
-
   // if we ever need to pass a rendering func in the middle of the window or something
   // i made this for the scene viewport so i can pass functions from Renderer class
 
@@ -49,8 +52,20 @@ protected:
     bool focused{ false };
     ImGuiWindowFlags flags{ 0 };
 
+    struct
+    {
+      ImVec2 topLeft{ 0.0f, 0.0f };
+      ImVec2 bottomRight{ 0.0f, 0.0f };
+    } bounds;
+
     explicit imgui_props( std::string t_name )
         : name{ std::move( t_name ) }
+    {
+    }
+
+    explicit imgui_props( std::string t_name, ImGuiWindowFlags t_flags )
+        : name( t_name )
+        , flags( t_flags )
     {
     }
   };

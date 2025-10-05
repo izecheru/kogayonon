@@ -56,7 +56,7 @@ bool ImGuiManager::initImgui( SDL_Window* window, SDL_GLContext context )
   ImFont* pFont = m_io->Fonts->AddFontFromFileTTF( font.c_str(), 18.0f, &cfg );
   m_io->FontDefault = pFont;
 
-  static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+  static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None | ImGuiDockNodeFlags_NoTabBar;
   ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
 
   // change the style
@@ -115,10 +115,8 @@ void ImGuiManager::setupDockSpace( ImGuiViewport* viewport )
   {
     const auto dockspaceId = ImGui::GetID( "MyDockspace" );
     ImGui::DockSpace( dockspaceId, ImVec2( 0, 0 ), dockspaceFlags );
-    if ( static bool firstFrame = true; firstFrame )
+    if ( !std::filesystem::exists( m_io->IniFilename ) )
     {
-      firstFrame = false;
-
       // Clear previous layout
       ImGui::DockBuilderRemoveNode( dockspaceId );
       ImGui::DockBuilderAddNode( dockspaceId, ImGuiDockNodeFlags_DockSpace );
@@ -134,12 +132,12 @@ void ImGuiManager::setupDockSpace( ImGuiViewport* viewport )
       auto lowerLeftNodeId = ImGui::DockBuilderSplitNode( leftNodeId, ImGuiDir_Up, 0.3f, nullptr, &leftNodeId );
 
       // Dock windows
-      ImGui::DockBuilderDockWindow( "Debug console##win", bottomCenterNodeId );
-      ImGui::DockBuilderDockWindow( "Assets##win", bottomCenterNodeId );
-      ImGui::DockBuilderDockWindow( "Scene hierarchy##win", upplerLeftNodeId );
-      ImGui::DockBuilderDockWindow( "Object properties##win", lowerLeftNodeId );
-      ImGui::DockBuilderDockWindow( "Performance##win", rightNodeId );
-      ImGui::DockBuilderDockWindow( "Scene##win", centerNodeId );
+      ImGui::DockBuilderDockWindow( "Debug console", bottomCenterNodeId );
+      ImGui::DockBuilderDockWindow( "Assets", bottomCenterNodeId );
+      ImGui::DockBuilderDockWindow( "Scene hierarchy", upplerLeftNodeId );
+      ImGui::DockBuilderDockWindow( "Object properties", lowerLeftNodeId );
+      ImGui::DockBuilderDockWindow( "Performance", rightNodeId );
+      ImGui::DockBuilderDockWindow( "Scene", centerNodeId );
 
       ImGui::DockBuilderFinish( dockspaceId );
     }

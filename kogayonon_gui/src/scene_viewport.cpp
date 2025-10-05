@@ -1,7 +1,9 @@
 #include "gui/scene_viewport.hpp"
+#include <ImGuizmo.h>
 #include <filesystem>
 #include <glad/glad.h>
 #include <glm/ext/matrix_clip_space.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
@@ -89,19 +91,17 @@ struct Ray
 
 void SceneViewportWindow::traceRay()
 {
+
   auto [mx, my] = ImGui::GetMousePos();
 
-  mx -= m_props->x;
-  my -= m_props->y;
+  mx -= static_cast<float>( m_props->x );
+  my -= static_cast<float>( m_props->y );
 
-  auto width = m_pFrameBuffer.lock()->getWidth();
-  auto height = m_pFrameBuffer.lock()->getHeight();
+  auto width = static_cast<float>( m_pFrameBuffer.lock()->getWidth() );
+  auto height = static_cast<float>( m_pFrameBuffer.lock()->getHeight() );
 
   float x = ( 2.0f * mx ) / width - 1.0f;
   float y = 1.0f - ( 2.0f * my ) / height;
-  float z = 1.0f;
-  spdlog::info( "mouse rel {},{} / viewport {},{}", mx, my, m_props->width, m_props->height );
-  spdlog::info( "ndc {},{}", x, y );
 
   if ( mx < 0 || my < 0 || mx > width || my > height )
     return;
@@ -122,11 +122,11 @@ void SceneViewportWindow::traceRay()
   for ( const auto& [entity, transform] : scene->getEnttRegistry().view<TransformComponent>().each() )
   {
     float radius = 2.0f;
-    glm::vec3 oc = ray.Origin - transform.pos;
+    glm::vec3 toObject = ray.Origin - transform.pos;
 
     float a = glm::dot( ray.Direction, ray.Direction );
-    float b = 2.0f * glm::dot( oc, ray.Direction );
-    float c = glm::dot( oc, oc ) - radius * radius;
+    float b = 2.0f * glm::dot( toObject, ray.Direction );
+    float c = glm::dot( toObject, toObject ) - radius * radius;
 
     float discriminant = b * b - 4 * a * c;
     if ( discriminant < 0.0f )
@@ -141,20 +141,31 @@ void SceneViewportWindow::traceRay()
   }
   if ( closestEntityIndex >= 0 )
   {
+    // select
     m_selectedEntity = static_cast<entt::entity>( closestEntityIndex );
-    kogayonon_core::SelectEntityInViewportEvent e{ m_selectedEntity };
 
-    TASK_MANAGER()->enqueue( [&e]() { EVENT_DISPATCHER()->emitEvent( e ); } );
+    // if the entity is valid
+    if ( scene->getRegistry().isValid( m_selectedEntity ) )
+    {
+      kogayonon_core::SelectEntityInViewportEvent e{ m_selectedEntity };
+      TASK_MANAGER()->enqueue( [&e]() { EVENT_DISPATCHER()->emitEvent( e ); } );
+      return;
+    }
   }
-  else
+
+  // deselect
+  if ( m_selectedEntity != entt::null )
   {
-    spdlog::info( "No entity hit" );
+    kogayonon_core::SelectEntityInViewportEvent e{};
+    TASK_MANAGER()->enqueue( [&e]() { EVENT_DISPATCHER()->emitEvent( e ); } );
   }
 }
 
 void SceneViewportWindow::onMouseClicked( const MouseClickedEvent& e )
 {
-  traceRay();
+  // trace only on left click
+  if ( e.getButton() == MouseCode::BUTTON_1 )
+    traceRay();
 }
 
 void SceneViewportWindow::onKeyPressed( const KeyPressedEvent& e )
@@ -168,12 +179,7 @@ std::weak_ptr<kogayonon_rendering::FrameBuffer> SceneViewportWindow::getFrameBuf
 
 void SceneViewportWindow::draw()
 {
-  if ( !ImGui::Begin( m_props->name.c_str(), nullptr, m_props->flags ) )
-  {
-    ImGui::End();
-    return;
-  }
-
+  ImGui::Begin( m_props->name.c_str(), nullptr, ImGuiWindowFlags_NoTitleBar );
   m_props->focused = ImGui::IsWindowFocused();
   m_props->hovered = ImGui::IsWindowHovered();
 
@@ -228,7 +234,7 @@ void SceneViewportWindow::draw()
     ImGui::EndDragDropTarget();
   }
 
-  ImGui::End();
+  end();
 }
 
 void SceneViewportWindow::manageAssetsPayload( const ImGuiPayload* payload ) const

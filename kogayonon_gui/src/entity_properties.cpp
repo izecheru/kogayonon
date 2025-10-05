@@ -37,6 +37,7 @@ void EntityPropertiesWindow::draw()
   {
     if ( m_entity != entt::null )
     {
+      spdlog::info( "m_entity:{}", (int)m_entity );
       drawEnttProperties( scene );
     }
     else
@@ -54,15 +55,17 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
 
   // entity always has a name
   auto pNameComp = entity.tryGetComponent<kogayonon_core::NameComponent>();
-
-  // change the entity name
-  ImGui::TextUnformatted( "Change name" );
-  ImGui::SameLine();
-  if ( char buffer[50] = { 0 };
-       ImGui::InputText( "##change_name", buffer, IM_ARRAYSIZE( buffer ), ImGuiInputTextFlags_EnterReturnsTrue ) )
+  if ( pNameComp )
   {
-    std::string result{ buffer };
-    pNameComp->name = result;
+    // change the entity name
+    ImGui::TextUnformatted( "Change name" );
+    ImGui::SameLine();
+    if ( char buffer[50] = { 0 };
+         ImGui::InputText( "##change_name", buffer, IM_ARRAYSIZE( buffer ), ImGuiInputTextFlags_EnterReturnsTrue ) )
+    {
+      std::string result{ buffer };
+      pNameComp->name = result;
+    }
   }
 
   // has textures?
@@ -82,11 +85,11 @@ void EntityPropertiesWindow::onEntitySelect( const kogayonon_core::SelectEntityE
 
 void EntityPropertiesWindow::drawTextureComponent( kogayonon_core::Entity& ent ) const
 {
-  ImGui::Text( "Textures" );
-
   const auto& pModelComponent = ent.tryGetComponent<kogayonon_core::ModelComponent>();
   if ( !pModelComponent )
     return;
+
+  ImGui::Text( "Textures" );
 
   auto& meshes = pModelComponent->pModel.lock()->getMeshes();
   if ( meshes.empty() )
@@ -178,12 +181,11 @@ void EntityPropertiesWindow::drawTextureContextMenu( std::vector<std::weak_ptr<k
 
 void EntityPropertiesWindow::drawModelComponent( kogayonon_core::Entity& ent ) const
 {
-  ImGui::Text( "Model component" );
-
   auto pModelComponent = ent.tryGetComponent<kogayonon_core::ModelComponent>();
   if ( !pModelComponent )
     return;
 
+  ImGui::Text( "Model component" );
   auto model = pModelComponent->pModel.lock();
 
   if ( !model )
@@ -194,11 +196,11 @@ void EntityPropertiesWindow::drawModelComponent( kogayonon_core::Entity& ent ) c
 
 void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent ) const
 {
-  ImGui::Text( "Transformation" );
-
   const auto& transformComponent = ent.tryGetComponent<kogayonon_core::TransformComponent>();
   if ( !transformComponent )
     return;
+
+  ImGui::Text( "Transform" );
 
   // if it has transform, it definetely has a model component
   const auto& modelComponent = ent.tryGetComponent<kogayonon_core::ModelComponent>();

@@ -21,4 +21,6 @@ target_link_libraries(
   PUBLIC imgui
   PRIVATE $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
           $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
-          kogayonon_rendering kogayonon_core spdlog::spdlog kogayonon_utilities kogayonon_resources)
+          kogayonon_rendering kogayonon_core spdlog::spdlog kogayonon_utilities kogayonon_resources
+          imguizmo::imguizmo
+)

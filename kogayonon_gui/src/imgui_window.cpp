@@ -7,6 +7,11 @@ ImGuiWindow::ImGuiWindow( std::string name )
 {
 }
 
+ImGuiWindow::ImGuiWindow( std::string name, ImGuiWindowFlags flags )
+    : m_props{ std::make_unique<imgui_props>( name, flags ) }
+{
+}
+
 ImGuiWindow::~ImGuiWindow()
 {
 }
@@ -56,9 +61,13 @@ void ImGuiWindow::setupProportions( bool dirty )
     m_props->y = pos.y;
 
     auto size = ImGui::GetWindowSize();
-    m_props->height = static_cast<int>( size.y );
-    m_props->width = static_cast<int>( size.x );
+    m_props->height = static_cast<int>( size.x );
+    m_props->width = static_cast<int>( size.y );
 
+    auto max = ImGui::GetWindowContentRegionMax();
+    auto min = ImGui::GetWindowContentRegionMin();
+    m_props->bounds.bottomRight = ImVec2{ max.x + pos.x, max.y + pos.y };
+    m_props->bounds.topLeft = ImVec2{ min.x + pos.x, min.y + pos.y };
     return;
   }
 
@@ -75,5 +84,28 @@ void ImGuiWindow::setupProportions( bool dirty )
     m_props->height = static_cast<int>( size.y );
     m_props->width = static_cast<int>( size.x );
   }
+
+  if ( m_props->bounds.bottomRight.x == 0.0f )
+  {
+    auto pos = ImGui::GetWindowPos();
+    auto max = ImGui::GetWindowContentRegionMax();
+    auto min = ImGui::GetWindowContentRegionMax();
+    m_props->bounds.bottomRight = ImVec2{ max.x + pos.x, max.y + pos.y };
+    m_props->bounds.topLeft = ImVec2{ min.x + pos.x, min.y + pos.y };
+  }
+}
+
+void ImGuiWindow::begin()
+{
+  if ( !ImGui::Begin( m_props->name.c_str(), nullptr, m_props->flags ) )
+  {
+    end();
+    return;
+  }
+}
+
+void ImGuiWindow::end()
+{
+  ImGui::End();
 }
 } // namespace kogayonon_gui

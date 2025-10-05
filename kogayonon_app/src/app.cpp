@@ -66,7 +66,7 @@ App::App()
       m_running = false;
     }
 
-    // auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>( "Debug console##win" );
+    // auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>( "Debug console" );
     // auto pDbgWin = debugWindow.get();
     // defferedSink->setWindow( pDbgWin );
     // IMGUI_MANAGER()->pushWindow( "Debug console", std::move( debugWindow ) );
@@ -291,13 +291,12 @@ bool App::initGui()
   auto fileTexture = pAssetManager->getTexture( "file" ).lock()->getTextureId();
   auto folderTexture = pAssetManager->getTexture( "folder" ).lock()->getTextureId();
 
-  auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( m_pWindow->getWindow(), "Scene##win",
+  auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( m_pWindow->getWindow(), "Scene",
                                                                              m_pFrameBuffer, playTexture, stopTexture );
-  auto fileExplorerWindow =
-    std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets##win", folderTexture, fileTexture );
-  auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>( "Scene hierarchy##win" );
-  auto performanceWindow = std::make_unique<kogayonon_gui::PerformanceWindow>( "Performance##win" );
-  auto entityPropertiesWindow = std::make_unique<kogayonon_gui::EntityPropertiesWindow>( "Object properties##win" );
+  auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets", folderTexture, fileTexture );
+  auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>( "Scene hierarchy" );
+  auto performanceWindow = std::make_unique<kogayonon_gui::PerformanceWindow>( "Performance" );
+  auto entityPropertiesWindow = std::make_unique<kogayonon_gui::EntityPropertiesWindow>( "Object properties" );
 
   IMGUI_MANAGER()->pushWindow( "Scene", std::move( sceneViewport ) );
   IMGUI_MANAGER()->pushWindow( "Object properties", std::move( entityPropertiesWindow ) );

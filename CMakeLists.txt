@@ -16,7 +16,6 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 	set(CMAKE_CXX_FLAGS_DEBUG "/MDd /ZI /Ob0 /Od /RTC1")
 endif()
 
-
 # -------------------------------------------------------------------
 # Output directories for different artifact types
 # -------------------------------------------------------------------
@@ -32,6 +31,7 @@ find_package(soil2 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
+find_package(imguizmo CONFIG REQUIRED)
 
 add_subdirectory(dependencies/imgui)
 add_subdirectory(dependencies/glad)
@@ -58,4 +58,3 @@ target_link_libraries(
   kogayonon
   PRIVATE kogayonon_app $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
           $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>)
-
