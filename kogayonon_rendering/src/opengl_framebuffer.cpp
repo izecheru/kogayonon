@@ -11,7 +11,7 @@ static GLenum textureFormatToOpenglInternal( FramebufferTextureFormat format )
   switch ( format )
   {
   case FramebufferTextureFormat::RGBA8:
-    return GL_RGBA8; // internal storage
+    return GL_RGBA8;
   case FramebufferTextureFormat::RED_INTEGER:
     return GL_R32UI;
   case FramebufferTextureFormat::DEPTH24STENCIL8:
@@ -21,15 +21,14 @@ static GLenum textureFormatToOpenglInternal( FramebufferTextureFormat format )
   }
 }
 
-// base format for glReadPixels / glClearTexImage 'format' param
 static GLenum textureFormatToBaseFormat( FramebufferTextureFormat format )
 {
   switch ( format )
   {
   case FramebufferTextureFormat::RGBA8:
-    return GL_RGBA; // base format for RGBA8
+    return GL_RGBA;
   case FramebufferTextureFormat::RED_INTEGER:
-    return GL_RED_INTEGER; // integer red
+    return GL_RED_INTEGER;
   case FramebufferTextureFormat::DEPTH24STENCIL8:
     return GL_DEPTH_STENCIL;
   default:
@@ -37,7 +36,6 @@ static GLenum textureFormatToBaseFormat( FramebufferTextureFormat format )
   }
 }
 
-// proper type for glReadPixels / glClearTexImage 'type' param
 static GLenum textureFormatToType( FramebufferTextureFormat format )
 {
   switch ( format )
@@ -254,7 +252,6 @@ int OpenGLFramebuffer::readPixel( uint32_t attachmentIndex, int x, int y )
   }
   else
   {
-    // fallback: try generic read (but prefer explicit cases)
     glReadPixels( x, flippedY, 1, 1, baseFormat, type, &pixelData );
   }
 

@@ -89,6 +89,7 @@ void SceneViewportWindow::onMouseMoved( const MouseMovedEvent& e )
 
 void SceneViewportWindow::onMouseClicked( const MouseClickedEvent& e )
 {
+  drawPickingScene( ImVec2{ static_cast<float>( m_props->width ), static_cast<float>( m_props->height ) } );
 }
 
 void SceneViewportWindow::drawScene( ImVec2 viewportPos )
@@ -128,14 +129,26 @@ void SceneViewportWindow::drawPickingScene( ImVec2 viewportPos )
 
   auto& shader = SHADER_MANAGER()->getShader( "picking" );
   m_pickingFrameBuffer.resize( m_props->width, m_props->height );
-  m_pickingFrameBuffer.clearColorAttachment( 0, 0 );
+  m_pickingFrameBuffer.clearColorAttachment( 0, -1 );
 
   auto proj = m_pCamera->getProjectionMatrix( { m_props->width, m_props->height } );
   m_pickingFrameBuffer.bind();
   glClear( GL_DEPTH_BUFFER_BIT );
   m_pRenderingSystem->render( SceneManager::getCurrentScene().lock(), m_pCamera->getViewMatrix(), proj, shader );
   m_pickingFrameBuffer.unbind();
-  spdlog::info( "pixelData:{}", m_pickingFrameBuffer.readPixel( 0, mx, my ) );
+  if ( const auto& scene = SceneManager::getCurrentScene().lock() )
+  {
+    int result = m_pickingFrameBuffer.readPixel( 0, mx, my );
+    auto ent = static_cast<entt::entity>( result );
+    if ( scene->getRegistry().isValid( ent ) )
+    {
+      TASK_MANAGER()->enqueue( [&ent]() { EVENT_DISPATCHER()->emitEvent( SelectEntityInViewportEvent{ ent } ); } );
+    }
+    else
+    {
+      spdlog::error( "you did not click on a valid entity" );
+    }
+  }
 }
 
 void SceneViewportWindow::onKeyPressed( const KeyPressedEvent& e )
@@ -164,7 +177,6 @@ void SceneViewportWindow::draw()
 
   const auto& io = ImGui::GetIO();
 
-  drawPickingScene( ImGui::GetWindowSize() );
   drawScene( ImGui::GetWindowSize() );
 
   ImGui::GetWindowDrawList()->AddImage( (ImTextureID)m_frameBuffer.getColorAttachmentId( 0 ), win_pos,
