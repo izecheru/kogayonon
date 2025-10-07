@@ -3,10 +3,10 @@
 #include <entt/entt.hpp>
 #include <filesystem>
 #include "imgui_window.hpp"
+#include "rendering/opengl_framebuffer.hpp"
 
 namespace kogayonon_rendering
 {
-class FrameBuffer;
 class Camera;
 } // namespace kogayonon_rendering
 
@@ -30,17 +30,17 @@ public:
    * @brief The Viewport where we draw our scene
    * @param mainWindow This is injected for the camera movement (SDL_MouseRelativeMode)
    * @param name The name of the ImGuiWindow
-   * @param frameBuffer The frame buffer where everything is drawn
    * @param playTexture The play button texture ID
    * @param stopTexture The stop button texture ID
    */
-  explicit SceneViewportWindow( SDL_Window* mainWindow, std::string name,
-                                std::weak_ptr<kogayonon_rendering::FrameBuffer> frameBuffer, unsigned int playTexture,
+  explicit SceneViewportWindow( SDL_Window* mainWindow, std::string name, unsigned int playTexture,
                                 unsigned int stopTexture );
   ~SceneViewportWindow() = default;
 
   void draw() override;
-  std::weak_ptr<kogayonon_rendering::FrameBuffer> getFrameBuffer() const;
+
+  void drawScene( ImVec2 viewportPos );
+  void drawPickingScene( ImVec2 viewportPos );
 
   // Events
   void onSelectedEntity( const kogayonon_core::SelectEntityEvent& e );
@@ -60,10 +60,12 @@ private:
 
 private:
   entt::entity m_selectedEntity;
-  std::weak_ptr<kogayonon_rendering::FrameBuffer> m_pFrameBuffer;
   unsigned int m_playTextureId;
   unsigned int m_stopTextureId;
   SDL_Window* m_mainWindow;
+  kogayonon_rendering::OpenGLFramebuffer m_frameBuffer;
+  kogayonon_rendering::OpenGLFramebuffer m_pickingFrameBuffer;
+
   std::unique_ptr<kogayonon_core::RenderingSystem> m_pRenderingSystem;
   std::unique_ptr<kogayonon_rendering::Camera> m_pCamera;
 };

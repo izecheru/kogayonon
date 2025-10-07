@@ -17,28 +17,31 @@
 #include "core/scene/scene_manager.hpp"
 #include "core/systems/rendering_system.h"
 #include "rendering/camera/camera.hpp"
-#include "rendering/framebuffer.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
 #include "utilities/task_manager/task_manager.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
 
 using namespace kogayonon_core;
+using namespace kogayonon_rendering;
 
 namespace kogayonon_gui
 {
-SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string name,
-                                          std::weak_ptr<kogayonon_rendering::FrameBuffer> frameBuffer,
-                                          unsigned int playTextureId, unsigned int stopTextureId )
+SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string name, unsigned int playTextureId,
+                                          unsigned int stopTextureId )
     : ImGuiWindow{ std ::move( name ) }
     , m_selectedEntity{ entt::null }
-    , m_pFrameBuffer{ frameBuffer }
     , m_playTextureId{ playTextureId }
     , m_stopTextureId{ stopTextureId }
     , m_mainWindow{ mainWindow }
     , m_pRenderingSystem{ std::make_unique<RenderingSystem>() }
-    , m_pCamera{ std::make_unique<kogayonon_rendering::Camera>() }
+    , m_pCamera{ std::make_unique<Camera>() }
 {
+  FramebufferSpecification spec{ { FramebufferTextureFormat::RGBA8 }, 300, 300 };
+  FramebufferSpecification pickingSpec{ { FramebufferTextureFormat::RED_INTEGER }, 300, 300 };
+  m_frameBuffer = OpenGLFramebuffer{ spec };
+  m_pickingFrameBuffer = OpenGLFramebuffer{ pickingSpec };
+
   EVENT_DISPATCHER()->addHandler<SelectEntityEvent, &SceneViewportWindow::onSelectedEntity>( *this );
   EVENT_DISPATCHER()->addHandler<MouseMovedEvent, &SceneViewportWindow::onMouseMoved>( *this );
   EVENT_DISPATCHER()->addHandler<MouseClickedEvent, &SceneViewportWindow::onMouseClicked>( *this );
@@ -62,11 +65,11 @@ void SceneViewportWindow::onSelectedEntity( const SelectEntityEvent& e )
 
 void SceneViewportWindow::onMouseMoved( const MouseMovedEvent& e )
 {
-  if ( !m_props->focused )
+  if ( !m_props->hovered )
     return;
 
   const auto& io = ImGui::GetIO();
-  if ( io.MouseDown[ImGuiMouseButton_Middle] )
+  if ( io.MouseDown[ImGuiMouseButton_Right] )
   {
     SDL_SetRelativeMouseMode( SDL_TRUE );
     auto x = static_cast<float>( e.getXRel() );
@@ -91,15 +94,13 @@ struct Ray
 
 void SceneViewportWindow::traceRay()
 {
-
   auto [mx, my] = ImGui::GetMousePos();
 
   mx -= static_cast<float>( m_props->x );
   my -= static_cast<float>( m_props->y );
 
-  auto width = static_cast<float>( m_pFrameBuffer.lock()->getWidth() );
-  auto height = static_cast<float>( m_pFrameBuffer.lock()->getHeight() );
-
+  float width = m_props->width;
+  float height = m_props->height;
   float x = ( 2.0f * mx ) / width - 1.0f;
   float y = 1.0f - ( 2.0f * my ) / height;
 
@@ -165,18 +166,54 @@ void SceneViewportWindow::traceRay()
 
 void SceneViewportWindow::onMouseClicked( const MouseClickedEvent& e )
 {
-  // trace only on left click
-  if ( e.getButton() == MouseCode::BUTTON_1 )
-    traceRay();
+}
+
+void SceneViewportWindow::drawScene( ImVec2 viewportPos )
+{
+  auto& spec = m_frameBuffer.getSpecification();
+  m_frameBuffer.bind();
+  glDrawBuffer( GL_COLOR_ATTACHMENT0 );
+
+  m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
+  glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
+  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+  auto& shader = SHADER_MANAGER()->getShader( "3d" );
+  const auto& size = ImGui::GetWindowSize();
+  glm::mat4 proj = m_pCamera->getProjectionMatrix( { size.x, size.y } );
+  m_pRenderingSystem->render( SceneManager::getCurrentScene().lock(), m_pCamera->getViewMatrix(), proj, shader );
+  m_frameBuffer.unbind();
+}
+
+void SceneViewportWindow::drawPickingScene( ImVec2 viewportPos )
+{
+  const auto& io = ImGui::GetIO();
+
+  // if ( !io.MouseDown[ImGuiMouseButton_Left] )
+  //   return;
+  auto [mx, my] = ImGui::GetMousePos();
+
+  mx -= static_cast<float>( m_props->x );
+  my -= static_cast<float>( m_props->y );
+
+  float width = m_props->width;
+  float height = m_props->height;
+
+  if ( mx < 0 || my < 0 || mx > width || my > height )
+    return;
+
+  auto& shader = SHADER_MANAGER()->getShader( "3d" );
+  m_pickingFrameBuffer.resize( m_props->width, m_props->height );
+  glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
+  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+  auto proj = m_pCamera->getProjectionMatrix( { m_props->width, m_props->height } );
+  m_pRenderingSystem->render( SceneManager::getCurrentScene().lock(), m_pCamera->getViewMatrix(), proj, shader );
+  spdlog::info( "pixelData:{}", m_pickingFrameBuffer.readPixel( 0, mx, my ) );
 }
 
 void SceneViewportWindow::onKeyPressed( const KeyPressedEvent& e )
 {
-}
-
-std::weak_ptr<kogayonon_rendering::FrameBuffer> SceneViewportWindow::getFrameBuffer() const
-{
-  return std::weak_ptr<kogayonon_rendering::FrameBuffer>( m_pFrameBuffer );
 }
 
 void SceneViewportWindow::draw()
@@ -192,33 +229,16 @@ void SceneViewportWindow::draw()
     m_pCamera->onKeyPressed( static_cast<float>( TIME_TRACKER()->getDuration( "deltaTime" ).count() ) );
 
   ImVec2 contentSize = ImGui::GetContentRegionAvail();
-  auto pFrameBuffer = m_pFrameBuffer.lock();
-  if ( !pFrameBuffer )
-  {
-    ImGui::End();
-    return;
-  }
 
   const auto& scene = SceneManager::getCurrentScene().lock();
-  pFrameBuffer->bind();
-  pFrameBuffer->rescale( static_cast<int>( contentSize.x ), static_cast<int>( contentSize.y ) );
-
-  // set clear color first
-  glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
-
-  // then clear
-  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-  auto& shader = SHADER_MANAGER()->getShader( "3d" );
-  const auto& size = glm::vec2{
-    m_pFrameBuffer.lock()->getWidth(),
-    m_pFrameBuffer.lock()->getHeight(),
-  };
-  glm::mat4 proj = m_pCamera->getProjectionMatrix( size );
-  m_pRenderingSystem->render( scene, m_pCamera->getViewMatrix(), proj, shader );
-  pFrameBuffer->unbind();
-
   ImVec2 win_pos = ImGui::GetCursorScreenPos();
-  ImGui::GetWindowDrawList()->AddImage( (ImTextureID)pFrameBuffer->getTexture(), win_pos,
+
+  const auto& io = ImGui::GetIO();
+
+  drawScene( ImGui::GetWindowSize() );
+  drawPickingScene( ImGui::GetWindowSize() );
+
+  ImGui::GetWindowDrawList()->AddImage( (ImTextureID)m_frameBuffer.getColorAttachmentId( 0 ), win_pos,
                                         ImVec2( win_pos.x + contentSize.x, win_pos.y + contentSize.y ), ImVec2( 0, 1 ),
                                         ImVec2( 1, 0 ) );
 

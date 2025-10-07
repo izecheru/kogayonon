@@ -54,45 +54,24 @@ int ImGuiWindow::height()
 void ImGuiWindow::setupProportions( bool dirty )
 {
   // if dirty set them regardless
-  if ( dirty )
-  {
-    auto pos = ImGui::GetWindowPos();
-    m_props->x = pos.x;
-    m_props->y = pos.y;
-
-    auto size = ImGui::GetWindowSize();
-    m_props->height = static_cast<int>( size.x );
-    m_props->width = static_cast<int>( size.y );
-
-    auto max = ImGui::GetWindowContentRegionMax();
-    auto min = ImGui::GetWindowContentRegionMin();
-    m_props->bounds.bottomRight = ImVec2{ max.x + pos.x, max.y + pos.y };
-    m_props->bounds.topLeft = ImVec2{ min.x + pos.x, min.y + pos.y };
+  auto pos = ImGui::GetWindowPos();
+  if ( m_props->x == pos.x || m_props->y == pos.y )
     return;
-  }
 
-  if ( m_props->x == 0 && m_props->y == 0 )
-  {
-    auto pos = ImGui::GetWindowPos();
-    m_props->x = pos.x;
-    m_props->y = pos.y;
-  }
+  m_props->x = pos.x;
+  m_props->y = pos.y;
 
-  if ( m_props->height == 0 && m_props->width == 0 )
-  {
-    auto size = ImGui::GetWindowSize();
-    m_props->height = static_cast<int>( size.y );
-    m_props->width = static_cast<int>( size.x );
-  }
+  auto size = ImGui::GetWindowSize();
+  if ( m_props->width == size.x || m_props->height == size.y )
+    return;
 
-  if ( m_props->bounds.bottomRight.x == 0.0f )
-  {
-    auto pos = ImGui::GetWindowPos();
-    auto max = ImGui::GetWindowContentRegionMax();
-    auto min = ImGui::GetWindowContentRegionMax();
-    m_props->bounds.bottomRight = ImVec2{ max.x + pos.x, max.y + pos.y };
-    m_props->bounds.topLeft = ImVec2{ min.x + pos.x, min.y + pos.y };
-  }
+  m_props->height = static_cast<int>( size.y );
+  m_props->width = static_cast<int>( size.x );
+
+  auto max = ImGui::GetWindowContentRegionMax();
+  auto min = ImGui::GetWindowContentRegionMin();
+  m_props->bounds.bottomRight = ImVec2{ max.x + pos.x, max.y + pos.y };
+  m_props->bounds.topLeft = ImVec2{ min.x + pos.x, min.y + pos.y };
 }
 
 void ImGuiWindow::begin()

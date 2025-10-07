@@ -24,7 +24,6 @@
 #include "gui/performance_window.hpp"
 #include "gui/scene_hierarchy.hpp"
 #include "gui/scene_viewport.hpp"
-#include "rendering/framebuffer.hpp"
 #include "rendering/renderer.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/input/mouse_codes.hpp"
@@ -260,6 +259,8 @@ bool App::initRegistries() const
   assert( shaderManager && "could not initialise shader manager" );
   shaderManager->pushShader( "resources/shaders/3d_vertex.glsl", "resources/shaders/3d_fragment.glsl", "3d" );
   shaderManager->pushShader( "resources/shaders/white_vertex.glsl", "resources/shaders/white_fragment.glsl", "white" );
+  shaderManager->pushShader( "resources/shaders/picking_vertex.glsl", "resources/shaders/picking_fragment.glsl",
+                             "picking" );
   mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::ShaderManager>>( std::move( shaderManager ) );
 
   // init asset manager
@@ -280,8 +281,6 @@ bool App::initRegistries() const
 
 bool App::initGui()
 {
-  // frame buffer for the scene viewport
-  m_pFrameBuffer = std::make_shared<kogayonon_rendering::FrameBuffer>( 400, 400 );
 
   const auto& pAssetManager = ASSET_MANAGER();
 
@@ -291,8 +290,8 @@ bool App::initGui()
   auto fileTexture = pAssetManager->getTexture( "file" ).lock()->getTextureId();
   auto folderTexture = pAssetManager->getTexture( "folder" ).lock()->getTextureId();
 
-  auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( m_pWindow->getWindow(), "Scene",
-                                                                             m_pFrameBuffer, playTexture, stopTexture );
+  auto sceneViewport =
+    std::make_unique<kogayonon_gui::SceneViewportWindow>( m_pWindow->getWindow(), "Scene", playTexture, stopTexture );
   auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets", folderTexture, fileTexture );
   auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>( "Scene hierarchy" );
   auto performanceWindow = std::make_unique<kogayonon_gui::PerformanceWindow>( "Performance" );

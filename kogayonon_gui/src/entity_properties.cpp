@@ -213,9 +213,9 @@ void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent
   changed |= ImGui::SliderFloat( "z", &pos.z, -100.0f, 100.0f );
 
   ImGui::Text( "Scale" );
-  changed |= ImGui::SliderFloat( "##scale x", &scale.x, 1.0f, 100.0f );
-  changed |= ImGui::SliderFloat( "##scale y", &scale.y, 1.0f, 100.0f );
-  changed |= ImGui::SliderFloat( "##scale z", &scale.z, 1.0f, 100.0f );
+  changed |= ImGui::SliderFloat( "x##scale", &scale.x, 1.0f, 100.0f );
+  changed |= ImGui::SliderFloat( "y##scale", &scale.y, 1.0f, 100.0f );
+  changed |= ImGui::SliderFloat( "z##scale", &scale.z, 1.0f, 100.0f );
 
   if ( changed )
   {
@@ -233,13 +233,11 @@ void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent
     // get the instance data of this model
     const auto data = scene->getData( modelComponent->pModel.lock().get() );
 
-    // get the instance matrix
+    // update the matrix in the instance matrices vector
     data->instanceMatrices.at( indexComponent.index ) = transformComponent->modelMatrix;
 
-    // if we have only one instance it works
-
     // if we have a multiple instances
-    if ( data->count > 1 )
+    if ( data->count >= 1 )
     {
       scene->setupMultipleInstances( data );
     }

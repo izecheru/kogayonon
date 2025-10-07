@@ -16,6 +16,9 @@ namespace kogayonon_core
 {
 struct InstanceData
 {
+  uint32_t entityIdBuffer{ 0 };
+  std::vector<uint32_t> entityIds;
+
   // the buffer in which we upload the instance matrices
   uint32_t instanceBuffer{ 0 };
 

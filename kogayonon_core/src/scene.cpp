@@ -58,6 +58,7 @@ void Scene::removeEntity( entt::entity ent )
       const auto& indexComponent = entity.getComponent<IndexComponent>();
       auto toErase = indexComponent.index;
       instance->instanceMatrices.erase( instance->instanceMatrices.begin() + toErase );
+      instance->entityIds.erase( instance->entityIds.begin() + toErase );
 
       // now we need to update all the index components that are to the right of the deleted index
       for ( const auto& [entity, indexComp] : m_pRegistry->getRegistry().view<IndexComponent>().each() )
@@ -102,30 +103,31 @@ void Scene::addEntity( std::weak_ptr<kogayonon_resources::Model> pModel )
   // we must look for model pointer in the map to check for instances
   if ( m_instances.contains( pModel.lock().get() ) )
   {
-    for ( const auto& [pModel_, instanceData] : m_instances )
+    if ( const auto& instanceData = m_instances.at( pModel.lock().get() ) )
     {
-      if ( pModel_ == pModel.lock().get() )
-      {
-        // we increment the amount of models we need to render
-        ++instanceData->count;
+      // we increment the amount of models we need to render
+      ++instanceData->count;
 
-        // we create a new instance matrix
-        const auto& transform = ent.getComponent<TransformComponent>();
-        instanceData->instanceMatrices.push_back(
-          math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) );
+      // we create a new instance matrix
+      const auto& transform = ent.getComponent<TransformComponent>();
+      instanceData->instanceMatrices.push_back(
+        math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) );
 
-        // first we get the index of the instance matrix
-        uint32_t size = instanceData->instanceMatrices.size();
-        ent.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
+      // first we get the index of the instance matrix
+      uint32_t size = instanceData->instanceMatrices.size();
+      ent.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
 
-        setupMultipleInstances( instanceData.get() );
-      }
+      instanceData->entityIds.push_back( static_cast<uint32_t>( ent.getEnttEntity() ) );
+
+      setupMultipleInstances( instanceData.get() );
     }
   }
   else
   {
     const auto& transform = ent.getComponent<TransformComponent>();
     auto instanceData = std::make_unique<InstanceData>( InstanceData{
+      .entityIdBuffer = 0,
+      .entityIds = { static_cast<uint32_t>( ent.getEnttEntity() ) },
       .instanceBuffer = 0,
       .instanceMatrices = { math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) },
       .count = 1,
@@ -153,10 +155,14 @@ void Scene::setupMultipleInstances( InstanceData* data )
   if ( data->instanceBuffer == 0 )
   {
     glCreateBuffers( 1, &data->instanceBuffer );
+    glCreateBuffers( 1, &data->entityIdBuffer );
 
     // did not use glNamedBufferStorage cause it is immutable and instances change based on the amount of them
     glNamedBufferData( data->instanceBuffer, sizeof( glm::mat4 ) * data->instanceMatrices.size(),
                        data->instanceMatrices.data(), GL_DYNAMIC_DRAW );
+
+    glNamedBufferData( data->entityIdBuffer, sizeof( uint32_t ) * data->entityIds.size(), data->entityIds.data(),
+                       GL_DYNAMIC_DRAW );
 
     auto& meshes = data->pModel->getMeshes();
     for ( int i = 0; i < meshes.size(); i++ )
@@ -164,21 +170,25 @@ void Scene::setupMultipleInstances( InstanceData* data )
       const auto& vao = meshes.at( i ).getVao();
 
       glVertexArrayVertexBuffer( vao, 1, data->instanceBuffer, 0, sizeof( glm::mat4 ) );
+      glVertexArrayVertexBuffer( vao, 1, data->entityIdBuffer, 0, sizeof( uint32_t ) );
 
       glEnableVertexArrayAttrib( vao, 3 );
       glEnableVertexArrayAttrib( vao, 4 );
       glEnableVertexArrayAttrib( vao, 5 );
       glEnableVertexArrayAttrib( vao, 6 );
+      glEnableVertexArrayAttrib( vao, 7 );
 
       glVertexArrayAttribFormat( vao, 3, 4, GL_FLOAT, GL_FALSE, 0 );
       glVertexArrayAttribFormat( vao, 4, 4, GL_FLOAT, GL_FALSE, sizeof( glm::vec4 ) );
       glVertexArrayAttribFormat( vao, 5, 4, GL_FLOAT, GL_FALSE, 2 * sizeof( glm::vec4 ) );
       glVertexArrayAttribFormat( vao, 6, 4, GL_FLOAT, GL_FALSE, 3 * sizeof( glm::vec4 ) );
+      glVertexArrayAttribIFormat( vao, 7, 1, GL_UNSIGNED_INT, 0 );
 
       glVertexArrayAttribBinding( vao, 3, 1 );
       glVertexArrayAttribBinding( vao, 4, 1 );
       glVertexArrayAttribBinding( vao, 5, 1 );
       glVertexArrayAttribBinding( vao, 6, 1 );
+      glVertexArrayAttribBinding( vao, 7, 1 );
 
       glVertexArrayBindingDivisor( vao, 1, 1 );
     }
@@ -187,9 +197,11 @@ void Scene::setupMultipleInstances( InstanceData* data )
   {
     // Resize existing buffer (optional, only if m_amount changed)
     glNamedBufferData( data->instanceBuffer, sizeof( glm::mat4 ) * data->count, nullptr, GL_DYNAMIC_DRAW );
+    glNamedBufferData( data->entityIdBuffer, sizeof( uint32_t ) * data->count, nullptr, GL_DYNAMIC_DRAW );
 
     // Upload new data
     glNamedBufferSubData( data->instanceBuffer, 0, sizeof( glm::mat4 ) * data->count, data->instanceMatrices.data() );
+    glNamedBufferSubData( data->entityIdBuffer, 0, sizeof( uint32_t ) * data->count, data->entityIds.data() );
   }
 }
 

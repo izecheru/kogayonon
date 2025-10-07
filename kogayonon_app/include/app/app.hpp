@@ -18,11 +18,6 @@ namespace kogayonon_window
 class Window;
 } // namespace kogayonon_window
 
-namespace kogayonon_rendering
-{
-class FrameBuffer;
-} // namespace kogayonon_rendering
-
 namespace kogayonon_app
 {
 class App
@@ -48,9 +43,6 @@ public:
 
 private:
   std::shared_ptr<kogayonon_window::Window> m_pWindow;
-
-  // untill I manage to find a place for this buffer, it'll stay here
-  std::shared_ptr<kogayonon_rendering::FrameBuffer> m_pFrameBuffer;
 
   bool m_running = true;
 };
