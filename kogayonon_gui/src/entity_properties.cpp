@@ -27,17 +27,15 @@ EntityPropertiesWindow::EntityPropertiesWindow( std::string name )
 void EntityPropertiesWindow::draw()
 {
   ImGui_Utils::ScopedPadding padd{ ImVec2{ 10.0f, 10.0f } };
-  if ( !ImGui::Begin( m_props->name.c_str(), nullptr, m_props->flags ) )
-  {
-    ImGui::End();
+
+  if ( !begin() )
     return;
-  }
+
   auto pScene = kogayonon_core::SceneManager::getCurrentScene();
   if ( auto scene = pScene.lock() )
   {
     if ( m_entity != entt::null )
     {
-      spdlog::info( "m_entity:{}", (int)m_entity );
       drawEnttProperties( scene );
     }
     else

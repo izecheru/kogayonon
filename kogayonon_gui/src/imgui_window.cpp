@@ -53,7 +53,6 @@ int ImGuiWindow::height()
 
 void ImGuiWindow::setupProportions( bool dirty )
 {
-  // if dirty set them regardless
   auto pos = ImGui::GetWindowPos();
   if ( m_props->x == pos.x || m_props->y == pos.y )
     return;
@@ -74,13 +73,17 @@ void ImGuiWindow::setupProportions( bool dirty )
   m_props->bounds.topLeft = ImVec2{ min.x + pos.x, min.y + pos.y };
 }
 
-void ImGuiWindow::begin()
+bool ImGuiWindow::begin()
 {
+  if ( !m_props->visible )
+    return false;
+
   if ( !ImGui::Begin( m_props->name.c_str(), nullptr, m_props->flags ) )
   {
     end();
-    return;
+    return false;
   }
+  return true;
 }
 
 void ImGuiWindow::end()

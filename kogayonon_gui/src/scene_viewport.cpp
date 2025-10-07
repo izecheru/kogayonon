@@ -218,7 +218,9 @@ void SceneViewportWindow::onKeyPressed( const KeyPressedEvent& e )
 
 void SceneViewportWindow::draw()
 {
-  begin();
+  if ( !begin() )
+    return;
+
   m_props->focused = ImGui::IsWindowFocused();
   m_props->hovered = ImGui::IsWindowHovered();
 
@@ -252,7 +254,8 @@ void SceneViewportWindow::draw()
   if ( ImGui::BeginDragDropTarget() )
   {
     // if we have a payload
-    manageAssetsPayload( ImGui::AcceptDragDropPayload( "ASSET_DROP" ) );
+    const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "ASSET_DROP" );
+    manageAssetsPayload( payload );
     ImGui::EndDragDropTarget();
   }
 
@@ -274,7 +277,8 @@ void SceneViewportWindow::manageAssetsPayload( const ImGuiPayload* payload ) con
   auto scene = SceneManager::getCurrentScene();
   auto pScene = scene.lock();
 
-  if ( p.extension().string() == ".gltf" )
+  const auto& extension = p.extension().string();
+  if ( extension.find( ".gltf" ) != std::string::npos )
   {
     spdlog::info( "dropped a model file from {}, ext:{}", dropResult, p.extension().string() );
     if ( !pScene )
@@ -288,7 +292,7 @@ void SceneViewportWindow::manageAssetsPayload( const ImGuiPayload* payload ) con
       return;
     }
   }
-  else if ( p.extension().string() == ".png" || p.extension().string() == ".jpg" )
+  else if ( extension.find( ".jpg" ) != std::string::npos || extension.find( ".png" ) != std::string::npos )
   {
     spdlog::info( "dropped a texture file from {}, ext:{}", dropResult, p.extension().string() );
     if ( !pScene )

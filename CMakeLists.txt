@@ -11,11 +11,6 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
       CACHE STRING "")
 endif()
 
-# We want hot reloading
-if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-	set(CMAKE_CXX_FLAGS_DEBUG "/MDd /ZI /Ob0 /Od /RTC1")
-endif()
-
 # -------------------------------------------------------------------
 # Output directories for different artifact types
 # -------------------------------------------------------------------
@@ -38,7 +33,6 @@ add_subdirectory(dependencies/glad)
 add_subdirectory(dependencies/cgltf)
 
 # My own modules
-
 add_subdirectory(kogayonon_utilities)
 add_subdirectory(kogayonon_window)
 add_subdirectory(kogayonon_core)

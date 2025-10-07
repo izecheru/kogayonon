@@ -107,7 +107,6 @@ void FileExplorerWindow::buildFileVector()
     if ( dirEntry.path().string().find( "fonts" ) != std::string::npos )
       continue;
 
-    // TODO add filters here
     File_ file{ .isDir = dirEntry.is_directory(),
                 .imguiId = std::format( "{}{}", "##file", std::to_string( dirId ) ),
                 .path = dirEntry.path() };
@@ -119,11 +118,9 @@ void FileExplorerWindow::buildFileVector()
 void FileExplorerWindow::draw()
 {
   ImGui_Utils::ScopedPadding padd{ ImVec2{ 10.0f, 10.0f } };
-  if ( !ImGui::Begin( m_props->name.c_str(), nullptr, m_props->flags ) )
-  {
-    ImGui::End();
+
+  if ( !begin() )
     return;
-  }
 
   static std::filesystem::path lastPath{ "" };
   drawPathToolbar();
@@ -160,7 +157,7 @@ void FileExplorerWindow::draw()
       if ( ImGui::BeginDragDropSource() )
       {
         std::string path = file.path.string();
-        ImGui::SetDragDropPayload( "ASSET_DROP", path.c_str(), path.size() );
+        ImGui::SetDragDropPayload( "ASSET_DROP", path.c_str(), path.size() + 1 );
         ImGui::EndDragDropSource();
       }
       ImGui::Text( "%s", ImGui_Utils::truncateText( filename.string(), 100.0f ).c_str() );

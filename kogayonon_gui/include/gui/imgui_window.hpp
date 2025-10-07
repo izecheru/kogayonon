@@ -21,7 +21,7 @@ public:
   virtual void setX( double x );
   virtual void setY( double y );
 
-  virtual void begin();
+  virtual bool begin();
   virtual void end();
 
   /**
