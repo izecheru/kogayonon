@@ -22,7 +22,7 @@ enum class FramebufferTextureFormat
   Depth = DEPTH24STENCIL8
 };
 
-static uint32_t FramebufferTextureFormatToOpenGL( FramebufferTextureFormat format )
+static GLenum FramebufferTextureFormatToOpenGL( FramebufferTextureFormat format )
 {
   switch ( format )
   {

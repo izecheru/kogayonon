@@ -5,21 +5,51 @@ namespace kogayonon_rendering
 {
 namespace utils
 {
-static GLenum textureFormatToOpengl( FramebufferTextureFormat format )
+
+static GLenum textureFormatToOpenglInternal( FramebufferTextureFormat format )
 {
   switch ( format )
   {
   case FramebufferTextureFormat::RGBA8:
-    return GL_RGBA8;
-
+    return GL_RGBA8; // internal storage
   case FramebufferTextureFormat::RED_INTEGER:
-    return GL_RED_INTEGER;
-
+    return GL_R32UI;
   case FramebufferTextureFormat::DEPTH24STENCIL8:
     return GL_DEPTH24_STENCIL8;
-
   default:
     return GL_RGBA8;
+  }
+}
+
+// base format for glReadPixels / glClearTexImage 'format' param
+static GLenum textureFormatToBaseFormat( FramebufferTextureFormat format )
+{
+  switch ( format )
+  {
+  case FramebufferTextureFormat::RGBA8:
+    return GL_RGBA; // base format for RGBA8
+  case FramebufferTextureFormat::RED_INTEGER:
+    return GL_RED_INTEGER; // integer red
+  case FramebufferTextureFormat::DEPTH24STENCIL8:
+    return GL_DEPTH_STENCIL;
+  default:
+    return GL_RGBA;
+  }
+}
+
+// proper type for glReadPixels / glClearTexImage 'type' param
+static GLenum textureFormatToType( FramebufferTextureFormat format )
+{
+  switch ( format )
+  {
+  case FramebufferTextureFormat::RGBA8:
+    return GL_UNSIGNED_BYTE;
+  case FramebufferTextureFormat::RED_INTEGER:
+    return GL_UNSIGNED_INT;
+  case FramebufferTextureFormat::DEPTH24STENCIL8:
+    return GL_UNSIGNED_INT_24_8;
+  default:
+    return GL_UNSIGNED_BYTE;
   }
 }
 
@@ -41,6 +71,7 @@ static void linkFramebufferDepthTexture( GLenum attachmentType, uint32_t id, uin
 static void attachColorTexture( uint32_t id, uint32_t w, uint32_t h, GLenum format, uint32_t fbo, int index )
 
 {
+  assert( w != 0 && h != 0 && "width and height CANNOT be 0" );
   glTextureStorage2D( id, 1, format, w, h );
 
   glTextureParameteri( id, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
@@ -54,6 +85,8 @@ static void attachDepthTexture( uint32_t id, uint32_t w, uint32_t h, GLenum form
                                 uint32_t fbo )
 
 {
+  assert( w != 0 && h != 0 && "width and height CANNOT be 0" );
+
   glTextureStorage2D( id, 1, format, w, h );
 
   glTextureParameteri( id, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
@@ -119,12 +152,10 @@ void OpenGLFramebuffer::init()
       utils::attachColorTexture( attachment.id, m_specification.width, m_specification.height, GL_R32UI, m_fbo, i );
       break;
     case FramebufferTextureFormat::DEPTH:
-      utils::attachDepthTexture( attachment.id, m_specification.width, m_specification.height, GL_DEPTH_COMPONENT,
+      utils::attachDepthTexture( attachment.id, m_specification.width, m_specification.height, GL_DEPTH24_STENCIL8,
                                  GL_DEPTH_ATTACHMENT, m_fbo );
       break;
     default:
-      utils::attachDepthTexture( attachment.id, m_specification.width, m_specification.height, GL_DEPTH24_STENCIL8,
-                                 GL_DEPTH_STENCIL_ATTACHMENT, m_fbo );
       break;
     }
   }
@@ -200,10 +231,33 @@ uint32_t OpenGLFramebuffer::getColorAttachmentId( uint32_t index ) const
 int OpenGLFramebuffer::readPixel( uint32_t attachmentIndex, int x, int y )
 {
   assert( m_specification.attachments.size() > attachmentIndex && "index out of bounds in read pixel" );
+  auto& attachment = m_specification.attachments.at( attachmentIndex );
+
   bind();
   glReadBuffer( GL_COLOR_ATTACHMENT0 + attachmentIndex );
+  int flippedY = m_specification.height - y - 1;
+
   int pixelData = -1;
-  glReadPixels( x, m_specification.height - y, 1, 1, GL_RED_INTEGER, GL_UNSIGNED_INT, &pixelData );
+
+  GLenum baseFormat = utils::textureFormatToBaseFormat( attachment.textureFormat );
+  GLenum type = utils::textureFormatToType( attachment.textureFormat );
+
+  if ( attachment.textureFormat == FramebufferTextureFormat::RED_INTEGER )
+  {
+    glReadPixels( x, flippedY, 1, 1, baseFormat, type, &pixelData );
+  }
+  else if ( attachment.textureFormat == FramebufferTextureFormat::RGBA8 )
+  {
+    GLubyte rgba[4] = { 0, 0, 0, 0 };
+    glReadPixels( x, flippedY, 1, 1, baseFormat, type, rgba );
+    pixelData = rgba[0] | ( rgba[1] << 8 ) | ( rgba[2] << 16 ) | ( rgba[3] << 24 );
+  }
+  else
+  {
+    // fallback: try generic read (but prefer explicit cases)
+    glReadPixels( x, flippedY, 1, 1, baseFormat, type, &pixelData );
+  }
+
   glReadBuffer( GL_NONE );
   unbind();
   return pixelData;
@@ -212,7 +266,21 @@ int OpenGLFramebuffer::readPixel( uint32_t attachmentIndex, int x, int y )
 void OpenGLFramebuffer::clearColorAttachment( uint32_t index, int value ) const
 {
   auto& attachment = m_specification.attachments.at( index );
-  glClearTexImage( attachment.id, 0, utils::textureFormatToOpengl( attachment.textureFormat ), GL_UNSIGNED_INT,
-                   &value );
+
+  GLenum format = GL_RGBA;
+  GLenum type = GL_UNSIGNED_INT;
+
+  if ( attachment.textureFormat == FramebufferTextureFormat::RED_INTEGER )
+  {
+    format = GL_RED_INTEGER;
+    type = GL_UNSIGNED_INT;
+  }
+  else if ( attachment.textureFormat == FramebufferTextureFormat::RGBA8 )
+  {
+    format = GL_RGBA;
+    type = GL_UNSIGNED_BYTE;
+  }
+
+  glClearTexImage( attachment.id, 0, format, type, &value );
 }
 } // namespace kogayonon_rendering

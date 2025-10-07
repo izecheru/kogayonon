@@ -6,5 +6,5 @@ flat in uint v_entityId;
 
 void main()
 {
-    outEntityID = 100;
+    outEntityID = v_entityId;
 }

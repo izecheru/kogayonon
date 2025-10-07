@@ -38,7 +38,8 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
     , m_pCamera{ std::make_unique<Camera>() }
 {
   FramebufferSpecification spec{ { FramebufferTextureFormat::RGBA8 }, 300, 300 };
-  FramebufferSpecification pickingSpec{ { FramebufferTextureFormat::RED_INTEGER }, 300, 300 };
+  FramebufferSpecification pickingSpec{
+    { FramebufferTextureFormat::RED_INTEGER, FramebufferTextureFormat::DEPTH }, 300, 300 };
   m_frameBuffer = OpenGLFramebuffer{ spec };
   m_pickingFrameBuffer = OpenGLFramebuffer{ pickingSpec };
 
@@ -86,84 +87,6 @@ void SceneViewportWindow::onMouseMoved( const MouseMovedEvent& e )
   }
 }
 
-struct Ray
-{
-  glm::vec3 Origin;
-  glm::vec3 Direction;
-};
-
-void SceneViewportWindow::traceRay()
-{
-  auto [mx, my] = ImGui::GetMousePos();
-
-  mx -= static_cast<float>( m_props->x );
-  my -= static_cast<float>( m_props->y );
-
-  float width = m_props->width;
-  float height = m_props->height;
-  float x = ( 2.0f * mx ) / width - 1.0f;
-  float y = 1.0f - ( 2.0f * my ) / height;
-
-  if ( mx < 0 || my < 0 || mx > width || my > height )
-    return;
-
-  int closestEntityIndex = -1;
-  auto scene = SceneManager::getCurrentScene().lock();
-  float closestDistance = std::numeric_limits<float>::max();
-
-  glm::vec4 rayClip{ x, y, -1.0f, 1.0f };
-
-  // Ray in eye space
-  glm::vec4 rayEye = glm::inverse( m_pCamera->getProjectionMatrix( { width, height } ) ) * rayClip;
-  rayEye = glm::vec4( rayEye.x, rayEye.y, -1.0f, 0.0f );
-
-  // Ray in world space
-  glm::vec3 rayWorld = glm::normalize( glm::vec3( glm::inverse( m_pCamera->getViewMatrix() ) * rayEye ) );
-  Ray ray{ .Origin = m_pCamera->getPosition(), .Direction = rayWorld };
-  for ( const auto& [entity, transform] : scene->getEnttRegistry().view<TransformComponent>().each() )
-  {
-    auto firstMax = std::max( transform.scale.x, transform.scale.y );
-    float radius = 2.0f * std::max( firstMax, transform.scale.z );
-
-    glm::vec3 toObject = ray.Origin - transform.pos;
-
-    float a = glm::dot( ray.Direction, ray.Direction );
-    float b = 2.0f * glm::dot( toObject, ray.Direction );
-    float c = glm::dot( toObject, toObject ) - radius * radius;
-
-    float discriminant = b * b - 4 * a * c;
-    if ( discriminant < 0.0f )
-      continue;
-
-    float t = ( -b - glm::sqrt( discriminant ) ) / ( 2.0f * a );
-    if ( t > 0.0f && t < closestDistance )
-    {
-      closestDistance = t;
-      closestEntityIndex = (int)entity;
-    }
-  }
-  if ( closestEntityIndex >= 0 )
-  {
-    // select
-    m_selectedEntity = static_cast<entt::entity>( closestEntityIndex );
-
-    // if the entity is valid
-    if ( scene->getRegistry().isValid( m_selectedEntity ) )
-    {
-      kogayonon_core::SelectEntityInViewportEvent e{ m_selectedEntity };
-      TASK_MANAGER()->enqueue( [&e]() { EVENT_DISPATCHER()->emitEvent( e ); } );
-      return;
-    }
-  }
-
-  // deselect
-  if ( m_selectedEntity != entt::null )
-  {
-    kogayonon_core::SelectEntityInViewportEvent e{};
-    TASK_MANAGER()->enqueue( [&e]() { EVENT_DISPATCHER()->emitEvent( e ); } );
-  }
-}
-
 void SceneViewportWindow::onMouseClicked( const MouseClickedEvent& e )
 {
 }
@@ -191,6 +114,7 @@ void SceneViewportWindow::drawPickingScene( ImVec2 viewportPos )
 
   // if ( !io.MouseDown[ImGuiMouseButton_Left] )
   //   return;
+
   auto [mx, my] = ImGui::GetMousePos();
 
   mx -= static_cast<float>( m_props->x );
@@ -202,13 +126,15 @@ void SceneViewportWindow::drawPickingScene( ImVec2 viewportPos )
   if ( mx < 0 || my < 0 || mx > width || my > height )
     return;
 
-  auto& shader = SHADER_MANAGER()->getShader( "3d" );
+  auto& shader = SHADER_MANAGER()->getShader( "picking" );
   m_pickingFrameBuffer.resize( m_props->width, m_props->height );
-  glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
-  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+  m_pickingFrameBuffer.clearColorAttachment( 0, 0 );
 
   auto proj = m_pCamera->getProjectionMatrix( { m_props->width, m_props->height } );
+  m_pickingFrameBuffer.bind();
+  glClear( GL_DEPTH_BUFFER_BIT );
   m_pRenderingSystem->render( SceneManager::getCurrentScene().lock(), m_pCamera->getViewMatrix(), proj, shader );
+  m_pickingFrameBuffer.unbind();
   spdlog::info( "pixelData:{}", m_pickingFrameBuffer.readPixel( 0, mx, my ) );
 }
 
@@ -227,6 +153,7 @@ void SceneViewportWindow::draw()
   setupProportions();
 
   // this must be called every frame, not on key press function because it would never move smoothly
+  // also the keyboard button check is a map of keys with a bool set to true if button is currently pressed
   if ( m_props->focused )
     m_pCamera->onKeyPressed( static_cast<float>( TIME_TRACKER()->getDuration( "deltaTime" ).count() ) );
 
@@ -237,8 +164,8 @@ void SceneViewportWindow::draw()
 
   const auto& io = ImGui::GetIO();
 
-  drawScene( ImGui::GetWindowSize() );
   drawPickingScene( ImGui::GetWindowSize() );
+  drawScene( ImGui::GetWindowSize() );
 
   ImGui::GetWindowDrawList()->AddImage( (ImTextureID)m_frameBuffer.getColorAttachmentId( 0 ), win_pos,
                                         ImVec2( win_pos.x + contentSize.x, win_pos.y + contentSize.y ), ImVec2( 0, 1 ),

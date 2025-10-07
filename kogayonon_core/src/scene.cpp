@@ -153,15 +153,18 @@ InstanceData* Scene::getData( kogayonon_resources::Model* pModel )
 void Scene::setupMultipleInstances( InstanceData* data )
 {
   if ( data->instanceBuffer == 0 )
-  {
     glCreateBuffers( 1, &data->instanceBuffer );
+
+  if ( data->entityIdBuffer == 0 )
     glCreateBuffers( 1, &data->entityIdBuffer );
 
+  if ( data->instanceBuffer != 0 && data->entityIdBuffer != 0 )
+  {
     // did not use glNamedBufferStorage cause it is immutable and instances change based on the amount of them
-    glNamedBufferData( data->instanceBuffer, sizeof( glm::mat4 ) * data->instanceMatrices.size(),
-                       data->instanceMatrices.data(), GL_DYNAMIC_DRAW );
+    glNamedBufferData( data->instanceBuffer, sizeof( glm::mat4 ) * data->count, data->instanceMatrices.data(),
+                       GL_DYNAMIC_DRAW );
 
-    glNamedBufferData( data->entityIdBuffer, sizeof( uint32_t ) * data->entityIds.size(), data->entityIds.data(),
+    glNamedBufferData( data->entityIdBuffer, sizeof( uint32_t ) * data->count, data->entityIds.data(),
                        GL_DYNAMIC_DRAW );
 
     auto& meshes = data->pModel->getMeshes();
@@ -170,7 +173,7 @@ void Scene::setupMultipleInstances( InstanceData* data )
       const auto& vao = meshes.at( i ).getVao();
 
       glVertexArrayVertexBuffer( vao, 1, data->instanceBuffer, 0, sizeof( glm::mat4 ) );
-      glVertexArrayVertexBuffer( vao, 1, data->entityIdBuffer, 0, sizeof( uint32_t ) );
+      glVertexArrayVertexBuffer( vao, 2, data->entityIdBuffer, 0, sizeof( uint32_t ) );
 
       glEnableVertexArrayAttrib( vao, 3 );
       glEnableVertexArrayAttrib( vao, 4 );
@@ -182,15 +185,16 @@ void Scene::setupMultipleInstances( InstanceData* data )
       glVertexArrayAttribFormat( vao, 4, 4, GL_FLOAT, GL_FALSE, sizeof( glm::vec4 ) );
       glVertexArrayAttribFormat( vao, 5, 4, GL_FLOAT, GL_FALSE, 2 * sizeof( glm::vec4 ) );
       glVertexArrayAttribFormat( vao, 6, 4, GL_FLOAT, GL_FALSE, 3 * sizeof( glm::vec4 ) );
-      glVertexArrayAttribIFormat( vao, 7, 1, GL_UNSIGNED_INT, 0 );
+      glVertexArrayAttribIFormat( vao, 7, 2, GL_UNSIGNED_INT, 0 );
 
       glVertexArrayAttribBinding( vao, 3, 1 );
       glVertexArrayAttribBinding( vao, 4, 1 );
       glVertexArrayAttribBinding( vao, 5, 1 );
       glVertexArrayAttribBinding( vao, 6, 1 );
-      glVertexArrayAttribBinding( vao, 7, 1 );
+      glVertexArrayAttribBinding( vao, 7, 2 );
 
       glVertexArrayBindingDivisor( vao, 1, 1 );
+      glVertexArrayBindingDivisor( vao, 2, 1 );
     }
   }
   else
