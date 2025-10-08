@@ -29,8 +29,12 @@ SceneHierarchyWindow::SceneHierarchyWindow( std::string name )
 
 void SceneHierarchyWindow::onEntitySelectInViewport( const kogayonon_core::SelectEntityInViewportEvent& e )
 {
+  if ( m_selectedEntity == e.getEntity() )
+  {
+    return;
+  }
+
   m_selectedEntity = e.getEntity();
-  TASK_MANAGER()->enqueue( [&e]() { EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{ e.getEntity() } ); } );
 }
 
 void SceneHierarchyWindow::onKeyPressed( const kogayonon_core::KeyPressedEvent& e )

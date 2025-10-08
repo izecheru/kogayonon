@@ -22,6 +22,18 @@ EntityPropertiesWindow::EntityPropertiesWindow( std::string name )
     , m_entity{ entt::null }
 {
   EVENT_DISPATCHER()->addHandler<kogayonon_core::SelectEntityEvent, &EntityPropertiesWindow::onEntitySelect>( *this );
+  EVENT_DISPATCHER()
+    ->addHandler<kogayonon_core::SelectEntityInViewportEvent, &EntityPropertiesWindow::onSelectEntityInViewport>(
+      *this );
+}
+
+void EntityPropertiesWindow::onSelectEntityInViewport( const kogayonon_core::SelectEntityInViewportEvent& e )
+{
+  if ( m_entity == e.getEntity() )
+  {
+    return;
+  }
+  m_entity = e.getEntity();
 }
 
 void EntityPropertiesWindow::draw()

@@ -11,6 +11,7 @@ namespace kogayonon_core
 {
 class Scene;
 class SelectEntityEvent;
+class SelectEntityInViewportEvent;
 struct TextureComponent;
 struct ModelComponent;
 struct TransformComponent;
@@ -28,6 +29,7 @@ public:
   void draw() override;
 
   void onEntitySelect( const kogayonon_core::SelectEntityEvent& e );
+  void onSelectEntityInViewport( const kogayonon_core::SelectEntityInViewportEvent& e );
 
 private:
   void drawEnttProperties( std::shared_ptr<kogayonon_core::Scene> scene );

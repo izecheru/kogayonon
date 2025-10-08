@@ -39,8 +39,8 @@ public:
 
   void draw() override;
 
-  void drawScene( ImVec2 viewportPos );
-  void drawPickingScene( ImVec2 viewportPos );
+  void drawScene();
+  void drawPickingScene();
 
   // Events
   void onSelectedEntity( const kogayonon_core::SelectEntityEvent& e );

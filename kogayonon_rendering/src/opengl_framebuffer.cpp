@@ -178,12 +178,16 @@ void OpenGLFramebuffer::init()
 
 void OpenGLFramebuffer::resize( uint32_t w, uint32_t h )
 {
-  if ( w == m_specification.width || h == m_specification.height )
+  if ( w == 0 || h == 0 )
     return;
 
-  destroy();
+  if ( w == m_specification.width && h == m_specification.height )
+    return;
+
   m_specification.width = w;
   m_specification.height = h;
+
+  destroy();
   init();
 }
 
@@ -231,53 +235,17 @@ int OpenGLFramebuffer::readPixel( uint32_t attachmentIndex, int x, int y )
   assert( m_specification.attachments.size() > attachmentIndex && "index out of bounds in read pixel" );
   auto& attachment = m_specification.attachments.at( attachmentIndex );
 
-  bind();
   glReadBuffer( GL_COLOR_ATTACHMENT0 + attachmentIndex );
   int flippedY = m_specification.height - y - 1;
-
   int pixelData = -1;
-
-  GLenum baseFormat = utils::textureFormatToBaseFormat( attachment.textureFormat );
-  GLenum type = utils::textureFormatToType( attachment.textureFormat );
-
-  if ( attachment.textureFormat == FramebufferTextureFormat::RED_INTEGER )
-  {
-    glReadPixels( x, flippedY, 1, 1, baseFormat, type, &pixelData );
-  }
-  else if ( attachment.textureFormat == FramebufferTextureFormat::RGBA8 )
-  {
-    GLubyte rgba[4] = { 0, 0, 0, 0 };
-    glReadPixels( x, flippedY, 1, 1, baseFormat, type, rgba );
-    pixelData = rgba[0] | ( rgba[1] << 8 ) | ( rgba[2] << 16 ) | ( rgba[3] << 24 );
-  }
-  else
-  {
-    glReadPixels( x, flippedY, 1, 1, baseFormat, type, &pixelData );
-  }
-
-  glReadBuffer( GL_NONE );
-  unbind();
+  glReadPixels( x, flippedY, 1, 1, GL_RED_INTEGER, GL_UNSIGNED_INT, &pixelData );
   return pixelData;
 }
 
 void OpenGLFramebuffer::clearColorAttachment( uint32_t index, int value ) const
 {
   auto& attachment = m_specification.attachments.at( index );
-
-  GLenum format = GL_RGBA;
-  GLenum type = GL_UNSIGNED_INT;
-
-  if ( attachment.textureFormat == FramebufferTextureFormat::RED_INTEGER )
-  {
-    format = GL_RED_INTEGER;
-    type = GL_UNSIGNED_INT;
-  }
-  else if ( attachment.textureFormat == FramebufferTextureFormat::RGBA8 )
-  {
-    format = GL_RGBA;
-    type = GL_UNSIGNED_BYTE;
-  }
-
-  glClearTexImage( attachment.id, 0, format, type, &value );
+  glClearTexImage( attachment.id, 0, utils::textureFormatToBaseFormat( attachment.textureFormat ),
+                   utils::textureFormatToType( attachment.textureFormat ), &value );
 }
 } // namespace kogayonon_rendering

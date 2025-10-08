@@ -54,14 +54,14 @@ int ImGuiWindow::height()
 void ImGuiWindow::setupProportions( bool dirty )
 {
   auto pos = ImGui::GetWindowPos();
-  if ( m_props->x == pos.x || m_props->y == pos.y )
+  if ( m_props->x == pos.x && m_props->y == pos.y )
     return;
 
   m_props->x = pos.x;
   m_props->y = pos.y;
 
   auto size = ImGui::GetWindowSize();
-  if ( m_props->width == size.x || m_props->height == size.y )
+  if ( m_props->width == size.x && m_props->height == size.y )
     return;
 
   m_props->height = static_cast<int>( size.y );

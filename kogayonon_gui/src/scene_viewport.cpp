@@ -37,9 +37,9 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
     , m_pRenderingSystem{ std::make_unique<RenderingSystem>() }
     , m_pCamera{ std::make_unique<Camera>() }
 {
-  FramebufferSpecification spec{ { FramebufferTextureFormat::RGBA8 }, 300, 300 };
+  FramebufferSpecification spec{ { FramebufferTextureFormat::RGBA8 }, 800, 800 };
   FramebufferSpecification pickingSpec{
-    { FramebufferTextureFormat::RED_INTEGER, FramebufferTextureFormat::DEPTH }, 300, 300 };
+    { FramebufferTextureFormat::RED_INTEGER, FramebufferTextureFormat::DEPTH }, 800, 800 };
   m_frameBuffer = OpenGLFramebuffer{ spec };
   m_pickingFrameBuffer = OpenGLFramebuffer{ pickingSpec };
 
@@ -89,14 +89,16 @@ void SceneViewportWindow::onMouseMoved( const MouseMovedEvent& e )
 
 void SceneViewportWindow::onMouseClicked( const MouseClickedEvent& e )
 {
-  drawPickingScene( ImVec2{ static_cast<float>( m_props->width ), static_cast<float>( m_props->height ) } );
+  if ( e.getButton() != MouseCode::BUTTON_1 )
+    return;
+
+  drawPickingScene();
 }
 
-void SceneViewportWindow::drawScene( ImVec2 viewportPos )
+void SceneViewportWindow::drawScene()
 {
   auto& spec = m_frameBuffer.getSpecification();
   m_frameBuffer.bind();
-  glDrawBuffer( GL_COLOR_ATTACHMENT0 );
 
   m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
   glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
@@ -109,13 +111,9 @@ void SceneViewportWindow::drawScene( ImVec2 viewportPos )
   m_frameBuffer.unbind();
 }
 
-void SceneViewportWindow::drawPickingScene( ImVec2 viewportPos )
+void SceneViewportWindow::drawPickingScene()
 {
   const auto& io = ImGui::GetIO();
-
-  // if ( !io.MouseDown[ImGuiMouseButton_Left] )
-  //   return;
-
   auto [mx, my] = ImGui::GetMousePos();
 
   mx -= static_cast<float>( m_props->x );
@@ -129,24 +127,27 @@ void SceneViewportWindow::drawPickingScene( ImVec2 viewportPos )
 
   auto& shader = SHADER_MANAGER()->getShader( "picking" );
   m_pickingFrameBuffer.resize( m_props->width, m_props->height );
-  m_pickingFrameBuffer.clearColorAttachment( 0, -1 );
 
   auto proj = m_pCamera->getProjectionMatrix( { m_props->width, m_props->height } );
   m_pickingFrameBuffer.bind();
   glClear( GL_DEPTH_BUFFER_BIT );
+  m_pickingFrameBuffer.clearColorAttachment( 0, -1 );
   m_pRenderingSystem->render( SceneManager::getCurrentScene().lock(), m_pCamera->getViewMatrix(), proj, shader );
+  int result = m_pickingFrameBuffer.readPixel( 0, mx, my );
   m_pickingFrameBuffer.unbind();
+
   if ( const auto& scene = SceneManager::getCurrentScene().lock() )
   {
-    int result = m_pickingFrameBuffer.readPixel( 0, mx, my );
     auto ent = static_cast<entt::entity>( result );
     if ( scene->getRegistry().isValid( ent ) )
     {
-      TASK_MANAGER()->enqueue( [&ent]() { EVENT_DISPATCHER()->emitEvent( SelectEntityInViewportEvent{ ent } ); } );
+      // select
+      EVENT_DISPATCHER()->emitEvent( SelectEntityInViewportEvent{ ent } );
     }
     else
     {
-      spdlog::error( "you did not click on a valid entity" );
+      // deselect
+      EVENT_DISPATCHER()->emitEvent( SelectEntityInViewportEvent{} );
     }
   }
 }
@@ -175,9 +176,7 @@ void SceneViewportWindow::draw()
   const auto& scene = SceneManager::getCurrentScene().lock();
   ImVec2 win_pos = ImGui::GetCursorScreenPos();
 
-  const auto& io = ImGui::GetIO();
-
-  drawScene( ImGui::GetWindowSize() );
+  drawScene();
 
   ImGui::GetWindowDrawList()->AddImage( (ImTextureID)m_frameBuffer.getColorAttachmentId( 0 ), win_pos,
                                         ImVec2( win_pos.x + contentSize.x, win_pos.y + contentSize.y ), ImVec2( 0, 1 ),
