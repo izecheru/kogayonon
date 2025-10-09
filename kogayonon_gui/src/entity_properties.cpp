@@ -64,9 +64,9 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
   kogayonon_core::Entity entity{ scene->getRegistry(), m_entity };
 
   // entity always has a name
-  auto pNameComp = entity.tryGetComponent<kogayonon_core::NameComponent>();
-  if ( pNameComp )
+  if ( auto pNameComp = entity.tryGetComponent<kogayonon_core::NameComponent>() )
   {
+    ImGui::Text( "%s", pNameComp->name.c_str() );
     // change the entity name
     ImGui::TextUnformatted( "Change name" );
     ImGui::SameLine();
@@ -90,6 +90,9 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
 
 void EntityPropertiesWindow::onEntitySelect( const kogayonon_core::SelectEntityEvent& e )
 {
+  if ( m_entity == e.getEntity() )
+    return;
+
   m_entity = e.getEntity();
 }
 
@@ -150,8 +153,16 @@ void EntityPropertiesWindow::manageAssetPayload( const ImGuiPayload* payload ) c
   auto data = static_cast<const char*>( payload->Data );
   std::string dropResult( data, payload->DataSize );
   std::filesystem::path p{ dropResult };
+  std::string extension = p.extension().string();
 
-  if ( p.extension().string() != ".png" || p.extension().string() != ".jpg" )
+  // sometimes the file extension check would fail because of the hidden null character
+  // so we clear it
+  if ( !extension.empty() && extension.back() == '\0' )
+  {
+    extension.pop_back();
+  }
+
+  if ( extension != ".png" && extension != ".jpg" )
   {
     spdlog::info( "format currently unsupported {}", p.extension().string() );
     return;

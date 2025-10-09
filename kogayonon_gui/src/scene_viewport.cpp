@@ -119,10 +119,7 @@ void SceneViewportWindow::drawPickingScene()
   mx -= static_cast<float>( m_props->x );
   my -= static_cast<float>( m_props->y );
 
-  float width = m_props->width;
-  float height = m_props->height;
-
-  if ( mx < 0 || my < 0 || mx > width || my > height )
+  if ( mx < 0 || my < 0 || mx > m_props->width || my > m_props->height )
     return;
 
   auto& shader = SHADER_MANAGER()->getShader( "picking" );
@@ -162,10 +159,7 @@ void SceneViewportWindow::draw()
   if ( !begin() )
     return;
 
-  m_props->focused = ImGui::IsWindowFocused();
-  m_props->hovered = ImGui::IsWindowHovered();
-
-  setupProportions();
+  initProps();
 
   // this must be called every frame, not on key press function because it would never move smoothly
   // also the keyboard button check is a map of keys with a bool set to true if button is currently pressed

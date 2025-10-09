@@ -11,15 +11,19 @@ class ImGuiWindow
 public:
   explicit ImGuiWindow( std::string name );
   explicit ImGuiWindow( std::string name, ImGuiWindowFlags flags );
-  virtual ~ImGuiWindow();
+  virtual ~ImGuiWindow() = default;
+
   virtual void draw() = 0;
 
   std::string getName() const;
 
-  virtual void setDocked( bool status );
-  virtual void setVisible( bool status );
-  virtual void setX( double x );
-  virtual void setY( double y );
+  virtual void setDocked();
+  virtual void setHovered();
+  virtual void setFocused();
+
+  virtual void setPosition();
+  virtual void setSize();
+  virtual void setBounds();
 
   virtual bool begin();
   virtual void end();
@@ -27,7 +31,7 @@ public:
   /**
    * @brief Sets up width, height, x, y when called
    */
-  virtual void setupProportions();
+  virtual void initProps();
 
   int width();
   int height();
