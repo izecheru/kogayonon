@@ -26,17 +26,13 @@ public:
 
   /**
    * @brief Sets up width, height, x, y when called
-   * @param dirty If dirty is true it will set proportions every frame, false is for first setup
    */
-  virtual void setupProportions( bool dirty = true );
+  virtual void setupProportions();
 
   int width();
   int height();
 
 protected:
-  // if we ever need to pass a rendering func in the middle of the window or something
-  // i made this for the scene viewport so i can pass functions from Renderer class
-
   struct imgui_props
   {
     std::string name;

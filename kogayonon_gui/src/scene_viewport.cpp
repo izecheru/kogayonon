@@ -78,8 +78,8 @@ void SceneViewportWindow::onMouseMoved( const MouseMovedEvent& e )
     m_pCamera->onMouseMoved( x, y, true );
 
     // move mouse in the center
-    SDL_WarpMouseInWindow( m_mainWindow, static_cast<int>( m_props->x + m_props->width / 2 ),
-                           static_cast<int>( m_props->y + m_props->height / 2 ) );
+    // SDL_WarpMouseInWindow( m_mainWindow, static_cast<int>( m_props->x + m_props->width / 2 ),
+    //                       static_cast<int>( m_props->y + m_props->height / 2 ) );
   }
   else
   {
@@ -130,10 +130,11 @@ void SceneViewportWindow::drawPickingScene()
 
   auto proj = m_pCamera->getProjectionMatrix( { m_props->width, m_props->height } );
   m_pickingFrameBuffer.bind();
-  glClear( GL_DEPTH_BUFFER_BIT );
+  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
   m_pickingFrameBuffer.clearColorAttachment( 0, -1 );
   m_pRenderingSystem->render( SceneManager::getCurrentScene().lock(), m_pCamera->getViewMatrix(), proj, shader );
-  int result = m_pickingFrameBuffer.readPixel( 0, mx, my );
+  int result = m_pickingFrameBuffer.readPixel( 0, static_cast<int>( mx ), static_cast<int>( my ) );
+  spdlog::info( "readPixel = {}", result );
   m_pickingFrameBuffer.unbind();
 
   if ( const auto& scene = SceneManager::getCurrentScene().lock() )
@@ -222,13 +223,8 @@ void SceneViewportWindow::manageAssetsPayload( const ImGuiPayload* payload ) con
     if ( !pScene )
       return;
 
-    // if no entity is selected we create one ad add the ModelComponent to it
-    if ( m_selectedEntity == entt::null )
-    {
-      auto pModel = pAssetManager->addModel( p.filename().string(), p.string() );
-      pScene->addEntity( pModel );
-      return;
-    }
+    auto pModel = pAssetManager->addModel( p.filename().string(), p.string() );
+    pScene->addEntity( pModel );
   }
   else if ( extension.find( ".jpg" ) != std::string::npos || extension.find( ".png" ) != std::string::npos )
   {
@@ -245,7 +241,7 @@ void SceneViewportWindow::manageAssetsPayload( const ImGuiPayload* payload ) con
   }
   else
   {
-    spdlog::info( "format currently unsupported {}", p.extension().string() );
+    spdlog::info( "format currently unsupported in viewport: {}", p.extension().string() );
   }
 }
 } // namespace kogayonon_gui

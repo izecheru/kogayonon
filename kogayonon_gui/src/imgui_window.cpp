@@ -51,7 +51,7 @@ int ImGuiWindow::height()
   return m_props->height;
 }
 
-void ImGuiWindow::setupProportions( bool dirty )
+void ImGuiWindow::setupProportions()
 {
   auto pos = ImGui::GetWindowPos();
   if ( m_props->x == pos.x && m_props->y == pos.y )

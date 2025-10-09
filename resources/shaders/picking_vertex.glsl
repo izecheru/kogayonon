@@ -1,17 +1,14 @@
 #version 460 core
-
 layout (location = 0) in vec3 aPos;
-//layout (location = 1) in vec3 aNormal;
-//layout (location = 2) in vec2 aTexCoord;
 layout (location = 3) in mat4 instanceMatrix;
-layout (location = 7) in uint entityId;
+layout (location = 7) in int entityId;
 
 uniform mat4 view;
 uniform mat4 projection;
 uniform bool instanced;
 uniform mat4 model;
 
-out flat uint v_entityId;
+out flat int v_entityId;
 
 void main()
 {

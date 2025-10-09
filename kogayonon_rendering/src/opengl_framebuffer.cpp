@@ -147,7 +147,7 @@ void OpenGLFramebuffer::init()
       utils::attachColorTexture( attachment.id, m_specification.width, m_specification.height, GL_RGBA8, m_fbo, i );
       break;
     case FramebufferTextureFormat::RED_INTEGER:
-      utils::attachColorTexture( attachment.id, m_specification.width, m_specification.height, GL_R32UI, m_fbo, i );
+      utils::attachColorTexture( attachment.id, m_specification.width, m_specification.height, GL_R32I, m_fbo, i );
       break;
     case FramebufferTextureFormat::DEPTH:
       utils::attachDepthTexture( attachment.id, m_specification.width, m_specification.height, GL_DEPTH24_STENCIL8,
@@ -233,19 +233,17 @@ uint32_t OpenGLFramebuffer::getColorAttachmentId( uint32_t index ) const
 int OpenGLFramebuffer::readPixel( uint32_t attachmentIndex, int x, int y )
 {
   assert( m_specification.attachments.size() > attachmentIndex && "index out of bounds in read pixel" );
-  auto& attachment = m_specification.attachments.at( attachmentIndex );
 
   glReadBuffer( GL_COLOR_ATTACHMENT0 + attachmentIndex );
   int flippedY = m_specification.height - y - 1;
   int pixelData = -1;
-  glReadPixels( x, flippedY, 1, 1, GL_RED_INTEGER, GL_UNSIGNED_INT, &pixelData );
+  glReadPixels( x, flippedY, 1, 1, GL_RED_INTEGER, GL_INT, &pixelData );
   return pixelData;
 }
 
 void OpenGLFramebuffer::clearColorAttachment( uint32_t index, int value ) const
 {
   auto& attachment = m_specification.attachments.at( index );
-  glClearTexImage( attachment.id, 0, utils::textureFormatToBaseFormat( attachment.textureFormat ),
-                   utils::textureFormatToType( attachment.textureFormat ), &value );
+  glClearTexImage( attachment.id, 0, utils::textureFormatToBaseFormat( attachment.textureFormat ), GL_INT, &value );
 }
 } // namespace kogayonon_rendering

@@ -117,7 +117,7 @@ void Scene::addEntity( std::weak_ptr<kogayonon_resources::Model> pModel )
       uint32_t size = instanceData->instanceMatrices.size();
       ent.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
 
-      instanceData->entityIds.push_back( static_cast<uint32_t>( ent.getEnttEntity() ) );
+      instanceData->entityIds.push_back( static_cast<int>( ent.getEnttEntity() ) );
 
       setupMultipleInstances( instanceData.get() );
     }
@@ -127,7 +127,7 @@ void Scene::addEntity( std::weak_ptr<kogayonon_resources::Model> pModel )
     const auto& transform = ent.getComponent<TransformComponent>();
     auto instanceData = std::make_unique<InstanceData>( InstanceData{
       .entityIdBuffer = 0,
-      .entityIds = { static_cast<uint32_t>( ent.getEnttEntity() ) },
+      .entityIds = { static_cast<int>( ent.getEnttEntity() ) },
       .instanceBuffer = 0,
       .instanceMatrices = { math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) },
       .count = 1,
@@ -173,7 +173,7 @@ void Scene::setupMultipleInstances( InstanceData* data )
       const auto& vao = meshes.at( i ).getVao();
 
       glVertexArrayVertexBuffer( vao, 1, data->instanceBuffer, 0, sizeof( glm::mat4 ) );
-      glVertexArrayVertexBuffer( vao, 2, data->entityIdBuffer, 0, sizeof( uint32_t ) );
+      glVertexArrayVertexBuffer( vao, 2, data->entityIdBuffer, 0, sizeof( int ) );
 
       glEnableVertexArrayAttrib( vao, 3 );
       glEnableVertexArrayAttrib( vao, 4 );
@@ -185,7 +185,7 @@ void Scene::setupMultipleInstances( InstanceData* data )
       glVertexArrayAttribFormat( vao, 4, 4, GL_FLOAT, GL_FALSE, sizeof( glm::vec4 ) );
       glVertexArrayAttribFormat( vao, 5, 4, GL_FLOAT, GL_FALSE, 2 * sizeof( glm::vec4 ) );
       glVertexArrayAttribFormat( vao, 6, 4, GL_FLOAT, GL_FALSE, 3 * sizeof( glm::vec4 ) );
-      glVertexArrayAttribIFormat( vao, 7, 2, GL_UNSIGNED_INT, 0 );
+      glVertexArrayAttribIFormat( vao, 7, 1, GL_INT, 0 );
 
       glVertexArrayAttribBinding( vao, 3, 1 );
       glVertexArrayAttribBinding( vao, 4, 1 );
@@ -201,11 +201,11 @@ void Scene::setupMultipleInstances( InstanceData* data )
   {
     // Resize existing buffer (optional, only if m_amount changed)
     glNamedBufferData( data->instanceBuffer, sizeof( glm::mat4 ) * data->count, nullptr, GL_DYNAMIC_DRAW );
-    glNamedBufferData( data->entityIdBuffer, sizeof( uint32_t ) * data->count, nullptr, GL_DYNAMIC_DRAW );
+    glNamedBufferData( data->entityIdBuffer, sizeof( int ) * data->count, nullptr, GL_DYNAMIC_DRAW );
 
     // Upload new data
     glNamedBufferSubData( data->instanceBuffer, 0, sizeof( glm::mat4 ) * data->count, data->instanceMatrices.data() );
-    glNamedBufferSubData( data->entityIdBuffer, 0, sizeof( uint32_t ) * data->count, data->entityIds.data() );
+    glNamedBufferSubData( data->entityIdBuffer, 0, sizeof( int ) * data->count, data->entityIds.data() );
   }
 }
 

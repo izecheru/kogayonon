@@ -1,8 +1,8 @@
 #version 460 core
 
-layout (location = 0) out uint outEntityID;
+layout (location = 0) out int outEntityID;
 
-flat in uint v_entityId;
+flat in int v_entityId;
 
 void main()
 {

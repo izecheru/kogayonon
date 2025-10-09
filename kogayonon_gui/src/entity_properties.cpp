@@ -151,7 +151,7 @@ void EntityPropertiesWindow::manageAssetPayload( const ImGuiPayload* payload ) c
   std::string dropResult( data, payload->DataSize );
   std::filesystem::path p{ dropResult };
 
-  if ( p.extension().string() != ".png" && p.extension().string() != ".jpg" )
+  if ( p.extension().string() != ".png" || p.extension().string() != ".jpg" )
   {
     spdlog::info( "format currently unsupported {}", p.extension().string() );
     return;
