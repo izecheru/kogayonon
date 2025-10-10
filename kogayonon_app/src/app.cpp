@@ -274,6 +274,7 @@ bool App::initRegistries() const
   assetManager->addTexture( "file", "resources/textures/file.png" );
   assetManager->addTexture( "folder", "resources/textures/folder.png" );
   assetManager->addTexture( "default", "resources/textures/default.png" );
+  assetManager->addModel( "default", "resources/models/Cube.gltf" );
 
   mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::AssetManager>>( std::move( assetManager ) );
 
@@ -310,6 +311,7 @@ bool App::initScenes() const
 {
   auto mainScene = std::make_shared<Scene>( "Default scene" );
   SceneManager::addScene( mainScene );
+  mainScene->addEntity( ASSET_MANAGER()->getModel( "default" ) );
 
   // set the current scene
   SceneManager::setCurrentScene( "Default scene" );

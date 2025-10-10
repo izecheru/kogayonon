@@ -5,6 +5,7 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <spdlog/spdlog.h>
+#include "core/ecs/components/index_component.h"
 #include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
@@ -36,6 +37,7 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
     , m_mainWindow{ mainWindow }
     , m_pRenderingSystem{ std::make_unique<RenderingSystem>() }
     , m_pCamera{ std::make_unique<Camera>() }
+    , m_gizmoMode{ GizmoMode::ROTATE }
 {
   FramebufferSpecification spec{ { FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::DEPTH }, 800, 800 };
   FramebufferSpecification pickingSpec{
@@ -140,20 +142,33 @@ void SceneViewportWindow::drawPickingScene()
     if ( scene->getRegistry().isValid( ent ) )
     {
       // select
+      if ( m_selectedEntity == ent )
+        return;
+
       m_selectedEntity = ent;
       EVENT_DISPATCHER()->emitEvent( SelectEntityInViewportEvent{ ent } );
-    }
-    else
-    {
-      // deselect
-      m_selectedEntity = entt::null;
-      EVENT_DISPATCHER()->emitEvent( SelectEntityInViewportEvent{} );
     }
   }
 }
 
 void SceneViewportWindow::onKeyPressed( const KeyPressedEvent& e )
 {
+  // change gizmo mode if we press SHIFT + S R T
+  if ( !KeyboardState::getKeyState( KeyCode::LeftShift ) )
+    return;
+
+  switch ( e.getKeyCode() )
+  {
+  case KeyCode::S:
+    m_gizmoMode = GizmoMode::SCALE;
+    break;
+  case KeyCode::R:
+    m_gizmoMode = GizmoMode::ROTATE;
+    break;
+  case KeyCode::T:
+    m_gizmoMode = GizmoMode::TRANSLATE;
+    break;
+  }
 }
 
 void SceneViewportWindow::draw()
@@ -165,13 +180,14 @@ void SceneViewportWindow::draw()
 
   // this must be called every frame, not on key press function because it would never move smoothly
   // also the keyboard button check is a map of keys with a bool set to true if button is currently pressed
-  if ( m_props->focused )
+  if ( m_props->focused && !KeyboardState::getKeyState( KeyCode::LeftShift ) )
+  {
     m_pCamera->onKeyPressed( static_cast<float>( TIME_TRACKER()->getDuration( "deltaTime" ).count() ) );
-
-  ImVec2 contentSize = ImGui::GetContentRegionAvail();
+  }
 
   const auto& scene = SceneManager::getCurrentScene().lock();
   ImVec2 win_pos = ImGui::GetCursorScreenPos();
+  ImVec2 contentSize = ImGui::GetContentRegionAvail();
 
   drawScene();
 
@@ -179,38 +195,72 @@ void SceneViewportWindow::draw()
                                         ImVec2( win_pos.x + contentSize.x, win_pos.y + contentSize.y ), ImVec2( 0, 1 ),
                                         ImVec2( 1, 0 ) );
 
+  ImGuizmo::SetOrthographic( false );
+  ImGuizmo::SetDrawlist();
+  ImGuizmo::SetRect( win_pos.x, win_pos.y, contentSize.x, contentSize.y );
+
   if ( m_selectedEntity != entt::null )
   {
     Entity ent{ scene->getRegistry(), m_selectedEntity };
-    auto& transform = ent.getComponent<TransformComponent>();
-
-    ImGuizmo::SetOrthographic( false );
-    ImGuizmo::SetDrawlist( ImGui::GetWindowDrawList() );
-    ImGuizmo::SetRect( win_pos.x, win_pos.y, contentSize.x, contentSize.y );
-
-    // Manipulate
-    // ImGuizmo::Manipulate();
-
-    if ( ImGuizmo::IsUsing() )
+    const auto& model = ent.tryGetComponent<ModelComponent>();
+    if ( model )
     {
-      transform.updateMatrix();
+      const auto& instanceData = scene->getData( model->pModel.lock().get() );
+      const auto& indexComponet = ent.tryGetComponent<IndexComponent>();
+      const auto& transform = ent.tryGetComponent<TransformComponent>();
+      auto& instanceMatrix = instanceData->instanceMatrices.at( indexComponet->index );
+      ImGuizmo::Enable( ( m_props->hovered && m_props->focused ) || ImGuizmo::IsUsingAny() );
+
+      switch ( m_gizmoMode )
+      {
+      case GizmoMode::SCALE:
+        ImGuizmo::Manipulate( glm::value_ptr( m_pCamera->getViewMatrix() ),
+                              glm::value_ptr( m_pCamera->getProjectionMatrix( { contentSize.x, contentSize.y } ) ),
+                              ImGuizmo::SCALE, ImGuizmo::LOCAL, glm::value_ptr( instanceMatrix ) );
+        break;
+      case GizmoMode::TRANSLATE:
+        ImGuizmo::Manipulate( glm::value_ptr( m_pCamera->getViewMatrix() ),
+                              glm::value_ptr( m_pCamera->getProjectionMatrix( { contentSize.x, contentSize.y } ) ),
+                              ImGuizmo::TRANSLATE, ImGuizmo::LOCAL, glm::value_ptr( instanceMatrix ) );
+        break;
+      case GizmoMode::ROTATE:
+        ImGuizmo::Manipulate( glm::value_ptr( m_pCamera->getViewMatrix() ),
+                              glm::value_ptr( m_pCamera->getProjectionMatrix( { contentSize.x, contentSize.y } ) ),
+                              ImGuizmo::ROTATE, ImGuizmo::LOCAL, glm::value_ptr( instanceMatrix ) );
+        break;
+      }
+
+      if ( ImGuizmo::IsUsing() )
+      {
+        glm::vec3 pos, rotation, scale;
+        ImGuizmo::DecomposeMatrixToComponents( glm::value_ptr( instanceMatrix ), glm::value_ptr( pos ),
+                                               glm::value_ptr( rotation ), glm::value_ptr( scale ) );
+        transform->pos = pos;
+        transform->rotation = rotation;
+        transform->scale = scale;
+        transform->dirty = true;
+        transform->updateMatrix();
+
+        if ( instanceData->count >= 1 )
+          scene->setupMultipleInstances( instanceData );
+      }
     }
   }
 
-  // we set the position to top left of this window to prepare for the drop zone
-  ImGui::SetCursorScreenPos( win_pos );
+  //// we set the position to top left of this window to prepare for the drop zone
+  // ImGui::SetCursorScreenPos( win_pos );
 
-  // this is just the viewport drop zone, it is on top of frame buffer so we need to make it invisible
-  ImGui::InvisibleButton( "viewportDropZone", contentSize );
+  //// this is just the viewport drop zone, it is on top of frame buffer so we need to make it invisible
+  // ImGui::InvisibleButton( "viewportDropZone", contentSize );
 
-  // here we accept drag and drop payload from the assets window
-  if ( ImGui::BeginDragDropTarget() )
-  {
-    // if we have a payload
-    const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "ASSET_DROP" );
-    manageAssetsPayload( payload );
-    ImGui::EndDragDropTarget();
-  }
+  //// here we accept drag and drop payload from the assets window
+  // if ( ImGui::BeginDragDropTarget() )
+  //{
+  //   // if we have a payload
+  //   const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "ASSET_DROP" );
+  //   manageAssetsPayload( payload );
+  //   ImGui::EndDragDropTarget();
+  // }
 
   end();
 }

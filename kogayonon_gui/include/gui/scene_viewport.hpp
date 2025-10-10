@@ -23,6 +23,14 @@ class RenderingSystem;
 
 namespace kogayonon_gui
 {
+
+enum class GizmoMode
+{
+  SCALE,
+  ROTATE,
+  TRANSLATE
+};
+
 class SceneViewportWindow : public ImGuiWindow
 {
 public:
@@ -66,5 +74,6 @@ private:
 
   std::unique_ptr<kogayonon_core::RenderingSystem> m_pRenderingSystem;
   std::unique_ptr<kogayonon_rendering::Camera> m_pCamera;
+  GizmoMode m_gizmoMode;
 };
 } // namespace kogayonon_gui
