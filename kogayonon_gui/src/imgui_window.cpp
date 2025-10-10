@@ -66,6 +66,7 @@ void ImGuiWindow::initProps()
   setSize();
   setFocused();
   setHovered();
+
   // setBounds();
 }
 
@@ -74,11 +75,7 @@ bool ImGuiWindow::begin()
   if ( !m_props->visible )
     return false;
 
-  if ( !ImGui::Begin( m_props->name.c_str(), nullptr, m_props->flags ) )
-  {
-    end();
-    return false;
-  }
+  ImGui::Begin( m_props->name.c_str() );
   return true;
 }
 

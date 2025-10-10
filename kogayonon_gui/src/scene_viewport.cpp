@@ -29,7 +29,7 @@ namespace kogayonon_gui
 {
 SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string name, unsigned int playTextureId,
                                           unsigned int stopTextureId )
-    : ImGuiWindow{ std ::move( name ) }
+    : ImGuiWindow{ name }
     , m_selectedEntity{ entt::null }
     , m_playTextureId{ playTextureId }
     , m_stopTextureId{ stopTextureId }
@@ -37,7 +37,7 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
     , m_pRenderingSystem{ std::make_unique<RenderingSystem>() }
     , m_pCamera{ std::make_unique<Camera>() }
 {
-  FramebufferSpecification spec{ { FramebufferTextureFormat::RGBA8 }, 800, 800 };
+  FramebufferSpecification spec{ { FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::DEPTH }, 800, 800 };
   FramebufferSpecification pickingSpec{
     { FramebufferTextureFormat::RED_INTEGER, FramebufferTextureFormat::DEPTH }, 800, 800 };
   m_frameBuffer = OpenGLFramebuffer{ spec };
@@ -78,8 +78,8 @@ void SceneViewportWindow::onMouseMoved( const MouseMovedEvent& e )
     m_pCamera->onMouseMoved( x, y, true );
 
     // move mouse in the center
-    // SDL_WarpMouseInWindow( m_mainWindow, static_cast<int>( m_props->x + m_props->width / 2 ),
-    //                       static_cast<int>( m_props->y + m_props->height / 2 ) );
+    SDL_WarpMouseInWindow( m_mainWindow, static_cast<int>( m_props->x + m_props->width / 2 ),
+                           static_cast<int>( m_props->y + m_props->height / 2 ) );
   }
   else
   {
@@ -140,11 +140,13 @@ void SceneViewportWindow::drawPickingScene()
     if ( scene->getRegistry().isValid( ent ) )
     {
       // select
+      m_selectedEntity = ent;
       EVENT_DISPATCHER()->emitEvent( SelectEntityInViewportEvent{ ent } );
     }
     else
     {
       // deselect
+      m_selectedEntity = entt::null;
       EVENT_DISPATCHER()->emitEvent( SelectEntityInViewportEvent{} );
     }
   }
@@ -176,6 +178,24 @@ void SceneViewportWindow::draw()
   ImGui::GetWindowDrawList()->AddImage( (ImTextureID)m_frameBuffer.getColorAttachmentId( 0 ), win_pos,
                                         ImVec2( win_pos.x + contentSize.x, win_pos.y + contentSize.y ), ImVec2( 0, 1 ),
                                         ImVec2( 1, 0 ) );
+
+  if ( m_selectedEntity != entt::null )
+  {
+    Entity ent{ scene->getRegistry(), m_selectedEntity };
+    auto& transform = ent.getComponent<TransformComponent>();
+
+    ImGuizmo::SetOrthographic( false );
+    ImGuizmo::SetDrawlist( ImGui::GetWindowDrawList() );
+    ImGuizmo::SetRect( win_pos.x, win_pos.y, contentSize.x, contentSize.y );
+
+    // Manipulate
+    // ImGuizmo::Manipulate();
+
+    if ( ImGuizmo::IsUsing() )
+    {
+      transform.updateMatrix();
+    }
+  }
 
   // we set the position to top left of this window to prepare for the drop zone
   ImGui::SetCursorScreenPos( win_pos );

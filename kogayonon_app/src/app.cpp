@@ -226,6 +226,7 @@ bool App::initSDL()
   glDepthFunc( GL_LESS );
   glEnable( GL_CULL_FACE );
   glCullFace( GL_BACK );
+  glFrontFace( GL_CCW );
   rescaleMainViewport( pWinProps->width, pWinProps->height );
   return true;
 }
@@ -281,7 +282,6 @@ bool App::initRegistries() const
 
 bool App::initGui()
 {
-
   const auto& pAssetManager = ASSET_MANAGER();
 
   // textures for imgui buttons or windows and what not

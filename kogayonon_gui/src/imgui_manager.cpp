@@ -1,4 +1,5 @@
 #include "gui/imgui_manager.hpp"
+#include <ImGuizmo.h>
 #include <filesystem>
 #include <imgui.h>
 #include <imgui_impl_opengl3.h>
@@ -149,11 +150,11 @@ void ImGuiManager::begin()
   ImGui_ImplOpenGL3_NewFrame();
   ImGui_ImplSDL2_NewFrame();
   ImGui::NewFrame();
+  ImGuizmo::BeginFrame();
 
-  static ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar |
-                                         ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
-                                         ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
-                                         ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground;
+  static ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse |
+                                         ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                                         ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
   static ImGuiViewport* viewport = ImGui::GetMainViewport();
   static float menu_bar_height = ImGui::GetFrameHeight();
@@ -164,10 +165,10 @@ void ImGuiManager::begin()
 
   ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
   ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
-  ImGui::Begin( "Main window", nullptr, window_flags );
-  ImGui::PopStyleVar( 2 );
 
+  ImGui::Begin( "Main", nullptr, window_flags );
   setupDockSpace( viewport );
+  ImGui::PopStyleVar( 2 );
   ImGui::End();
 }
 
