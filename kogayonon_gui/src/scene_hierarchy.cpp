@@ -30,9 +30,7 @@ SceneHierarchyWindow::SceneHierarchyWindow( std::string name )
 void SceneHierarchyWindow::onEntitySelectInViewport( const kogayonon_core::SelectEntityInViewportEvent& e )
 {
   if ( m_selectedEntity == e.getEntity() )
-  {
     return;
-  }
 
   m_selectedEntity = e.getEntity();
 }
@@ -143,6 +141,7 @@ void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity
       {
         scene->removeEntity( ent.getEnttEntity() );
       }
+      EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{} );
     }
     ImGui::EndPopup();
   }

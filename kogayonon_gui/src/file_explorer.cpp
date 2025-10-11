@@ -155,7 +155,7 @@ void FileExplorerWindow::draw()
       {
         m_currentPath = file.path;
       }
-      ImGui::Text( "%s", ImGui_Utils::truncateText( filename.string(), 100.0f ).c_str() );
+      ImGui::TextWrapped( "%s", filename.string().c_str() );
       ImGui::EndGroup();
     }
     else
@@ -186,6 +186,7 @@ void FileExplorerWindow::drawPathToolbar()
 
   if ( static auto path = std::filesystem::current_path() / "resources"; m_currentPath == path )
   {
+    // if we are on /resources directory disable it
     ImGui::BeginDisabled();
     ImGui::Button( "<" );
     ImGui::EndDisabled();
@@ -194,7 +195,10 @@ void FileExplorerWindow::drawPathToolbar()
   {
     if ( ImGui::Button( "<" ) )
     {
+      // go back to the parent dir
       m_currentPath = m_currentPath.parent_path();
+
+      // build the file vector again
       buildFileVector();
     }
   }

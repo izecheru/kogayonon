@@ -30,9 +30,8 @@ EntityPropertiesWindow::EntityPropertiesWindow( std::string name )
 void EntityPropertiesWindow::onSelectEntityInViewport( const kogayonon_core::SelectEntityInViewportEvent& e )
 {
   if ( m_entity == e.getEntity() )
-  {
     return;
-  }
+
   m_entity = e.getEntity();
 }
 
@@ -44,7 +43,6 @@ void EntityPropertiesWindow::draw()
     return;
 
   const auto& avail = ImGui::GetContentRegionAvail();
-  ImGui::BeginChild( "##properties", avail );
 
   auto pScene = kogayonon_core::SceneManager::getCurrentScene();
   if ( auto scene = pScene.lock() )
@@ -58,8 +56,6 @@ void EntityPropertiesWindow::draw()
       ImGui::Text( "No entity is currently selected" );
     }
   }
-
-  ImGui::EndChild();
   ImGui::End();
 }
 
@@ -72,8 +68,7 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
   {
     ImGui::Text( "%s", pNameComp->name.c_str() );
     // change the entity name
-    ImGui::TextUnformatted( "Change name" );
-    ImGui::SameLine();
+    ImGui::Text( "Change entity name" );
     if ( char buffer[50] = { 0 };
          ImGui::InputText( "##change_name", buffer, IM_ARRAYSIZE( buffer ), ImGuiInputTextFlags_EnterReturnsTrue ) )
     {
@@ -83,13 +78,22 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
   }
 
   // has textures?
-  ImGui_Utils::addPaddedGui( [this, &entity]() { drawTextureComponent( entity ); }, ImVec2{ 1.0f, 10.0f } );
+  if ( ImGui::CollapsingHeader( "Textures" ) )
+  {
+    ImGui_Utils::addPaddedGui( [this, &entity]() { drawTextureComponent( entity ); }, ImVec2{ 1.0f, 10.0f } );
+  }
 
   // has transform component?
-  ImGui_Utils::addPaddedGui( [this, &entity]() { drawTransformComponent( entity ); }, ImVec2{ 1.0f, 10.0f } );
+  if ( ImGui::CollapsingHeader( "Transform" ) )
+  {
+    ImGui_Utils::addPaddedGui( [this, &entity]() { drawTransformComponent( entity ); }, ImVec2{ 1.0f, 10.0f } );
+  }
 
   // has model component?
-  ImGui_Utils::addPaddedGui( [this, &entity]() { drawModelComponent( entity ); }, ImVec2{ 1.0f, 10.0f } );
+  if ( ImGui::CollapsingHeader( "Model" ) )
+  {
+    ImGui_Utils::addPaddedGui( [this, &entity]() { drawModelComponent( entity ); }, ImVec2{ 1.0f, 10.0f } );
+  }
 }
 
 void EntityPropertiesWindow::onEntitySelect( const kogayonon_core::SelectEntityEvent& e )
@@ -105,8 +109,6 @@ void EntityPropertiesWindow::drawTextureComponent( kogayonon_core::Entity& ent )
   const auto& pModelComponent = ent.tryGetComponent<kogayonon_core::ModelComponent>();
   if ( !pModelComponent )
     return;
-
-  ImGui::Text( "Textures" );
 
   auto& meshes = pModelComponent->pModel.lock()->getMeshes();
   if ( meshes.empty() )
@@ -210,7 +212,6 @@ void EntityPropertiesWindow::drawModelComponent( kogayonon_core::Entity& ent ) c
   if ( !pModelComponent )
     return;
 
-  ImGui::Text( "Model component" );
   auto model = pModelComponent->pModel.lock();
 
   if ( !model )
