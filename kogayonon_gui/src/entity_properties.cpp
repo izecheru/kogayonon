@@ -226,6 +226,18 @@ void EntityPropertiesWindow::drawModelComponent( kogayonon_core::Entity& ent ) c
 
   if ( !model )
     return;
+
+  ImGui::Text( "Model has %d meshes", model->getMeshes().size() );
+  ImGui::TextWrapped( "Path: %s", model->getPath().c_str() );
+
+  if ( ImGui::Button( "Remove model" ) )
+  {
+    auto scene = kogayonon_core::SceneManager::getCurrentScene().lock();
+    if ( !scene )
+      return;
+
+    scene->removeModelFromEntity( ent.getEnttEntity(), model );
+  }
 }
 
 void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload ) const
@@ -289,7 +301,6 @@ void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent
     if ( !scene )
       return;
 
-    transformComponent->dirty = true;
     transformComponent->updateMatrix();
 
     // we need the index of the instance

@@ -46,11 +46,19 @@ public:
   std::string getName() const;
   void changeName( const std::string& name );
 
+  /**
+   * @brief Removes instance data tied to the model component this entity has
+   * @param ent The entity Id
+   */
+  void removeInstanceData( entt::entity ent );
+
   void removeEntity( entt::entity ent );
   /**
    * @brief Adds a Default entity to the scene registry
    */
   void addEntity();
+
+  void addInstanceData( entt::entity entityId );
 
   /**
    * @brief Adds a model to an already existing entity in the scene registry
@@ -58,6 +66,13 @@ public:
    * @param pModel The model weak_ptr from the asset manager
    */
   void addModelToEntity( entt::entity entity, std::weak_ptr<kogayonon_resources::Model> pModel );
+
+  /**
+   * @brief Removes the ModelComponent from the entity and clears the related data in the instance data struct
+   * @param entity The entity we edit
+   * @param pModel The model weak_ptr from asset manager
+   */
+  void removeModelFromEntity( entt::entity entity, std::weak_ptr<kogayonon_resources::Model> pModel );
 
   /**
    * @brief Adds a model entity to the scene registry and instantiates all the needed instance data

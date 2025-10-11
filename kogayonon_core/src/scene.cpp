@@ -41,6 +41,82 @@ void Scene::removeEntity( entt::entity ent )
 {
   auto& registry = m_pRegistry->getRegistry();
 
+  // first remove instance data
+  removeInstanceData( ent );
+
+  // then destroy the entity
+  if ( registry.valid( ent ) )
+    registry.destroy( ent );
+
+  --m_entityCount;
+}
+
+void Scene::addEntity()
+{
+  Entity ent{ *m_pRegistry, "DefaultEntity" };
+  ++m_entityCount;
+}
+
+void Scene::addInstanceData( entt::entity entityId )
+{
+  Entity entity{ *m_pRegistry, entityId };
+
+  // now that we created the entity using the scene registry and added a model and transform components to it
+  // we must look for model pointer in the map to check for instances
+  if ( auto pModelComponent = entity.tryGetComponent<ModelComponent>();
+       m_instances.contains( pModelComponent->pModel.lock().get() ) )
+  {
+    auto pModel = pModelComponent->pModel;
+    if ( const auto& instanceData = m_instances.at( pModel.lock().get() ) )
+    {
+      // we increment the amount of models we need to render
+      ++instanceData->count;
+
+      // we create a new instance matrix
+      const auto& transform = entity.getComponent<TransformComponent>();
+      instanceData->instanceMatrices.push_back(
+        math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) );
+
+      // first we get the index of the instance matrix
+      uint32_t size = instanceData->instanceMatrices.size();
+      entity.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
+
+      instanceData->entityIds.push_back( static_cast<int>( entity.getEnttEntity() ) );
+
+      setupMultipleInstances( instanceData.get() );
+    }
+  }
+  else
+  {
+    auto pModel = pModelComponent->pModel;
+    const auto& transform = entity.getComponent<TransformComponent>();
+    auto instanceData = std::make_unique<InstanceData>( InstanceData{
+      .entityIdBuffer = 0,
+      .entityIds = { static_cast<int>( entity.getEnttEntity() ) },
+      .instanceBuffer = 0,
+      .instanceMatrices = { math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) },
+      .count = 1,
+      .pModel = pModel.lock().get() } );
+
+    // first we get the index of the instance matrix
+    uint32_t size = instanceData->instanceMatrices.size();
+    entity.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
+
+    setupMultipleInstances( instanceData.get() );
+    m_instances.try_emplace( pModel.lock().get(), std::move( instanceData ) );
+  }
+}
+
+void Scene::addModelToEntity( entt::entity entity, std::weak_ptr<kogayonon_resources::Model> pModel )
+{
+  Entity ent{ *m_pRegistry, entity };
+  ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
+  ent.addComponent<kogayonon_core::TransformComponent>();
+  addInstanceData( ent.getEnttEntity() );
+}
+
+void Scene::removeInstanceData( entt::entity ent )
+{
   // upon deletion we must remove that specific instance
   if ( Entity entity{ *m_pRegistry, ent }; entity.hasComponent<ModelComponent>() )
   {
@@ -77,60 +153,17 @@ void Scene::removeEntity( entt::entity ent )
       setupMultipleInstances( instance.get() );
     }
   }
-
-  if ( registry.valid( ent ) )
-    registry.destroy( ent );
-
-  --m_entityCount;
 }
 
-void Scene::addEntity()
-{
-  Entity ent{ *m_pRegistry, "DefaultEntity" };
-  ++m_entityCount;
-}
-
-void Scene::addModelToEntity( entt::entity entity, std::weak_ptr<kogayonon_resources::Model> pModel )
+void Scene::removeModelFromEntity( entt::entity entity, std::weak_ptr<kogayonon_resources::Model> pModel )
 {
   Entity ent{ *m_pRegistry, entity };
-  ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
-  ent.addComponent<kogayonon_core::TransformComponent>();
 
-  if ( m_instances.contains( pModel.lock().get() ) )
-  {
-    if ( const auto& instanceData = m_instances.at( pModel.lock().get() ) )
-    {
-      ++instanceData->count;
+  removeInstanceData( entity );
 
-      const auto& transform = ent.getComponent<TransformComponent>();
-      instanceData->instanceMatrices.push_back(
-        math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) );
-
-      uint32_t size = instanceData->instanceMatrices.size();
-      ent.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
-
-      instanceData->entityIds.push_back( static_cast<int>( ent.getEnttEntity() ) );
-
-      setupMultipleInstances( instanceData.get() );
-    }
-  }
-  else
-  {
-    const auto& transform = ent.getComponent<TransformComponent>();
-    auto instanceData = std::make_unique<InstanceData>( InstanceData{
-      .entityIdBuffer = 0,
-      .entityIds = { static_cast<int>( ent.getEnttEntity() ) },
-      .instanceBuffer = 0,
-      .instanceMatrices = { math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) },
-      .count = 1,
-      .pModel = pModel.lock().get() } );
-
-    uint32_t size = instanceData->instanceMatrices.size();
-    ent.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
-
-    setupMultipleInstances( instanceData.get() );
-    m_instances.try_emplace( pModel.lock().get(), std::move( instanceData ) );
-  }
+  ent.removeComponent<ModelComponent>();
+  ent.removeComponent<IndexComponent>();
+  ent.removeComponent<TransformComponent>();
 }
 
 void Scene::addEntity( std::weak_ptr<kogayonon_resources::Model> pModel )
@@ -138,49 +171,8 @@ void Scene::addEntity( std::weak_ptr<kogayonon_resources::Model> pModel )
   Entity ent{ *m_pRegistry, "ModelEntity" };
   ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
   ent.addComponent<kogayonon_core::TransformComponent>();
+  addInstanceData( ent.getEnttEntity() );
   ++m_entityCount;
-
-  // now that we created the entity using the scene registry and added a model and transform components to it
-  // we must look for model pointer in the map to check for instances
-  if ( m_instances.contains( pModel.lock().get() ) )
-  {
-    if ( const auto& instanceData = m_instances.at( pModel.lock().get() ) )
-    {
-      // we increment the amount of models we need to render
-      ++instanceData->count;
-
-      // we create a new instance matrix
-      const auto& transform = ent.getComponent<TransformComponent>();
-      instanceData->instanceMatrices.push_back(
-        math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) );
-
-      // first we get the index of the instance matrix
-      uint32_t size = instanceData->instanceMatrices.size();
-      ent.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
-
-      instanceData->entityIds.push_back( static_cast<int>( ent.getEnttEntity() ) );
-
-      setupMultipleInstances( instanceData.get() );
-    }
-  }
-  else
-  {
-    const auto& transform = ent.getComponent<TransformComponent>();
-    auto instanceData = std::make_unique<InstanceData>( InstanceData{
-      .entityIdBuffer = 0,
-      .entityIds = { static_cast<int>( ent.getEnttEntity() ) },
-      .instanceBuffer = 0,
-      .instanceMatrices = { math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) },
-      .count = 1,
-      .pModel = pModel.lock().get() } );
-
-    // first we get the index of the instance matrix
-    uint32_t size = instanceData->instanceMatrices.size();
-    ent.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
-
-    setupMultipleInstances( instanceData.get() );
-    m_instances.try_emplace( pModel.lock().get(), std::move( instanceData ) );
-  }
 }
 
 InstanceData* Scene::getData( kogayonon_resources::Model* pModel )

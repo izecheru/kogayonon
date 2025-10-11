@@ -238,7 +238,6 @@ void SceneViewportWindow::draw()
         transform->pos = pos;
         transform->rotation = rotation;
         transform->scale = scale;
-        transform->dirty = true;
         transform->updateMatrix();
 
         scene->setupMultipleInstances( instanceData );
