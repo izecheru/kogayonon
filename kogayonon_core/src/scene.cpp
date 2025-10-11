@@ -118,40 +118,52 @@ void Scene::addModelToEntity( entt::entity entity, std::weak_ptr<kogayonon_resou
 void Scene::removeInstanceData( entt::entity ent )
 {
   // upon deletion we must remove that specific instance
-  if ( Entity entity{ *m_pRegistry, ent }; entity.hasComponent<ModelComponent>() )
+  Entity entity{ *m_pRegistry, ent };
+
+  if ( !entity.hasComponent<ModelComponent>() )
+    return;
+
+  const auto& modelComponent = entity.getComponent<ModelComponent>();
+
+  // if we have instances
+  auto pModel = modelComponent.pModel.lock().get();
+
+  if ( !pModel )
+    return;
+
+  if ( m_instances.contains( pModel ) )
   {
-    const auto& modelComponent = entity.getComponent<ModelComponent>();
+    const auto& instance = m_instances.at( pModel );
 
-    // if we have instances
-    if ( auto pModel = modelComponent.pModel.lock().get(); m_instances.contains( pModel ) )
+    // decrease count
+    if ( instance->count == 0 )
     {
-      const auto& instance = m_instances.at( pModel );
-
-      // decrease count
-      --instance->count;
-
-      // get the index component and then erase that specific instance matrix
-      const auto& indexComponent = entity.getComponent<IndexComponent>();
-      auto toErase = indexComponent.index;
-      instance->instanceMatrices.erase( instance->instanceMatrices.begin() + toErase );
-      instance->entityIds.erase( instance->entityIds.begin() + toErase );
-
-      // now we need to update all the index components that are to the right of the deleted index
-      for ( const auto& [entity, indexComp] : m_pRegistry->getRegistry().view<IndexComponent>().each() )
-      {
-        Entity ent{ *m_pRegistry, entity };
-
-        // if the index from the iteration is >= to the index component we erased from the instances
-        if ( indexComp.index >= toErase )
-        {
-          // we subtract one since we deleted it above
-          --indexComp.index;
-        }
-      }
-
-      // finally set up instances again to update the instance buffer
-      setupMultipleInstances( instance.get() );
+      spdlog::warn( "count already 0" );
+      return;
     }
+    --instance->count;
+
+    // get the index component and then erase that specific instance matrix
+    const auto& indexComponent = entity.getComponent<IndexComponent>();
+    auto toErase = indexComponent.index;
+    instance->instanceMatrices.erase( instance->instanceMatrices.begin() + toErase );
+    instance->entityIds.erase( instance->entityIds.begin() + toErase );
+
+    // now we need to update all the index components that are to the right of the deleted index
+    for ( const auto& [entity, indexComp] : m_pRegistry->getRegistry().view<IndexComponent>().each() )
+    {
+      Entity ent{ *m_pRegistry, entity };
+
+      // if the index from the iteration is >= to the index component we erased from the instances
+      if ( indexComp.index > toErase )
+      {
+        // we subtract one since we deleted it above
+        --indexComp.index;
+      }
+    }
+
+    // finally set up instances again to update the instance buffer
+    setupMultipleInstances( instance.get() );
   }
 }
 
@@ -164,15 +176,6 @@ void Scene::removeModelFromEntity( entt::entity entity, std::weak_ptr<kogayonon_
   ent.removeComponent<ModelComponent>();
   ent.removeComponent<IndexComponent>();
   ent.removeComponent<TransformComponent>();
-}
-
-void Scene::addEntity( std::weak_ptr<kogayonon_resources::Model> pModel )
-{
-  Entity ent{ *m_pRegistry, "ModelEntity" };
-  ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
-  ent.addComponent<kogayonon_core::TransformComponent>();
-  addInstanceData( ent.getEnttEntity() );
-  ++m_entityCount;
 }
 
 InstanceData* Scene::getData( kogayonon_resources::Model* pModel )

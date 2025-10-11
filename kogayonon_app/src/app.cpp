@@ -311,7 +311,7 @@ bool App::initScenes() const
 {
   auto mainScene = std::make_shared<Scene>( "Default scene" );
   SceneManager::addScene( mainScene );
-  mainScene->addEntity( ASSET_MANAGER()->getModel( "default" ) );
+  mainScene->addEntity();
 
   // set the current scene
   SceneManager::setCurrentScene( "Default scene" );

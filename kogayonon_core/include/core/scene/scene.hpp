@@ -74,11 +74,6 @@ public:
    */
   void removeModelFromEntity( entt::entity entity, std::weak_ptr<kogayonon_resources::Model> pModel );
 
-  /**
-   * @brief Adds a model entity to the scene registry and instantiates all the needed instance data
-   * @param pModel Pointer to the freshly loaded model
-   */
-  void addEntity( std::weak_ptr<kogayonon_resources::Model> pModel );
   InstanceData* getData( kogayonon_resources::Model* pModel );
 
   /**
