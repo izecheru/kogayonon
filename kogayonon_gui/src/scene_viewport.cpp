@@ -253,58 +253,7 @@ void SceneViewportWindow::draw()
   // ImGui::InvisibleButton( "viewportDropZone", contentSize );
 
   //// here we accept drag and drop payload from the assets window
-  // if ( ImGui::BeginDragDropTarget() )
-  //{
-  //   // if we have a payload
-  //   const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "ASSET_DROP" );
-  //   manageAssetsPayload( payload );
-  //   ImGui::EndDragDropTarget();
-  // }
 
   end();
-}
-
-void SceneViewportWindow::manageAssetsPayload( const ImGuiPayload* payload ) const
-{
-  if ( !payload )
-  {
-    return;
-  }
-
-  const auto& pAssetManager = ASSET_MANAGER();
-  auto data = static_cast<const char*>( payload->Data );
-  std::string dropResult( data, payload->DataSize );
-  std::filesystem::path p{ dropResult };
-
-  auto scene = SceneManager::getCurrentScene();
-  auto pScene = scene.lock();
-
-  const auto& extension = p.extension().string();
-  if ( extension.find( ".gltf" ) != std::string::npos )
-  {
-    spdlog::info( "dropped a model file from {}, ext:{}", dropResult, p.extension().string() );
-    if ( !pScene )
-      return;
-
-    auto pModel = pAssetManager->addModel( p.filename().string(), p.string() );
-    pScene->addEntity( pModel );
-  }
-  else if ( extension.find( ".jpg" ) != std::string::npos || extension.find( ".png" ) != std::string::npos )
-  {
-    spdlog::info( "dropped a texture file from {}, ext:{}", dropResult, p.extension().string() );
-    if ( !pScene )
-      return;
-
-    // if no entity is selected we don't go further
-    if ( m_selectedEntity == entt::null )
-      return;
-
-    // we load the texture
-    pAssetManager->addTexture( p.filename().string(), p.string() );
-  }
-  else
-  {
-    spdlog::info( "format currently unsupported in viewport: {}", p.extension().string() );
-  }
 }
 } // namespace kogayonon_gui

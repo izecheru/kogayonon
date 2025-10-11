@@ -90,12 +90,53 @@ void Scene::addEntity()
   ++m_entityCount;
 }
 
-constexpr float scale = 10.0f;
+void Scene::addModelToEntity( entt::entity entity, std::weak_ptr<kogayonon_resources::Model> pModel )
+{
+  Entity ent{ *m_pRegistry, entity };
+  ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
+  ent.addComponent<kogayonon_core::TransformComponent>();
+
+  if ( m_instances.contains( pModel.lock().get() ) )
+  {
+    if ( const auto& instanceData = m_instances.at( pModel.lock().get() ) )
+    {
+      ++instanceData->count;
+
+      const auto& transform = ent.getComponent<TransformComponent>();
+      instanceData->instanceMatrices.push_back(
+        math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) );
+
+      uint32_t size = instanceData->instanceMatrices.size();
+      ent.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
+
+      instanceData->entityIds.push_back( static_cast<int>( ent.getEnttEntity() ) );
+
+      setupMultipleInstances( instanceData.get() );
+    }
+  }
+  else
+  {
+    const auto& transform = ent.getComponent<TransformComponent>();
+    auto instanceData = std::make_unique<InstanceData>( InstanceData{
+      .entityIdBuffer = 0,
+      .entityIds = { static_cast<int>( ent.getEnttEntity() ) },
+      .instanceBuffer = 0,
+      .instanceMatrices = { math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) },
+      .count = 1,
+      .pModel = pModel.lock().get() } );
+
+    uint32_t size = instanceData->instanceMatrices.size();
+    ent.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
+
+    setupMultipleInstances( instanceData.get() );
+    m_instances.try_emplace( pModel.lock().get(), std::move( instanceData ) );
+  }
+}
 
 void Scene::addEntity( std::weak_ptr<kogayonon_resources::Model> pModel )
 {
   Entity ent{ *m_pRegistry, "ModelEntity" };
-  ent.addComponent<kogayonon_core::ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
+  ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
   ent.addComponent<kogayonon_core::TransformComponent>();
   ++m_entityCount;
 

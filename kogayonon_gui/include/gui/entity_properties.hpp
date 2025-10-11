@@ -38,7 +38,8 @@ private:
   void drawModelComponent( kogayonon_core::Entity& ent ) const;
   void drawTransformComponent( kogayonon_core::Entity& ent ) const;
 
-  void manageAssetPayload( const ImGuiPayload* payload ) const;
+  void manageModelPayload( const ImGuiPayload* payload ) const;
+  void manageTexturePayload( const ImGuiPayload* payload ) const;
 
 private:
   entt::entity m_entity;

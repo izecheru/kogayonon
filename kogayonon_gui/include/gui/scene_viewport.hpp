@@ -69,10 +69,14 @@ private:
   unsigned int m_playTextureId;
   unsigned int m_stopTextureId;
   SDL_Window* m_mainWindow;
+
+  // drawing framebuffer
   kogayonon_rendering::OpenGLFramebuffer m_frameBuffer;
+  // picking framebuffer
   kogayonon_rendering::OpenGLFramebuffer m_pickingFrameBuffer;
 
   std::unique_ptr<kogayonon_core::RenderingSystem> m_pRenderingSystem;
+  // perspective camera, should make it an entity and add it to registry
   std::unique_ptr<kogayonon_rendering::Camera> m_pCamera;
   GizmoMode m_gizmoMode;
 };

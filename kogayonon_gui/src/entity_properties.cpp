@@ -67,6 +67,7 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
   if ( auto pNameComp = entity.tryGetComponent<kogayonon_core::NameComponent>() )
   {
     ImGui::Text( "%s", pNameComp->name.c_str() );
+
     // change the entity name
     ImGui::Text( "Change entity name" );
     if ( char buffer[50] = { 0 };
@@ -117,7 +118,7 @@ void EntityPropertiesWindow::drawTextureComponent( kogayonon_core::Entity& ent )
   ImGui::BeginGroup();
   if ( ImGui::BeginDragDropTarget() )
   {
-    manageAssetPayload( ImGui::AcceptDragDropPayload( "ASSET_DROP" ) );
+    manageTexturePayload( ImGui::AcceptDragDropPayload( "ASSET_DROP" ) );
     ImGui::EndDragDropTarget();
   }
 
@@ -150,7 +151,7 @@ void EntityPropertiesWindow::drawTextureComponent( kogayonon_core::Entity& ent )
   ImGui::EndGroup();
 }
 
-void EntityPropertiesWindow::manageAssetPayload( const ImGuiPayload* payload ) const
+void EntityPropertiesWindow::manageTexturePayload( const ImGuiPayload* payload ) const
 {
   if ( !payload )
     return;
@@ -210,14 +211,52 @@ void EntityPropertiesWindow::drawModelComponent( kogayonon_core::Entity& ent ) c
 {
   auto pModelComponent = ent.tryGetComponent<kogayonon_core::ModelComponent>();
   if ( !pModelComponent )
+  {
+    if ( ImGui::BeginDragDropTarget() )
+    {
+      // if we have a payload
+      const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "ASSET_DROP" );
+      manageModelPayload( payload );
+      ImGui::EndDragDropTarget();
+    }
     return;
+  }
 
   auto model = pModelComponent->pModel.lock();
 
   if ( !model )
     return;
+}
 
-  ImGui::Text( "Model has %d meshes", model->getMeshes().size() );
+void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload ) const
+{
+  if ( !payload )
+  {
+    return;
+  }
+
+  const auto& pAssetManager = ASSET_MANAGER();
+  auto data = static_cast<const char*>( payload->Data );
+  std::string dropResult( data, payload->DataSize );
+  std::filesystem::path p{ dropResult };
+
+  auto scene = kogayonon_core::SceneManager::getCurrentScene();
+  auto pScene = scene.lock();
+
+  const auto& extension = p.extension().string();
+  if ( extension.find( ".gltf" ) != std::string::npos )
+  {
+    spdlog::info( "loaded {}", dropResult, p.extension().string() );
+    if ( !pScene )
+      return;
+
+    auto model = ASSET_MANAGER()->addModel( p.filename().string(), p.string() );
+    scene.lock()->addModelToEntity( m_entity, model );
+  }
+  else
+  {
+    spdlog::info( "format currently unsupported in viewport: {}", p.extension().string() );
+  }
 }
 
 void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent ) const

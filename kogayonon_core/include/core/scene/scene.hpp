@@ -53,7 +53,14 @@ public:
   void addEntity();
 
   /**
-   * @brief Adds a model entity to the scene registry
+   * @brief Adds a model to an already existing entity in the scene registry
+   * @param entity The entity id
+   * @param pModel The model weak_ptr from the asset manager
+   */
+  void addModelToEntity( entt::entity entity, std::weak_ptr<kogayonon_resources::Model> pModel );
+
+  /**
+   * @brief Adds a model entity to the scene registry and instantiates all the needed instance data
    * @param pModel Pointer to the freshly loaded model
    */
   void addEntity( std::weak_ptr<kogayonon_resources::Model> pModel );

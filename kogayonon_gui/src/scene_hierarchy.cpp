@@ -48,14 +48,10 @@ void SceneHierarchyWindow::draw()
 {
   ImGui_Utils::ScopedPadding padd{ ImVec2{ 10.0f, 10.0f } };
 
-  if ( !ImGui::Begin( m_props->name.c_str(), nullptr, m_props->flags ) )
-  {
-    ImGui::End();
+  if ( !begin() )
     return;
-  }
 
-  m_props->hovered = ImGui::IsWindowHovered();
-  m_props->focused = ImGui::IsWindowFocused();
+  initProps();
 
   auto scene = SceneManager::getCurrentScene().lock();
 
@@ -119,6 +115,7 @@ void SceneHierarchyWindow::drawContextMenu()
     {
       if ( auto scene = SceneManager::getCurrentScene().lock() )
       {
+        // no component entity
         scene->addEntity();
       }
     }
@@ -130,7 +127,7 @@ void SceneHierarchyWindow::drawContextMenu()
   }
 }
 
-void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity& ent ) const
+void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity& ent )
 {
   if ( ImGui::BeginPopupContextItem( itemId.c_str() ) )
   {
@@ -140,8 +137,9 @@ void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity
       if ( auto scene = pScene.lock() )
       {
         scene->removeEntity( ent.getEnttEntity() );
+        m_selectedEntity = entt::null;
+        EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{} );
       }
-      EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{} );
     }
     ImGui::EndPopup();
   }
