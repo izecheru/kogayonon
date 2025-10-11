@@ -28,6 +28,19 @@ using namespace kogayonon_rendering;
 
 namespace kogayonon_gui
 {
+static ImGuizmo::OPERATION gizmoModeToImGuizmo( GizmoMode mode )
+{
+  switch ( mode )
+  {
+  case GizmoMode::SCALE:
+    return ImGuizmo::SCALE;
+  case GizmoMode::ROTATE:
+    return ImGuizmo::ROTATE;
+  case GizmoMode::TRANSLATE:
+    return ImGuizmo::TRANSLATE;
+  }
+}
+
 SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string name, unsigned int playTextureId,
                                           unsigned int stopTextureId )
     : ImGuiWindow{ name }
@@ -54,7 +67,7 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
 
 void SceneViewportWindow::onMouseScrolled( const MouseScrolledEvent& e )
 {
-  if ( !m_props || !m_props->hovered )
+  if ( !m_props->hovered )
     return;
 
   auto yOffset = static_cast<float>( e.getYOff() );
@@ -63,6 +76,9 @@ void SceneViewportWindow::onMouseScrolled( const MouseScrolledEvent& e )
 
 void SceneViewportWindow::onSelectedEntity( const SelectEntityEvent& e )
 {
+  if ( m_selectedEntity == e.getEntity() )
+    return;
+
   m_selectedEntity = e.getEntity();
 }
 
@@ -211,24 +227,9 @@ void SceneViewportWindow::draw()
       auto& instanceMatrix = instanceData->instanceMatrices.at( indexComponet->index );
       ImGuizmo::Enable( ( m_props->hovered && m_props->focused ) || ImGuizmo::IsUsingAny() );
 
-      switch ( m_gizmoMode )
-      {
-      case GizmoMode::SCALE:
-        ImGuizmo::Manipulate( glm::value_ptr( m_pCamera->getViewMatrix() ),
-                              glm::value_ptr( m_pCamera->getProjectionMatrix( { contentSize.x, contentSize.y } ) ),
-                              ImGuizmo::SCALE, ImGuizmo::LOCAL, glm::value_ptr( instanceMatrix ) );
-        break;
-      case GizmoMode::TRANSLATE:
-        ImGuizmo::Manipulate( glm::value_ptr( m_pCamera->getViewMatrix() ),
-                              glm::value_ptr( m_pCamera->getProjectionMatrix( { contentSize.x, contentSize.y } ) ),
-                              ImGuizmo::TRANSLATE, ImGuizmo::LOCAL, glm::value_ptr( instanceMatrix ) );
-        break;
-      case GizmoMode::ROTATE:
-        ImGuizmo::Manipulate( glm::value_ptr( m_pCamera->getViewMatrix() ),
-                              glm::value_ptr( m_pCamera->getProjectionMatrix( { contentSize.x, contentSize.y } ) ),
-                              ImGuizmo::ROTATE, ImGuizmo::LOCAL, glm::value_ptr( instanceMatrix ) );
-        break;
-      }
+      ImGuizmo::Manipulate( glm::value_ptr( m_pCamera->getViewMatrix() ),
+                            glm::value_ptr( m_pCamera->getProjectionMatrix( { contentSize.x, contentSize.y } ) ),
+                            gizmoModeToImGuizmo( m_gizmoMode ), ImGuizmo::WORLD, glm::value_ptr( instanceMatrix ) );
 
       if ( ImGuizmo::IsUsing() )
       {
@@ -241,8 +242,7 @@ void SceneViewportWindow::draw()
         transform->dirty = true;
         transform->updateMatrix();
 
-        if ( instanceData->count >= 1 )
-          scene->setupMultipleInstances( instanceData );
+        scene->setupMultipleInstances( instanceData );
       }
     }
   }
