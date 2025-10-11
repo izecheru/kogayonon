@@ -43,6 +43,9 @@ void EntityPropertiesWindow::draw()
   if ( !begin() )
     return;
 
+  const auto& avail = ImGui::GetContentRegionAvail();
+  ImGui::BeginChild( "##properties", avail );
+
   auto pScene = kogayonon_core::SceneManager::getCurrentScene();
   if ( auto scene = pScene.lock() )
   {
@@ -56,6 +59,7 @@ void EntityPropertiesWindow::draw()
     }
   }
 
+  ImGui::EndChild();
   ImGui::End();
 }
 

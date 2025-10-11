@@ -149,7 +149,6 @@ void SceneViewportWindow::drawPickingScene()
   m_pickingFrameBuffer.clearColorAttachment( 0, -1 );
   m_pRenderingSystem->render( SceneManager::getCurrentScene().lock(), m_pCamera->getViewMatrix(), proj, shader );
   int result = m_pickingFrameBuffer.readPixel( 0, static_cast<int>( mx ), static_cast<int>( my ) );
-  spdlog::info( "readPixel = {}", result );
   m_pickingFrameBuffer.unbind();
 
   if ( const auto& scene = SceneManager::getCurrentScene().lock() )

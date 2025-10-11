@@ -122,6 +122,15 @@ void FileExplorerWindow::draw()
   if ( !begin() )
     return;
 
+  static float padding = 20.0f;
+  static float thumbnailSize = 80.0f;
+  float cellSize = thumbnailSize + padding;
+  float width = ImGui::GetContentRegionAvail().x;
+  int count = width / cellSize;
+
+  if ( count < 1 )
+    count = 1;
+
   static std::filesystem::path lastPath{ "" };
   drawPathToolbar();
 
@@ -133,16 +142,16 @@ void FileExplorerWindow::draw()
     m_update.store( false );
   }
 
-  // we only want 10 files per line
-  int count = 0;
+  ImGui::Columns( count, 0, false );
   for ( const auto& file : m_files )
   {
-    ++count;
     if ( file.isDir )
     {
       auto filename = file.path.filename();
       ImGui::BeginGroup();
-      if ( ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_folderTextureId, ImVec2{ 100.0f, 100.0f } ) )
+      ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_folderTextureId, ImVec2{ 100.0f, 100.0f } );
+      // navigate into folder like you do in windows explorer
+      if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) )
       {
         m_currentPath = file.path;
       }
@@ -160,15 +169,10 @@ void FileExplorerWindow::draw()
         ImGui::SetDragDropPayload( "ASSET_DROP", path.c_str(), path.size() + 1 );
         ImGui::EndDragDropSource();
       }
-      ImGui::Text( "%s", ImGui_Utils::truncateText( filename.string(), 100.0f ).c_str() );
+      ImGui::TextWrapped( "%s", filename.string().c_str() );
       ImGui::EndGroup();
     }
-
-    if ( count != 10 )
-      ImGui::SameLine();
-
-    if ( count == 10 )
-      count = 0;
+    ImGui::NextColumn();
   }
 
   ImGui::End();
