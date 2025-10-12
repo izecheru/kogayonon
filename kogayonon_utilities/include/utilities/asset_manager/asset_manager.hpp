@@ -20,7 +20,12 @@ public:
   AssetManager();
   ~AssetManager();
 
-  // Textures
+  /**
+   * @brief Loads a texture from /resources/textures/<textureName>, texture name must hold the extension too
+   * @param textureName The name and extension of the texture eg. "default.png"
+   * @return A weak_ptr to that loaded texture
+   */
+  std::weak_ptr<kogayonon_resources::Texture> addTexture( const std::string& textureName );
   std::weak_ptr<kogayonon_resources::Texture> addTexture( const std::string& textureName,
                                                           const std::string& texturePath );
   std::weak_ptr<kogayonon_resources::Texture> addTextureWithoutParams( const std::string& textureName,

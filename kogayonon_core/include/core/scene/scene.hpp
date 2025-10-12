@@ -20,7 +20,7 @@ struct InstanceData
   uint32_t entityIdBuffer{ 0 };
 
   // entity ids vector
-  std::vector<int> entityIds;
+  std::vector<int> entityIds{};
 
   // the buffer in which we upload the instance matrices
   uint32_t instanceBuffer{ 0 };
@@ -29,7 +29,7 @@ struct InstanceData
   std::vector<glm::mat4> instanceMatrices{};
 
   // the amount of instances that will be drawn for a specific model using glDrawElementsInstanced
-  int count = 1;
+  int count{ 1 };
 
   // pointer to the model, we use this as a key in unordered_map<Model*,unique_ptr<InstanceData>>
   kogayonon_resources::Model* pModel{ nullptr };
@@ -52,12 +52,21 @@ public:
    */
   void removeInstanceData( entt::entity ent );
 
+  /**
+   * @brief Completely removes an entity from the registry
+   * @param ent Entity id
+   */
   void removeEntity( entt::entity ent );
+
   /**
    * @brief Adds a Default entity to the scene registry
    */
   void addEntity();
 
+  /**
+   * @brief Initializes InstanceData for a specific entity
+   * @param entityId Entity's id for which we setup the instance
+   */
   void addInstanceData( entt::entity entityId );
 
   /**
@@ -74,6 +83,11 @@ public:
    */
   void removeModelFromEntity( entt::entity entity, std::weak_ptr<kogayonon_resources::Model> pModel );
 
+  /**
+   * @brief Get instance data for a specified model since Model* is a key used in the instance map
+   * @param pModel The model weak_ptr
+   * @return Returns an InstanceData* to the instance data linked to the model
+   */
   InstanceData* getData( kogayonon_resources::Model* pModel );
 
   /**
@@ -81,7 +95,6 @@ public:
    * @param data Pointer to the data that we are about to upload
    */
   void setupMultipleInstances( InstanceData* data );
-  void setupInstance( InstanceData* data );
 
   inline uint32_t getEntityCount() const
   {

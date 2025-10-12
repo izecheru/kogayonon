@@ -268,12 +268,13 @@ bool App::initRegistries() const
   auto assetManager = std::make_shared<kogayonon_utilities::AssetManager>();
   assert( assetManager && "could not initialise asset manager" );
 
-  assetManager->addTexture( "slayerSword", "resources/textures/slayer_sword.png" );
-  assetManager->addTexture( "play", "resources/textures/play.png" );
-  assetManager->addTexture( "stop", "resources/textures/stop.png" );
-  assetManager->addTexture( "file", "resources/textures/file.png" );
-  assetManager->addTexture( "folder", "resources/textures/folder.png" );
-  assetManager->addTexture( "default", "resources/textures/default.png" );
+  assetManager->addTexture( "play.png" );
+  assetManager->addTexture( "stop.png" );
+  assetManager->addTexture( "file.png" );
+  assetManager->addTexture( "folder.png" );
+  assetManager->addTexture( "default.png" );
+  assetManager->addTexture( "3d-cube.png" );
+
   assetManager->addModel( "default", "resources/models/Cube.gltf" );
 
   mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::AssetManager>>( std::move( assetManager ) );
@@ -286,10 +287,10 @@ bool App::initGui()
   const auto& pAssetManager = ASSET_MANAGER();
 
   // textures for imgui buttons or windows and what not
-  auto playTexture = pAssetManager->getTexture( "play" ).lock()->getTextureId();
-  auto stopTexture = pAssetManager->getTexture( "stop" ).lock()->getTextureId();
-  auto fileTexture = pAssetManager->getTexture( "file" ).lock()->getTextureId();
-  auto folderTexture = pAssetManager->getTexture( "folder" ).lock()->getTextureId();
+  auto playTexture = pAssetManager->getTexture( "play.png" ).lock()->getTextureId();
+  auto stopTexture = pAssetManager->getTexture( "stop.png" ).lock()->getTextureId();
+  auto fileTexture = pAssetManager->getTexture( "file.png" ).lock()->getTextureId();
+  auto folderTexture = pAssetManager->getTexture( "folder.png" ).lock()->getTextureId();
 
   auto sceneViewport =
     std::make_unique<kogayonon_gui::SceneViewportWindow>( m_pWindow->getWindow(), "Scene", playTexture, stopTexture );

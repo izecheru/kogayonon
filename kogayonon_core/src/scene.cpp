@@ -74,15 +74,21 @@ void Scene::addInstanceData( entt::entity entityId )
 
       // we create a new instance matrix
       const auto& transform = entity.getComponent<TransformComponent>();
+
+      // insert in the vector
       instanceData->instanceMatrices.push_back(
         math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) );
 
-      // first we get the index of the instance matrix
+      // get the index of the instance matrix
       uint32_t size = instanceData->instanceMatrices.size();
-      entity.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
 
+      // add the index component and assing the index to size-1 (last added element)
+      entity.addComponent<IndexComponent>( IndexComponent{ .index = size - 1 } );
+
+      // insert the entityId
       instanceData->entityIds.push_back( static_cast<int>( entity.getEnttEntity() ) );
 
+      // setup the OpenGL buffers for instancing
       setupMultipleInstances( instanceData.get() );
     }
   }
@@ -111,7 +117,7 @@ void Scene::addModelToEntity( entt::entity entity, std::weak_ptr<kogayonon_resou
 {
   Entity ent{ *m_pRegistry, entity };
   ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
-  ent.addComponent<kogayonon_core::TransformComponent>();
+  ent.addComponent<TransformComponent>();
   addInstanceData( ent.getEnttEntity() );
 }
 
@@ -135,18 +141,15 @@ void Scene::removeInstanceData( entt::entity ent )
   {
     const auto& instance = m_instances.at( pModel );
 
-    // decrease count
-    if ( instance->count == 0 )
-    {
-      spdlog::warn( "count already 0" );
-      return;
-    }
     --instance->count;
 
-    // get the index component and then erase that specific instance matrix
     const auto& indexComponent = entity.getComponent<IndexComponent>();
+
+    // get the index component and then erase that specific instance matrix
     auto toErase = indexComponent.index;
     instance->instanceMatrices.erase( instance->instanceMatrices.begin() + toErase );
+
+    // erase the entityId too
     instance->entityIds.erase( instance->entityIds.begin() + toErase );
 
     // now we need to update all the index components that are to the right of the deleted index
@@ -154,15 +157,12 @@ void Scene::removeInstanceData( entt::entity ent )
     {
       Entity ent{ *m_pRegistry, entity };
 
-      // if the index from the iteration is >= to the index component we erased from the instances
+      // if the index from the iteration is > to the index component we erased from the instances
       if ( indexComp.index > toErase )
-      {
-        // we subtract one since we deleted it above
         --indexComp.index;
-      }
     }
 
-    // finally set up instances again to update the instance buffer
+    // finally set up instances again to update the instance buffer and entityIds buffer
     setupMultipleInstances( instance.get() );
   }
 }
@@ -235,17 +235,13 @@ void Scene::setupMultipleInstances( InstanceData* data )
   }
   else
   {
-    // Resize existing buffer (optional, only if m_amount changed)
+    // Resize existing buffer (optional, only if count changed)
     glNamedBufferData( data->instanceBuffer, sizeof( glm::mat4 ) * data->count, nullptr, GL_DYNAMIC_DRAW );
     glNamedBufferData( data->entityIdBuffer, sizeof( int ) * data->count, nullptr, GL_DYNAMIC_DRAW );
 
-    // Upload new data
+    // upload new data
     glNamedBufferSubData( data->instanceBuffer, 0, sizeof( glm::mat4 ) * data->count, data->instanceMatrices.data() );
     glNamedBufferSubData( data->entityIdBuffer, 0, sizeof( int ) * data->count, data->entityIds.data() );
   }
-}
-
-void Scene::setupInstance( InstanceData* data )
-{
 }
 } // namespace kogayonon_core

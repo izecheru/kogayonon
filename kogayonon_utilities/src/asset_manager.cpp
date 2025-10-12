@@ -57,6 +57,11 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureWithoutParam
   return m_loadedTextures.at( textureName );
 }
 
+std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std::string& textureName )
+{
+  return addTexture( textureName, "resources/textures/" + textureName );
+}
+
 std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std::string& textureName,
                                                                       const std::string& texturePath )
 {

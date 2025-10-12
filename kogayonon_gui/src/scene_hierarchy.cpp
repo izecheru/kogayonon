@@ -12,6 +12,7 @@
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "imgui_utils/imgui_utils.h"
+#include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/task_manager/task_manager.hpp"
 
 using namespace kogayonon_core;
@@ -51,6 +52,8 @@ void SceneHierarchyWindow::draw()
   if ( !begin() )
     return;
 
+  static auto cubeIcon = ASSET_MANAGER()->getTexture( "3d-cube.png" );
+
   initProps();
 
   auto scene = SceneManager::getCurrentScene().lock();
@@ -61,6 +64,8 @@ void SceneHierarchyWindow::draw()
     ImGui::End();
     return;
   }
+
+  ImGui::Text( "Entity number:%d", scene->getEntityCount() );
 
   auto& enttRegistry = scene->getEnttRegistry();
   auto view = enttRegistry.view<NameComponent>();
@@ -90,12 +95,43 @@ void SceneHierarchyWindow::draw()
       auto& entity = entities.at( i );
       const auto& nameComp = entity.getComponent<NameComponent>();
 
-      std::string label = std::format( "{}{}{}", nameComp.name, "##", std::to_string( i ) );
-      if ( ImGui::Selectable( label.c_str(), m_selectedEntity == entity.getEnttEntity() ) )
+      std::string label = std::format( "##{}{}_id", nameComp.name, std::to_string( i ) );
+
+      ImGui::BeginGroup();
+      if ( ImGui::Selectable( label.c_str(), m_selectedEntity == entity.getEnttEntity(),
+                              ImGuiSelectableFlags_AllowOverlap ) )
       {
         m_selectedEntity = entity.getEnttEntity();
         pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
       }
+
+      label = std::format( "{}", nameComp.name );
+      auto labelSize = ImGui::CalcTextSize( label.c_str() );
+
+      // get the bounds
+      ImVec2 selectablePosMin = ImGui::GetItemRectMin();
+      ImVec2 selectablePosMax = ImGui::GetItemRectMax();
+
+      // calculate the height of the selectable
+      float selectableHeight = std::max( 15.0f, labelSize.y ) + ImGui::GetStyle().FramePadding.y * 2.0f;
+
+      // set the cursor position so that it also takes into account the padding and center it vertically
+      ImGui::SetCursorScreenPos( ImVec2( selectablePosMin.x + ImGui::GetStyle().FramePadding.x,
+                                         selectablePosMin.y + ( selectableHeight - 15.0f ) * 0.5f ) );
+
+      // draw the icon
+      ImGui::Image( cubeIcon.lock()->getTextureId(), ImVec2{ 15.0f, 15.0f } );
+
+      // prepare the position for text drawing
+      ImGui::SetCursorScreenPos(
+        ImVec2( selectablePosMin.x + ImGui::GetStyle().FramePadding.x + 15.0f + 10.0f,
+                selectablePosMin.y + ( selectableHeight - labelSize.y ) * 0.5f // Vertically centered
+                ) );
+
+      // draw the text without ##id
+      ImGui::Text( label.c_str() );
+
+      ImGui::EndGroup();
       drawItemContexMenu( label, entity );
     }
     drawContextMenu();
