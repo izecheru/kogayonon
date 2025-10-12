@@ -95,18 +95,27 @@ void SceneHierarchyWindow::draw()
       auto& entity = entities.at( i );
       const auto& nameComp = entity.getComponent<NameComponent>();
 
-      std::string label = std::format( "##{}{}_id", nameComp.name, std::to_string( i ) );
+      std::string selectableId = std::format( "##{}{}", nameComp.name, i );
 
       ImGui::BeginGroup();
-      if ( ImGui::Selectable( label.c_str(), m_selectedEntity == entity.getEnttEntity(),
+      bool selected = m_selectedEntity == entity.getEnttEntity();
+
+      // Make selected color equal to hover
+      auto hoverColor = ImGui::GetStyle().Colors[ImGuiCol_HeaderHovered];
+      auto normalColor = ImGui::GetStyle().Colors[ImGuiCol_Header];
+
+      ImGui::PushStyleColor( ImGuiCol_Header, selected ? hoverColor : normalColor );
+
+      if ( ImGui::Selectable( selectableId.c_str(), m_selectedEntity == entity.getEnttEntity(),
                               ImGuiSelectableFlags_AllowOverlap ) )
       {
         m_selectedEntity = entity.getEnttEntity();
         pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
       }
+      ImGui::PopStyleColor();
 
-      label = std::format( "{}", nameComp.name );
-      auto labelSize = ImGui::CalcTextSize( label.c_str() );
+      selectableId = std::format( "{}", nameComp.name );
+      auto labelSize = ImGui::CalcTextSize( selectableId.c_str() );
 
       // get the bounds
       ImVec2 selectablePosMin = ImGui::GetItemRectMin();
@@ -116,23 +125,23 @@ void SceneHierarchyWindow::draw()
       float selectableHeight = std::max( 15.0f, labelSize.y ) + ImGui::GetStyle().FramePadding.y * 2.0f;
 
       // set the cursor position so that it also takes into account the padding and center it vertically
-      ImGui::SetCursorScreenPos( ImVec2( selectablePosMin.x + ImGui::GetStyle().FramePadding.x,
-                                         selectablePosMin.y + ( selectableHeight - 15.0f ) * 0.5f ) );
+      ImGui::SetCursorScreenPos( ImVec2{ selectablePosMin.x + ImGui::GetStyle().FramePadding.x,
+                                         selectablePosMin.y + ( selectableHeight - 15.0f ) * 0.5f } );
 
       // draw the icon
       ImGui::Image( cubeIcon.lock()->getTextureId(), ImVec2{ 15.0f, 15.0f } );
 
       // prepare the position for text drawing
-      ImGui::SetCursorScreenPos(
-        ImVec2( selectablePosMin.x + ImGui::GetStyle().FramePadding.x + 15.0f + 10.0f,
-                selectablePosMin.y + ( selectableHeight - labelSize.y ) * 0.5f // Vertically centered
-                ) );
+      ImGui::SetCursorScreenPos( ImVec2{
+        selectablePosMin.x + ImGui::GetStyle().FramePadding.x + 15.0f + 10.0f,
+        selectablePosMin.y + ( selectableHeight - labelSize.y ) * 0.5f // Vertically centered
+      } );
 
       // draw the text without ##id
-      ImGui::Text( label.c_str() );
+      ImGui::Text( nameComp.name.c_str() );
 
       ImGui::EndGroup();
-      drawItemContexMenu( label, entity );
+      drawItemContexMenu( selectableId, entity );
     }
     drawContextMenu();
     ImGui::EndListBox();
