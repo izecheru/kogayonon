@@ -99,6 +99,18 @@ void FileExplorerWindow::onFileRenamed( FileRenamedEvent& e )
   m_update.store( true );
 }
 
+void FileExplorerWindow::drawFileFilter()
+{
+  // TODO this should probably be written into some config file
+  static auto filters = { ".bin", "fonts" };
+  for ( const auto& filter : filters )
+  {
+    if ( ImGui::MenuItem( filter ) )
+    {
+    }
+  }
+}
+
 void FileExplorerWindow::buildFileVector()
 {
   m_files.clear();
@@ -136,7 +148,7 @@ void FileExplorerWindow::draw()
     count = 1;
 
   static std::filesystem::path lastPath{ "" };
-  drawPathToolbar();
+  drawToolbar();
 
   // we build the vector of files only when we change the path or get a file event
   if ( m_update == true || m_currentPath != lastPath )
@@ -182,7 +194,7 @@ void FileExplorerWindow::draw()
   ImGui::End();
 }
 
-void FileExplorerWindow::drawPathToolbar()
+void FileExplorerWindow::drawToolbar()
 {
   ImGui::BeginGroup();
   ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0, 0, 0, 0 ) );
@@ -209,6 +221,13 @@ void FileExplorerWindow::drawPathToolbar()
 
   ImGui::PopStyleVar( 1 );
   ImGui::PopStyleColor( 1 );
+
+  ImGui::SameLine();
+  if ( ImGui::BeginCombo( "##filter_combo", "File filter" ) )
+  {
+    drawFileFilter();
+    ImGui::EndCombo();
+  }
 
   ImGui::EndGroup();
 }

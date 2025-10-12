@@ -34,7 +34,7 @@ private:
   /**
    * @brief Draw the path, relative from resources folder, we can navigate back to "root" using it
    */
-  void drawPathToolbar();
+  void drawToolbar();
 
   /**
    * @brief Sets a set of callbacks for the DirectoryWatcher to call on a file event
@@ -47,6 +47,12 @@ private:
   void installHandlers();
 
   bool isTexture( const std::string& path );
+
+  void drawFileFilter();
+
+  /**
+   * @brief Builds a vector of File_ instances for the current directory
+   */
   void buildFileVector();
 
   struct File_
