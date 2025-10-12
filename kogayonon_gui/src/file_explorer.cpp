@@ -7,6 +7,8 @@
 #include "imgui_utils/imgui_utils.h"
 #include "utilities/directory_watcher/directory_watcher.hpp"
 
+using namespace kogayonon_core;
+
 namespace kogayonon_gui
 {
 kogayonon_gui::FileExplorerWindow::FileExplorerWindow( std::string name, uint32_t folderTextureId,
@@ -17,7 +19,7 @@ kogayonon_gui::FileExplorerWindow::FileExplorerWindow( std::string name, uint32_
     , m_fileTextureId{ fileTextureId }
     , m_currentPath{ std::filesystem::current_path() / "resources" }
     , m_pDirWatcher{ std::make_unique<kogayonon_utilities::DirectoryWatcher>( "resources\\" ) }
-    , m_pDispatcher{ std::make_unique<kogayonon_core::EventDispatcher>() }
+    , m_pDispatcher{ std::make_unique<EventDispatcher>() }
 {
   // installs the event listeners for file event types
   installHandlers();
@@ -29,32 +31,32 @@ kogayonon_gui::FileExplorerWindow::FileExplorerWindow( std::string name, uint32_
 
 void FileExplorerWindow::installHandlers()
 {
-  m_pDispatcher->addHandler<kogayonon_core::FileCreatedEvent, &FileExplorerWindow::onFileCreated>( *this );
-  m_pDispatcher->addHandler<kogayonon_core::FileRenamedEvent, &FileExplorerWindow::onFileRenamed>( *this );
-  m_pDispatcher->addHandler<kogayonon_core::FileDeletedEvent, &FileExplorerWindow::onFileDeleted>( *this );
-  m_pDispatcher->addHandler<kogayonon_core::FileModifiedEvent, &FileExplorerWindow::onFileModified>( *this );
+  m_pDispatcher->addHandler<FileCreatedEvent, &FileExplorerWindow::onFileCreated>( *this );
+  m_pDispatcher->addHandler<FileRenamedEvent, &FileExplorerWindow::onFileRenamed>( *this );
+  m_pDispatcher->addHandler<FileDeletedEvent, &FileExplorerWindow::onFileDeleted>( *this );
+  m_pDispatcher->addHandler<FileModifiedEvent, &FileExplorerWindow::onFileModified>( *this );
 }
 
 void FileExplorerWindow::installCommands()
 {
   m_pDirWatcher->setCommand( "fileCreated", [this]( const std::string& path, const std::string& name ) {
-    kogayonon_core::FileCreatedEvent e( path, name );
-    m_pDispatcher->emitEvent<kogayonon_core::FileCreatedEvent>( e );
+    FileCreatedEvent e( path, name );
+    m_pDispatcher->emitEvent<FileCreatedEvent>( e );
   } );
 
   m_pDirWatcher->setCommand( "fileDeleted", [this]( const std::string& path, const std::string& name ) {
-    kogayonon_core::FileDeletedEvent e( path, name );
-    m_pDispatcher->emitEvent<kogayonon_core::FileDeletedEvent>( e );
+    FileDeletedEvent e( path, name );
+    m_pDispatcher->emitEvent<FileDeletedEvent>( e );
   } );
 
   m_pDirWatcher->setCommand( "fileRenamedNew", [this]( const std::string& path, const std::string& newName ) {
-    kogayonon_core::FileRenamedEvent e( path, "", newName );
-    m_pDispatcher->emitEvent<kogayonon_core::FileRenamedEvent>( e );
+    FileRenamedEvent e( path, "", newName );
+    m_pDispatcher->emitEvent<FileRenamedEvent>( e );
   } );
 
   m_pDirWatcher->setCommand( "fileModified", [this]( const std::string& path, const std::string& name ) {
-    kogayonon_core::FileModifiedEvent e( path, name );
-    m_pDispatcher->emitEvent<kogayonon_core::FileModifiedEvent>( e );
+    FileModifiedEvent e( path, name );
+    m_pDispatcher->emitEvent<FileModifiedEvent>( e );
   } );
 }
 
@@ -65,7 +67,7 @@ bool FileExplorerWindow::isTexture( const std::string& path )
   return ext == ".jpg" || ext == ".png";
 }
 
-void FileExplorerWindow::onFileModified( kogayonon_core::FileModifiedEvent& e )
+void FileExplorerWindow::onFileModified( FileModifiedEvent& e )
 {
   if ( m_update == true )
     return;
@@ -73,7 +75,7 @@ void FileExplorerWindow::onFileModified( kogayonon_core::FileModifiedEvent& e )
   m_update.store( true );
 }
 
-void FileExplorerWindow::onFileCreated( kogayonon_core::FileCreatedEvent& e )
+void FileExplorerWindow::onFileCreated( FileCreatedEvent& e )
 {
   if ( m_update == true )
     return;
@@ -81,7 +83,7 @@ void FileExplorerWindow::onFileCreated( kogayonon_core::FileCreatedEvent& e )
   m_update.store( true );
 }
 
-void FileExplorerWindow::onFileDeleted( kogayonon_core::FileDeletedEvent& e )
+void FileExplorerWindow::onFileDeleted( FileDeletedEvent& e )
 {
   if ( m_update == true )
     return;
@@ -89,7 +91,7 @@ void FileExplorerWindow::onFileDeleted( kogayonon_core::FileDeletedEvent& e )
   m_update.store( true );
 }
 
-void FileExplorerWindow::onFileRenamed( kogayonon_core::FileRenamedEvent& e )
+void FileExplorerWindow::onFileRenamed( FileRenamedEvent& e )
 {
   if ( m_update == true )
     return;
@@ -104,7 +106,8 @@ void FileExplorerWindow::buildFileVector()
   for ( auto const& dirEntry : std::filesystem::directory_iterator( m_currentPath ) )
   {
     // we don't want to see the "fonts" directory since we have no use for them rn
-    if ( dirEntry.path().string().find( "fonts" ) != std::string::npos )
+    if ( dirEntry.path().string().find( "fonts" ) != std::string::npos ||
+         dirEntry.path().extension().string().find( ".bin" ) != std::string::npos )
       continue;
 
     File_ file{ .isDir = dirEntry.is_directory(),
@@ -122,8 +125,9 @@ void FileExplorerWindow::draw()
   if ( !begin() )
     return;
 
+  static ImVec2 size{ 80.0f, 80.0f };
   static float padding = 20.0f;
-  static float thumbnailSize = 80.0f;
+  static float thumbnailSize = size.x;
   float cellSize = thumbnailSize + padding;
   float width = ImGui::GetContentRegionAvail().x;
   int count = width / cellSize;
@@ -149,7 +153,7 @@ void FileExplorerWindow::draw()
     {
       auto filename = file.path.filename();
       ImGui::BeginGroup();
-      ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_folderTextureId, ImVec2{ 100.0f, 100.0f } );
+      ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_folderTextureId, size );
       // navigate into folder like you do in windows explorer
       if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) )
       {
@@ -162,7 +166,7 @@ void FileExplorerWindow::draw()
     {
       auto filename = file.path.filename();
       ImGui::BeginGroup();
-      ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_fileTextureId, ImVec2{ 100.0f, 100.0f } );
+      ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_fileTextureId, size );
       if ( ImGui::BeginDragDropSource() )
       {
         std::string path = file.path.string();

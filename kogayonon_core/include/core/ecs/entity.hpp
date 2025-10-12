@@ -1,12 +1,12 @@
 #pragma once
 #include <entt/entt.hpp>
+#include "core/ecs/entity.hpp"
 #include "core/ecs/registry.hpp"
 
 namespace kogayonon_core
 {
 class Entity
 {
-
 public:
   explicit Entity( Registry& registry );
   explicit Entity( Registry& registry, const std::string& name );
@@ -76,7 +76,7 @@ public:
     }
   }
 
-  inline entt::entity getEnttEntity()
+  inline entt::entity getEntityId()
   {
     return m_entity;
   }

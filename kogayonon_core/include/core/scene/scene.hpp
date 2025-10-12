@@ -59,9 +59,10 @@ public:
   void removeEntity( entt::entity ent );
 
   /**
-   * @brief Adds a Default entity to the scene registry
+   * @brief Creates a default entity with no components and adds it to the registry
+   * @return Returns the freshly created entity
    */
-  void addEntity();
+  Entity addEntity();
 
   /**
    * @brief Initializes InstanceData for a specific entity

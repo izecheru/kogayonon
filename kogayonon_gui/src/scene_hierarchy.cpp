@@ -1,7 +1,7 @@
 #include "gui/scene_hierarchy.hpp"
 #include <spdlog/spdlog.h>
+#include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/model_component.hpp"
-#include "core/ecs/components/name_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
@@ -23,12 +23,11 @@ SceneHierarchyWindow::SceneHierarchyWindow( std::string name )
     : ImGuiWindow{ std::move( name ) }
     , m_selectedEntity{ entt::null }
 {
-  EVENT_DISPATCHER()->addHandler<kogayonon_core::KeyPressedEvent, &SceneHierarchyWindow::onKeyPressed>( *this );
-  EVENT_DISPATCHER()
-    ->addHandler<kogayonon_core::SelectEntityInViewportEvent, &SceneHierarchyWindow::onEntitySelectInViewport>( *this );
+  EVENT_DISPATCHER()->addHandler<KeyPressedEvent, &SceneHierarchyWindow::onKeyPressed>( *this );
+  EVENT_DISPATCHER()->addHandler<SelectEntityInViewportEvent, &SceneHierarchyWindow::onEntitySelectInViewport>( *this );
 }
 
-void SceneHierarchyWindow::onEntitySelectInViewport( const kogayonon_core::SelectEntityInViewportEvent& e )
+void SceneHierarchyWindow::onEntitySelectInViewport( const SelectEntityInViewportEvent& e )
 {
   if ( m_selectedEntity == e.getEntity() )
     return;
@@ -36,7 +35,7 @@ void SceneHierarchyWindow::onEntitySelectInViewport( const kogayonon_core::Selec
   m_selectedEntity = e.getEntity();
 }
 
-void SceneHierarchyWindow::onKeyPressed( const kogayonon_core::KeyPressedEvent& e )
+void SceneHierarchyWindow::onKeyPressed( const KeyPressedEvent& e )
 {
   if ( e.getKeyCode() == KeyCode::Escape && m_selectedEntity != entt::null )
   {
@@ -72,16 +71,9 @@ void SceneHierarchyWindow::draw()
   const auto& pEventDispatcher = EVENT_DISPATCHER();
   std::vector<Entity> entities;
 
-  static int entSize = 0;
   for ( auto [entity, nameComponent] : view.each() )
   {
     entities.emplace_back( scene->getRegistry(), entity );
-  }
-
-  if ( entSize != entities.size() )
-  {
-    entSize = entities.size();
-    m_selectedEntity = entt::null;
   }
 
   const auto& io = ImGui::GetIO();
@@ -109,19 +101,20 @@ void SceneHierarchyWindow::draw()
 
       ImGui::BeginGroup();
 
-      bool selected = m_selectedEntity == entity.getEnttEntity();
+      bool selected = m_selectedEntity == entity.getEntityId();
       auto hoverColor = ImGui::GetStyle().Colors[ImGuiCol_HeaderHovered];
       auto normalColor = ImGui::GetStyle().Colors[ImGuiCol_Header];
 
       ImGui::PushStyleColor( ImGuiCol_Header, selected ? hoverColor : normalColor );
 
-      if ( ImGui::Selectable( selectableId.c_str(), m_selectedEntity == entity.getEnttEntity(),
+      if ( ImGui::Selectable( selectableId.c_str(), m_selectedEntity == entity.getEntityId(),
                               ImGuiSelectableFlags_SpanAllColumns ) )
       {
-        m_selectedEntity = entity.getEnttEntity();
+        m_selectedEntity = entity.getEntityId();
         pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
       }
       ImGui::PopStyleColor();
+      drawItemContexMenu( selectableId, entity );
 
       auto labelSize = ImGui::CalcTextSize( selectableId.c_str() );
       static auto iconSize = ImVec2{ 20.0f, 20.0f };
@@ -145,14 +138,13 @@ void SceneHierarchyWindow::draw()
 
       // type column
       ImGui::TableNextColumn();
-      ImGui::Text( "%s", identifierComponent.type.c_str() );
+      ImGui::Text( "%s", typeToString( identifierComponent.type ).c_str() );
 
       // group column
       ImGui::TableNextColumn();
       ImGui::Text( "%s", identifierComponent.group.c_str() );
 
       ImGui::EndGroup();
-      drawItemContexMenu( selectableId, entity );
     }
     drawContextMenu();
     ImGui::EndTable();
@@ -172,8 +164,9 @@ void SceneHierarchyWindow::drawContextMenu()
       if ( auto scene = SceneManager::getCurrentScene().lock() )
       {
         // no component entity
-        scene->addEntity();
-        EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{} );
+        auto entity = scene->addEntity();
+        m_selectedEntity = entity.getEntityId();
+        EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{ m_selectedEntity } );
       }
     }
     if ( ImGui::MenuItem( "Clear Selection" ) )
@@ -194,7 +187,7 @@ void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity
       auto pScene = SceneManager::getCurrentScene();
       if ( auto scene = pScene.lock() )
       {
-        scene->removeEntity( ent.getEnttEntity() );
+        scene->removeEntity( ent.getEntityId() );
         m_selectedEntity = entt::null;
         EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{} );
       }

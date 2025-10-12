@@ -51,10 +51,11 @@ void Scene::removeEntity( entt::entity ent )
   --m_entityCount;
 }
 
-void Scene::addEntity()
+Entity Scene::addEntity()
 {
   Entity ent{ *m_pRegistry, "DefaultEntity" };
   ++m_entityCount;
+  return ent;
 }
 
 void Scene::addInstanceData( entt::entity entityId )
@@ -86,7 +87,7 @@ void Scene::addInstanceData( entt::entity entityId )
       entity.addComponent<IndexComponent>( IndexComponent{ .index = size - 1 } );
 
       // insert the entityId
-      instanceData->entityIds.push_back( static_cast<int>( entity.getEnttEntity() ) );
+      instanceData->entityIds.push_back( static_cast<int>( entity.getEntityId() ) );
 
       // setup the OpenGL buffers for instancing
       setupMultipleInstances( instanceData.get() );
@@ -98,7 +99,7 @@ void Scene::addInstanceData( entt::entity entityId )
     const auto& transform = entity.getComponent<TransformComponent>();
     auto instanceData = std::make_unique<InstanceData>( InstanceData{
       .entityIdBuffer = 0,
-      .entityIds = { static_cast<int>( entity.getEnttEntity() ) },
+      .entityIds = { static_cast<int>( entity.getEntityId() ) },
       .instanceBuffer = 0,
       .instanceMatrices = { math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) },
       .count = 1,
@@ -118,7 +119,7 @@ void Scene::addModelToEntity( entt::entity entity, std::weak_ptr<kogayonon_resou
   Entity ent{ *m_pRegistry, entity };
   ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
   ent.addComponent<TransformComponent>();
-  addInstanceData( ent.getEnttEntity() );
+  addInstanceData( ent.getEntityId() );
 }
 
 void Scene::removeInstanceData( entt::entity ent )

@@ -1,5 +1,5 @@
 #include "core/ecs/entity.hpp"
-#include "core/ecs/components/name_component.hpp"
+#include "core/ecs/components/identifier_component.hpp"
 
 namespace kogayonon_core
 {
@@ -12,7 +12,8 @@ Entity::Entity( Registry& registry, const std::string& name )
     : m_entity{ registry.createEntity() }
     , m_registry{ registry }
 {
-  addComponent<IdentifierComponent>( IdentifierComponent{ .name = name, .type = "Entity", .group = "MainGroup" } );
+  addComponent<IdentifierComponent>(
+    IdentifierComponent{ .name = name, .type = EntityType::None, .group = "MainGroup" } );
 }
 
 Entity::Entity( Registry& registry, entt::entity entity )
@@ -25,6 +26,7 @@ Entity::Entity( Registry& registry, entt::entity entity, const std::string& name
     : m_entity{ entity }
     , m_registry{ registry }
 {
-  addComponent<IdentifierComponent>( IdentifierComponent{ .name = name, .type = "Entity", .group = "MainGroup" } );
+  addComponent<IdentifierComponent>(
+    IdentifierComponent{ .name = name, .type = EntityType::None, .group = "MainGroup" } );
 }
 } // namespace kogayonon_core

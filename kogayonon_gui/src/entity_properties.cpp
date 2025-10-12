@@ -1,8 +1,8 @@
 #include "gui/entity_properties.hpp"
 #include <imgui_stdlib.h>
+#include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/model_component.hpp"
-#include "core/ecs/components/name_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
@@ -14,7 +14,9 @@
 #include "imgui_utils/imgui_utils.h"
 #include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/math/math.hpp"
+
 using namespace kogayonon_utilities;
+using namespace kogayonon_core;
 
 namespace kogayonon_gui
 {
@@ -22,13 +24,12 @@ EntityPropertiesWindow::EntityPropertiesWindow( std::string name )
     : ImGuiWindow{ std::move( name ) }
     , m_entity{ entt::null }
 {
-  EVENT_DISPATCHER()->addHandler<kogayonon_core::SelectEntityEvent, &EntityPropertiesWindow::onEntitySelect>( *this );
-  EVENT_DISPATCHER()
-    ->addHandler<kogayonon_core::SelectEntityInViewportEvent, &EntityPropertiesWindow::onSelectEntityInViewport>(
-      *this );
+  EVENT_DISPATCHER()->addHandler<SelectEntityEvent, &EntityPropertiesWindow::onEntitySelect>( *this );
+  EVENT_DISPATCHER()->addHandler<SelectEntityInViewportEvent, &EntityPropertiesWindow::onSelectEntityInViewport>(
+    *this );
 }
 
-void EntityPropertiesWindow::onSelectEntityInViewport( const kogayonon_core::SelectEntityInViewportEvent& e )
+void EntityPropertiesWindow::onSelectEntityInViewport( const SelectEntityInViewportEvent& e )
 {
   if ( m_entity == e.getEntity() )
     return;
@@ -43,7 +44,7 @@ void EntityPropertiesWindow::draw()
   if ( !begin() )
     return;
 
-  auto pScene = kogayonon_core::SceneManager::getCurrentScene();
+  auto pScene = SceneManager::getCurrentScene();
   if ( auto scene = pScene.lock() )
   {
     if ( m_entity != entt::null )
@@ -58,31 +59,43 @@ void EntityPropertiesWindow::draw()
   ImGui::End();
 }
 
-void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core::Scene> scene )
+void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
 {
-  kogayonon_core::Entity entity{ scene->getRegistry(), m_entity };
+  Entity entity{ scene->getRegistry(), m_entity };
 
-  // entity always has a name
-  if ( auto pIdentifierComponent = entity.tryGetComponent<kogayonon_core::IdentifierComponent>() )
+  if ( auto pIdentifierComponent = entity.tryGetComponent<IdentifierComponent>() )
   {
     ImGui::InputText( "##id", &pIdentifierComponent->name );
+    if ( ImGui::BeginCombo( "##entity_type", "Change entity type" ) )
+    {
+      if ( ImGui::MenuItem( "Entity" ) )
+      {
+      }
+      ImGui::EndCombo();
+    }
   }
 
   if ( ImGui::BeginCombo( "##combo", "Add component" ) )
   {
-    if ( ImGui::MenuItem( "Model component" ) )
+    if ( !entity.hasComponent<ModelComponent>() )
     {
+      if ( ImGui::MenuItem( "Model component" ) )
+      {
+      }
     }
 
-    if ( ImGui::MenuItem( "Texture component" ) )
+    if ( !entity.hasComponent<TextureComponent>() )
     {
+      if ( ImGui::MenuItem( "Texture component" ) )
+      {
+      }
     }
 
     ImGui::EndCombo();
   }
 }
 
-void EntityPropertiesWindow::onEntitySelect( const kogayonon_core::SelectEntityEvent& e )
+void EntityPropertiesWindow::onEntitySelect( const SelectEntityEvent& e )
 {
   if ( m_entity == e.getEntity() )
     return;
@@ -90,9 +103,9 @@ void EntityPropertiesWindow::onEntitySelect( const kogayonon_core::SelectEntityE
   m_entity = e.getEntity();
 }
 
-void EntityPropertiesWindow::drawTextureComponent( kogayonon_core::Entity& ent ) const
+void EntityPropertiesWindow::drawTextureComponent( Entity& ent ) const
 {
-  const auto& pModelComponent = ent.tryGetComponent<kogayonon_core::ModelComponent>();
+  const auto& pModelComponent = ent.tryGetComponent<ModelComponent>();
   if ( !pModelComponent )
     return;
 
@@ -161,10 +174,10 @@ void EntityPropertiesWindow::manageTexturePayload( const ImGuiPayload* payload )
   }
 
   auto pTexture = ASSET_MANAGER()->addTexture( p.filename().string(), p.string() );
-  auto scene = kogayonon_core::SceneManager::getCurrentScene().lock();
-  kogayonon_core::Entity ent{ scene->getRegistry(), m_entity };
+  auto scene = SceneManager::getCurrentScene().lock();
+  Entity ent{ scene->getRegistry(), m_entity };
 
-  if ( const auto& model = ent.tryGetComponent<kogayonon_core::ModelComponent>() )
+  if ( const auto& model = ent.tryGetComponent<ModelComponent>() )
   {
     auto& meshes = model->pModel.lock()->getMeshes();
     for ( auto& mesh : meshes )
@@ -192,9 +205,9 @@ void EntityPropertiesWindow::drawTextureContextMenu( std::vector<std::weak_ptr<k
   }
 }
 
-void EntityPropertiesWindow::drawModelComponent( kogayonon_core::Entity& ent ) const
+void EntityPropertiesWindow::drawModelComponent( Entity& ent ) const
 {
-  auto pModelComponent = ent.tryGetComponent<kogayonon_core::ModelComponent>();
+  auto pModelComponent = ent.tryGetComponent<ModelComponent>();
   if ( !pModelComponent )
   {
     if ( ImGui::BeginDragDropTarget() )
@@ -217,11 +230,11 @@ void EntityPropertiesWindow::drawModelComponent( kogayonon_core::Entity& ent ) c
 
   if ( ImGui::Button( "Remove model" ) )
   {
-    auto scene = kogayonon_core::SceneManager::getCurrentScene().lock();
+    auto scene = SceneManager::getCurrentScene().lock();
     if ( !scene )
       return;
 
-    scene->removeModelFromEntity( ent.getEnttEntity(), model );
+    scene->removeModelFromEntity( ent.getEntityId(), model );
   }
 }
 
@@ -237,7 +250,7 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload ) c
   std::string dropResult( data, payload->DataSize );
   std::filesystem::path p{ dropResult };
 
-  auto scene = kogayonon_core::SceneManager::getCurrentScene();
+  auto scene = SceneManager::getCurrentScene();
   auto pScene = scene.lock();
 
   const auto& extension = p.extension().string();
@@ -256,16 +269,16 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload ) c
   }
 }
 
-void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent ) const
+void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
 {
-  const auto& transformComponent = ent.tryGetComponent<kogayonon_core::TransformComponent>();
+  const auto& transformComponent = ent.tryGetComponent<TransformComponent>();
   if ( !transformComponent )
     return;
 
   ImGui::Text( "Transform" );
 
   // if it has transform, it definetely has a model component
-  const auto& modelComponent = ent.tryGetComponent<kogayonon_core::ModelComponent>();
+  const auto& modelComponent = ent.tryGetComponent<ModelComponent>();
 
   bool changed = false;
   auto& pos = transformComponent->pos;
@@ -281,7 +294,7 @@ void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent
 
   if ( changed )
   {
-    auto scene = kogayonon_core::SceneManager::getCurrentScene().lock();
+    auto scene = SceneManager::getCurrentScene().lock();
 
     if ( !scene )
       return;
@@ -289,7 +302,7 @@ void EntityPropertiesWindow::drawTransformComponent( kogayonon_core::Entity& ent
     transformComponent->updateMatrix();
 
     // we need the index of the instance
-    const auto& indexComponent = ent.getComponent<kogayonon_core::IndexComponent>();
+    const auto& indexComponent = ent.getComponent<IndexComponent>();
 
     // get the instance data of this model
     const auto data = scene->getData( modelComponent->pModel.lock().get() );

@@ -10,7 +10,7 @@ add_library(
   "include/core/input/keyboard_events.hpp"
   "include/core/input/mouse_events.hpp"
   "include/core/ecs/components/texture_component.hpp"
-  "include/core/ecs/components/name_component.hpp"
+  "include/core/ecs/components/identifier_component.hpp"
   "include/core/scene/scene_manager.hpp"
   "include/core/ecs/components/transform_component.hpp"
   "include/core/event/file_events.hpp"
