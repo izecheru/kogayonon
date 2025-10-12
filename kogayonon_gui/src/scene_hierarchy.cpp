@@ -68,7 +68,7 @@ void SceneHierarchyWindow::draw()
   ImGui::Text( "Entity number:%d", scene->getEntityCount() );
 
   auto& enttRegistry = scene->getEnttRegistry();
-  auto view = enttRegistry.view<NameComponent>();
+  auto view = enttRegistry.view<IdentifierComponent>();
   const auto& pEventDispatcher = EVENT_DISPATCHER();
   std::vector<Entity> entities;
 
@@ -86,65 +86,76 @@ void SceneHierarchyWindow::draw()
 
   const auto& io = ImGui::GetIO();
   auto avail = ImGui::GetContentRegionAvail();
-  ImGui::BeginChild( "EntityListRegion", avail, false, ImGuiChildFlags_ResizeY );
 
-  if ( ImGui::BeginListBox( "##EntityList", avail ) )
+  ImGui::BeginChild( "##entity_table", avail, false, ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX );
+  if ( ImGui::BeginTable( "##entity_table_contents", 3 ) )
   {
+    // table headers
+    ImGui::TableSetupColumn( "name" );
+    ImGui::TableSetupColumn( "type" );
+    ImGui::TableSetupColumn( "group" );
+
+    ImGui::TableHeadersRow();
+
     for ( int i = 0; i < entities.size(); i++ )
     {
+      // first column
+      ImGui::TableNextRow();
+      ImGui::TableNextColumn();
       auto& entity = entities.at( i );
-      const auto& nameComp = entity.getComponent<NameComponent>();
+      const auto& identifierComponent = entity.getComponent<IdentifierComponent>();
 
-      std::string selectableId = std::format( "##{}{}", nameComp.name, i );
+      std::string selectableId = std::format( "##{}{}", identifierComponent.name, i );
 
       ImGui::BeginGroup();
-      bool selected = m_selectedEntity == entity.getEnttEntity();
 
-      // Make selected color equal to hover
+      bool selected = m_selectedEntity == entity.getEnttEntity();
       auto hoverColor = ImGui::GetStyle().Colors[ImGuiCol_HeaderHovered];
       auto normalColor = ImGui::GetStyle().Colors[ImGuiCol_Header];
 
       ImGui::PushStyleColor( ImGuiCol_Header, selected ? hoverColor : normalColor );
 
       if ( ImGui::Selectable( selectableId.c_str(), m_selectedEntity == entity.getEnttEntity(),
-                              ImGuiSelectableFlags_AllowOverlap ) )
+                              ImGuiSelectableFlags_SpanAllColumns ) )
       {
         m_selectedEntity = entity.getEnttEntity();
         pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
       }
       ImGui::PopStyleColor();
 
-      selectableId = std::format( "{}", nameComp.name );
       auto labelSize = ImGui::CalcTextSize( selectableId.c_str() );
+      static auto iconSize = ImVec2{ 20.0f, 20.0f };
 
       // get the bounds
       ImVec2 selectablePosMin = ImGui::GetItemRectMin();
       ImVec2 selectablePosMax = ImGui::GetItemRectMax();
 
       // calculate the height of the selectable
-      float selectableHeight = std::max( 15.0f, labelSize.y ) + ImGui::GetStyle().FramePadding.y * 2.0f;
+      float selectableHeight = std::max( iconSize.y, labelSize.y ) + ImGui::GetStyle().FramePadding.y * 2.0f;
 
       // set the cursor position so that it also takes into account the padding and center it vertically
       ImGui::SetCursorScreenPos( ImVec2{ selectablePosMin.x + ImGui::GetStyle().FramePadding.x,
-                                         selectablePosMin.y + ( selectableHeight - 15.0f ) * 0.5f } );
+                                         selectablePosMin.y + ( selectableHeight - iconSize.y ) * 0.5f } );
 
       // draw the icon
       ImGui::Image( cubeIcon.lock()->getTextureId(), ImVec2{ 15.0f, 15.0f } );
-
-      // prepare the position for text drawing
-      ImGui::SetCursorScreenPos( ImVec2{
-        selectablePosMin.x + ImGui::GetStyle().FramePadding.x + 15.0f + 10.0f,
-        selectablePosMin.y + ( selectableHeight - labelSize.y ) * 0.5f // Vertically centered
-      } );
-
+      ImGui::SameLine();
       // draw the text without ##id
-      ImGui::Text( nameComp.name.c_str() );
+      ImGui::Text( identifierComponent.name.c_str() );
+
+      // type column
+      ImGui::TableNextColumn();
+      ImGui::Text( "%s", identifierComponent.type.c_str() );
+
+      // group column
+      ImGui::TableNextColumn();
+      ImGui::Text( "%s", identifierComponent.group.c_str() );
 
       ImGui::EndGroup();
       drawItemContexMenu( selectableId, entity );
     }
     drawContextMenu();
-    ImGui::EndListBox();
+    ImGui::EndTable();
   }
 
   ImGui::EndChild();
@@ -162,11 +173,13 @@ void SceneHierarchyWindow::drawContextMenu()
       {
         // no component entity
         scene->addEntity();
+        EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{} );
       }
     }
     if ( ImGui::MenuItem( "Clear Selection" ) )
     {
       m_selectedEntity = entt::null;
+      EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{} );
     }
     ImGui::EndPopup();
   }

@@ -12,7 +12,7 @@ Entity::Entity( Registry& registry, const std::string& name )
     : m_entity{ registry.createEntity() }
     , m_registry{ registry }
 {
-  addComponent<NameComponent>( NameComponent{ .name = name } );
+  addComponent<IdentifierComponent>( IdentifierComponent{ .name = name, .type = "Entity", .group = "MainGroup" } );
 }
 
 Entity::Entity( Registry& registry, entt::entity entity )
@@ -25,6 +25,6 @@ Entity::Entity( Registry& registry, entt::entity entity, const std::string& name
     : m_entity{ entity }
     , m_registry{ registry }
 {
-  addComponent<NameComponent>( NameComponent{ .name = name } );
+  addComponent<IdentifierComponent>( IdentifierComponent{ .name = name, .type = "Entity", .group = "MainGroup" } );
 }
 } // namespace kogayonon_core

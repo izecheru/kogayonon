@@ -1,4 +1,5 @@
 #include "gui/entity_properties.hpp"
+#include <imgui_stdlib.h>
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/name_component.hpp"
@@ -42,8 +43,6 @@ void EntityPropertiesWindow::draw()
   if ( !begin() )
     return;
 
-  const auto& avail = ImGui::GetContentRegionAvail();
-
   auto pScene = kogayonon_core::SceneManager::getCurrentScene();
   if ( auto scene = pScene.lock() )
   {
@@ -64,36 +63,22 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<kogayonon_core:
   kogayonon_core::Entity entity{ scene->getRegistry(), m_entity };
 
   // entity always has a name
-  if ( auto pNameComp = entity.tryGetComponent<kogayonon_core::NameComponent>() )
+  if ( auto pIdentifierComponent = entity.tryGetComponent<kogayonon_core::IdentifierComponent>() )
   {
-    ImGui::Text( "%s", pNameComp->name.c_str() );
+    ImGui::InputText( "##id", &pIdentifierComponent->name );
+  }
 
-    // change the entity name
-    ImGui::Text( "Change entity name" );
-    if ( char buffer[50] = { 0 };
-         ImGui::InputText( "##change_name", buffer, IM_ARRAYSIZE( buffer ), ImGuiInputTextFlags_EnterReturnsTrue ) )
+  if ( ImGui::BeginCombo( "##combo", "Add component" ) )
+  {
+    if ( ImGui::MenuItem( "Model component" ) )
     {
-      std::string result{ buffer };
-      pNameComp->name = result;
     }
-  }
 
-  // has textures?
-  if ( ImGui::CollapsingHeader( "Textures" ) )
-  {
-    ImGui_Utils::addPaddedGui( [this, &entity]() { drawTextureComponent( entity ); }, ImVec2{ 1.0f, 10.0f } );
-  }
+    if ( ImGui::MenuItem( "Texture component" ) )
+    {
+    }
 
-  // has transform component?
-  if ( ImGui::CollapsingHeader( "Transform" ) )
-  {
-    ImGui_Utils::addPaddedGui( [this, &entity]() { drawTransformComponent( entity ); }, ImVec2{ 1.0f, 10.0f } );
-  }
-
-  // has model component?
-  if ( ImGui::CollapsingHeader( "Model" ) )
-  {
-    ImGui_Utils::addPaddedGui( [this, &entity]() { drawModelComponent( entity ); }, ImVec2{ 1.0f, 10.0f } );
+    ImGui::EndCombo();
   }
 }
 

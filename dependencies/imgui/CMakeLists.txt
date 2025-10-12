@@ -8,6 +8,18 @@ add_library(imgui
   "src/imgui_impl_sdl2.cpp"
   "src/imgui_tables.cpp"
   "src/imgui_widgets.cpp"
+  "src/imgui_stdlib.cpp"
+
+  "include/imconfig.h"
+  "include/imgui.h"
+  "include/imgui_impl_opengl3.h"
+  "include/imgui_impl_opengl3_loader.h"
+  "include/imgui_impl_sdl2.h"
+  "include/imgui_internal.h"
+  "include/imstb_rectpack.h"
+  "include/imstb_textedit.h"
+  "include/imstb_truetype.h"
+  "include/imgui_stdlib.h"
 )
 
 target_include_directories(imgui PUBLIC

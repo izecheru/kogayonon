@@ -3,8 +3,11 @@
 
 namespace kogayonon_core
 {
-struct NameComponent
+struct IdentifierComponent
 {
-  std::string name;
+  std::string name{};
+  // TODO those should be some kind of enum, will do for now
+  std::string type{};
+  std::string group{};
 };
 } // namespace kogayonon_core
