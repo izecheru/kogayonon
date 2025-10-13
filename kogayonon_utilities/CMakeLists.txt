@@ -16,7 +16,8 @@ add_library(
   "include/utilities/input/keyboard_state.hpp"
   "include/utilities/input/key_codes.hpp"
   "include/utilities/input/mouse_codes.hpp"
-)
+  "include/utilities/configurator/configurator.hpp"
+ "src/configurator.cpp")
 
 target_include_directories(kogayonon_utilities
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

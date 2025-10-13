@@ -5,9 +5,11 @@
 #include "core/event/event_dispatcher.hpp"
 #include "core/event/file_events.hpp"
 #include "imgui_utils/imgui_utils.h"
+#include "utilities/configurator/configurator.hpp"
 #include "utilities/directory_watcher/directory_watcher.hpp"
 
 using namespace kogayonon_core;
+using namespace kogayonon_utilities;
 
 namespace kogayonon_gui
 {
@@ -18,7 +20,7 @@ kogayonon_gui::FileExplorerWindow::FileExplorerWindow( std::string name, uint32_
     , m_folderTextureId{ folderTextureId }
     , m_fileTextureId{ fileTextureId }
     , m_currentPath{ std::filesystem::current_path() / "resources" }
-    , m_pDirWatcher{ std::make_unique<kogayonon_utilities::DirectoryWatcher>( "resources\\" ) }
+    , m_pDirWatcher{ std::make_unique<DirectoryWatcher>( "resources\\" ) }
     , m_pDispatcher{ std::make_unique<EventDispatcher>() }
 {
   // installs the event listeners for file event types
@@ -99,27 +101,36 @@ void FileExplorerWindow::onFileRenamed( FileRenamedEvent& e )
   m_update.store( true );
 }
 
-void FileExplorerWindow::drawFileFilter()
-{
-  // TODO this should probably be written into some config file
-  static auto filters = { ".bin", "fonts" };
-  for ( const auto& filter : filters )
-  {
-    if ( ImGui::MenuItem( filter ) )
-    {
-    }
-  }
-}
-
 void FileExplorerWindow::buildFileVector()
 {
   m_files.clear();
   int dirId = 0;
+  const auto& config = Configurator::getConfig();
   for ( auto const& dirEntry : std::filesystem::directory_iterator( m_currentPath ) )
   {
-    // we don't want to see the "fonts" directory since we have no use for them rn
-    if ( dirEntry.path().string().find( "fonts" ) != std::string::npos ||
-         dirEntry.path().extension().string().find( ".bin" ) != std::string::npos )
+    bool found = false;
+    if ( !dirEntry.is_directory() )
+    {
+      for ( const auto& entry : config.fileFilters )
+      {
+        if ( dirEntry.path().extension().string().find( entry ) != std::string ::npos )
+        {
+          found = true;
+        }
+      }
+    }
+    else
+    {
+      for ( const auto& entry : config.folderFilters )
+      {
+        if ( dirEntry.path().filename().string().find( entry ) != std::string ::npos )
+        {
+          found = true;
+        }
+      }
+    }
+
+    if ( found )
       continue;
 
     File_ file{ .isDir = dirEntry.is_directory(),
@@ -221,14 +232,6 @@ void FileExplorerWindow::drawToolbar()
 
   ImGui::PopStyleVar( 1 );
   ImGui::PopStyleColor( 1 );
-
-  ImGui::SameLine();
-  if ( ImGui::BeginCombo( "##filter_combo", "File filter" ) )
-  {
-    drawFileFilter();
-    ImGui::EndCombo();
-  }
-
   ImGui::EndGroup();
 }
 } // namespace kogayonon_gui

@@ -21,6 +21,26 @@ Soon... :framed_picture:
 - listens for file events from resources folder (can hot reload if needed, currently I do not do this for any type of asset)
 - *instanced rendering*, instead of rendering a type of model for 100 times with 100 calls, we just have an instance matrix for each instance and draw them all with a single call to ``` glDrawElementsInstanced ```
     - this is also a work in progress since the code is very ugly at the moment
+- config file
+```json
+ {
+    "config": {
+        "filters": {
+            "files": [
+                ".bin"
+            ],
+            "folders": [
+                "fonts"
+            ]
+        },
+        "window": {
+            "width": 1800,
+            "height": 900,
+            "maximized": true
+        }
+    }
+}
+```
 
 ## Build :building_construction:
 ### Requires vcpkg

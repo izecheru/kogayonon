@@ -58,13 +58,6 @@ public:
   void onMouseScrolled( const kogayonon_core::MouseScrolledEvent& e );
 
 private:
-  /**
-   * @brief Processes the payload from the Assets window
-   * @param payload The payload we drag and dropped on the viewport
-   */
-  void manageAssetsPayload( const ImGuiPayload* payload ) const;
-
-private:
   entt::entity m_selectedEntity;
   unsigned int m_playTextureId;
   unsigned int m_stopTextureId;

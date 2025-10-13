@@ -26,6 +26,7 @@
 #include "gui/scene_viewport.hpp"
 #include "rendering/renderer.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
+#include "utilities/configurator/configurator.hpp"
 #include "utilities/input/mouse_codes.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
 #include "utilities/task_manager/task_manager.hpp"
@@ -59,6 +60,9 @@ App::App()
     logger->set_pattern( "[%H:%M:%S] [%^%L%$] %v" );
 
     spdlog::set_default_logger( logger );
+
+    // parse the config and fill the json document
+    Configurator::parseConfigFile();
 
     if ( !init() )
     {
@@ -321,10 +325,13 @@ bool App::initScenes() const
 
 bool App::init()
 {
+  const auto& config = Configurator::getConfig();
 #ifdef _DEBUG
-  m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine (DEBUG)", 1400, 900, 1, false );
+  m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine (DEBUG)", config.width, config.height, 1,
+                                                          config.maximized );
 #else
-  m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine", 1800, 1000, 1, false );
+  m_pWindow =
+    std::make_shared<kogayonon_window::Window>( "kogayonon engine", config.width, config.height, 1, config.maximized );
 #endif
 
   if ( !initSDL() )

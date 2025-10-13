@@ -48,8 +48,6 @@ private:
 
   bool isTexture( const std::string& path );
 
-  void drawFileFilter();
-
   /**
    * @brief Builds a vector of File_ instances for the current directory
    */
