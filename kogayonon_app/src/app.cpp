@@ -80,6 +80,11 @@ App::App()
   }
 }
 
+void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
+{
+  m_running = false;
+}
+
 App::~App()
 {
   cleanup();
@@ -343,6 +348,8 @@ bool App::init()
   {
     return false;
   }
+
+  EVENT_DISPATCHER()->addHandler<kogayonon_core::WindowCloseEvent, &App::onWindowClose>( *this );
 
   if ( !initGui() )
   {

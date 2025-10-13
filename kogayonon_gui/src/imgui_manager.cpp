@@ -6,6 +6,9 @@
 #include <imgui_impl_sdl2.h>
 #include <imgui_internal.h>
 #include <spdlog/spdlog.h>
+#include "core/ecs/main_registry.hpp"
+#include "core/event/app_event.hpp"
+#include "core/event/event_dispatcher.hpp"
 #include "gui/debug_window.hpp"
 
 namespace kogayonon_gui
@@ -205,9 +208,9 @@ void ImGuiManager::mainMenu()
   {
     if ( ImGui::BeginMenu( "File" ) )
     {
-      if ( ImGui::MenuItem( "Close", "Ctrl+X" ) )
+      if ( ImGui::MenuItem( "Close" ) )
       {
-        spdlog::info( "Close pressed" );
+        EVENT_DISPATCHER()->emitEvent( kogayonon_core::WindowCloseEvent{} );
       }
       ImGui::EndMenu();
     }
