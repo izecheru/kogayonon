@@ -78,24 +78,23 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
     }
   }
 
-  if ( ImGui::BeginCombo( "##combo", "Add component" ) )
+  if ( ImGui::BeginPopupContextWindow( "##model_context" ) )
   {
-    if ( !entity.hasComponent<ModelComponent>() )
+    if ( ImGui::BeginMenu( "Add component" ) )
     {
-      if ( ImGui::MenuItem( "Model component" ) )
+      if ( !entity.hasComponent<ModelComponent>() )
       {
-        entity.addComponent<ModelComponent>();
+        if ( ImGui::MenuItem( "Model component" ) )
+        {
+          entity.addComponent<ModelComponent>();
+        }
       }
-    }
-
-    if ( !entity.hasComponent<TextureComponent>() )
-    {
       if ( ImGui::MenuItem( "Texture component" ) )
       {
       }
+      ImGui::EndMenu();
     }
-
-    ImGui::EndCombo();
+    ImGui::EndPopup();
   }
 
   if ( entity.hasComponent<TransformComponent>() )

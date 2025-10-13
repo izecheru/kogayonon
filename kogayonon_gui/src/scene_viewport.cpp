@@ -232,6 +232,7 @@ void SceneViewportWindow::draw()
 
       if ( ImGuizmo::IsUsing() )
       {
+        ImGui::SetMouseCursor( ImGuiMouseCursor_None );
         glm::vec3 pos, rotation, scale;
         ImGuizmo::DecomposeMatrixToComponents( glm::value_ptr( instanceMatrix ), glm::value_ptr( pos ),
                                                glm::value_ptr( rotation ), glm::value_ptr( scale ) );
