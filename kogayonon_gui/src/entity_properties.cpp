@@ -357,8 +357,7 @@ void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
     const auto data = scene->getData( modelComponent->pModel.lock().get() );
 
     // update the matrix in the instance matrices vector
-    ImGuizmo::RecomposeMatrixFromComponents( glm::value_ptr( pos ), glm::value_ptr( glm::degrees( rotation ) ),
-                                             glm::value_ptr( scale ),
+    ImGuizmo::RecomposeMatrixFromComponents( glm::value_ptr( pos ), glm::value_ptr( rotation ), glm::value_ptr( scale ),
                                              glm::value_ptr( data->instanceMatrices.at( indexComponent.index ) ) );
 
     scene->setupMultipleInstances( data );
