@@ -218,7 +218,7 @@ void SceneViewportWindow::draw()
   {
     Entity ent{ scene->getRegistry(), m_selectedEntity };
     const auto& model = ent.tryGetComponent<ModelComponent>();
-    if ( model )
+    if ( model && model->loaded )
     {
       const auto& instanceData = scene->getData( model->pModel.lock().get() );
       const auto& indexComponet = ent.tryGetComponent<IndexComponent>();
@@ -235,23 +235,15 @@ void SceneViewportWindow::draw()
         glm::vec3 pos, rotation, scale;
         ImGuizmo::DecomposeMatrixToComponents( glm::value_ptr( instanceMatrix ), glm::value_ptr( pos ),
                                                glm::value_ptr( rotation ), glm::value_ptr( scale ) );
+
+        // auto rotationRadians = glm::degrees( rotation );
         transform->pos = pos;
         transform->rotation = rotation;
         transform->scale = scale;
-        transform->updateMatrix();
-
         scene->setupMultipleInstances( instanceData );
       }
     }
   }
-
-  //// we set the position to top left of this window to prepare for the drop zone
-  // ImGui::SetCursorScreenPos( win_pos );
-
-  //// this is just the viewport drop zone, it is on top of frame buffer so we need to make it invisible
-  // ImGui::InvisibleButton( "viewportDropZone", contentSize );
-
-  //// here we accept drag and drop payload from the assets window
 
   end();
 }

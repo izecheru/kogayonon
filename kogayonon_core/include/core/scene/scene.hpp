@@ -82,7 +82,7 @@ public:
    * @param entity The entity we edit
    * @param pModel The model weak_ptr from asset manager
    */
-  void removeModelFromEntity( entt::entity entity, std::weak_ptr<kogayonon_resources::Model> pModel );
+  void removeModelFromEntity( entt::entity entity );
 
   /**
    * @brief Get instance data for a specified model since Model* is a key used in the instance map

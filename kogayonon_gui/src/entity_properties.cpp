@@ -1,4 +1,6 @@
 #include "gui/entity_properties.hpp"
+#include <ImGuizmo.h>
+#include <glm/gtc/type_ptr.hpp>
 #include <imgui_stdlib.h>
 #include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/index_component.h"
@@ -66,6 +68,7 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
   if ( auto pIdentifierComponent = entity.tryGetComponent<IdentifierComponent>() )
   {
     ImGui::InputText( "##id", &pIdentifierComponent->name );
+    ImGui::Separator();
     if ( ImGui::BeginCombo( "##entity_type", "Change entity type" ) )
     {
       if ( ImGui::MenuItem( "Entity" ) )
@@ -81,6 +84,7 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
     {
       if ( ImGui::MenuItem( "Model component" ) )
       {
+        entity.addComponent<ModelComponent>();
       }
     }
 
@@ -92,6 +96,18 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
     }
 
     ImGui::EndCombo();
+  }
+
+  if ( entity.hasComponent<TransformComponent>() )
+  {
+    ImGui::SeparatorText( "Transform" );
+    drawTransformComponent( entity );
+  }
+
+  if ( entity.hasComponent<ModelComponent>() )
+  {
+    ImGui::SeparatorText( "Model" );
+    drawModelComponent( entity );
   }
 }
 
@@ -205,25 +221,23 @@ void EntityPropertiesWindow::drawTextureContextMenu( std::vector<std::weak_ptr<k
   }
 }
 
-void EntityPropertiesWindow::drawModelComponent( Entity& ent ) const
+void EntityPropertiesWindow::drawModelComponent( Entity& ent )
 {
   auto pModelComponent = ent.tryGetComponent<ModelComponent>();
-  if ( !pModelComponent )
+  if ( ImGui::BeginDragDropTarget() )
   {
-    if ( ImGui::BeginDragDropTarget() )
-    {
-      // if we have a payload
-      const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "ASSET_DROP" );
-      manageModelPayload( payload );
-      ImGui::EndDragDropTarget();
-    }
-    return;
+    // if we have a payload
+    const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "ASSET_DROP" );
+    manageModelPayload( payload );
+    ImGui::EndDragDropTarget();
   }
 
   auto model = pModelComponent->pModel.lock();
 
   if ( !model )
     return;
+
+  Entity entity{ SceneManager::getCurrentScene().lock()->getRegistry(), m_entity };
 
   ImGui::Text( "Model has %d meshes", model->getMeshes().size() );
   ImGui::TextWrapped( "Path: %s", model->getPath().c_str() );
@@ -234,11 +248,11 @@ void EntityPropertiesWindow::drawModelComponent( Entity& ent ) const
     if ( !scene )
       return;
 
-    scene->removeModelFromEntity( ent.getEntityId(), model );
+    scene->removeModelFromEntity( ent.getEntityId() );
   }
 }
 
-void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload ) const
+void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
 {
   if ( !payload )
   {
@@ -261,7 +275,8 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload ) c
       return;
 
     auto model = ASSET_MANAGER()->addModel( p.filename().string(), p.string() );
-    scene.lock()->addModelToEntity( m_entity, model );
+    Entity entity{ scene.lock()->getRegistry(), m_entity };
+    scene.lock()->addModelToEntity( entity.getEntityId(), model );
   }
   else
   {
@@ -275,22 +290,58 @@ void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
   if ( !transformComponent )
     return;
 
-  ImGui::Text( "Transform" );
-
   // if it has transform, it definetely has a model component
   const auto& modelComponent = ent.tryGetComponent<ModelComponent>();
 
   bool changed = false;
   auto& pos = transformComponent->pos;
   auto& scale = transformComponent->scale;
-  changed |= ImGui::SliderFloat( "x", &pos.x, -100.0f, 100.0f );
-  changed |= ImGui::SliderFloat( "y", &pos.y, -100.0f, 100.0f );
-  changed |= ImGui::SliderFloat( "z", &pos.z, -100.0f, 100.0f );
+
+  ImGui::Text( "Position" );
+  ImGui::SameLine();
+
+  ImGui::PushItemWidth( 60 );
+  ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 4, 0 ) );
+
+  changed |= ImGui::DragFloat( "X##pos", &pos.x, 0.1f, pos.x - 100.0f, pos.x + 100.0f, "%.2f" );
+  ImGui::SameLine();
+  changed |= ImGui::DragFloat( "Y##pos", &pos.y, 0.1f, pos.y - 100.0f, pos.y + 100.0f, "%.2f" );
+  ImGui::SameLine();
+  changed |= ImGui::DragFloat( "Z##pos", &pos.z, 0.1f, pos.z - 100.0f, pos.z + 100.0f, "%.2f" );
+
+  ImGui::PopStyleVar();
+  ImGui::PopItemWidth();
 
   ImGui::Text( "Scale" );
-  changed |= ImGui::SliderFloat( "x##scale", &scale.x, 1.0f, 100.0f );
-  changed |= ImGui::SliderFloat( "y##scale", &scale.y, 1.0f, 100.0f );
-  changed |= ImGui::SliderFloat( "z##scale", &scale.z, 1.0f, 100.0f );
+  ImGui::SameLine();
+
+  ImGui::PushItemWidth( 60 );
+  ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 4, 0 ) );
+
+  changed |= ImGui::DragFloat( "X##scale", &scale.x, 0.1f, 0.0f, 100.0f, "%.2f" );
+  ImGui::SameLine();
+  changed |= ImGui::DragFloat( "Y##scale", &scale.y, 0.1f, 0.0f, 100.0f, "%.2f" );
+  ImGui::SameLine();
+  changed |= ImGui::DragFloat( "Z##scale", &scale.z, 0.1f, 0.0f, 100.0f, "%.2f" );
+
+  ImGui::PopStyleVar();
+  ImGui::PopItemWidth();
+
+  ImGui::Text( "Rotation" );
+  ImGui::SameLine();
+
+  ImGui::PushItemWidth( 60 );
+  ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 4, 0 ) );
+
+  auto& rotation = transformComponent->rotation;
+  changed |= ImGui::DragFloat( "X##rotation", &rotation.x, 0.1f, -180.0f, 180.0f, "%.2f" );
+  ImGui::SameLine();
+  changed |= ImGui::DragFloat( "Y##rotation", &rotation.y, 0.1f, -180.0f, 180.0f, "%.2f" );
+  ImGui::SameLine();
+  changed |= ImGui::DragFloat( "Z##rotation", &rotation.z, 0.1f, -180.0f, 180.0f, "%.2f" );
+
+  ImGui::PopStyleVar();
+  ImGui::PopItemWidth();
 
   if ( changed )
   {
@@ -299,8 +350,6 @@ void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
     if ( !scene )
       return;
 
-    transformComponent->updateMatrix();
-
     // we need the index of the instance
     const auto& indexComponent = ent.getComponent<IndexComponent>();
 
@@ -308,13 +357,12 @@ void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
     const auto data = scene->getData( modelComponent->pModel.lock().get() );
 
     // update the matrix in the instance matrices vector
-    data->instanceMatrices.at( indexComponent.index ) = transformComponent->modelMatrix;
+    ImGuizmo::RecomposeMatrixFromComponents( glm::value_ptr( pos ), glm::value_ptr( glm::degrees( rotation ) ),
+                                             glm::value_ptr( scale ),
+                                             glm::value_ptr( data->instanceMatrices.at( indexComponent.index ) ) );
 
-    // if we have a multiple instances
-    if ( data->count >= 1 )
-    {
-      scene->setupMultipleInstances( data );
-    }
+    scene->setupMultipleInstances( data );
   }
 }
+
 } // namespace kogayonon_gui

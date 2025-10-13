@@ -4,6 +4,7 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
+#include "core/ecs/components/index_component.h"
 #include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
@@ -19,13 +20,9 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
 {
   begin( shader );
 
-  auto view = scene->getEnttRegistry().view<TransformComponent, ModelComponent>();
+  auto view = scene->getEnttRegistry().view<TransformComponent, ModelComponent, IndexComponent>();
 
-  for ( const auto& [entity, transformComp, modelComp] : view.each() )
-  {
-  }
-
-  for ( const auto& [entity, transformComp, modelComp] : view.each() )
+  for ( const auto& [entity, transformComp, modelComp, indexComp] : view.each() )
   {
     if ( !modelComp.loaded )
       continue;
@@ -65,9 +62,9 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
       }
       else
       {
+        auto& matrix = instanceData->instanceMatrices.at( indexComp.index );
         shader.setBool( "instanced", false );
-        transformComp.updateMatrix();
-        shader.setMat4( "model", transformComp.modelMatrix );
+        shader.setMat4( "model", matrix );
 
         // draw the indices
         glDrawElements( GL_TRIANGLES, (GLsizei)mesh.getIndices().size(), GL_UNSIGNED_INT, nullptr );

@@ -117,8 +117,17 @@ void Scene::addInstanceData( entt::entity entityId )
 void Scene::addModelToEntity( entt::entity entity, std::weak_ptr<kogayonon_resources::Model> pModel )
 {
   Entity ent{ *m_pRegistry, entity };
-  ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
-  ent.addComponent<TransformComponent>();
+  if ( !ent.hasComponent<ModelComponent>() )
+  {
+    ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
+    ent.addComponent<TransformComponent>();
+  }
+  else
+  {
+    removeModelFromEntity( ent.getEntityId() );
+    ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
+    ent.addComponent<TransformComponent>();
+  }
   addInstanceData( ent.getEntityId() );
 }
 
@@ -168,7 +177,7 @@ void Scene::removeInstanceData( entt::entity ent )
   }
 }
 
-void Scene::removeModelFromEntity( entt::entity entity, std::weak_ptr<kogayonon_resources::Model> pModel )
+void Scene::removeModelFromEntity( entt::entity entity )
 {
   Entity ent{ *m_pRegistry, entity };
 
