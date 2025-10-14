@@ -64,7 +64,19 @@ void SceneHierarchyWindow::draw()
     return;
   }
 
-  ImGui::Text( "Entity number:%d", scene->getEntityCount() );
+  ImGui::Text( "%d entities", scene->getEntityCount() );
+  ImGui::TextUnformatted( "Add entity" );
+  ImGui::SameLine();
+  if ( ImGui::Button( "+" ) )
+  {
+    if ( auto scene = SceneManager::getCurrentScene().lock() )
+    {
+      // no component entity
+      auto entity = scene->addEntity();
+      m_selectedEntity = entity.getEntityId();
+      EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{ m_selectedEntity } );
+    }
+  }
 
   auto& enttRegistry = scene->getEnttRegistry();
   auto view = enttRegistry.view<IdentifierComponent>();
@@ -80,7 +92,7 @@ void SceneHierarchyWindow::draw()
   auto avail = ImGui::GetContentRegionAvail();
 
   ImGui::BeginChild( "##entity_table", avail, false, ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX );
-  if ( ImGui::BeginTable( "##entity_table_contents", 3 ) )
+  if ( ImGui::BeginTable( "##entity_table_contents", 3, ImGuiTableFlags_Borders ) )
   {
     // table headers
     ImGui::TableSetupColumn( "name" );

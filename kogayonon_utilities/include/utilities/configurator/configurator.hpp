@@ -70,7 +70,7 @@ private:
    */
   static bool checkArray( const rapidjson::Value& toCheck, const std::string& member );
 
-  Configurator() = default;
+  Configurator() = delete;
   ~Configurator() = default;
 
   Configurator& operator=( Configurator& ) = delete;

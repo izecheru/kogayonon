@@ -29,7 +29,7 @@ public:
   void setupCamera();
 
   glm::mat4& getViewMatrix() const;
-  glm::mat4& getProjectionMatrix( int fov, int aspectRation, float near, float far ) const;
+  glm::mat4 getProjectionMatrix( int fov, int aspectRatio, float near, float far ) const;
   void onMouseMoved( float x, float y, bool constrainPitch );
   void onKeyPressed( float delta );
   void updateCameraVectors();

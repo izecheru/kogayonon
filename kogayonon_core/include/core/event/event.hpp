@@ -25,6 +25,7 @@ enum class EventType
   MouseClicked,
 
   SelectedEntity,
+  SaveScene,
 
   FileModified,
   FileRenamed,

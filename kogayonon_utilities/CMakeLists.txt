@@ -17,7 +17,7 @@ add_library(
   "include/utilities/input/key_codes.hpp"
   "include/utilities/input/mouse_codes.hpp"
   "include/utilities/configurator/configurator.hpp"
- "src/configurator.cpp")
+ "src/configurator.cpp" "src/serializer.cpp" "include/utilities/serializer/serializer.hpp")
 
 target_include_directories(kogayonon_utilities
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

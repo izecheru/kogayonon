@@ -212,6 +212,9 @@ void ImGuiManager::mainMenu()
       {
         EVENT_DISPATCHER()->emitEvent( kogayonon_core::WindowCloseEvent{} );
       }
+      if ( ImGui::MenuItem( "Save scene" ) )
+      {
+      }
       ImGui::EndMenu();
     }
     ImGui::EndMainMenuBar();

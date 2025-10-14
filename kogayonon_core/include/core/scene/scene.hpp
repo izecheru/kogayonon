@@ -92,8 +92,8 @@ public:
   InstanceData* getData( kogayonon_resources::Model* pModel );
 
   /**
-   * @brief Sets up the instance buffer and uploads the data to the gpu
-   * @param data Pointer to the data that we are about to upload
+   * @brief Sets up the instance buffer, entity buffer and uploads the required data for rendering to the gpu
+   * @param data InstanceData* (pointer) to the data that we are about to upload to the gpu
    */
   void setupMultipleInstances( InstanceData* data );
 

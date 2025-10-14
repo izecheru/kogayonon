@@ -19,6 +19,7 @@
 #include "core/systems/rendering_system.h"
 #include "rendering/camera/camera.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
+#include "utilities/serializer/serializer.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
 #include "utilities/task_manager/task_manager.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
@@ -63,6 +64,56 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
   EVENT_DISPATCHER()->addHandler<MouseClickedEvent, &SceneViewportWindow::onMouseClicked>( *this );
   EVENT_DISPATCHER()->addHandler<KeyPressedEvent, &SceneViewportWindow::onKeyPressed>( *this );
   EVENT_DISPATCHER()->addHandler<MouseScrolledEvent, &SceneViewportWindow::onMouseScrolled>( *this );
+}
+
+void SceneViewportWindow::onSaveScene( const SaveSceneEvent& e )
+{
+  std::filesystem::path path{ std::filesystem::absolute( "resources/scenes" ) };
+  if ( !std::filesystem::exists( path ) )
+  {
+    std::filesystem::create_directories( path );
+
+    auto scene = SceneManager::getCurrentScene().lock();
+    auto scenePath = path.string() + "/" + scene->getName() + ".bin";
+
+    std::ofstream out{ scenePath };
+
+    if ( !out.is_open() )
+      spdlog::error( "Could not create {}", scenePath );
+
+    std::vector<int> test{ 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    size_t size = test.size();
+    kogayonon_utilities::Serializer::serialize( size, out );
+    kogayonon_utilities::Serializer::serializeRaw( test.data(), test.size() * sizeof( int ), out );
+
+    if ( out.is_open() )
+    {
+      out.close();
+    }
+  }
+  else
+  {
+    std::filesystem::create_directories( path );
+
+    auto scene = SceneManager::getCurrentScene().lock();
+    auto scenePath = path.string() + "/" + scene->getName() + ".bin";
+
+    std::ifstream in{ scenePath };
+
+    size_t size;
+    kogayonon_utilities::Serializer::deserialize( size, in );
+
+    std::vector<int> test;
+    test.resize( size );
+    kogayonon_utilities::Serializer::deserializeRaw( test.data(), size * sizeof( int ), in );
+    for ( int i = 0; i < test.size(); i++ )
+    {
+      spdlog::info( "{}", test.at( i ) );
+    }
+
+    if ( in.is_open() )
+      in.close();
+  }
 }
 
 void SceneViewportWindow::onMouseScrolled( const MouseScrolledEvent& e )
@@ -168,6 +219,11 @@ void SceneViewportWindow::drawPickingScene()
 
 void SceneViewportWindow::onKeyPressed( const KeyPressedEvent& e )
 {
+  if ( KeyboardState::getKeyCombinationState( { KeyCode::LeftControl, KeyCode::S } ) )
+  {
+    onSaveScene( SaveSceneEvent{} );
+  }
+
   // change gizmo mode if we press SHIFT + S R T
   if ( !KeyboardState::getKeyState( KeyCode::LeftShift ) )
     return;

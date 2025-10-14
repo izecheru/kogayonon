@@ -35,4 +35,14 @@ private:
   entt::entity m_entity;
 };
 
+class SaveSceneEvent : public IEvent
+{
+public:
+  SaveSceneEvent() = default;
+
+  EVENT_CLASS_TYPE( SaveScene )
+
+private:
+};
+
 } // namespace kogayonon_core

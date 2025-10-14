@@ -300,9 +300,9 @@ void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
   if ( ImGui::BeginTable( "##transform_table", 4 ) )
   {
     ImGui::TableSetupColumn( "label", ImGuiTableColumnFlags_WidthFixed, textSize.x );
-    ImGui::TableSetupColumn( "x", ImGuiTableColumnFlags_WidthFixed, 80.0f );
-    ImGui::TableSetupColumn( "y", ImGuiTableColumnFlags_WidthFixed, 80.0f );
-    ImGui::TableSetupColumn( "z", ImGuiTableColumnFlags_WidthFixed, 80.0f );
+    ImGui::TableSetupColumn( "x", ImGuiTableColumnFlags_WidthFixed, 100.0f );
+    ImGui::TableSetupColumn( "y", ImGuiTableColumnFlags_WidthFixed, 100.0f );
+    ImGui::TableSetupColumn( "z", ImGuiTableColumnFlags_WidthFixed, 100.0f );
 
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
