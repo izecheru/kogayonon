@@ -67,15 +67,10 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
 
   if ( auto pIdentifierComponent = entity.tryGetComponent<IdentifierComponent>() )
   {
+    ImGui::SeparatorText( "Entity idenfitification" );
     ImGui::InputText( "##id", &pIdentifierComponent->name );
-    ImGui::Separator();
-    if ( ImGui::BeginCombo( "##entity_type", "Change entity type" ) )
-    {
-      if ( ImGui::MenuItem( "Entity" ) )
-      {
-      }
-      ImGui::EndCombo();
-    }
+    ImGui::Text( "Group: %s", pIdentifierComponent->group.c_str() );
+    ImGui::Text( "Type: %s", typeToString( pIdentifierComponent->type ).c_str() );
   }
 
   if ( ImGui::BeginPopupContextWindow( "##model_context" ) )
@@ -97,16 +92,16 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
     ImGui::EndPopup();
   }
 
-  if ( entity.hasComponent<TransformComponent>() )
-  {
-    ImGui::SeparatorText( "Transform" );
-    drawTransformComponent( entity );
-  }
-
   if ( entity.hasComponent<ModelComponent>() )
   {
     ImGui::SeparatorText( "Model" );
     drawModelComponent( entity );
+  }
+
+  if ( entity.hasComponent<TransformComponent>() )
+  {
+    ImGui::SeparatorText( "Transform" );
+    drawTransformComponent( entity );
   }
 }
 
@@ -293,74 +288,85 @@ void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
   const auto& modelComponent = ent.tryGetComponent<ModelComponent>();
 
   bool changed = false;
-  auto& pos = transformComponent->pos;
+  auto& translation = transformComponent->translation;
   auto& scale = transformComponent->scale;
 
-  ImGui::Text( "Position" );
-  ImGui::SameLine();
+  // since the first two are the largest we make the width = largest size
+  // position
+  // rotation
+  // scale
+  static auto textSize = ImGui::CalcTextSize( "Translation" );
 
-  ImGui::PushItemWidth( 60 );
-  ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 4, 0 ) );
-
-  changed |= ImGui::DragFloat( "X##pos", &pos.x, 0.1f, pos.x - 100.0f, pos.x + 100.0f, "%.2f" );
-  ImGui::SameLine();
-  changed |= ImGui::DragFloat( "Y##pos", &pos.y, 0.1f, pos.y - 100.0f, pos.y + 100.0f, "%.2f" );
-  ImGui::SameLine();
-  changed |= ImGui::DragFloat( "Z##pos", &pos.z, 0.1f, pos.z - 100.0f, pos.z + 100.0f, "%.2f" );
-
-  ImGui::PopStyleVar();
-  ImGui::PopItemWidth();
-
-  ImGui::Text( "Scale" );
-  ImGui::SameLine();
-
-  ImGui::PushItemWidth( 60 );
-  ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 4, 0 ) );
-
-  changed |= ImGui::DragFloat( "X##scale", &scale.x, 0.1f, 0.0f, 100.0f, "%.2f" );
-  ImGui::SameLine();
-  changed |= ImGui::DragFloat( "Y##scale", &scale.y, 0.1f, 0.0f, 100.0f, "%.2f" );
-  ImGui::SameLine();
-  changed |= ImGui::DragFloat( "Z##scale", &scale.z, 0.1f, 0.0f, 100.0f, "%.2f" );
-
-  ImGui::PopStyleVar();
-  ImGui::PopItemWidth();
-
-  ImGui::Text( "Rotation" );
-  ImGui::SameLine();
-
-  ImGui::PushItemWidth( 60 );
-  ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 4, 0 ) );
-
-  auto& rotation = transformComponent->rotation;
-  changed |= ImGui::DragFloat( "X##rotation", &rotation.x, 0.1f, -180.0f, 180.0f, "%.2f" );
-  ImGui::SameLine();
-  changed |= ImGui::DragFloat( "Y##rotation", &rotation.y, 0.1f, -180.0f, 180.0f, "%.2f" );
-  ImGui::SameLine();
-  changed |= ImGui::DragFloat( "Z##rotation", &rotation.z, 0.1f, -180.0f, 180.0f, "%.2f" );
-
-  ImGui::PopStyleVar();
-  ImGui::PopItemWidth();
-
-  if ( changed )
+  if ( ImGui::BeginTable( "##transform_table", 4 ) )
   {
-    auto scene = SceneManager::getCurrentScene().lock();
+    ImGui::TableSetupColumn( "label", ImGuiTableColumnFlags_WidthFixed, textSize.x );
+    ImGui::TableSetupColumn( "x", ImGuiTableColumnFlags_WidthFixed, 80.0f );
+    ImGui::TableSetupColumn( "y", ImGuiTableColumnFlags_WidthFixed, 80.0f );
+    ImGui::TableSetupColumn( "z", ImGuiTableColumnFlags_WidthFixed, 80.0f );
 
-    if ( !scene )
-      return;
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
 
-    // we need the index of the instance
-    const auto& indexComponent = ent.getComponent<IndexComponent>();
+    ImGui::Text( "Translation" );
 
-    // get the instance data of this model
-    const auto data = scene->getData( modelComponent->pModel.lock().get() );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Xtranslation", &translation.x, 0.1f, translation.x - 100.0f, translation.x + 100.0f,
+                                 "%.2f" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Ytranslation", &translation.y, 0.1f, translation.y - 100.0f, translation.y + 100.0f,
+                                 "%.2f" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Ztranslation", &translation.z, 0.1f, translation.z - 100.0f, translation.z + 100.0f,
+                                 "%.2f" );
 
-    // update the matrix in the instance matrices vector
-    ImGuizmo::RecomposeMatrixFromComponents( glm::value_ptr( pos ), glm::value_ptr( rotation ), glm::value_ptr( scale ),
-                                             glm::value_ptr( data->instanceMatrices.at( indexComponent.index ) ) );
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
 
-    scene->setupMultipleInstances( data );
+    ImGui::Text( "Scale" );
+
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Xscale", &scale.x, 0.1f, 0.0f, 100.0f, "%.2f" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Yscale", &scale.y, 0.1f, 0.0f, 100.0f, "%.2f" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Zscale", &scale.z, 0.1f, 0.0f, 100.0f, "%.2f" );
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+
+    ImGui::Text( "Rotation" );
+
+    auto& rotation = transformComponent->rotation;
+
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Xrotation", &rotation.x, 0.1f, -180.0f, 180.0f, "%.2f" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Yrotation", &rotation.y, 0.1f, -180.0f, 180.0f, "%.2f" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Zrotation", &rotation.z, 0.1f, -180.0f, 180.0f, "%.2f" );
+
+    ImGui::EndTable();
+
+    if ( changed )
+    {
+      auto scene = SceneManager::getCurrentScene().lock();
+
+      if ( !scene )
+        return;
+
+      // we need the index of the instance
+      const auto& indexComponent = ent.getComponent<IndexComponent>();
+
+      // get the instance data of this model
+      const auto data = scene->getData( modelComponent->pModel.lock().get() );
+
+      // update the matrix in the instance matrices vector
+      ImGuizmo::RecomposeMatrixFromComponents( glm::value_ptr( translation ), glm::value_ptr( rotation ),
+                                               glm::value_ptr( scale ),
+                                               glm::value_ptr( data->instanceMatrices.at( indexComponent.index ) ) );
+
+      scene->setupMultipleInstances( data );
+    }
   }
 }
-
 } // namespace kogayonon_gui

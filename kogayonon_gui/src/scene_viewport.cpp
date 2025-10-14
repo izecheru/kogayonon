@@ -233,12 +233,11 @@ void SceneViewportWindow::draw()
       if ( ImGuizmo::IsUsing() )
       {
         ImGui::SetMouseCursor( ImGuiMouseCursor_None );
-        glm::vec3 pos, rotation, scale;
-        ImGuizmo::DecomposeMatrixToComponents( glm::value_ptr( instanceMatrix ), glm::value_ptr( pos ),
+        glm::vec3 translation, rotation, scale;
+        ImGuizmo::DecomposeMatrixToComponents( glm::value_ptr( instanceMatrix ), glm::value_ptr( translation ),
                                                glm::value_ptr( rotation ), glm::value_ptr( scale ) );
 
-        // auto rotationRadians = glm::degrees( rotation );
-        transform->pos = pos;
+        transform->translation = translation;
         transform->rotation = rotation;
         transform->scale = scale;
         scene->setupMultipleInstances( instanceData );

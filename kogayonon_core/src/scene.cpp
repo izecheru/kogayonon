@@ -78,7 +78,7 @@ void Scene::addInstanceData( entt::entity entityId )
 
       // insert in the vector
       instanceData->instanceMatrices.push_back(
-        math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) );
+        math::computeModelMatrix( transform.translation, transform.rotation, transform.scale ) );
 
       // get the index of the instance matrix
       uint32_t size = instanceData->instanceMatrices.size();
@@ -101,7 +101,7 @@ void Scene::addInstanceData( entt::entity entityId )
       .entityIdBuffer = 0,
       .entityIds = { static_cast<int>( entity.getEntityId() ) },
       .instanceBuffer = 0,
-      .instanceMatrices = { math::computeModelMatrix( transform.pos, transform.rotation, transform.scale ) },
+      .instanceMatrices = { math::computeModelMatrix( transform.translation, transform.rotation, transform.scale ) },
       .count = 1,
       .pModel = pModel.lock().get() } );
 
