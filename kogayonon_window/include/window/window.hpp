@@ -35,7 +35,7 @@ public:
 
   void swapWindow();
 
-  void setMaximized( bool value );
+  void maximize();
   bool getMaximized();
 
   int getWidth() const;
@@ -45,6 +45,9 @@ public:
   void resize();
   void resize( int w, int h );
   void placeAt( int x, int y );
+  void setTitle( const char* title );
+  void setBordered( bool value );
+  void setResizable( bool value );
 
   window_props* getWindowProps();
 

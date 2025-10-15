@@ -66,14 +66,31 @@ void Window::placeAt( int x, int y )
   m_pWindowProps->y = y;
 }
 
+void Window::setTitle( const char* title )
+{
+  SDL_SetWindowTitle( m_window, title );
+}
+
+void Window::setBordered( bool value )
+{
+  SDL_SetWindowBordered( m_window, value == true ? SDL_TRUE : SDL_FALSE );
+}
+
+void Window::setResizable( bool value )
+{
+  SDL_SetWindowResizable( m_window, value == true ? SDL_TRUE : SDL_FALSE );
+}
+
 bool Window::getMaximized()
 {
   return m_pWindowProps->maximized;
 }
 
-void Window::setMaximized( bool value )
+void Window::maximize()
 {
-  m_pWindowProps->maximized = value;
+  m_pWindowProps->maximized = true;
+  SDL_MaximizeWindow( m_window );
+  resize();
 }
 
 int Window::getWidth() const

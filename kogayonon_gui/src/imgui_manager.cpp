@@ -46,6 +46,7 @@ bool ImGuiManager::initImgui( SDL_Window* window, SDL_GLContext context )
   m_io = &ImGui::GetIO();
   m_io->ConfigFlags |=
     ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
+  m_io->IniFilename = "imgui_config.ini";
 
   m_io->ConfigWindowsMoveFromTitleBarOnly = true;
 

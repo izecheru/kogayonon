@@ -208,14 +208,11 @@ bool App::initSDL()
   SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
   auto pWinProps = m_pWindow->getWindowProps();
 
-  auto flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
-  if ( pWinProps->maximized )
-  {
-    flags |= SDL_WINDOW_MAXIMIZED;
-  }
+  auto flags = SDL_WINDOW_OPENGL;
 
   auto win = SDL_CreateWindow( pWinProps->title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, pWinProps->width,
                                pWinProps->height, flags );
+
   m_pWindow->setWindow( std::move( win ) );
 
   auto ctx = SDL_GL_CreateContext( m_pWindow->getWindow() );
@@ -228,6 +225,9 @@ bool App::initSDL()
     spdlog::critical( "Failed to initialize GLAD" );
     return false;
   }
+
+  m_pWindow->setBordered( false );
+  m_pWindow->setResizable( true );
 
 #ifdef _DEBUG
   glEnable( GL_DEBUG_OUTPUT );
@@ -441,11 +441,6 @@ void App::glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severit
 
 void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
 {
-  // resize the window since we will initialise all the other engine windows
-  const auto& config = Configurator::getConfig();
-  m_pWindow->placeAt( 100, 100 );
-  m_pWindow->resize( config.width, config.height );
-
   // hide the choose project window
   for ( auto& win : IMGUI_MANAGER()->getWindows() )
   {
@@ -454,6 +449,23 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
       win.second->hide();
     }
   }
+
+  // resize the window since we will initialise all the other engine windows
+  const auto& config = Configurator::getConfig();
+
+  // call this once to set the flag for menu to be rendered
+  // IMGUI_MANAGER()->renderMenu();
+
+  // enable border
+  m_pWindow->setBordered( true );
+
+  // can resize the window now
+  m_pWindow->setResizable( true );
+
+  // maximize window
+  m_pWindow->maximize();
+
+  m_pWindow->setTitle( "kogayonon game engine - [ implement project manager and get the name here ]" );
 
   const auto& pAssetManager = ASSET_MANAGER();
 
