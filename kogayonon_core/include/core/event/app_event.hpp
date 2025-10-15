@@ -9,10 +9,12 @@ class WindowCloseEvent : public IEvent
 {
 public:
   WindowCloseEvent() = default;
-  EVENT_CLASS_TYPE( WindowClose )
+
+private:
 };
 
 class WindowResizeEvent : public IEvent
+
 {
 public:
   WindowResizeEvent( int width, int height )
@@ -30,8 +32,6 @@ public:
   {
     return m_Height;
   }
-
-  EVENT_CLASS_TYPE( WindowResize )
 
 private:
   int m_Width, m_Height;

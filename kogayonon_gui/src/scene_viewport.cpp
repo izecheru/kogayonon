@@ -81,10 +81,10 @@ void SceneViewportWindow::onSaveScene( const SaveSceneEvent& e )
     if ( !out.is_open() )
       spdlog::error( "Could not create {}", scenePath );
 
-    std::vector<int> test{ 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    std::string test{ "test2" };
     size_t size = test.size();
     kogayonon_utilities::Serializer::serialize( size, out );
-    kogayonon_utilities::Serializer::serializeRaw( test.data(), test.size() * sizeof( int ), out );
+    kogayonon_utilities::Serializer::serializeRaw( test.data(), test.size() * sizeof( char ), out );
 
     if ( out.is_open() )
     {
@@ -103,13 +103,10 @@ void SceneViewportWindow::onSaveScene( const SaveSceneEvent& e )
     size_t size;
     kogayonon_utilities::Serializer::deserialize( size, in );
 
-    std::vector<int> test;
+    std::string test;
     test.resize( size );
-    kogayonon_utilities::Serializer::deserializeRaw( test.data(), size * sizeof( int ), in );
-    for ( int i = 0; i < test.size(); i++ )
-    {
-      spdlog::info( "{}", test.at( i ) );
-    }
+    kogayonon_utilities::Serializer::deserializeRaw( test.data(), size * sizeof( char ), in );
+    spdlog::info( test );
 
     if ( in.is_open() )
       in.close();
@@ -246,8 +243,6 @@ void SceneViewportWindow::draw()
 {
   if ( !begin() )
     return;
-
-  initProps();
 
   // this must be called every frame, not on key press function because it would never move smoothly
   // also the keyboard button check is a map of keys with a bool set to true if button is currently pressed

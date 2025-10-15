@@ -16,6 +16,7 @@ add_library(
   "include/core/event/file_events.hpp"
   "include/core/systems/rendering_system.h"
   "include/core/ecs/components/index_component.h"
+  "include/core/event/project_event.hpp"
 
   "src/main_registry.cpp"
   "src/entity.cpp"

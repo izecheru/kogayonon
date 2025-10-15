@@ -21,8 +21,6 @@ public:
     return m_entered;
   }
 
-  EVENT_CLASS_TYPE( MouseEntered )
-
 private:
   int m_entered;
 };
@@ -62,8 +60,6 @@ public:
     return m_yRel;
   }
 
-  EVENT_CLASS_TYPE( MouseMoved )
-
 private:
   double m_xRel;
   double m_yRel;
@@ -93,7 +89,6 @@ public:
   {
     return m_action;
   }
-  EVENT_CLASS_TYPE( MouseClicked )
 };
 
 class MouseScrolledEvent : public IEvent
@@ -118,6 +113,5 @@ public:
   {
     return m_y_offset;
   }
-  EVENT_CLASS_TYPE( MouseScrolled )
 };
 } // namespace kogayonon_core

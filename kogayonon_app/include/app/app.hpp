@@ -7,6 +7,7 @@ namespace kogayonon_core
 {
 class WindowResizeEvent;
 class WindowCloseEvent;
+class ProjectLoadEvent;
 } // namespace kogayonon_core
 
 namespace kogayonon_gui
@@ -39,6 +40,7 @@ public:
   void rescaleMainViewport( int w, int h );
   bool onWindowResize( const kogayonon_core::WindowResizeEvent& e );
   void onWindowClose( const kogayonon_core::WindowCloseEvent& e );
+  void onProjectLoad( const kogayonon_core::ProjectLoadEvent& e );
 
   static void glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
                                const GLchar* message, const void* userParam );

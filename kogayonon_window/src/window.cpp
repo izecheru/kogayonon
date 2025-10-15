@@ -7,6 +7,10 @@ namespace kogayonon_window
 Window::Window( const char* t_title, int t_width, int t_height, bool t_vsync, bool t_maximized )
     : m_pWindowProps( std::make_shared<window_props>( t_title, t_width, t_height, t_vsync, t_maximized ) )
 {
+  int x, y;
+  SDL_GetWindowPosition( m_window, &x, &y );
+  m_pWindowProps->x = x;
+  m_pWindowProps->y = y;
 }
 
 Window::~Window()
@@ -46,6 +50,20 @@ void Window::resize()
   SDL_GL_GetDrawableSize( m_window, &w, &h );
   setWidth( w );
   setHeight( h );
+}
+
+void Window::resize( int w, int h )
+{
+  setWidth( w );
+  setHeight( h );
+  SDL_SetWindowSize( m_window, w, h );
+}
+
+void Window::placeAt( int x, int y )
+{
+  SDL_SetWindowPosition( m_window, x, y );
+  m_pWindowProps->x = x;
+  m_pWindowProps->y = y;
 }
 
 bool Window::getMaximized()

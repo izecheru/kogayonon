@@ -26,8 +26,6 @@ public:
     return m_path;
   }
 
-  EVENT_CLASS_TYPE( FileCreated )
-
 protected:
   std::string m_name;
   std::string m_path;
@@ -54,8 +52,6 @@ public:
   }
 
   ~FileRenamedEvent() = default;
-
-  EVENT_CLASS_TYPE( FileRenamed )
 
 protected:
   std::string m_oldName;
@@ -84,8 +80,6 @@ public:
     return m_name;
   }
 
-  EVENT_CLASS_TYPE( FileDeleted )
-
 protected:
   std::string m_name;
   std::string m_path;
@@ -112,8 +106,6 @@ public:
   {
     return m_name;
   }
-
-  EVENT_CLASS_TYPE( FileModified )
 
 protected:
   std::string m_name;

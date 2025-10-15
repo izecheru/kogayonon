@@ -48,7 +48,6 @@ bool ImGuiManager::initImgui( SDL_Window* window, SDL_GLContext context )
     ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable;
 
   m_io->ConfigWindowsMoveFromTitleBarOnly = true;
-  m_io->IniFilename = "imgui_config.ini";
 
   std::string font = "resources/fonts/SGr-IosevkaTermSS18-Medium.ttc";
   ImFontConfig cfg;
@@ -59,9 +58,6 @@ bool ImGuiManager::initImgui( SDL_Window* window, SDL_GLContext context )
   // make iosevka the deafult font
   ImFont* pFont = m_io->Fonts->AddFontFromFileTTF( font.c_str(), 18.0f, &cfg );
   m_io->FontDefault = pFont;
-
-  static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None | ImGuiDockNodeFlags_NoTabBar;
-  ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
 
   // change the style
   ImGuiStyle& style = ImGui::GetStyle();
@@ -115,7 +111,7 @@ bool ImGuiManager::initImgui( SDL_Window* window, SDL_GLContext context )
 
 void ImGuiManager::setupDockSpace( ImGuiViewport* viewport )
 {
-  static ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags_None;
+  static ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags_None | ImGuiDockNodeFlags_AutoHideTabBar;
   if ( ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable )
   {
     const auto dockspaceId = ImGui::GetID( "MyDockspace" );
@@ -143,6 +139,7 @@ void ImGuiManager::setupDockSpace( ImGuiViewport* viewport )
       ImGui::DockBuilderDockWindow( "Object properties", lowerLeftNodeId );
       ImGui::DockBuilderDockWindow( "Performance", rightNodeId );
       ImGui::DockBuilderDockWindow( "Scene", centerNodeId );
+      ImGui::DockBuilderDockWindow( "Project", centerNodeId );
 
       ImGui::DockBuilderFinish( dockspaceId );
     }
@@ -225,4 +222,5 @@ ImGuiManager::ImGuiWindows_Map& ImGuiManager::getWindows()
 {
   return m_windows;
 }
+
 } // namespace kogayonon_gui

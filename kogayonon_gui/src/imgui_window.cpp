@@ -12,9 +12,31 @@ ImGuiWindow::ImGuiWindow( std::string name, ImGuiWindowFlags flags )
 {
 }
 
+ImGuiWindow::ImGuiWindow( std::string name, ImGuiWindowFlags flags, ImVec2 size )
+    : m_props{ std::make_unique<imgui_props>( name, flags, size ) }
+
+{
+  ImGui::SetWindowSize( size );
+}
+
+ImGuiWindow::ImGuiWindow( std::string name, ImVec2 size )
+    : m_props{ std::make_unique<imgui_props>( name, size ) }
+{
+}
+
 std::string ImGuiWindow::getName() const
 {
   return m_props->name;
+}
+
+void ImGuiWindow::hide()
+{
+  m_props->visible = false;
+}
+
+void ImGuiWindow::show()
+{
+  m_props->visible = true;
 }
 
 void ImGuiWindow::setPosition()
@@ -75,7 +97,13 @@ bool ImGuiWindow::begin()
   if ( !m_props->visible )
     return false;
 
-  ImGui::Begin( m_props->name.c_str() );
+  if ( !ImGui::Begin( m_props->name.c_str() ) )
+  {
+    end();
+    return false;
+  }
+
+  initProps();
   return true;
 }
 

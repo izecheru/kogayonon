@@ -6,14 +6,19 @@ namespace kogayonon_core
 enum class EventType
 {
   None = 0,
+
+  // Window events
   WindowClose,
   WindowResize,
   WindowFocus,
   WindowLostFocus,
   WindowMinimzed,
+
   AppTick,
   AppUpdate,
   AppRender,
+
+  // Input events
   KeyPressed,
   KeyReleased,
   KeyTyped,
@@ -24,28 +29,24 @@ enum class EventType
   MouseEntered,
   MouseClicked,
 
+  // Scene related events
   SelectedEntity,
   SaveScene,
 
+  // Project events
+  ProjectLoad,
+
+  // File events
   FileModified,
   FileRenamed,
   FileCreated,
   FileDeleted,
 };
 
-// clang-format off
-#define EVENT_CLASS_TYPE(type) static EventType getStaticType() { return EventType::type; }\
-								virtual EventType getEventType() const override { return getStaticType(); }
-
-// clang-format on
-
 class IEvent
 {
 public:
   IEvent() = default;
   virtual ~IEvent() = default;
-  virtual EventType getEventType() const = 0;
-
-  bool handled = false;
 };
 } // namespace kogayonon_core

@@ -13,6 +13,7 @@
 #include "core/ecs/registry.hpp"
 #include "core/event/app_event.hpp"
 #include "core/event/event_dispatcher.hpp"
+#include "core/event/project_event.hpp"
 #include "core/input/keyboard_events.hpp"
 #include "core/input/mouse_events.hpp"
 #include "core/scene/scene.hpp"
@@ -22,6 +23,7 @@
 #include "gui/file_explorer.hpp"
 #include "gui/imgui_manager.hpp"
 #include "gui/performance_window.hpp"
+#include "gui/project_window.hpp"
 #include "gui/scene_hierarchy.hpp"
 #include "gui/scene_viewport.hpp"
 #include "rendering/renderer.hpp"
@@ -283,6 +285,7 @@ bool App::initRegistries() const
   assetManager->addTexture( "folder.png" );
   assetManager->addTexture( "default.png" );
   assetManager->addTexture( "3d-cube.png" );
+  assetManager->addTexture( "logo.png" );
 
   assetManager->addModel( "default", "resources/models/Cube.gltf" );
 
@@ -293,26 +296,8 @@ bool App::initRegistries() const
 
 bool App::initGui()
 {
-  const auto& pAssetManager = ASSET_MANAGER();
-
-  // textures for imgui buttons or windows and what not
-  auto playTexture = pAssetManager->getTexture( "play.png" ).lock()->getTextureId();
-  auto stopTexture = pAssetManager->getTexture( "stop.png" ).lock()->getTextureId();
-  auto fileTexture = pAssetManager->getTexture( "file.png" ).lock()->getTextureId();
-  auto folderTexture = pAssetManager->getTexture( "folder.png" ).lock()->getTextureId();
-
-  auto sceneViewport =
-    std::make_unique<kogayonon_gui::SceneViewportWindow>( m_pWindow->getWindow(), "Scene", playTexture, stopTexture );
-  auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets", folderTexture, fileTexture );
-  auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>( "Scene hierarchy" );
-  auto performanceWindow = std::make_unique<kogayonon_gui::PerformanceWindow>( "Performance" );
-  auto entityPropertiesWindow = std::make_unique<kogayonon_gui::EntityPropertiesWindow>( "Object properties" );
-
-  IMGUI_MANAGER()->pushWindow( "Scene", std::move( sceneViewport ) );
-  IMGUI_MANAGER()->pushWindow( "Object properties", std::move( entityPropertiesWindow ) );
-  IMGUI_MANAGER()->pushWindow( "Performance", std::move( performanceWindow ) );
-  IMGUI_MANAGER()->pushWindow( "Scene hierarchy", std::move( sceneHierarchy ) );
-  IMGUI_MANAGER()->pushWindow( "Assets", std::move( fileExplorerWindow ) );
+  auto projectWindow = std::make_unique<kogayonon_gui::ProjectWindow>( "Project" );
+  IMGUI_MANAGER()->pushWindow( "Project", std::move( projectWindow ) );
 
   return true;
 }
@@ -330,10 +315,8 @@ bool App::initScenes() const
 
 bool App::init()
 {
-  const auto& config = Configurator::getConfig();
 #ifdef _DEBUG
-  m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine (DEBUG)", config.width, config.height, 1,
-                                                          config.maximized );
+  m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine (DEBUG)", 600, 400, 1, false );
 #else
   m_pWindow =
     std::make_shared<kogayonon_window::Window>( "kogayonon engine", config.width, config.height, 1, config.maximized );
@@ -350,6 +333,7 @@ bool App::init()
   }
 
   EVENT_DISPATCHER()->addHandler<kogayonon_core::WindowCloseEvent, &App::onWindowClose>( *this );
+  EVENT_DISPATCHER()->addHandler<kogayonon_core::ProjectLoadEvent, &App::onProjectLoad>( *this );
 
   if ( !initGui() )
   {
@@ -454,4 +438,43 @@ void App::glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severit
                    glSeverityToStr( severity ), glTypeToStr( type ), glSourceToStr( source ), id, message );
   }
 }
+
+void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
+{
+  // resize the window since we will initialise all the other engine windows
+  const auto& config = Configurator::getConfig();
+  m_pWindow->placeAt( 100, 100 );
+  m_pWindow->resize( config.width, config.height );
+
+  // hide the choose project window
+  for ( auto& win : IMGUI_MANAGER()->getWindows() )
+  {
+    if ( win.first == "Project" )
+    {
+      win.second->hide();
+    }
+  }
+
+  const auto& pAssetManager = ASSET_MANAGER();
+
+  // textures for imgui buttons or windows and what not
+  auto playTexture = pAssetManager->getTexture( "play.png" ).lock()->getTextureId();
+  auto stopTexture = pAssetManager->getTexture( "stop.png" ).lock()->getTextureId();
+  auto fileTexture = pAssetManager->getTexture( "file.png" ).lock()->getTextureId();
+  auto folderTexture = pAssetManager->getTexture( "folder.png" ).lock()->getTextureId();
+
+  auto sceneViewport =
+    std::make_unique<kogayonon_gui::SceneViewportWindow>( m_pWindow->getWindow(), "Scene", playTexture, stopTexture );
+  auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets", folderTexture, fileTexture );
+  auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>( "Scene hierarchy" );
+  auto performanceWindow = std::make_unique<kogayonon_gui::PerformanceWindow>( "Performance" );
+  auto entityPropertiesWindow = std::make_unique<kogayonon_gui::EntityPropertiesWindow>( "Object properties" );
+
+  IMGUI_MANAGER()->pushWindow( "Scene", std::move( sceneViewport ) );
+  IMGUI_MANAGER()->pushWindow( "Object properties", std::move( entityPropertiesWindow ) );
+  IMGUI_MANAGER()->pushWindow( "Performance", std::move( performanceWindow ) );
+  IMGUI_MANAGER()->pushWindow( "Scene hierarchy", std::move( sceneHierarchy ) );
+  IMGUI_MANAGER()->pushWindow( "Assets", std::move( fileExplorerWindow ) );
+}
+
 } // namespace kogayonon_app

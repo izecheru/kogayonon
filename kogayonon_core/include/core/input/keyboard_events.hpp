@@ -46,8 +46,6 @@ public:
     return m_RepeatCount;
   }
 
-  EVENT_CLASS_TYPE( KeyPressed )
-
 private:
   int m_RepeatCount;
 };
@@ -59,8 +57,6 @@ public:
       : KeyEvent{ keycode, false }
   {
   }
-
-  EVENT_CLASS_TYPE( KeyReleased )
 };
 
 class KeyTypedEvent : public IEvent
@@ -69,6 +65,5 @@ public:
   explicit KeyTypedEvent( KeyCode keycode )
   {
   }
-  EVENT_CLASS_TYPE( KeyTyped )
 };
 } // namespace kogayonon_core

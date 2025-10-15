@@ -23,7 +23,7 @@ using namespace kogayonon_core;
 namespace kogayonon_gui
 {
 EntityPropertiesWindow::EntityPropertiesWindow( std::string name )
-    : ImGuiWindow{ std::move( name ) }
+    : ImGuiWindow{ std::move( name ), ImGuiWindowFlags_None, { 300.0f, 300.0f } }
     , m_entity{ entt::null }
 {
   EVENT_DISPATCHER()->addHandler<SelectEntityEvent, &EntityPropertiesWindow::onEntitySelect>( *this );

@@ -11,11 +11,16 @@ class ImGuiWindow
 public:
   explicit ImGuiWindow( std::string name );
   explicit ImGuiWindow( std::string name, ImGuiWindowFlags flags );
+  explicit ImGuiWindow( std::string name, ImGuiWindowFlags flags, ImVec2 size );
+  explicit ImGuiWindow( std::string name, ImVec2 size );
   virtual ~ImGuiWindow() = default;
 
   virtual void draw() = 0;
 
   std::string getName() const;
+
+  void hide();
+  void show();
 
   virtual void setDocked();
   virtual void setHovered();
@@ -51,6 +56,7 @@ protected:
     bool resizable{ false };
     bool focused{ false };
     ImGuiWindowFlags flags{ 0 };
+    ImVec2 size{ 0.0f, 0.0f };
 
     struct
     {
@@ -64,8 +70,21 @@ protected:
     }
 
     explicit imgui_props( std::string t_name, ImGuiWindowFlags t_flags )
-        : name( t_name )
-        , flags( t_flags )
+        : name{ t_name }
+        , flags{ t_flags }
+    {
+    }
+
+    explicit imgui_props( std::string t_name, ImGuiWindowFlags t_flags, ImVec2 size )
+        : name{ t_name }
+        , flags{ t_flags }
+        , size{ size }
+    {
+    }
+
+    explicit imgui_props( std::string t_name, ImVec2 size )
+        : name{ t_name }
+        , size{ size }
     {
     }
   };
