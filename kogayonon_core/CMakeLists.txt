@@ -17,13 +17,15 @@ add_library(
   "include/core/systems/rendering_system.h"
   "include/core/ecs/components/index_component.h"
   "include/core/event/project_event.hpp"
+  "include/core/project/project.hpp"
+  "include/core/project/project_manager.hpp"
 
   "src/main_registry.cpp"
   "src/entity.cpp"
   "src/scene.cpp"
   "src/scene_manager.cpp"
   "src/scene_events.cpp"
-  "src/rendering_system.cpp")
+  "src/rendering_system.cpp" "src/project_manager.cpp")
 
 target_include_directories(kogayonon_core
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

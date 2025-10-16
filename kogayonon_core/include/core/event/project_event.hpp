@@ -12,6 +12,23 @@ public:
   {
   }
 
+  inline std::filesystem::path getPath()
+  {
+    return m_path;
+  }
+
+private:
+  std::filesystem::path m_path;
+};
+
+class ProjectSaveEvent : public IEvent
+{
+public:
+  explicit ProjectSaveEvent( const std::filesystem::path path )
+      : m_path{ path }
+  {
+  }
+
 private:
   std::filesystem::path m_path;
 };

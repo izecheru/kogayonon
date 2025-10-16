@@ -450,11 +450,7 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
     }
   }
 
-  // resize the window since we will initialise all the other engine windows
   const auto& config = Configurator::getConfig();
-
-  // call this once to set the flag for menu to be rendered
-  // IMGUI_MANAGER()->renderMenu();
 
   // enable border
   m_pWindow->setBordered( true );
@@ -465,7 +461,7 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
   // maximize window
   m_pWindow->maximize();
 
-  m_pWindow->setTitle( "kogayonon game engine - [ implement project manager and get the name here ]" );
+  m_pWindow->setTitle( e.getPath() );
 
   const auto& pAssetManager = ASSET_MANAGER();
 
@@ -487,6 +483,8 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
   IMGUI_MANAGER()->pushWindow( "Performance", std::move( performanceWindow ) );
   IMGUI_MANAGER()->pushWindow( "Scene hierarchy", std::move( sceneHierarchy ) );
   IMGUI_MANAGER()->pushWindow( "Assets", std::move( fileExplorerWindow ) );
+
+  // now we need to read the project info
 }
 
 } // namespace kogayonon_app

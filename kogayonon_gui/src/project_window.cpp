@@ -1,4 +1,5 @@
 #include "gui/project_window.hpp"
+#include <fstream>
 #include <spdlog/spdlog.h>
 #include <tinyfiledialogs/tinyfiledialogs.h>
 #include "core/ecs/main_registry.hpp"
@@ -24,18 +25,22 @@ void ProjectWindow::draw()
 
   ImGui::SetCursorPos( ImVec2{ 50.0f, m_props->height - 50.0f } );
   ImGui::CalcItemWidth();
-  auto path = std::filesystem::absolute( "resources\\" ).string();
-  const char* filters[] = { ".kproj" };
+  auto path = std::filesystem::absolute( "projects\\" ).string();
+  // if the directory does not exist, create it
+  if ( !std::filesystem::exists( path ) )
+  {
+    std::filesystem::create_directories( path );
+  }
+
+  const char* filters[] = { "*.kproj" };
 
   if ( ImGui::Button( "Open project" ) )
   {
-    auto result = tinyfd_openFileDialog( "Open project", path.c_str(), 1, filters, ".kproj files", false );
-
-    // TODO functionality to open an existing krpoj file and start the engine
+    auto result = tinyfd_openFileDialog( "Open project", path.c_str(), 1, filters, ".kproj file", false );
 
     if ( result )
     {
-      spdlog::info( result );
+      spdlog::info( "Project opened {}", result );
       EVENT_DISPATCHER()->emitEvent( kogayonon_core::ProjectLoadEvent{ result } );
     }
   }
@@ -47,14 +52,20 @@ void ProjectWindow::draw()
 
   if ( ImGui::Button( "New project" ) )
   {
-    auto result = tinyfd_selectFolderDialog( "Save project", path.c_str() );
-
-    // TODO functionality to create a krpoj file and start the engine
+    auto result = tinyfd_saveFileDialog( "Save project", path.c_str(), 1, filters, ".kproj file" );
 
     if ( result )
     {
-      spdlog::info( result );
-      EVENT_DISPATCHER()->emitEvent( kogayonon_core::ProjectLoadEvent{ result } );
+      std::ofstream writeProjFile{ result };
+      if ( writeProjFile.is_open() )
+      {
+        writeProjFile.close();
+        EVENT_DISPATCHER()->emitEvent( kogayonon_core::ProjectLoadEvent{ result } );
+      }
+      else
+      {
+        spdlog::critical( "CANNOT CREATE PROJECT FILE" );
+      }
     }
   }
 

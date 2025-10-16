@@ -25,8 +25,8 @@ public:
   static void setCurrentScene( const std::string& sceneName );
 
 private:
-  SceneManager() = default;
-  ~SceneManager() = default;
+  SceneManager() = delete;
+  ~SceneManager() = delete;
   SceneManager operator=( const SceneManager& ) = delete;
 
 private:
