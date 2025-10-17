@@ -2,7 +2,7 @@
 
 namespace kogayonon_core
 {
-static void ProjectManager::createProject( const std::string& name )
+void ProjectManager::createProject( const std::string& name )
 {
   m_project = KogayononProject{};
 }

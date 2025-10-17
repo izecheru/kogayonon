@@ -258,8 +258,8 @@ void SceneViewportWindow::draw()
   drawScene();
 
   ImGui::GetWindowDrawList()->AddImage( (ImTextureID)m_frameBuffer.getColorAttachmentId( 0 ), win_pos,
-                                        ImVec2( win_pos.x + contentSize.x, win_pos.y + contentSize.y ), ImVec2( 0, 1 ),
-                                        ImVec2( 1, 0 ) );
+                                        ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y }, ImVec2{ 0, 1 },
+                                        ImVec2{ 1, 0 } );
 
   ImGuizmo::SetOrthographic( false );
   ImGuizmo::SetDrawlist();

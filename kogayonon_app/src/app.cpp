@@ -441,15 +441,6 @@ void App::glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severit
 
 void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
 {
-  // hide the choose project window
-  for ( auto& win : IMGUI_MANAGER()->getWindows() )
-  {
-    if ( win.first == "Project" )
-    {
-      win.second->hide();
-    }
-  }
-
   const auto& config = Configurator::getConfig();
 
   // enable border
@@ -461,7 +452,9 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
   // maximize window
   m_pWindow->maximize();
 
-  m_pWindow->setTitle( e.getPath() );
+  auto title = e.getPath().stem().string();
+  std::string windowTitle = std::format( "kogayonon - {}", title );
+  m_pWindow->setTitle( windowTitle.c_str() );
 
   const auto& pAssetManager = ASSET_MANAGER();
 

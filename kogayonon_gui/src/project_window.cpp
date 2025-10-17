@@ -40,6 +40,7 @@ void ProjectWindow::draw()
 
     if ( result )
     {
+      hide();
       spdlog::info( "Project opened {}", result );
       EVENT_DISPATCHER()->emitEvent( kogayonon_core::ProjectLoadEvent{ result } );
     }
@@ -59,6 +60,7 @@ void ProjectWindow::draw()
       std::ofstream writeProjFile{ result };
       if ( writeProjFile.is_open() )
       {
+        hide();
         writeProjFile.close();
         EVENT_DISPATCHER()->emitEvent( kogayonon_core::ProjectLoadEvent{ result } );
       }

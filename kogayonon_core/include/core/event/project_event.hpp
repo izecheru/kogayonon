@@ -12,7 +12,7 @@ public:
   {
   }
 
-  inline std::filesystem::path getPath()
+  inline std::filesystem::path getPath() const
   {
     return m_path;
   }
