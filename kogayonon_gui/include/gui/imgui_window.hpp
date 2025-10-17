@@ -23,11 +23,11 @@ public:
   void show();
 
   virtual void setDocked();
-  virtual void setHovered();
-  virtual void setFocused();
+  virtual void updateHovered();
+  virtual void updateFocused();
 
-  virtual void setPosition();
-  virtual void setSize();
+  virtual void updatePosition();
+  virtual void updateSize();
   virtual void setBounds();
 
   virtual bool begin();

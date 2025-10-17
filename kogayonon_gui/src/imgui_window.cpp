@@ -39,7 +39,7 @@ void ImGuiWindow::show()
   m_props->visible = true;
 }
 
-void ImGuiWindow::setPosition()
+void ImGuiWindow::updatePosition()
 {
   auto pos = ImGui::GetWindowPos();
   if ( m_props->x == pos.x && m_props->y == pos.y )
@@ -49,7 +49,7 @@ void ImGuiWindow::setPosition()
   m_props->y = pos.y;
 }
 
-void ImGuiWindow::setSize()
+void ImGuiWindow::updateSize()
 {
   auto size = ImGui::GetWindowSize();
   if ( m_props->width == size.x && m_props->height == size.y )
@@ -67,12 +67,12 @@ void ImGuiWindow::setBounds()
   // m_props->bounds.topLeft = ImVec2{ min.x + m_props->x, min.y + m_props->y };
 }
 
-void ImGuiWindow::setFocused()
+void ImGuiWindow::updateFocused()
 {
   m_props->focused = ImGui::IsWindowFocused();
 }
 
-void ImGuiWindow::setHovered()
+void ImGuiWindow::updateHovered()
 {
   m_props->hovered = ImGui::IsWindowHovered();
 }
@@ -84,12 +84,10 @@ void ImGuiWindow::setDocked()
 
 void ImGuiWindow::initProps()
 {
-  setPosition();
-  setSize();
-  setFocused();
-  setHovered();
-
-  // setBounds();
+  updatePosition();
+  updateSize();
+  updateFocused();
+  updateHovered();
 }
 
 bool ImGuiWindow::begin()

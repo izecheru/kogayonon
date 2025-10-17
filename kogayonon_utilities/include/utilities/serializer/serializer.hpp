@@ -14,7 +14,7 @@ public:
    * @return True if everything works fine
    */
   template <typename T>
-  static bool serialize( T&& data, std::ofstream& out )
+  static bool serialize( T& data, std::fstream& out )
   {
     out.write( reinterpret_cast<const char*>( &data ), sizeof( T ) );
 
@@ -29,7 +29,7 @@ public:
    * @return True if everything works fine
    */
   template <typename T>
-  static bool deserialize( T&& data, std::ifstream& in )
+  static bool deserialize( T& data, std::fstream& in )
   {
     in.read( reinterpret_cast<char*>( &data ), sizeof( T ) );
 
@@ -44,7 +44,7 @@ public:
    * @return true if everything worked ok
    */
   template <typename V>
-  static bool serializeRaw( const V* data, size_t size, std::ofstream& out )
+  static bool serialize( const V* data, size_t size, std::fstream& out )
   {
     out.write( reinterpret_cast<const char*>( data ), size );
     return out.good();
@@ -59,7 +59,7 @@ public:
    * @return True if everything works fine
    */
   template <typename V>
-  static bool deserializeRaw( V* data, size_t size, std::ifstream& in )
+  static bool deserialize( V* data, size_t size, std::fstream& in )
   {
     in.read( reinterpret_cast<char*>( data ), size );
     return in.good();

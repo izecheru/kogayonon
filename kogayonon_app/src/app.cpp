@@ -70,11 +70,6 @@ App::App()
     {
       m_running = false;
     }
-
-    // auto debugWindow = std::make_unique<kogayonon_gui::DebugConsoleWindow>( "Debug console" );
-    // auto pDbgWin = debugWindow.get();
-    // defferedSink->setWindow( pDbgWin );
-    // IMGUI_MANAGER()->pushWindow( "Debug console", std::move( debugWindow ) );
   }
   catch ( const spdlog::spdlog_ex& ex )
   {

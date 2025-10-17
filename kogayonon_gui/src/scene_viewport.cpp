@@ -26,6 +26,7 @@
 
 using namespace kogayonon_core;
 using namespace kogayonon_rendering;
+using namespace kogayonon_utilities;
 
 namespace kogayonon_gui
 {
@@ -74,19 +75,19 @@ void SceneViewportWindow::onSaveScene( const SaveSceneEvent& e )
     std::filesystem::create_directories( path );
 
     auto scene = SceneManager::getCurrentScene().lock();
-    auto scenePath = path.string() + "/" + scene->getName() + ".bin";
+    auto scenePath = path.string() + "/" + scene->getName() + ".kscene";
 
-    std::ofstream out{ scenePath };
+    std::fstream out{ scenePath, std::ios::out | std::ios::binary };
 
-    if ( !out.is_open() )
+    if ( !out )
       spdlog::error( "Could not create {}", scenePath );
 
     std::string test{ "test2" };
     size_t size = test.size();
-    kogayonon_utilities::Serializer::serialize( size, out );
-    kogayonon_utilities::Serializer::serializeRaw( test.data(), test.size() * sizeof( char ), out );
+    Serializer::serialize( size, out );
+    Serializer::serialize( test.data(), test.size() * sizeof( char ), out );
 
-    if ( out.is_open() )
+    if ( out )
     {
       out.close();
     }
@@ -96,19 +97,19 @@ void SceneViewportWindow::onSaveScene( const SaveSceneEvent& e )
     std::filesystem::create_directories( path );
 
     auto scene = SceneManager::getCurrentScene().lock();
-    auto scenePath = path.string() + "/" + scene->getName() + ".bin";
+    auto scenePath = path.string() + "/" + scene->getName() + ".kscene";
 
-    std::ifstream in{ scenePath };
+    std::fstream in{ scenePath, std::ios::in | std::ios::binary };
 
     size_t size;
-    kogayonon_utilities::Serializer::deserialize( size, in );
+    Serializer::deserialize( size, in );
 
     std::string test;
     test.resize( size );
-    kogayonon_utilities::Serializer::deserializeRaw( test.data(), size * sizeof( char ), in );
+    Serializer::deserialize( test.data(), size * sizeof( char ), in );
     spdlog::info( test );
 
-    if ( in.is_open() )
+    if ( in )
       in.close();
   }
 }
@@ -164,9 +165,8 @@ void SceneViewportWindow::onMouseClicked( const MouseClickedEvent& e )
 void SceneViewportWindow::drawScene()
 {
   auto& spec = m_frameBuffer.getSpecification();
-  m_frameBuffer.bind();
-
   m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
+  m_frameBuffer.bind();
   glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
