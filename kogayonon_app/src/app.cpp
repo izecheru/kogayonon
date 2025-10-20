@@ -515,7 +515,7 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
         const auto model = pAssetManager->addModel( path.stem().string(), path.string() );
         ent.addComponent<TransformComponent>(
           TransformComponent{ .translation = tmp.translation, .rotation = tmp.rotation, .scale = tmp.scale } );
-        scene_->addModelToEntity( ent.getEntityId(), model.lock() );
+        scene_->addModelToEntity( ent.getEntityId(), model );
 
         // now the instanceData
         int matrixCount;

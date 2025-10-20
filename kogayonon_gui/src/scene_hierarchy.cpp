@@ -214,6 +214,22 @@ void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity
         pEventDispatcher->emitEvent( SelectEntityEvent{} );
       }
     }
+
+    if ( ImGui::MenuItem( "Duplicate entity" ) )
+    {
+      auto pScene = SceneManager::getCurrentScene();
+      if ( auto scene = pScene.lock() )
+      {
+        auto entity = scene->addEntity();
+        if ( ent.hasComponent<ModelComponent>() )
+        {
+          const auto& model = ent.getComponent<ModelComponent>();
+          scene->addModelToEntity( entity.getEntityId(), model.pModel );
+        }
+        pEventDispatcher->emitEvent( SelectEntityEvent{ entity.getEntityId() } );
+      }
+    }
+
     ImGui::EndPopup();
   }
 }
