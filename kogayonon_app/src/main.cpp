@@ -3,7 +3,7 @@
 
 #include "app/app.hpp"
 
-#ifndef NDEBUG
+#ifdef _DEBUG
 #ifdef _WIN32
 int SDL_main( int argc, char** argv )
 {
