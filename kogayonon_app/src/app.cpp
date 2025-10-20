@@ -605,6 +605,12 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     sceneObject.AddMember( "entityCount", scene->getEntityCount(), allocator );
 
     auto finalPath = std::format( "{}\\{}.kscene", scenesDirPath.string(), scene->getName().c_str() );
+
+    if ( std::filesystem::exists( finalPath ) )
+    {
+      std::filesystem::remove( finalPath );
+    }
+
     sceneObject.AddMember( "path", rapidjson::Value{ finalPath.c_str(), allocator }, allocator );
     // use the final path to serialize entities and states
     std::fstream sceneOut{ finalPath, std::ios::out | std::ios::binary };
