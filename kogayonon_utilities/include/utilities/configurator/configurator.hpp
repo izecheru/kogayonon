@@ -54,22 +54,6 @@ private:
    */
   static void buildConfig();
 
-  /**
-   * @brief Check if file has this object and if it is valid
-   * @param toCheck Value to check for
-   * @param member Member name
-   * @return True if member exists and is of type Object
-   */
-  static bool checkObject( const rapidjson::Value& toCheck, const std::string& member );
-
-  /**
-   * @brief Check if file has this array and if it is valid
-   * @param toCheck Array to check for
-   * @param member Member name
-   * @return True if member exists and is of type Array
-   */
-  static bool checkArray( const rapidjson::Value& toCheck, const std::string& member );
-
   Configurator() = delete;
   ~Configurator() = default;
 

@@ -10,12 +10,12 @@ public:
   Texture() = default;
 
   explicit Texture( const std::string& p, int w, int h, int n );
-  explicit Texture( unsigned int id, const std::string& p, const std::string& name, int w, int h, int n );
+  explicit Texture( uint32_t id, const std::string& p, const std::string& name, int w, int h, int n );
   std::string getPath() const;
   std::string getName() const;
   int getWidth() const;
   int getHeight() const;
-  unsigned int getTextureId() const;
+  uint32_t getTextureId() const;
 
   void setPath( const std::string& path );
   void setWidth( int width );
@@ -23,7 +23,7 @@ public:
   void setTextureId( unsigned int id );
 
 private:
-  unsigned int m_id = 0;
+  uint32_t m_id = 0;
   std::string m_path;
   std::string m_name;
   int m_width = 0;

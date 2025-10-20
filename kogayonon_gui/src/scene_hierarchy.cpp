@@ -23,8 +23,9 @@ SceneHierarchyWindow::SceneHierarchyWindow( std::string name )
     : ImGuiWindow{ std::move( name ) }
     , m_selectedEntity{ entt::null }
 {
-  EVENT_DISPATCHER()->addHandler<KeyPressedEvent, &SceneHierarchyWindow::onKeyPressed>( *this );
-  EVENT_DISPATCHER()->addHandler<SelectEntityInViewportEvent, &SceneHierarchyWindow::onEntitySelectInViewport>( *this );
+  const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+  pEventDispatcher->addHandler<KeyPressedEvent, &SceneHierarchyWindow::onKeyPressed>( *this );
+  pEventDispatcher->addHandler<SelectEntityInViewportEvent, &SceneHierarchyWindow::onEntitySelectInViewport>( *this );
 }
 
 void SceneHierarchyWindow::onEntitySelectInViewport( const SelectEntityInViewportEvent& e )
@@ -39,8 +40,11 @@ void SceneHierarchyWindow::onKeyPressed( const KeyPressedEvent& e )
 {
   if ( e.getKeyCode() == KeyCode::Escape && m_selectedEntity != entt::null )
   {
+    const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+    auto pTaskManager = MainRegistry::getInstance().getTaskManager();
+
     m_selectedEntity = entt::null;
-    TASK_MANAGER()->enqueue( []() { EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{} ); } );
+    pEventDispatcher->emitEvent( SelectEntityEvent{} );
   }
 }
 
@@ -51,7 +55,10 @@ void SceneHierarchyWindow::draw()
   if ( !begin() )
     return;
 
-  static auto cubeIcon = ASSET_MANAGER()->getTexture( "3d-cube.png" );
+  const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
+  const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+
+  static auto cubeIcon = pAssetManager->getTexture( "3d-cube.png" );
 
   initProps();
 
@@ -74,13 +81,12 @@ void SceneHierarchyWindow::draw()
       // no component entity
       auto entity = scene->addEntity();
       m_selectedEntity = entity.getEntityId();
-      EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{ m_selectedEntity } );
+      pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
     }
   }
 
   auto& enttRegistry = scene->getEnttRegistry();
   auto view = enttRegistry.view<IdentifierComponent>();
-  const auto& pEventDispatcher = EVENT_DISPATCHER();
   std::vector<Entity> entities;
 
   for ( auto [entity, nameComponent] : view.each() )
@@ -145,6 +151,7 @@ void SceneHierarchyWindow::draw()
       // draw the icon
       ImGui::Image( cubeIcon.lock()->getTextureId(), ImVec2{ 15.0f, 15.0f } );
       ImGui::SameLine();
+
       // draw the text without ##id
       ImGui::Text( identifierComponent.name.c_str() );
 
@@ -168,6 +175,8 @@ void SceneHierarchyWindow::draw()
 
 void SceneHierarchyWindow::drawContextMenu()
 {
+  const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+
   if ( ImGui::BeginPopupContextWindow( "SceneHierarchyContext",
                                        ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight ) )
   {
@@ -178,13 +187,13 @@ void SceneHierarchyWindow::drawContextMenu()
         // no component entity
         auto entity = scene->addEntity();
         m_selectedEntity = entity.getEntityId();
-        EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{ m_selectedEntity } );
+        pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
       }
     }
     if ( ImGui::MenuItem( "Clear Selection" ) )
     {
       m_selectedEntity = entt::null;
-      EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{} );
+      pEventDispatcher->emitEvent( SelectEntityEvent{} );
     }
     ImGui::EndPopup();
   }
@@ -192,6 +201,7 @@ void SceneHierarchyWindow::drawContextMenu()
 
 void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity& ent )
 {
+  const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
   if ( ImGui::BeginPopupContextItem( itemId.c_str() ) )
   {
     if ( ImGui::MenuItem( "Delete entity" ) )
@@ -201,7 +211,7 @@ void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity
       {
         scene->removeEntity( ent.getEntityId() );
         m_selectedEntity = entt::null;
-        EVENT_DISPATCHER()->emitEvent( SelectEntityEvent{} );
+        pEventDispatcher->emitEvent( SelectEntityEvent{} );
       }
     }
     ImGui::EndPopup();

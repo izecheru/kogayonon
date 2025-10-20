@@ -1,4 +1,4 @@
-add_library(kogayonon_app "include/app/app.hpp" "src/app.cpp")
+add_executable(kogayonon_app WIN32 "include/app/app.hpp"  "src/app.cpp" "src/main.cpp")
 target_include_directories(kogayonon_app
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(
@@ -11,4 +11,6 @@ target_link_libraries(
           kogayonon_utilities
           kogayonon_rendering
           kogayonon_resources
+ PRIVATE
+         $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
 )

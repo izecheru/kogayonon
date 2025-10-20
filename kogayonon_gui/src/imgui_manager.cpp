@@ -202,13 +202,14 @@ void ImGuiManager::draw()
 
 void ImGuiManager::mainMenu()
 {
+  const auto& pEventDispatcher = kogayonon_core::MainRegistry::getInstance().getEventDispatcher();
   if ( ImGui::BeginMainMenuBar() )
   {
     if ( ImGui::BeginMenu( "File" ) )
     {
       if ( ImGui::MenuItem( "Close" ) )
       {
-        EVENT_DISPATCHER()->emitEvent( kogayonon_core::WindowCloseEvent{} );
+        pEventDispatcher->emitEvent( kogayonon_core::WindowCloseEvent{} );
       }
       if ( ImGui::MenuItem( "Save scene" ) )
       {
@@ -223,5 +224,4 @@ ImGuiManager::ImGuiWindows_Map& ImGuiManager::getWindows()
 {
   return m_windows;
 }
-
 } // namespace kogayonon_gui

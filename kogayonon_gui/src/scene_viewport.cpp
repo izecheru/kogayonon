@@ -60,11 +60,12 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
   m_frameBuffer = OpenGLFramebuffer{ spec };
   m_pickingFrameBuffer = OpenGLFramebuffer{ pickingSpec };
 
-  EVENT_DISPATCHER()->addHandler<SelectEntityEvent, &SceneViewportWindow::onSelectedEntity>( *this );
-  EVENT_DISPATCHER()->addHandler<MouseMovedEvent, &SceneViewportWindow::onMouseMoved>( *this );
-  EVENT_DISPATCHER()->addHandler<MouseClickedEvent, &SceneViewportWindow::onMouseClicked>( *this );
-  EVENT_DISPATCHER()->addHandler<KeyPressedEvent, &SceneViewportWindow::onKeyPressed>( *this );
-  EVENT_DISPATCHER()->addHandler<MouseScrolledEvent, &SceneViewportWindow::onMouseScrolled>( *this );
+  const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+  pEventDispatcher->addHandler<SelectEntityEvent, &SceneViewportWindow::onSelectedEntity>( *this );
+  pEventDispatcher->addHandler<MouseMovedEvent, &SceneViewportWindow::onMouseMoved>( *this );
+  pEventDispatcher->addHandler<MouseClickedEvent, &SceneViewportWindow::onMouseClicked>( *this );
+  pEventDispatcher->addHandler<KeyPressedEvent, &SceneViewportWindow::onKeyPressed>( *this );
+  pEventDispatcher->addHandler<MouseScrolledEvent, &SceneViewportWindow::onMouseScrolled>( *this );
 }
 
 void SceneViewportWindow::onSaveScene( const SaveSceneEvent& e )
@@ -170,15 +171,23 @@ void SceneViewportWindow::drawScene()
   glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-  auto& shader = SHADER_MANAGER()->getShader( "3d" );
+  const auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
+  auto& shader = pShaderManager->getShader( "3d" );
   const auto& size = ImGui::GetWindowSize();
   glm::mat4 proj = m_pCamera->getProjectionMatrix( { size.x, size.y } );
-  m_pRenderingSystem->render( SceneManager::getCurrentScene().lock(), m_pCamera->getViewMatrix(), proj, shader );
+
+  if ( const auto& scene = SceneManager::getCurrentScene().lock() )
+    m_pRenderingSystem->render( scene, m_pCamera->getViewMatrix(), proj, shader );
+
   m_frameBuffer.unbind();
 }
 
 void SceneViewportWindow::drawPickingScene()
 {
+  // you must deselect the current entity to be able to select a new one
+  if ( m_selectedEntity != entt::null )
+    return;
+
   const auto& io = ImGui::GetIO();
   auto [mx, my] = ImGui::GetMousePos();
 
@@ -188,7 +197,9 @@ void SceneViewportWindow::drawPickingScene()
   if ( mx < 0 || my < 0 || mx > m_props->width || my > m_props->height )
     return;
 
-  auto& shader = SHADER_MANAGER()->getShader( "picking" );
+  const auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
+  const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+  auto& shader = pShaderManager->getShader( "picking" );
   m_pickingFrameBuffer.resize( m_props->width, m_props->height );
 
   auto proj = m_pCamera->getProjectionMatrix( { m_props->width, m_props->height } );
@@ -209,7 +220,7 @@ void SceneViewportWindow::drawPickingScene()
         return;
 
       m_selectedEntity = ent;
-      EVENT_DISPATCHER()->emitEvent( SelectEntityInViewportEvent{ ent } );
+      pEventDispatcher->emitEvent( SelectEntityInViewportEvent{ ent } );
     }
   }
 }
@@ -248,7 +259,8 @@ void SceneViewportWindow::draw()
   // also the keyboard button check is a map of keys with a bool set to true if button is currently pressed
   if ( m_props->focused && !KeyboardState::getKeyState( KeyCode::LeftShift ) )
   {
-    m_pCamera->onKeyPressed( static_cast<float>( TIME_TRACKER()->getDuration( "deltaTime" ).count() ) );
+    const auto& pTimeTracker = MainRegistry::getInstance().getTimeTracker();
+    m_pCamera->onKeyPressed( static_cast<float>( pTimeTracker->getDuration( "deltaTime" ).count() ) );
   }
 
   const auto& scene = SceneManager::getCurrentScene().lock();
@@ -275,6 +287,7 @@ void SceneViewportWindow::draw()
       const auto& indexComponet = ent.tryGetComponent<IndexComponent>();
       const auto& transform = ent.tryGetComponent<TransformComponent>();
       auto& instanceMatrix = instanceData->instanceMatrices.at( indexComponet->index );
+
       ImGuizmo::Enable( ( m_props->hovered && m_props->focused ) || ImGuizmo::IsUsingAny() );
 
       ImGuizmo::Manipulate( glm::value_ptr( m_pCamera->getViewMatrix() ),

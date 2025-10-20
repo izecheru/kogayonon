@@ -17,9 +17,14 @@ add_library(
   "include/utilities/input/key_codes.hpp"
   "include/utilities/input/mouse_codes.hpp"
   "include/utilities/configurator/configurator.hpp"
- "src/configurator.cpp" "src/serializer.cpp" "include/utilities/serializer/serializer.hpp")
+  "src/configurator.cpp"
+  "src/serializer.cpp"
+  "src/jsoner.cpp"
+  "include/utilities/serializer/serializer.hpp"
+ "src/jsoner.cpp"  "include/utilities/jsoner/jsoner.hpp"
+)
 
 target_include_directories(kogayonon_utilities
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-target_link_libraries(kogayonon_utilities PRIVATE cgltf spdlog::spdlog glad glm::glm-header-only kogayonon_resources soil2)
+target_link_libraries(kogayonon_utilities PRIVATE cgltf spdlog::spdlog glad glm::glm-header-only kogayonon_resources soil2 rapidjson)

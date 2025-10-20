@@ -25,15 +25,16 @@ void PerformanceWindow::draw()
   auto passed = std::chrono::high_resolution_clock::now();
   ImGui::Text( "FPS:" );
   ImGui::SameLine();
-  static int fps = static_cast<int>( 1.0f / TIME_TRACKER()->getDuration( "deltaTime" ).count() );
+  const auto& pTimeTracker = kogayonon_core::MainRegistry::getInstance().getTimeTracker();
+  static int fps = static_cast<int>( 1.0f / pTimeTracker->getDuration( "deltaTime" ).count() );
   static double frameTimeMilli =
-    std::chrono::duration<double, std::milli>( TIME_TRACKER()->getDuration( "deltaTime" ) ).count();
+    std::chrono::duration<double, std::milli>( pTimeTracker->getDuration( "deltaTime" ) ).count();
 
   if ( std::chrono::duration<double>( passed - initial ).count() > 1.0f )
   {
     initial = std::chrono::high_resolution_clock::now();
-    fps = static_cast<int>( 1.0f / TIME_TRACKER()->getDuration( "deltaTime" ).count() );
-    frameTimeMilli = std::chrono::duration<double, std::milli>( TIME_TRACKER()->getDuration( "deltaTime" ) ).count();
+    fps = static_cast<int>( 1.0f / pTimeTracker->getDuration( "deltaTime" ).count() );
+    frameTimeMilli = std::chrono::duration<double, std::milli>( pTimeTracker->getDuration( "deltaTime" ) ).count();
   }
 
   ImGui::Text( "%d", fps );

@@ -19,13 +19,17 @@ void ProjectWindow::draw()
   if ( !begin() )
     return;
 
-  static auto enginePictureTexture = ASSET_MANAGER()->getTexture( "logo.png" ).lock();
+  const auto& pAssetManager = kogayonon_core::MainRegistry::getInstance().getAssetManager();
+  const auto& pEventDispatcher = kogayonon_core::MainRegistry::getInstance().getEventDispatcher();
+
+  static auto enginePictureTexture = pAssetManager->getTexture( "logo.png" ).lock();
   static auto max = ImGui::GetContentRegionMax();
   ImGui::Image( (ImTextureID)enginePictureTexture->getTextureId(), max );
 
   ImGui::SetCursorPos( ImVec2{ 50.0f, m_props->height - 50.0f } );
   ImGui::CalcItemWidth();
   auto path = std::filesystem::absolute( "projects\\" ).string();
+
   // if the directory does not exist, create it
   if ( !std::filesystem::exists( path ) )
   {
@@ -42,7 +46,7 @@ void ProjectWindow::draw()
     {
       hide();
       spdlog::info( "Project opened {}", result );
-      EVENT_DISPATCHER()->emitEvent( kogayonon_core::ProjectLoadEvent{ result } );
+      pEventDispatcher->emitEvent( kogayonon_core::ProjectLoadEvent{ result } );
     }
   }
 
@@ -62,7 +66,7 @@ void ProjectWindow::draw()
       {
         hide();
         writeProjFile.close();
-        EVENT_DISPATCHER()->emitEvent( kogayonon_core::ProjectLoadEvent{ result } );
+        pEventDispatcher->emitEvent( kogayonon_core::ProjectCreateEvent{ result } );
       }
       else
       {

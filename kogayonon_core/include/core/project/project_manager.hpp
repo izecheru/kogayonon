@@ -7,15 +7,16 @@ namespace kogayonon_core
 class ProjectManager
 {
 public:
-  static void createProject( const std::string& name );
+  static void createProject( const std::string& name, const std::filesystem::path& path );
+  static std::string getTitle();
+  static std::filesystem::path getPath();
 
 private:
-  ProjectManager() = default;
-  ~ProjectManager() = default;
+  ProjectManager() = delete;
+  ~ProjectManager() = delete;
   ProjectManager operator=( const ProjectManager& ) = delete;
 
 private:
-  static inline std::string m_projectName;
   static inline KogayononProject m_project;
 };
 } // namespace kogayonon_core

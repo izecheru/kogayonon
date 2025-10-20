@@ -35,6 +35,8 @@ enum class EventType
 
   // Project events
   ProjectLoad,
+  ProjectSave,
+  ProjectCreate,
 
   // File events
   FileModified,
@@ -48,5 +50,13 @@ class IEvent
 public:
   IEvent() = default;
   virtual ~IEvent() = default;
+
+  inline virtual EventType getEventType()
+  {
+    return m_type;
+  }
+
+private:
+  EventType m_type{ EventType::None };
 };
 } // namespace kogayonon_core

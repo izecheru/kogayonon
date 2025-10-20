@@ -8,6 +8,7 @@ namespace kogayonon_core
 class WindowResizeEvent;
 class WindowCloseEvent;
 class ProjectLoadEvent;
+class ProjectCreateEvent;
 } // namespace kogayonon_core
 
 namespace kogayonon_gui
@@ -35,12 +36,14 @@ public:
   bool initSDL();
   bool initRegistries() const;
   bool initGui();
+  bool initGuiForProject();
   bool initScenes() const;
 
   void rescaleMainViewport( int w, int h );
   bool onWindowResize( const kogayonon_core::WindowResizeEvent& e );
   void onWindowClose( const kogayonon_core::WindowCloseEvent& e );
   void onProjectLoad( const kogayonon_core::ProjectLoadEvent& e );
+  void onProjectCreate( const kogayonon_core::ProjectCreateEvent& e );
 
   static void glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
                                const GLchar* message, const void* userParam );

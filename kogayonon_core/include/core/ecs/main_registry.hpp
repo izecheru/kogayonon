@@ -27,18 +27,6 @@ class Renderer;
 
 namespace kogayonon_core
 {
-// i used entt instead of implementing my own stuff just for the sake of speed and all the other features
-#define REGISTRY() kogayonon_core::MainRegistry::getInstance()
-#define EVENT_DISPATCHER() REGISTRY().getContext<std::shared_ptr<kogayonon_core::EventDispatcher>>()
-#define IMGUI_MANAGER() REGISTRY().getContext<std::shared_ptr<kogayonon_gui::ImGuiManager>>()
-#define TASK_MANAGER() REGISTRY().getContext<std::shared_ptr<kogayonon_utilities::TaskManager>>()
-#define ASSET_MANAGER() REGISTRY().getContext<std::shared_ptr<kogayonon_utilities::AssetManager>>()
-#define TIME_TRACKER() REGISTRY().getContext<std::shared_ptr<kogayonon_utilities::TimeTracker>>()
-#define RENDERER() REGISTRY().getContext<std::shared_ptr<kogayonon_rendering::Renderer>>()
-
-// this should be in the asset manager
-#define SHADER_MANAGER() REGISTRY().getContext<std::shared_ptr<kogayonon_utilities::ShaderManager>>()
-
 /**
  * @brief MainRegistry holds the main parts of the application
  */
@@ -66,6 +54,41 @@ public:
   TContext& getContext()
   {
     return m_pRegistry->getContext<TContext>();
+  }
+
+  std::shared_ptr<kogayonon_core::EventDispatcher>& getEventDispatcher()
+  {
+    return getContext<std::shared_ptr<kogayonon_core::EventDispatcher>>();
+  }
+
+  std::shared_ptr<kogayonon_gui::ImGuiManager>& getImGuiManager()
+  {
+    return getContext<std::shared_ptr<kogayonon_gui::ImGuiManager>>();
+  }
+
+  std::shared_ptr<kogayonon_utilities::TaskManager>& getTaskManager()
+  {
+    return getContext<std::shared_ptr<kogayonon_utilities::TaskManager>>();
+  }
+
+  std::shared_ptr<kogayonon_utilities::AssetManager>& getAssetManager()
+  {
+    return getContext<std::shared_ptr<kogayonon_utilities::AssetManager>>();
+  }
+
+  std::shared_ptr<kogayonon_utilities::TimeTracker>& getTimeTracker()
+  {
+    return getContext<std::shared_ptr<kogayonon_utilities::TimeTracker>>();
+  }
+
+  std::shared_ptr<kogayonon_rendering::Renderer>& getRenderer()
+  {
+    return getContext<std::shared_ptr<kogayonon_rendering::Renderer>>();
+  }
+
+  std::shared_ptr<kogayonon_utilities::ShaderManager>& getShaderManager()
+  {
+    return getContext<std::shared_ptr<kogayonon_utilities::ShaderManager>>();
   }
 
 private:

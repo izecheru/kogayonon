@@ -42,15 +42,3 @@ add_subdirectory(kogayonon_resources)
 add_subdirectory(kogayonon_app)
 add_subdirectory(kogayonon_gui)
 add_subdirectory(kogayonon_rendering)
-# -------------------------------------------------------------------
-# Source groups
-# -------------------------------------------------------------------
-
-add_executable(kogayonon "kogayonon_app/src/main.cpp")
-
-target_include_directories(kogayonon PRIVATE)
-
-target_link_libraries(
-  kogayonon
-  PRIVATE kogayonon_app $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
-          $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>)

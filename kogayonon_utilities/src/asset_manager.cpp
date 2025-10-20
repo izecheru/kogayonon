@@ -96,7 +96,7 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std:
 std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::string& modelName,
                                                                   const std::string& modelPath )
 {
-  // std::lock_guard lock( m_assetMutex );
+  std::lock_guard lock{ m_assetMutex };
 
   if ( auto it = m_loadedModels.find( modelName ); it != m_loadedModels.end() )
   {

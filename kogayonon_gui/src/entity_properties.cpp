@@ -16,6 +16,7 @@
 #include "imgui_utils/imgui_utils.h"
 #include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/math/math.hpp"
+#include "utilities/task_manager/task_manager.hpp"
 
 using namespace kogayonon_utilities;
 using namespace kogayonon_core;
@@ -26,9 +27,9 @@ EntityPropertiesWindow::EntityPropertiesWindow( std::string name )
     : ImGuiWindow{ std::move( name ), ImGuiWindowFlags_None, { 300.0f, 300.0f } }
     , m_entity{ entt::null }
 {
-  EVENT_DISPATCHER()->addHandler<SelectEntityEvent, &EntityPropertiesWindow::onEntitySelect>( *this );
-  EVENT_DISPATCHER()->addHandler<SelectEntityInViewportEvent, &EntityPropertiesWindow::onSelectEntityInViewport>(
-    *this );
+  const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+  pEventDispatcher->addHandler<SelectEntityEvent, &EntityPropertiesWindow::onEntitySelect>( *this );
+  pEventDispatcher->addHandler<SelectEntityInViewportEvent, &EntityPropertiesWindow::onSelectEntityInViewport>( *this );
 }
 
 void EntityPropertiesWindow::onSelectEntityInViewport( const SelectEntityInViewportEvent& e )
@@ -164,7 +165,7 @@ void EntityPropertiesWindow::manageTexturePayload( const ImGuiPayload* payload )
   if ( !payload )
     return;
 
-  const auto& pAssetManager = ASSET_MANAGER();
+  const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
   auto data = static_cast<const char*>( payload->Data );
   std::string dropResult( data, payload->DataSize );
   std::filesystem::path p{ dropResult };
@@ -183,7 +184,7 @@ void EntityPropertiesWindow::manageTexturePayload( const ImGuiPayload* payload )
     return;
   }
 
-  auto pTexture = ASSET_MANAGER()->addTexture( p.filename().string(), p.string() );
+  auto pTexture = pAssetManager->addTexture( p.filename().string(), p.string() );
   auto scene = SceneManager::getCurrentScene().lock();
   Entity ent{ scene->getRegistry(), m_entity };
 
@@ -253,7 +254,7 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
     return;
   }
 
-  const auto& pAssetManager = ASSET_MANAGER();
+  const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
   auto data = static_cast<const char*>( payload->Data );
   std::string dropResult( data, payload->DataSize );
   std::filesystem::path p{ dropResult };
@@ -268,7 +269,9 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
     if ( !pScene )
       return;
 
-    auto model = ASSET_MANAGER()->addModel( p.filename().string(), p.string() );
+    const auto& pTaskManager = MainRegistry::getInstance().getTaskManager();
+
+    auto model = pAssetManager->addModel( p.filename().string(), p.string() );
     Entity entity{ scene.lock()->getRegistry(), m_entity };
     scene.lock()->addModelToEntity( entity.getEntityId(), model );
   }

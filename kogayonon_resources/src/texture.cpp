@@ -3,20 +3,20 @@
 namespace kogayonon_resources
 {
 Texture::Texture( const std::string& p, int w, int h, int n )
-    : m_path( p )
-    , m_width( w )
-    , m_height( h )
-    , m_numComponents( n )
+    : m_path{ p }
+    , m_width{ w }
+    , m_height{ h }
+    , m_numComponents{ n }
 {
 }
 
-Texture::Texture( unsigned int id, const std::string& p, const std::string& name, int w, int h, int n )
-    : m_id( id )
-    , m_path( p )
-    , m_width( w )
-    , m_height( h )
-    , m_numComponents( n )
-    , m_name( name )
+Texture::Texture( uint32_t id, const std::string& p, const std::string& name, int w, int h, int n )
+    : m_id{ id }
+    , m_path{ p }
+    , m_width{ w }
+    , m_height{ h }
+    , m_numComponents{ n }
+    , m_name{ name }
 {
 }
 
@@ -40,12 +40,12 @@ int Texture::getHeight() const
   return m_height;
 }
 
-unsigned int Texture::getTextureId() const
+uint32_t Texture::getTextureId() const
 {
   return m_id;
 }
 
-void Texture::setTextureId( unsigned int id )
+void Texture::setTextureId( uint32_t id )
 {
   m_id = id;
 }
