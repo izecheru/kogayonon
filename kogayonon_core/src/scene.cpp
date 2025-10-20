@@ -120,13 +120,18 @@ void Scene::addModelToEntity( entt::entity entity, std::weak_ptr<kogayonon_resou
   if ( !ent.hasComponent<ModelComponent>() )
   {
     ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
-    ent.addComponent<TransformComponent>();
+
+    // if we did not setup the transform from somewhere else like deserialized, we initialise a default one
+    if ( !ent.hasComponent<TransformComponent>() )
+      ent.addComponent<TransformComponent>();
   }
   else
   {
     removeModelFromEntity( ent.getEntityId() );
     ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
-    ent.addComponent<TransformComponent>();
+
+    if ( !ent.hasComponent<TransformComponent>() )
+      ent.addComponent<TransformComponent>();
   }
   addInstanceData( ent.getEntityId() );
 }

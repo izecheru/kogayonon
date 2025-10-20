@@ -14,7 +14,7 @@ public:
    * @return True if everything works fine
    */
   template <typename T>
-  static bool serialize( T& data, std::fstream& out )
+  static bool serialize( const T& data, std::fstream& out )
   {
     out.write( reinterpret_cast<const char*>( &data ), sizeof( T ) );
 

@@ -52,7 +52,7 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
     , m_mainWindow{ mainWindow }
     , m_pRenderingSystem{ std::make_unique<RenderingSystem>() }
     , m_pCamera{ std::make_unique<Camera>() }
-    , m_gizmoMode{ GizmoMode::ROTATE }
+    , m_gizmoMode{ GizmoMode::TRANSLATE }
 {
   FramebufferSpecification spec{ { FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::DEPTH }, 800, 800 };
   FramebufferSpecification pickingSpec{
@@ -70,7 +70,7 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
 
 void SceneViewportWindow::onSaveScene( const SaveSceneEvent& e )
 {
-  std::filesystem::path path{ std::filesystem::absolute( "resources/scenes" ) };
+  std::filesystem::path path{ std::filesystem::absolute( "resources\\scenes" ) };
   if ( !std::filesystem::exists( path ) )
   {
     std::filesystem::create_directories( path );

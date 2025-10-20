@@ -1,10 +1,12 @@
 #include "app/app.hpp"
+#include <fstream>
 #include <imgui_impl_sdl2.h>
 #include <iostream>
 #include <memory>
 #include <spdlog/sinks/daily_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
+#include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
@@ -32,6 +34,7 @@
 #include "utilities/configurator/configurator.hpp"
 #include "utilities/input/mouse_codes.hpp"
 #include "utilities/jsoner/jsoner.hpp"
+#include "utilities/serializer/serializer.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
 #include "utilities/task_manager/task_manager.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
@@ -463,6 +466,101 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
   auto title = e.getPath().stem().string();
   std::string windowTitle = std::format( "kogayonon - {}", title );
   m_pWindow->setTitle( windowTitle.c_str() );
+
+  const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
+
+  rapidjson::Document doc{};
+  Jsoner::parseJsonFile( doc, e.getPath() );
+  const auto& projectName = doc["name"].GetString();
+  // seems that i don't need the path in the kproj file but we'll see
+  ProjectManager::createProject( projectName, e.getPath() );
+
+  if ( Jsoner::checkArray( doc, "scenes" ) )
+  {
+    const auto& scenes = doc["scenes"].GetArray();
+
+    // now that we populated the scenes paths vector, deserialize them
+    for ( const auto& scene : scenes )
+    {
+      const auto scenePath = std::filesystem::path{ scene["path"].GetString() };
+      const auto& scene_ = std::make_shared<Scene>( scenePath.stem().string() );
+      // TODO deserialize entities here
+      std::fstream sceneIn{ scenePath, std::ios::in | std::ios::binary };
+      for ( int x = 0; x < scene["entityCount"].GetInt(); x++ )
+      {
+        size_t modelPathSize;
+        Serializer::deserialize( modelPathSize, sceneIn );
+
+        std::string modelPath;
+        modelPath.resize( modelPathSize );
+        Serializer::deserialize( modelPath.data(), modelPathSize * sizeof( char ), sceneIn );
+
+        // now rotation > scale > translation in this order
+        TransformComponent tmp;
+        Serializer::deserialize( tmp.rotation.x, sceneIn );
+        Serializer::deserialize( tmp.rotation.y, sceneIn );
+        Serializer::deserialize( tmp.rotation.z, sceneIn );
+
+        Serializer::deserialize( tmp.scale.x, sceneIn );
+        Serializer::deserialize( tmp.scale.y, sceneIn );
+        Serializer::deserialize( tmp.scale.z, sceneIn );
+
+        Serializer::deserialize( tmp.translation.x, sceneIn );
+        Serializer::deserialize( tmp.translation.y, sceneIn );
+        Serializer::deserialize( tmp.translation.z, sceneIn );
+
+        // create the entity
+        auto ent = scene_->addEntity();
+        const auto path = std::filesystem::path{ modelPath };
+        const auto model = pAssetManager->addModel( path.stem().string(), path.string() );
+        ent.addComponent<TransformComponent>(
+          TransformComponent{ .translation = tmp.translation, .rotation = tmp.rotation, .scale = tmp.scale } );
+        scene_->addModelToEntity( ent.getEntityId(), model.lock() );
+
+        // now the instanceData
+        int matrixCount;
+        Serializer::deserialize( matrixCount, sceneIn );
+
+        std::vector<glm::mat4> matrices;
+        matrices.resize( matrixCount );
+        for ( int i = 0; i < matrixCount; i++ )
+        {
+          for ( int x = 0; x < 4; x++ )
+          {
+            for ( int y = 0; y < 4; y++ )
+            {
+              Serializer::deserialize( matrices.at( i )[x][y], sceneIn );
+            }
+          }
+        }
+
+        std::string group;
+        size_t groupSize;
+        Serializer::deserialize( groupSize, sceneIn );
+        group.resize( groupSize );
+        Serializer::deserialize( group.data(), sizeof( char ) * groupSize, sceneIn );
+
+        std::string name;
+        size_t nameSize;
+        Serializer::deserialize( nameSize, sceneIn );
+        name.resize( nameSize );
+        Serializer::deserialize( name.data(), sizeof( char ) * nameSize, sceneIn );
+
+        EntityType type;
+        Serializer::deserialize( type, sceneIn );
+
+        ent.replaceComponent<IdentifierComponent>( IdentifierComponent{ .name = name, .type = type, .group = group } );
+      }
+
+      if ( sceneIn )
+        sceneIn.close();
+
+      SceneManager::addScene( scene_ );
+
+      // we do this just for testing purposes since we know that we have only one scene in the kscene file
+      SceneManager::setCurrentScene( scene_->getName() );
+    }
+  }
 }
 
 void App::onProjectCreate( const kogayonon_core::ProjectCreateEvent& e )
@@ -508,18 +606,77 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
 
     auto finalPath = std::format( "{}\\{}.kscene", scenesDirPath.string(), scene->getName().c_str() );
     sceneObject.AddMember( "path", rapidjson::Value{ finalPath.c_str(), allocator }, allocator );
+    // use the final path to serialize entities and states
+    std::fstream sceneOut{ finalPath, std::ios::out | std::ios::binary };
+
+    for ( const auto& [entity, modelComponent, transformComponent, identifierComponent] :
+          scene->getRegistry().getRegistry().view<ModelComponent, TransformComponent, IdentifierComponent>().each() )
+    {
+      const auto& modelPath = modelComponent.pModel.lock()->getPath();
+
+      // we load the model and textures with the assetManager->addModel(name,path);
+      size_t modelPathSize = modelPath.size();
+      Serializer::serialize( modelPathSize, sceneOut );
+      Serializer::serialize( modelPath.data(), modelPath.size() * sizeof( char ), sceneOut );
+
+      Serializer::serialize( transformComponent.rotation.x, sceneOut );
+      Serializer::serialize( transformComponent.rotation.y, sceneOut );
+      Serializer::serialize( transformComponent.rotation.z, sceneOut );
+
+      Serializer::serialize( transformComponent.scale.x, sceneOut );
+      Serializer::serialize( transformComponent.scale.y, sceneOut );
+      Serializer::serialize( transformComponent.scale.z, sceneOut );
+
+      Serializer::serialize( transformComponent.translation.x, sceneOut );
+      Serializer::serialize( transformComponent.translation.y, sceneOut );
+      Serializer::serialize( transformComponent.translation.z, sceneOut );
+
+      // now instance data
+      const auto& instanceData = scene->getData( modelComponent.pModel.lock().get() );
+      // the number of entities, this also resembles the number of instance matrices
+      Serializer::serialize( instanceData->count, sceneOut );
+      for ( int i = 0; i < instanceData->count; i++ )
+      {
+        const auto& matrix = instanceData->instanceMatrices.at( i );
+
+        // a glm::mat4 has 4 rows and 4 columns
+        for ( int j = 0; j < 4; j++ )
+        {
+          for ( int y = 0; y < 4; y++ )
+          {
+            Serializer::serialize( matrix[j][y], sceneOut );
+          }
+        }
+      }
+
+      // now the identifier data
+      const auto& group = identifierComponent.group;
+      const size_t groupSize = group.size();
+      Serializer::serialize( groupSize, sceneOut );
+      Serializer::serialize( group.data(), sizeof( char ) * groupSize, sceneOut );
+
+      const auto& name = identifierComponent.name;
+      const size_t nameSize = name.size();
+      Serializer::serialize( nameSize, sceneOut );
+      Serializer::serialize( name.data(), sizeof( char ) * nameSize, sceneOut );
+
+      const auto& type = identifierComponent.type;
+      Serializer::serialize( type, sceneOut );
+    }
+
+    if ( sceneOut )
+    {
+      sceneOut.close();
+    }
 
     scenesArray.PushBack( sceneObject, allocator );
   }
 
   auto projectPath = ProjectManager::getPath();
 
-  rapidjson::Value projectObj{ rapidjson::Type::kObjectType };
-  projectObj.AddMember( "name", rapidjson::Value{ ProjectManager::getTitle().c_str(), allocator }, allocator );
-  projectObj.AddMember( "path", rapidjson::Value{ projectPath.string().c_str(), allocator }, allocator );
+  projectDoc.AddMember( "name", rapidjson::Value{ ProjectManager::getTitle().c_str(), allocator }, allocator );
+  projectDoc.AddMember( "path", rapidjson::Value{ projectPath.string().c_str(), allocator }, allocator );
 
-  // finally write everything we've built to the project json document
-  projectDoc.AddMember( "project", projectObj, allocator );
   projectDoc.AddMember( "scenes", scenesArray, allocator );
   Jsoner::writeJsonFile( projectDoc, projectPath );
 }
