@@ -44,8 +44,7 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
       for ( const auto& texture : textures )
       {
         // bind the texture we need (this is bad)
-        if ( const auto& tex = texture.lock() )
-          glBindTextureUnit( 1, tex->getTextureId() );
+        glBindTextureUnit( 1, texture->getTextureId() );
       }
 
       // this will help us determine what type of rendering we have so the vertex shader knows which matrices to

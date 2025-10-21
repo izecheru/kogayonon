@@ -3,8 +3,7 @@
 
 namespace kogayonon_resources
 {
-Mesh::Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices,
-            std::vector<std::weak_ptr<Texture>>&& textures )
+Mesh::Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices, std::vector<Texture*>&& textures )
     : m_textures{ std::move( textures ) }
     , m_vertices{ std::move( vertices ) }
     , m_indices{ std::move( indices ) }
@@ -57,7 +56,7 @@ std::vector<uint32_t>& Mesh::getIndices()
   return m_indices;
 }
 
-std::vector<std::weak_ptr<Texture>>& Mesh::getTextures()
+std::vector<Texture*>& Mesh::getTextures()
 {
   return m_textures;
 }

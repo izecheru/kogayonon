@@ -57,18 +57,17 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureWithoutParam
   return m_loadedTextures.at( textureName );
 }
 
-std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std::string& textureName )
+kogayonon_resources::Texture* AssetManager::addTexture( const std::string& textureName )
 {
   return addTexture( textureName, "resources/textures/" + textureName );
 }
 
-std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std::string& textureName,
-                                                                      const std::string& texturePath )
+kogayonon_resources::Texture* AssetManager::addTexture( const std::string& textureName, const std::string& texturePath )
 {
   if ( m_loadedTextures.contains( textureName ) )
   {
     spdlog::info( "We already have the texture {} from {} ", textureName, texturePath );
-    return m_loadedTextures.at( textureName );
+    return m_loadedTextures.at( textureName ).get();
   }
 
   // std::lock_guard lock( m_assetMutex );
@@ -82,7 +81,7 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std:
   {
     spdlog::error( "soil could not load data for texture {} ", texturePath );
     spdlog::error( "SOIL failed {} ", SOIL_last_result() );
-    return std::weak_ptr<kogayonon_resources::Texture>();
+    return nullptr;
   }
   auto id = SOIL_create_OGL_texture( data, &w, &h, channels, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS );
 
@@ -90,7 +89,7 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std:
   m_loadedTextures.try_emplace( textureName, tex );
   spdlog::info( "Loaded texture {} from {} ", textureName, texturePath );
   SOIL_free_image_data( data );
-  return m_loadedTextures.at( textureName );
+  return m_loadedTextures.at( textureName ).get();
 }
 
 kogayonon_resources::Model* AssetManager::addModel( const std::string& modelName, const std::string& modelPath )
@@ -159,7 +158,7 @@ kogayonon_resources::Model* AssetManager::addModel( const std::string& modelName
       std::vector<glm::vec3> positions;
       std::vector<glm::vec3> normals;
       std::vector<glm::vec2> texCoords;
-      std::vector<std::weak_ptr<kogayonon_resources::Texture>> textures;
+      std::vector<kogayonon_resources::Texture*> textures;
       std::vector<uint32_t> indices;
 
       parseVertices( primitive, positions, normals, texCoords, transform );
@@ -167,8 +166,8 @@ kogayonon_resources::Model* AssetManager::addModel( const std::string& modelName
       if ( primitive.indices )
         parseIndices( primitive.indices, indices );
 
-      // if ( primitive.material )
-      //  parseTextures( primitive.material, textures );
+      if ( primitive.material )
+        parseTextures( primitive.material, textures );
 
       std::vector<kogayonon_resources::Vertex> vertices;
       for ( size_t x = 0; x < positions.size(); ++x )
@@ -183,7 +182,6 @@ kogayonon_resources::Model* AssetManager::addModel( const std::string& modelName
       meshes.emplace_back( std::move( vertices ), std::move( indices ), std::move( textures ) );
     }
   }
-  // uploadMeshGeometry( meshes );
   auto model = std::make_shared<kogayonon_resources::Model>( std::move( meshes ), modelPath );
 
   m_loadedModels.try_emplace( modelName, model );
@@ -194,8 +192,6 @@ kogayonon_resources::Model* AssetManager::addModel( const std::string& modelName
   return getModel( modelName );
 }
 
-// THIS SHOULD BE CALLED ON THE MAIN THREAD
-// so we need some kind of flag to set for each mesh vector
 void AssetManager::uploadMeshGeometry( std::vector<kogayonon_resources::Mesh>& meshes ) const
 {
   for ( auto& mesh : meshes )
@@ -358,8 +354,7 @@ void AssetManager::parseIndices( cgltf_accessor* accessor, std::vector<uint32_t>
   }
 }
 
-void AssetManager::parseTextures( const cgltf_material* material,
-                                  std::vector<std::weak_ptr<kogayonon_resources::Texture>>& textures )
+void AssetManager::parseTextures( const cgltf_material* material, std::vector<kogayonon_resources::Texture*>& textures )
 {
   if ( !material )
     return;
@@ -367,25 +362,46 @@ void AssetManager::parseTextures( const cgltf_material* material,
   if ( material->normal_texture.texture && material->normal_texture.texture->image )
   {
     std::string uri = material->normal_texture.texture->image->uri;
-    std::filesystem::path texturePath( "resources/" + uri );
+    std::filesystem::path texturePath = std::filesystem::absolute( "resources" ) / uri;
     std::string textureName = texturePath.filename().string();
 
-    auto pTexture = addTexture( textureName, texturePath.string() );
-    textures.push_back( pTexture );
+    std::shared_ptr<kogayonon_resources::Texture> texture;
+
+    if ( m_loadedTextures.contains( texturePath.string() ) )
+    {
+      texture = m_loadedTextures.at( texturePath.string() );
+    }
+    else
+    {
+      texture = std::make_shared<kogayonon_resources::Texture>( texturePath.string(), textureName );
+      spdlog::info( "Loaded texture {} {}", textureName, texturePath.string() );
+      m_loadedTextures.emplace( texturePath.string(), texture );
+    }
+
+    textures.push_back( texture.get() );
   }
 
   if ( material->has_pbr_metallic_roughness && material->pbr_metallic_roughness.base_color_texture.texture &&
        material->pbr_metallic_roughness.base_color_texture.texture->image )
   {
     std::string uri = material->pbr_metallic_roughness.base_color_texture.texture->image->uri;
-
-    // since the model is exported with textures it will have textures/texture.png as it's uri
-    // but we placed the textures dir in the resources one so we must have resources/textures/texture.png
-    std::filesystem::path texturePath = std::filesystem::path( "resources" ) / uri;
+    std::filesystem::path texturePath = std::filesystem::absolute( "resources" ) / uri;
     std::string textureName = texturePath.filename().string();
 
-    auto pTexture = addTexture( textureName, texturePath.string() );
-    textures.push_back( pTexture );
+    std::shared_ptr<kogayonon_resources::Texture> texture;
+
+    if ( m_loadedTextures.contains( texturePath.string() ) )
+    {
+      texture = m_loadedTextures.at( texturePath.string() );
+    }
+    else
+    {
+      texture = std::make_shared<kogayonon_resources::Texture>( texturePath.string(), textureName );
+      spdlog::info( "Loaded texture {} {}", textureName, texturePath.string() );
+      m_loadedTextures.emplace( texturePath.string(), texture );
+    }
+
+    textures.push_back( texture.get() );
   }
 }
 } // namespace kogayonon_utilities

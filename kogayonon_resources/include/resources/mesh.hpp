@@ -19,20 +19,19 @@ public:
   Mesh( Mesh&& other ) noexcept = default;            // move constructor
   Mesh& operator=( Mesh&& other ) noexcept = default; // move assignment
 
-  explicit Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices,
-                 std::vector<std::weak_ptr<Texture>>&& textures );
+  explicit Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices, std::vector<Texture*>&& textures );
   explicit Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices );
 
   std::vector<Vertex>& getVertices();
   std::vector<uint32_t>& getIndices();
-  std::vector<std::weak_ptr<Texture>>& getTextures();
+  std::vector<Texture*>& getTextures();
 
   uint32_t& getVao();
   uint32_t& getVbo();
   uint32_t& getEbo();
 
 private:
-  std::vector<std::weak_ptr<Texture>> m_textures;
+  std::vector<Texture*> m_textures;
   std::vector<Vertex> m_vertices;
   std::vector<uint32_t> m_indices;
 

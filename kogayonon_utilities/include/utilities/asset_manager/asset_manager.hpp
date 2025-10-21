@@ -25,9 +25,8 @@ public:
    * @param textureName The name and extension of the texture eg. "default.png"
    * @return A weak_ptr to that loaded texture
    */
-  std::weak_ptr<kogayonon_resources::Texture> addTexture( const std::string& textureName );
-  std::weak_ptr<kogayonon_resources::Texture> addTexture( const std::string& textureName,
-                                                          const std::string& texturePath );
+  kogayonon_resources::Texture* addTexture( const std::string& textureName );
+  kogayonon_resources::Texture* addTexture( const std::string& textureName, const std::string& texturePath );
   std::weak_ptr<kogayonon_resources::Texture> addTextureWithoutParams( const std::string& textureName,
                                                                        const std::string& texturePath );
 
@@ -60,8 +59,7 @@ private:
 
   void parseIndices( cgltf_accessor* accessor, std::vector<uint32_t>& indices ) const;
 
-  void parseTextures( const cgltf_material* material,
-                      std::vector<std::weak_ptr<kogayonon_resources::Texture>>& textures );
+  void parseTextures( const cgltf_material* material, std::vector<kogayonon_resources::Texture*>& textures );
 
   std::thread m_watchThread{};
   std::mutex m_assetMutex{};

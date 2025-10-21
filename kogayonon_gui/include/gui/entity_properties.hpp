@@ -34,7 +34,7 @@ public:
 
 private:
   void drawEnttProperties( std::shared_ptr<kogayonon_core::Scene> scene );
-  void drawTextureContextMenu( std::vector<std::weak_ptr<kogayonon_resources::Texture>>& textures, int index ) const;
+  void drawTextureContextMenu( std::vector<kogayonon_resources::Texture*>& textures, int index ) const;
   void drawTextureComponent( kogayonon_core::Entity& ent ) const;
   void drawModelComponent( kogayonon_core::Entity& ent );
   void drawTransformComponent( kogayonon_core::Entity& ent ) const;

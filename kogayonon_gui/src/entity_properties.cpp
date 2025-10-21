@@ -138,7 +138,7 @@ void EntityPropertiesWindow::drawTextureComponent( Entity& ent ) const
     auto& textures = mesh.getTextures();
     for ( int i = 0; i < textures.size(); i++ )
     {
-      if ( const auto& texture = textures.at( i ).lock(); seen.insert( texture->getTextureId() ).second )
+      if ( const auto& texture = textures.at( i ); seen.insert( texture->getTextureId() ).second )
       {
         ImGui::Text( "%s", texture->getName().c_str() );
         if ( ImGui::IsItemHovered() )
@@ -202,7 +202,7 @@ void EntityPropertiesWindow::manageTexturePayload( const ImGuiPayload* payload )
   }
 }
 
-void EntityPropertiesWindow::drawTextureContextMenu( std::vector<std::weak_ptr<kogayonon_resources::Texture>>& textures,
+void EntityPropertiesWindow::drawTextureContextMenu( std::vector<kogayonon_resources::Texture*>& textures,
                                                      int index ) const
 {
   std::string label = std::format( "##{}", index );

@@ -1,4 +1,5 @@
 #include "core/scene/scene.hpp"
+#include <SOIL2/SOIL2.h>
 #include <glad/glad.h>
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/model_component.hpp"
@@ -289,6 +290,24 @@ void Scene::prepareForRendering()
     // if we don't have the model in the instance map, we upload the geometry
     if ( !addInstanceData( entity ) )
       pAssetManager->uploadMeshGeometry( modelComponent.pModel->getMeshes() );
+
+    // check textures
+    for ( auto& mesh : modelComponent.pModel->getMeshes() )
+    {
+      for ( auto& texture : mesh.getTextures() )
+      {
+
+        if ( texture == nullptr )
+          continue;
+
+        if ( texture->getLoaded() == true )
+          continue;
+
+        const auto texture_ = pAssetManager->addTexture( texture->getName() );
+        texture_->setLoaded( true );
+        texture = texture_;
+      }
+    }
 
     modelComponent.loaded = true;
   }

@@ -2,6 +2,17 @@
 
 namespace kogayonon_resources
 {
+
+Texture::Texture( const std::string& p, const std::string& name )
+    : m_path{ p }
+    , m_width{ 0 }
+    , m_height{ 0 }
+    , m_name{ name }
+    , m_numComponents{ 0 }
+    , m_loaded{ false }
+{
+}
+
 Texture::Texture( const std::string& p, int w, int h, int n )
     : m_path{ p }
     , m_width{ w }
@@ -64,4 +75,15 @@ void Texture::setWidth( int width )
 {
   m_width = width;
 }
+
+bool Texture::getLoaded() const
+{
+  return m_loaded;
+}
+
+void Texture::setLoaded( bool value )
+{
+  m_loaded = value;
+}
+
 } // namespace kogayonon_resources
