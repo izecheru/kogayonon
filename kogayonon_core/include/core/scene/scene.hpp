@@ -110,6 +110,11 @@ public:
     return m_entityCount;
   }
 
+  inline void setRegistryModified( bool value )
+  {
+    m_registryModified = value;
+  }
+
 private:
   // this bool should be used to prepare entities for rendering
   bool m_registryModified{ false };

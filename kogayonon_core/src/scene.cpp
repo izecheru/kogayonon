@@ -1,5 +1,4 @@
 #include "core/scene/scene.hpp"
-#include <SOIL2/SOIL2.h>
 #include <glad/glad.h>
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/model_component.hpp"

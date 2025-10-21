@@ -49,11 +49,10 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
 
       // this will help us determine what type of rendering we have so the vertex shader knows which matrices to
       // multiply , shader.setBool( "instanced", true );
-      if ( auto instanceData = scene->getData( model ); instanceData != nullptr && instanceData->count > 1 )
+      auto instanceData = scene->getData( model );
+      if ( instanceData != nullptr && instanceData->count > 1 )
       {
         shader.setBool( "instanced", true );
-
-        // sort instance data based on Z position
 
         // draw the instances
         glDrawElementsInstanced( GL_TRIANGLES, (GLsizei)mesh.getIndices().size(), GL_UNSIGNED_INT, nullptr,

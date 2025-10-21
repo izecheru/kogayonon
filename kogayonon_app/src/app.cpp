@@ -1,5 +1,6 @@
 #include "app/app.hpp"
 #include <fstream>
+#include <glm/gtc/type_ptr.hpp>
 #include <imgui_impl_sdl2.h>
 #include <iostream>
 #include <memory>
@@ -7,6 +8,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/identifier_component.hpp"
+#include "core/ecs/components/index_component.h"
 #include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
@@ -523,23 +525,6 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
           scene_->addModelToEntity( enttId, model );
         } );
 
-        // now the instanceData
-        int matrixCount;
-        Serializer::deserialize( matrixCount, sceneIn );
-
-        std::vector<glm::mat4> matrices;
-        matrices.resize( matrixCount );
-        for ( int i = 0; i < matrixCount; i++ )
-        {
-          for ( int x = 0; x < 4; x++ )
-          {
-            for ( int y = 0; y < 4; y++ )
-            {
-              Serializer::deserialize( matrices.at( i )[x][y], sceneIn );
-            }
-          }
-        }
-
         std::string group;
         size_t groupSize;
         Serializer::deserialize( groupSize, sceneIn );
@@ -644,24 +629,6 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
       Serializer::serialize( transformComponent.translation.x, sceneOut );
       Serializer::serialize( transformComponent.translation.y, sceneOut );
       Serializer::serialize( transformComponent.translation.z, sceneOut );
-
-      // now instance data
-      const auto& instanceData = scene->getData( modelComponent.pModel );
-      // the number of entities, this also resembles the number of instance matrices
-      Serializer::serialize( instanceData->count, sceneOut );
-      for ( int i = 0; i < instanceData->count; i++ )
-      {
-        const auto& matrix = instanceData->instanceMatrices.at( i );
-
-        // a glm::mat4 has 4 rows and 4 columns
-        for ( int x = 0; x < 4; x++ )
-        {
-          for ( int y = 0; y < 4; y++ )
-          {
-            Serializer::serialize( matrix[x][y], sceneOut );
-          }
-        }
-      }
 
       // now the identifier data
       const auto& group = identifierComponent.group;
