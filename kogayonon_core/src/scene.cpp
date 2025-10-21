@@ -3,7 +3,9 @@
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
+#include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
+#include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/math/math.hpp"
 using namespace kogayonon_utilities;
 
@@ -61,6 +63,7 @@ Entity Scene::addEntity()
 bool Scene::addInstanceData( entt::entity entityId )
 {
   Entity entity{ *m_pRegistry, entityId };
+  m_registryModified = true;
 
   // now that we created the entity using the scene registry and added a model and transform components to it
   // we must look for model pointer in the map to check for instances
@@ -91,6 +94,9 @@ bool Scene::addInstanceData( entt::entity entityId )
 
       // setup the OpenGL buffers for instancing
       setupMultipleInstances( instanceData.get() );
+
+      // we found the model in the instance map so the geometry is also already uploaded to the gpu and we use the
+      // instance matrix for per model translation/ rotation/ scale
       return true;
     }
   }
@@ -112,6 +118,7 @@ bool Scene::addInstanceData( entt::entity entityId )
 
     setupMultipleInstances( instanceData.get() );
     m_instances.try_emplace( pModel, std::move( instanceData ) );
+    // we did not find the model in the instance map so we must also upload geometry to the GPU
     return false;
   }
 }
@@ -119,6 +126,7 @@ bool Scene::addInstanceData( entt::entity entityId )
 void Scene::addModelToEntity( entt::entity entity, kogayonon_resources::Model* pModel )
 {
   std::lock_guard lock{ m_registryMutex };
+  m_registryModified = true;
   Entity ent{ *m_pRegistry, entity };
   if ( !ent.hasComponent<ModelComponent>() )
   {
@@ -132,9 +140,7 @@ void Scene::addModelToEntity( entt::entity entity, kogayonon_resources::Model* p
   {
     removeModelFromEntity( ent.getEntityId() );
     ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel } );
-
-    if ( !ent.hasComponent<TransformComponent>() )
-      ent.addComponent<TransformComponent>();
+    ent.addComponent<TransformComponent>();
   }
 }
 
@@ -261,4 +267,31 @@ void Scene::setupMultipleInstances( InstanceData* data )
     glNamedBufferSubData( data->entityIdBuffer, 0, sizeof( int ) * data->count, data->entityIds.data() );
   }
 }
+
+void Scene::prepareForRendering()
+{
+  // skip this function if we did not add a new entity or something
+  if ( !m_registryModified )
+    return;
+
+  m_registryModified = false;
+
+  const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
+
+  for ( const auto& [entity, modelComponent] : getRegistry().getRegistry().view<ModelComponent>().each() )
+  {
+    if ( modelComponent.pModel == nullptr )
+      continue;
+
+    if ( modelComponent.loaded )
+      continue;
+
+    // if we don't have the model in the instance map, we upload the geometry
+    if ( !addInstanceData( entity ) )
+      pAssetManager->uploadMeshGeometry( modelComponent.pModel->getMeshes() );
+
+    modelComponent.loaded = true;
+  }
+}
+
 } // namespace kogayonon_core

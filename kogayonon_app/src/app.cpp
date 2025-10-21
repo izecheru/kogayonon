@@ -510,8 +510,11 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
         Serializer::deserialize( tmp.translation.y, sceneIn );
         Serializer::deserialize( tmp.translation.z, sceneIn );
 
-        // create the entity
         auto ent = scene_->addEntity();
+        ent.addComponent<TransformComponent>(
+          TransformComponent{ .translation = tmp.translation, .rotation = tmp.rotation, .scale = tmp.scale } );
+
+        // create the entity
         const auto path = std::filesystem::path{ modelPath };
         const auto& enttId = ent.getEntityId();
 
@@ -519,9 +522,6 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
           const auto model = pAssetManager->addModel( path.stem().string(), path.string() );
           scene_->addModelToEntity( enttId, model );
         } );
-
-        ent.addComponent<TransformComponent>(
-          TransformComponent{ .translation = tmp.translation, .rotation = tmp.rotation, .scale = tmp.scale } );
 
         // now the instanceData
         int matrixCount;

@@ -167,21 +167,8 @@ void SceneViewportWindow::drawScene()
 {
   // prepare model entities for rendering if they were not loaded
   auto scene = SceneManager::getCurrentScene().lock();
-  const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
-  for ( const auto& [entity, modelComponent] : scene->getRegistry().getRegistry().view<ModelComponent>().each() )
-  {
-    if ( modelComponent.pModel == nullptr )
-      continue;
 
-    if ( modelComponent.loaded )
-      continue;
-
-    // if we don't have the model in the instance vector, we upload the geometry
-    if ( !scene->addInstanceData( entity ) )
-      pAssetManager->uploadMeshGeometry( modelComponent.pModel->getMeshes() );
-
-    modelComponent.loaded = true;
-  }
+  scene->prepareForRendering();
 
   auto& spec = m_frameBuffer.getSpecification();
   m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );

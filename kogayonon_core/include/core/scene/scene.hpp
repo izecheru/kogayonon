@@ -51,6 +51,8 @@ public:
     return m_registryMutex;
   }
 
+  void prepareForRendering();
+
   /**
    * @brief Removes instance data tied to the model component this entity has
    * @param ent The entity Id
@@ -109,6 +111,9 @@ public:
   }
 
 private:
+  // this bool should be used to prepare entities for rendering
+  bool m_registryModified{ false };
+
   std::mutex m_registryMutex;
   uint32_t m_entityCount;
   std::string m_name;
