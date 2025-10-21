@@ -1,5 +1,6 @@
 #pragma once
 #include <entt/entt.hpp>
+#include <mutex>
 #include "gui/imgui_window.hpp"
 
 namespace kogayonon_resources

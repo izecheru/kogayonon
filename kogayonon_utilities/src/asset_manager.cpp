@@ -93,15 +93,14 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTexture( const std:
   return m_loadedTextures.at( textureName );
 }
 
-std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::string& modelName,
-                                                                  const std::string& modelPath )
+kogayonon_resources::Model* AssetManager::addModel( const std::string& modelName, const std::string& modelPath )
 {
   std::lock_guard lock{ m_assetMutex };
 
-  if ( auto it = m_loadedModels.find( modelName ); it != m_loadedModels.end() )
+  if ( m_loadedModels.contains( modelName ) )
   {
     spdlog::info( "Model already loaded {} ", modelName );
-    return it->second;
+    return m_loadedModels.at( modelName ).get();
   }
 
   assert( std::filesystem::exists( modelPath ) && "model file does not exist" );
@@ -168,8 +167,8 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
       if ( primitive.indices )
         parseIndices( primitive.indices, indices );
 
-      if ( primitive.material )
-        parseTextures( primitive.material, textures );
+      // if ( primitive.material )
+      //  parseTextures( primitive.material, textures );
 
       std::vector<kogayonon_resources::Vertex> vertices;
       for ( size_t x = 0; x < positions.size(); ++x )
@@ -184,7 +183,7 @@ std::weak_ptr<kogayonon_resources::Model> AssetManager::addModel( const std::str
       meshes.emplace_back( std::move( vertices ), std::move( indices ), std::move( textures ) );
     }
   }
-  uploadMeshGeometry( meshes );
+  // uploadMeshGeometry( meshes );
   auto model = std::make_shared<kogayonon_resources::Model>( std::move( meshes ), modelPath );
 
   m_loadedModels.try_emplace( modelName, model );
@@ -286,11 +285,11 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::getTextureById( uint32
   return getTexture( "default" );
 }
 
-std::weak_ptr<kogayonon_resources::Model> kogayonon_utilities::AssetManager::getModel( const std::string& modelName )
+kogayonon_resources::Model* kogayonon_utilities::AssetManager::getModel( const std::string& modelName )
 {
   auto it = m_loadedModels.find( modelName );
   assert( it != m_loadedModels.end() && "model must be in the map" );
-  return m_loadedModels.at( modelName );
+  return m_loadedModels.at( modelName ).get();
 }
 
 void AssetManager::parseVertices( cgltf_primitive& primitive, std::vector<glm::vec3>& positions,

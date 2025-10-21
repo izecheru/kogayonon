@@ -5,7 +5,7 @@ namespace kogayonon_core
 {
 struct ModelComponent
 {
-  std::weak_ptr<kogayonon_resources::Model> pModel;
+  kogayonon_resources::Model* pModel;
   bool loaded{ false };
 };
 } // namespace kogayonon_core

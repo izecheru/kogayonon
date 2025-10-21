@@ -45,8 +45,14 @@ public:
   std::weak_ptr<kogayonon_resources::Texture> getTextureById( uint32_t id );
 
   // Models
-  std::weak_ptr<kogayonon_resources::Model> addModel( const std::string& modelName, const std::string& modelPath );
-  std::weak_ptr<kogayonon_resources::Model> getModel( const std::string& modelName );
+  kogayonon_resources::Model* addModel( const std::string& modelName, const std::string& modelPath );
+  kogayonon_resources::Model* getModel( const std::string& modelName );
+
+  /**
+   * @brief Uploads each mesh data to the gpu and tells it how to interpret every buffer
+   * @param meshes A vector of meshes that will need to be prepared for rendering
+   */
+  void uploadMeshGeometry( std::vector<kogayonon_resources::Mesh>& meshes ) const;
 
 private:
   void parseVertices( cgltf_primitive& primitive, std::vector<glm::vec3>& positions, std::vector<glm::vec3>& normals,
@@ -56,12 +62,6 @@ private:
 
   void parseTextures( const cgltf_material* material,
                       std::vector<std::weak_ptr<kogayonon_resources::Texture>>& textures );
-
-  /**
-   * @brief Uploads each mesh data to the gpu and tells it how to interpret every buffer
-   * @param meshes A vector of meshes that will need to be prepared for rendering
-   */
-  void uploadMeshGeometry( std::vector<kogayonon_resources::Mesh>& meshes ) const;
 
   std::thread m_watchThread{};
   std::mutex m_assetMutex{};

@@ -27,7 +27,7 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
     if ( !modelComp.loaded )
       continue;
 
-    auto model = modelComp.pModel.lock();
+    auto model = modelComp.pModel;
 
     if ( !model )
       continue;
@@ -36,7 +36,7 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
     shader.setMat4( "projection", projection );
     shader.setMat4( "view", viewMatrix );
 
-    for ( auto& mesh : modelComp.pModel.lock()->getMeshes() )
+    for ( auto& mesh : modelComp.pModel->getMeshes() )
     {
       glBindVertexArray( mesh.getVao() );
 
@@ -50,7 +50,7 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
 
       // this will help us determine what type of rendering we have so the vertex shader knows which matrices to
       // multiply , shader.setBool( "instanced", true );
-      if ( auto instanceData = scene->getData( model.get() ); instanceData != nullptr && instanceData->count > 1 )
+      if ( auto instanceData = scene->getData( model ); instanceData != nullptr && instanceData->count > 1 )
       {
         shader.setBool( "instanced", true );
 

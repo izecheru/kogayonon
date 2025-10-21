@@ -120,7 +120,7 @@ void EntityPropertiesWindow::drawTextureComponent( Entity& ent ) const
   if ( !pModelComponent )
     return;
 
-  auto& meshes = pModelComponent->pModel.lock()->getMeshes();
+  auto& meshes = pModelComponent->pModel->getMeshes();
   if ( meshes.empty() )
     return;
 
@@ -190,7 +190,7 @@ void EntityPropertiesWindow::manageTexturePayload( const ImGuiPayload* payload )
 
   if ( const auto& model = ent.tryGetComponent<ModelComponent>() )
   {
-    auto& meshes = model->pModel.lock()->getMeshes();
+    auto& meshes = model->pModel->getMeshes();
     for ( auto& mesh : meshes )
     {
       // get the textures vector for each mesh
@@ -227,7 +227,7 @@ void EntityPropertiesWindow::drawModelComponent( Entity& ent )
     ImGui::EndDragDropTarget();
   }
 
-  auto model = pModelComponent->pModel.lock();
+  auto model = pModelComponent->pModel;
 
   if ( !model )
     return;
@@ -271,9 +271,13 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
 
     const auto& pTaskManager = MainRegistry::getInstance().getTaskManager();
 
-    auto model = pAssetManager->addModel( p.filename().string(), p.string() );
-    Entity entity{ scene.lock()->getRegistry(), m_entity };
-    scene.lock()->addModelToEntity( entity.getEntityId(), model );
+    auto entTemp = m_entity;
+    pTaskManager->enqueue( [entTemp, p, pScene]() {
+      const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
+      const auto model = pAssetManager->addModel( p.filename().string(), p.string() );
+      Entity entity{ pScene->getRegistry(), entTemp };
+      pScene->addModelToEntity( entity.getEntityId(), model );
+    } );
   }
   else
   {
@@ -361,7 +365,7 @@ void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
       const auto& indexComponent = ent.getComponent<IndexComponent>();
 
       // get the instance data of this model
-      const auto data = scene->getData( modelComponent->pModel.lock().get() );
+      const auto data = scene->getData( modelComponent->pModel );
 
       // update the matrix in the instance matrices vector
       ImGuizmo::RecomposeMatrixFromComponents( glm::value_ptr( translation ), glm::value_ptr( rotation ),

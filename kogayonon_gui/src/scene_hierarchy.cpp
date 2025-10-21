@@ -2,6 +2,7 @@
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/model_component.hpp"
+#include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
@@ -38,7 +39,7 @@ void SceneHierarchyWindow::onEntitySelectInViewport( const SelectEntityInViewpor
 
 void SceneHierarchyWindow::onKeyPressed( const KeyPressedEvent& e )
 {
-  if ( e.getKeyCode() == KeyCode::Escape && m_selectedEntity != entt::null )
+  if ( e.getKeyCode() == KeyCode::Escape )
   {
     const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
     auto pTaskManager = MainRegistry::getInstance().getTaskManager();
@@ -204,17 +205,6 @@ void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
   if ( ImGui::BeginPopupContextItem( itemId.c_str() ) )
   {
-    if ( ImGui::MenuItem( "Delete entity" ) )
-    {
-      auto pScene = SceneManager::getCurrentScene();
-      if ( auto scene = pScene.lock() )
-      {
-        scene->removeEntity( ent.getEntityId() );
-        m_selectedEntity = entt::null;
-        pEventDispatcher->emitEvent( SelectEntityEvent{} );
-      }
-    }
-
     if ( ImGui::MenuItem( "Duplicate entity" ) )
     {
       auto pScene = SceneManager::getCurrentScene();
@@ -223,10 +213,24 @@ void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity
         auto entity = scene->addEntity();
         if ( ent.hasComponent<ModelComponent>() )
         {
-          const auto& model = ent.getComponent<ModelComponent>();
-          scene->addModelToEntity( entity.getEntityId(), model.pModel );
+          const auto& modelComponent = ent.getComponent<ModelComponent>();
+          const auto& transform = ent.getComponent<TransformComponent>();
+          entity.addComponent<TransformComponent>( TransformComponent{
+            .translation = transform.translation, .rotation = transform.rotation, .scale = transform.scale } );
+          scene->addModelToEntity( entity.getEntityId(), modelComponent.pModel );
         }
         pEventDispatcher->emitEvent( SelectEntityEvent{ entity.getEntityId() } );
+      }
+    }
+
+    if ( ImGui::MenuItem( "Delete entity" ) )
+    {
+      auto pScene = SceneManager::getCurrentScene();
+      if ( auto scene = pScene.lock() )
+      {
+        scene->removeEntity( ent.getEntityId() );
+        m_selectedEntity = entt::null;
+        pEventDispatcher->emitEvent( SelectEntityEvent{} );
       }
     }
 

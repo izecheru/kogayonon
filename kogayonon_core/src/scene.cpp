@@ -58,17 +58,17 @@ Entity Scene::addEntity()
   return ent;
 }
 
-void Scene::addInstanceData( entt::entity entityId )
+bool Scene::addInstanceData( entt::entity entityId )
 {
   Entity entity{ *m_pRegistry, entityId };
 
   // now that we created the entity using the scene registry and added a model and transform components to it
   // we must look for model pointer in the map to check for instances
   if ( auto pModelComponent = entity.tryGetComponent<ModelComponent>();
-       m_instances.contains( pModelComponent->pModel.lock().get() ) )
+       m_instances.contains( pModelComponent->pModel ) )
   {
     auto pModel = pModelComponent->pModel;
-    if ( const auto& instanceData = m_instances.at( pModel.lock().get() ) )
+    if ( const auto& instanceData = m_instances.at( pModel ) )
     {
       // we increment the amount of models we need to render
       ++instanceData->count;
@@ -91,6 +91,7 @@ void Scene::addInstanceData( entt::entity entityId )
 
       // setup the OpenGL buffers for instancing
       setupMultipleInstances( instanceData.get() );
+      return true;
     }
   }
   else
@@ -103,23 +104,25 @@ void Scene::addInstanceData( entt::entity entityId )
       .instanceBuffer = 0,
       .instanceMatrices = { math::computeModelMatrix( transform.translation, transform.rotation, transform.scale ) },
       .count = 1,
-      .pModel = pModel.lock().get() } );
+      .pModel = pModel } );
 
     // first we get the index of the instance matrix
     uint32_t size = instanceData->instanceMatrices.size();
     entity.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
 
     setupMultipleInstances( instanceData.get() );
-    m_instances.try_emplace( pModel.lock().get(), std::move( instanceData ) );
+    m_instances.try_emplace( pModel, std::move( instanceData ) );
+    return false;
   }
 }
 
-void Scene::addModelToEntity( entt::entity entity, std::weak_ptr<kogayonon_resources::Model> pModel )
+void Scene::addModelToEntity( entt::entity entity, kogayonon_resources::Model* pModel )
 {
+  std::lock_guard lock{ m_registryMutex };
   Entity ent{ *m_pRegistry, entity };
   if ( !ent.hasComponent<ModelComponent>() )
   {
-    ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
+    ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel } );
 
     // if we did not setup the transform from somewhere else like deserialized, we initialise a default one
     if ( !ent.hasComponent<TransformComponent>() )
@@ -128,12 +131,11 @@ void Scene::addModelToEntity( entt::entity entity, std::weak_ptr<kogayonon_resou
   else
   {
     removeModelFromEntity( ent.getEntityId() );
-    ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel, .loaded = true } );
+    ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel } );
 
     if ( !ent.hasComponent<TransformComponent>() )
       ent.addComponent<TransformComponent>();
   }
-  addInstanceData( ent.getEntityId() );
 }
 
 void Scene::removeInstanceData( entt::entity ent )
@@ -147,7 +149,7 @@ void Scene::removeInstanceData( entt::entity ent )
   const auto& modelComponent = entity.getComponent<ModelComponent>();
 
   // if we have instances
-  auto pModel = modelComponent.pModel.lock().get();
+  auto pModel = modelComponent.pModel;
 
   if ( !pModel )
     return;

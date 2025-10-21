@@ -468,6 +468,7 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
   m_pWindow->setTitle( windowTitle.c_str() );
 
   const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
+  const auto& pTaskManager = MainRegistry::getInstance().getTaskManager();
 
   rapidjson::Document doc{};
   Jsoner::parseJsonFile( doc, e.getPath() );
@@ -512,10 +513,15 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
         // create the entity
         auto ent = scene_->addEntity();
         const auto path = std::filesystem::path{ modelPath };
-        const auto model = pAssetManager->addModel( path.stem().string(), path.string() );
+        const auto& enttId = ent.getEntityId();
+
+        pTaskManager->enqueue( [scene_, path, enttId, pAssetManager]() {
+          const auto model = pAssetManager->addModel( path.stem().string(), path.string() );
+          scene_->addModelToEntity( enttId, model );
+        } );
+
         ent.addComponent<TransformComponent>(
           TransformComponent{ .translation = tmp.translation, .rotation = tmp.rotation, .scale = tmp.scale } );
-        scene_->addModelToEntity( ent.getEntityId(), model );
 
         // now the instanceData
         int matrixCount;
@@ -606,6 +612,8 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
 
     auto finalPath = std::format( "{}\\{}.kscene", scenesDirPath.string(), scene->getName().c_str() );
 
+    // this is very bad if we crash
+    // TODO might just copy the file or something before crashing
     if ( std::filesystem::exists( finalPath ) )
     {
       std::filesystem::remove( finalPath );
@@ -618,7 +626,7 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     for ( const auto& [entity, modelComponent, transformComponent, identifierComponent] :
           scene->getRegistry().getRegistry().view<ModelComponent, TransformComponent, IdentifierComponent>().each() )
     {
-      const auto& modelPath = modelComponent.pModel.lock()->getPath();
+      const auto& modelPath = modelComponent.pModel->getPath();
 
       // we load the model and textures with the assetManager->addModel(name,path);
       size_t modelPathSize = modelPath.size();
@@ -638,7 +646,7 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
       Serializer::serialize( transformComponent.translation.z, sceneOut );
 
       // now instance data
-      const auto& instanceData = scene->getData( modelComponent.pModel.lock().get() );
+      const auto& instanceData = scene->getData( modelComponent.pModel );
       // the number of entities, this also resembles the number of instance matrices
       Serializer::serialize( instanceData->count, sceneOut );
       for ( int i = 0; i < instanceData->count; i++ )
@@ -646,11 +654,11 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
         const auto& matrix = instanceData->instanceMatrices.at( i );
 
         // a glm::mat4 has 4 rows and 4 columns
-        for ( int j = 0; j < 4; j++ )
+        for ( int x = 0; x < 4; x++ )
         {
           for ( int y = 0; y < 4; y++ )
           {
-            Serializer::serialize( matrix[j][y], sceneOut );
+            Serializer::serialize( matrix[x][y], sceneOut );
           }
         }
       }

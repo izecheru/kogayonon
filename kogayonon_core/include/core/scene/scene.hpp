@@ -46,6 +46,11 @@ public:
   std::string getName() const;
   void changeName( const std::string& name );
 
+  inline std::mutex& getRegistryMutex()
+  {
+    return m_registryMutex;
+  }
+
   /**
    * @brief Removes instance data tied to the model component this entity has
    * @param ent The entity Id
@@ -65,17 +70,18 @@ public:
   Entity addEntity();
 
   /**
-   * @brief Initializes InstanceData for a specific entity
-   * @param entityId Entity's id for which we setup the instance
+   * @brief Initializes the instance data for a particular model pointer
+   * @param entityId Id of the entity we get the model component from
+   * @return True if the instances vector has the model pointer, false otherwise
    */
-  void addInstanceData( entt::entity entityId );
+  bool addInstanceData( entt::entity entityId );
 
   /**
    * @brief Adds a model to an already existing entity in the scene registry
    * @param entity The entity id
    * @param pModel The model weak_ptr from the asset manager
    */
-  void addModelToEntity( entt::entity entity, std::weak_ptr<kogayonon_resources::Model> pModel );
+  void addModelToEntity( entt::entity entity, kogayonon_resources::Model* pModel );
 
   /**
    * @brief Removes the ModelComponent from the entity and clears the related data in the instance data struct
@@ -103,6 +109,7 @@ public:
   }
 
 private:
+  std::mutex m_registryMutex;
   uint32_t m_entityCount;
   std::string m_name;
   std::unique_ptr<Registry> m_pRegistry;

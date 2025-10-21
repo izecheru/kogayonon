@@ -165,6 +165,24 @@ void SceneViewportWindow::onMouseClicked( const MouseClickedEvent& e )
 
 void SceneViewportWindow::drawScene()
 {
+  // prepare model entities for rendering if they were not loaded
+  auto scene = SceneManager::getCurrentScene().lock();
+  const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
+  for ( const auto& [entity, modelComponent] : scene->getRegistry().getRegistry().view<ModelComponent>().each() )
+  {
+    if ( modelComponent.pModel == nullptr )
+      continue;
+
+    if ( modelComponent.loaded )
+      continue;
+
+    // if we don't have the model in the instance vector, we upload the geometry
+    if ( !scene->addInstanceData( entity ) )
+      pAssetManager->uploadMeshGeometry( modelComponent.pModel->getMeshes() );
+
+    modelComponent.loaded = true;
+  }
+
   auto& spec = m_frameBuffer.getSpecification();
   m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
   m_frameBuffer.bind();
@@ -280,10 +298,10 @@ void SceneViewportWindow::draw()
   if ( m_selectedEntity != entt::null )
   {
     Entity ent{ scene->getRegistry(), m_selectedEntity };
-    const auto& model = ent.tryGetComponent<ModelComponent>();
-    if ( model && model->loaded )
+    const auto& modelComponent = ent.tryGetComponent<ModelComponent>();
+    if ( modelComponent && modelComponent->pModel != nullptr && modelComponent->loaded == true )
     {
-      const auto& instanceData = scene->getData( model->pModel.lock().get() );
+      const auto& instanceData = scene->getData( modelComponent->pModel );
       const auto& indexComponet = ent.tryGetComponent<IndexComponent>();
       const auto& transform = ent.tryGetComponent<TransformComponent>();
       auto& instanceMatrix = instanceData->instanceMatrices.at( indexComponet->index );
