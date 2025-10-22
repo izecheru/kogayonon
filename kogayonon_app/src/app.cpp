@@ -489,7 +489,7 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
       const auto& scene_ = std::make_shared<Scene>( scenePath.stem().string() );
       // TODO deserialize entities here
       std::fstream sceneIn{ scenePath, std::ios::in | std::ios::binary };
-      for ( int x = 0; x < scene["entityCount"].GetInt(); x++ )
+      for ( int x = 0; x < scene["modelEntityCount"].GetInt(); x++ )
       {
         size_t modelPathSize;
         Serializer::deserialize( modelPathSize, sceneIn );
@@ -543,6 +543,28 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
         ent.replaceComponent<IdentifierComponent>( IdentifierComponent{ .name = name, .type = type, .group = group } );
       }
 
+      for ( int x = 0; x < scene["emptyEntityCount"].GetInt(); x++ )
+      {
+        auto ent = scene_->addEntity();
+
+        std::string group;
+        size_t groupSize;
+        Serializer::deserialize( groupSize, sceneIn );
+        group.resize( groupSize );
+        Serializer::deserialize( group.data(), sizeof( char ) * groupSize, sceneIn );
+
+        std::string name;
+        size_t nameSize;
+        Serializer::deserialize( nameSize, sceneIn );
+        name.resize( nameSize );
+        Serializer::deserialize( name.data(), sizeof( char ) * nameSize, sceneIn );
+
+        EntityType type;
+        Serializer::deserialize( type, sceneIn );
+
+        ent.replaceComponent<IdentifierComponent>( IdentifierComponent{ .name = name, .type = type, .group = group } );
+      }
+
       if ( sceneIn )
         sceneIn.close();
 
@@ -566,6 +588,9 @@ void App::onProjectCreate( const kogayonon_core::ProjectCreateEvent& e )
 
   // since this is a fresh project we add a default scene
   auto defaultScene = std::make_shared<Scene>( "Default" );
+
+  // add a default entity
+  defaultScene->addEntity();
 
   // add it to the map
   SceneManager::addScene( defaultScene );
@@ -592,8 +617,23 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
   {
     rapidjson::Value sceneObject{ rapidjson::Type::kObjectType };
 
+    const auto& modelView = scene->getRegistry().getRegistry().view<ModelComponent>();
+    const auto& emptyEntityView =
+      scene->getRegistry().getRegistry().view<IdentifierComponent>( entt::exclude<ModelComponent> );
+
+    // count them accurately, don't think performance drops here
+    size_t modelCount = 0;
+    for ( const auto& ent : modelView.each() )
+      ++modelCount;
+
+    // count them accurately, don't think performance drops here
+    size_t emptyCount = 0;
+    for ( const auto& ent : emptyEntityView.each() )
+      ++emptyCount;
+
     sceneObject.AddMember( "name", rapidjson::Value{ name.c_str(), allocator }, allocator );
-    sceneObject.AddMember( "entityCount", scene->getEntityCount(), allocator );
+    sceneObject.AddMember( "modelEntityCount", modelCount, allocator );
+    sceneObject.AddMember( "emptyEntityCount", emptyCount, allocator );
 
     auto finalPath = std::format( "{}\\{}.kscene", scenesDirPath.string(), scene->getName().c_str() );
 
@@ -607,11 +647,12 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     sceneObject.AddMember( "path", rapidjson::Value{ finalPath.c_str(), allocator }, allocator );
     // use the final path to serialize entities and states
     std::fstream sceneOut{ finalPath, std::ios::out | std::ios::binary };
-
-    for ( const auto& [entity, modelComponent, transformComponent, identifierComponent] :
-          scene->getRegistry().getRegistry().view<ModelComponent, TransformComponent, IdentifierComponent>().each() )
+    for ( const auto& [entity, modelComponent] : modelView.each() )
     {
+      Entity ent{ scene->getRegistry(), entity };
       const auto& modelPath = modelComponent.pModel->getPath();
+      const auto& transformComponent = ent.getComponent<TransformComponent>();
+      const auto& identifierComponent = ent.getComponent<IdentifierComponent>();
 
       // we load the model and textures with the assetManager->addModel(name,path);
       size_t modelPathSize = modelPath.size();
@@ -630,6 +671,25 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
       Serializer::serialize( transformComponent.translation.y, sceneOut );
       Serializer::serialize( transformComponent.translation.z, sceneOut );
 
+      // now the identifier data
+      const auto& group = identifierComponent.group;
+      const size_t groupSize = group.size();
+      Serializer::serialize( groupSize, sceneOut );
+      Serializer::serialize( group.data(), sizeof( char ) * groupSize, sceneOut );
+
+      const auto& name = identifierComponent.name;
+      const size_t nameSize = name.size();
+      Serializer::serialize( nameSize, sceneOut );
+      Serializer::serialize( name.data(), sizeof( char ) * nameSize, sceneOut );
+
+      const auto& type = identifierComponent.type;
+      Serializer::serialize( type, sceneOut );
+    }
+
+    // all entities that have only identifier component
+    for ( const auto& [entity, identifierComponent] :
+          scene->getRegistry().getRegistry().view<IdentifierComponent>( entt::exclude<ModelComponent> ).each() )
+    {
       // now the identifier data
       const auto& group = identifierComponent.group;
       const size_t groupSize = group.size();
