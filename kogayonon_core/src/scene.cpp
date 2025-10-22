@@ -136,12 +136,6 @@ void Scene::addModelToEntity( entt::entity entity, kogayonon_resources::Model* p
     if ( !ent.hasComponent<TransformComponent>() )
       ent.addComponent<TransformComponent>();
   }
-  else
-  {
-    removeModelFromEntity( ent.getEntityId() );
-    ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel } );
-    ent.addComponent<TransformComponent>();
-  }
 }
 
 void Scene::removeInstanceData( entt::entity ent )
