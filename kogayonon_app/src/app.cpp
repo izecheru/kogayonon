@@ -324,15 +324,15 @@ bool App::initGuiForProject()
   auto fileTexture = pAssetManager->getTexture( "file.png" ).lock()->getTextureId();
   auto folderTexture = pAssetManager->getTexture( "folder.png" ).lock()->getTextureId();
 
-  auto sceneViewport =
-    std::make_unique<kogayonon_gui::SceneViewportWindow>( m_pWindow->getWindow(), "Scene", playTexture, stopTexture );
+  auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( m_pWindow->getWindow(), "Viewport",
+                                                                             playTexture, stopTexture );
   auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets", folderTexture, fileTexture );
   auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>( "Scene hierarchy" );
   auto performanceWindow = std::make_unique<kogayonon_gui::PerformanceWindow>( "Performance" );
   auto entityPropertiesWindow = std::make_unique<kogayonon_gui::EntityPropertiesWindow>( "Object properties" );
 
   auto pImguiManager = MainRegistry::getInstance().getImGuiManager();
-  pImguiManager->pushWindow( "Scene", std::move( sceneViewport ) );
+  pImguiManager->pushWindow( "Viewport", std::move( sceneViewport ) );
   pImguiManager->pushWindow( "Object properties", std::move( entityPropertiesWindow ) );
   pImguiManager->pushWindow( "Performance", std::move( performanceWindow ) );
   pImguiManager->pushWindow( "Scene hierarchy", std::move( sceneHierarchy ) );

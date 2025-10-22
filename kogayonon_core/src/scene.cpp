@@ -128,14 +128,11 @@ void Scene::addModelToEntity( entt::entity entity, kogayonon_resources::Model* p
   std::lock_guard lock{ m_registryMutex };
   m_registryModified = true;
   Entity ent{ *m_pRegistry, entity };
-  if ( !ent.hasComponent<ModelComponent>() )
-  {
-    ent.addComponent<ModelComponent>( ModelComponent{ .pModel = pModel } );
+  ent.replaceComponent<ModelComponent>( ModelComponent{ .pModel = pModel } );
 
-    // if we did not setup the transform from somewhere else like deserialized, we initialise a default one
-    if ( !ent.hasComponent<TransformComponent>() )
-      ent.addComponent<TransformComponent>();
-  }
+  // if we did not setup the transform from somewhere else like deserialized, we initialise a default one
+  if ( !ent.hasComponent<TransformComponent>() )
+    ent.addComponent<TransformComponent>();
 }
 
 void Scene::removeInstanceData( entt::entity ent )

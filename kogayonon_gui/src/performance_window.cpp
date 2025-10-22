@@ -15,11 +15,10 @@ PerformanceWindow::PerformanceWindow( std::string name )
 void PerformanceWindow::draw()
 {
   ImGui_Utils::ScopedPadding padd{ ImVec2{ 10.0f, 10.0f } };
-  if ( !ImGui::Begin( m_props->name.c_str(), nullptr, m_props->flags ) )
-  {
-    ImGui::End();
+
+  if ( !begin() )
     return;
-  }
+
   static std::chrono::high_resolution_clock::time_point initial = std::chrono::high_resolution_clock::now();
 
   auto passed = std::chrono::high_resolution_clock::now();

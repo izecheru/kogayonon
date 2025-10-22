@@ -139,7 +139,7 @@ void ImGuiManager::setupDockSpace( ImGuiViewport* viewport )
       ImGui::DockBuilderDockWindow( "Scene hierarchy", upplerLeftNodeId );
       ImGui::DockBuilderDockWindow( "Object properties", lowerLeftNodeId );
       ImGui::DockBuilderDockWindow( "Performance", rightNodeId );
-      ImGui::DockBuilderDockWindow( "Scene", centerNodeId );
+      ImGui::DockBuilderDockWindow( "Viewport", centerNodeId );
       ImGui::DockBuilderDockWindow( "Project", centerNodeId );
 
       ImGui::DockBuilderFinish( dockspaceId );
@@ -216,8 +216,30 @@ void ImGuiManager::mainMenu()
       }
       ImGui::EndMenu();
     }
-    ImGui::EndMainMenuBar();
+
+    if ( ImGui::BeginMenu( "Windows" ) )
+    {
+      if ( ImGui::MenuItem( "Hide all except viewport" ) )
+      {
+        for ( auto& window : m_windows )
+        {
+          if ( window.first != "Viewport" )
+            window.second->hide();
+        }
+      }
+      if ( ImGui::MenuItem( "Show all" ) )
+      {
+        for ( auto& window : m_windows )
+        {
+          if ( window.first != "Viewport" )
+            window.second->show();
+        }
+      }
+      ImGui::EndMenu();
+    }
   }
+
+  ImGui::EndMainMenuBar();
 }
 
 ImGuiManager::ImGuiWindows_Map& ImGuiManager::getWindows()
