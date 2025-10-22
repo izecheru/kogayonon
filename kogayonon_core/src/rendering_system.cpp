@@ -22,21 +22,30 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
 
   auto view = scene->getEnttRegistry().view<TransformComponent, ModelComponent, IndexComponent>();
 
+  std::unordered_map<kogayonon_resources::Model*, int> orderedModels;
+  std::unordered_set<kogayonon_resources::Model*> uniqueModels;
+
   for ( const auto& [entity, transformComp, modelComp, indexComp] : view.each() )
   {
-    if ( !modelComp.loaded )
+    auto model = modelComp.pModel;
+    if ( !model )
       continue;
 
-    auto model = modelComp.pModel;
+    // only true if first seen
+    if ( uniqueModels.insert( model ).second )
+      orderedModels.emplace( model, indexComp.index );
+  }
 
-    if ( !model )
+  for ( auto& model : orderedModels )
+  {
+    if ( !model.first )
       continue;
 
     // then draw
     shader.setMat4( "projection", projection );
     shader.setMat4( "view", viewMatrix );
 
-    for ( auto& mesh : modelComp.pModel->getMeshes() )
+    for ( auto& mesh : model.first->getMeshes() )
     {
       glBindVertexArray( mesh.getVao() );
 
@@ -49,8 +58,8 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
 
       // this will help us determine what type of rendering we have so the vertex shader knows which matrices to
       // multiply , shader.setBool( "instanced", true );
-      auto instanceData = scene->getData( model );
-      if ( instanceData != nullptr && instanceData->count > 1 )
+      auto instanceData = scene->getData( model.first );
+      if ( instanceData != nullptr && instanceData->count >= 1 )
       {
         shader.setBool( "instanced", true );
 
@@ -60,7 +69,7 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
       }
       else
       {
-        auto& matrix = instanceData->instanceMatrices.at( indexComp.index );
+        auto& matrix = instanceData->instanceMatrices.at( model.second );
         shader.setBool( "instanced", false );
         shader.setMat4( "model", matrix );
 
