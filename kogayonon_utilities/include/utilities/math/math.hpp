@@ -7,13 +7,14 @@
 // Avoid including 'detail' files manually.
 namespace kogayonon_utilities::math
 {
-static glm::mat4 computeModelMatrix( const glm::vec3& pos, const glm::vec3& rotation, const glm::vec3 scale )
+static glm::mat4 computeModelMatrix( const glm::vec3& pos, const glm::vec3& rotation, const glm::vec3& scale )
 {
   glm::mat4 model{ 1.0f };
   model = glm::translate( model, pos );
-  model = ::glm::rotate( model, rotation.x, glm::vec3{ 0.0f, 0.0f, 1.0f } );
-  model = ::glm::rotate( model, rotation.y, glm::vec3{ 0.0f, 1.0f, 0.0f } );
-  model = ::glm::rotate( model, rotation.z, glm::vec3{ 1.0f, 0.0f, 0.0f } );
+  glm::vec3 r = glm::radians( rotation );
+  model = glm::rotate( model, r.z, glm::vec3{ 0.0f, 0.0f, 1.0f } ); // roll
+  model = glm::rotate( model, r.y, glm::vec3{ 0.0f, 1.0f, 0.0f } ); // yaw
+  model = glm::rotate( model, r.x, glm::vec3{ 1.0f, 0.0f, 0.0f } ); // pitch
   model = glm::scale( model, scale );
   return model;
 }

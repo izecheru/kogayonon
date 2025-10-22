@@ -283,8 +283,9 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::getTextureById( uint32
 
 kogayonon_resources::Model* kogayonon_utilities::AssetManager::getModel( const std::string& modelName )
 {
-  auto it = m_loadedModels.find( modelName );
-  assert( it != m_loadedModels.end() && "model must be in the map" );
+  if ( !m_loadedModels.contains( modelName ) )
+    return nullptr;
+
   return m_loadedModels.at( modelName ).get();
 }
 
