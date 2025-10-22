@@ -223,7 +223,7 @@ void ImGuiManager::mainMenu()
       {
         for ( auto& window : m_windows )
         {
-          if ( window.first != "Viewport" )
+          if ( window.first != "Viewport" && window.first != "Project" )
             window.second->hide();
         }
       }
@@ -231,7 +231,7 @@ void ImGuiManager::mainMenu()
       {
         for ( auto& window : m_windows )
         {
-          if ( window.first != "Viewport" )
+          if ( window.first != "Viewport" && window.first != "Project" )
             window.second->show();
         }
       }
