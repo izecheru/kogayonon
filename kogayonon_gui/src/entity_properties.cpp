@@ -277,14 +277,25 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
     {
       pScene->removeModelFromEntity( ent.getEntityId() );
     }
+    else
+    {
+      ent.addComponent<ModelComponent>();
+    }
 
-    ent.addComponent<ModelComponent>();
-
-    pTaskManager->enqueue( [entTemp, p, pScene]() {
-      const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
-      const auto model = pAssetManager->addModel( p.filename().string(), p.string() );
+    const auto model = pAssetManager->getModel( p.filename().string() );
+    if ( model != nullptr )
+    {
       pScene->addModelToEntity( entTemp, model );
-    } );
+    }
+    else
+    {
+      pTaskManager->enqueue( [entTemp, p, pScene]() {
+        const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
+        const auto model = pAssetManager->addModel( p.filename().string(), p.string() );
+        Entity ent{ pScene->getRegistry(), entTemp };
+        pScene->addModelToEntity( entTemp, model );
+      } );
+    }
   }
   else
   {

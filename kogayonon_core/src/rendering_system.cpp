@@ -27,6 +27,9 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
 
   for ( const auto& [entity, transformComp, modelComp, indexComp] : view.each() )
   {
+    if ( !modelComp.loaded )
+      continue;
+
     auto model = modelComp.pModel;
     if ( !model )
       continue;
@@ -56,12 +59,9 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
         glBindTextureUnit( 1, texture->getTextureId() );
       }
 
-      // this will help us determine what type of rendering we have so the vertex shader knows which matrices to
-      // multiply , shader.setBool( "instanced", true );
       auto instanceData = scene->getData( model.first );
       if ( instanceData != nullptr )
       {
-
         // draw the instances
         glDrawElementsInstanced( GL_TRIANGLES, (GLsizei)mesh.getIndices().size(), GL_UNSIGNED_INT, nullptr,
                                  instanceData->count );

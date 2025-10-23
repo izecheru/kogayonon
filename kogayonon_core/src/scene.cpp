@@ -63,7 +63,6 @@ Entity Scene::addEntity()
 bool Scene::addInstanceData( entt::entity entityId )
 {
   Entity entity{ *m_pRegistry, entityId };
-  m_registryModified = true;
 
   // now that we created the entity using the scene registry and added a model and transform components to it
   // we must look for model pointer in the map to check for instances
@@ -92,9 +91,6 @@ bool Scene::addInstanceData( entt::entity entityId )
       // insert the entityId
       instanceData->entityIds.push_back( static_cast<int>( entity.getEntityId() ) );
 
-      // setup the OpenGL buffers for instancing
-      setupMultipleInstances( instanceData.get() );
-
       // we found the model in the instance map so the geometry is also already uploaded to the gpu and we use the
       // instance matrix for per model translation/ rotation/ scale
       return true;
@@ -116,7 +112,6 @@ bool Scene::addInstanceData( entt::entity entityId )
     uint32_t size = instanceData->instanceMatrices.size();
     entity.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
 
-    setupMultipleInstances( instanceData.get() );
     m_instances.try_emplace( pModel, std::move( instanceData ) );
     // we did not find the model in the instance map so we must also upload geometry to the GPU
     return false;
@@ -183,6 +178,7 @@ void Scene::removeInstanceData( entt::entity ent )
 
 void Scene::removeModelFromEntity( entt::entity entity )
 {
+  m_registryModified = true;
   Entity ent{ *m_pRegistry, entity };
 
   removeInstanceData( entity );
@@ -271,6 +267,7 @@ void Scene::prepareForRendering()
 
   for ( const auto& [entity, modelComponent] : getRegistry().getRegistry().view<ModelComponent>().each() )
   {
+    Entity ent{ getRegistry(), entity };
     if ( modelComponent.pModel == nullptr )
       continue;
 
@@ -280,6 +277,9 @@ void Scene::prepareForRendering()
     // if we don't have the model in the instance map, we upload the geometry
     if ( !addInstanceData( entity ) )
       pAssetManager->uploadMeshGeometry( modelComponent.pModel->getMeshes() );
+
+    const auto& data = getData( modelComponent.pModel );
+    setupMultipleInstances( data );
 
     // check textures
     for ( auto& mesh : modelComponent.pModel->getMeshes() )
@@ -293,12 +293,11 @@ void Scene::prepareForRendering()
         if ( texture->getLoaded() == true )
           continue;
 
-        const auto texture_ = pAssetManager->addTexture( texture->getName() );
+        auto texture_ = pAssetManager->addTexture( texture->getName() );
         texture_->setLoaded( true );
-        texture = texture_;
+        texture = std::move( texture_ );
       }
     }
-
     modelComponent.loaded = true;
   }
 }
