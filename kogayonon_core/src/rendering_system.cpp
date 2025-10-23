@@ -16,7 +16,7 @@ using namespace kogayonon_utilities;
 namespace kogayonon_core
 {
 void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatrix, glm::mat4& projection,
-                              kogayonon_utilities::Shader& shader )
+                              kogayonon_utilities::Shader& shader ) const
 {
   begin( shader );
 
@@ -59,24 +59,13 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
       // this will help us determine what type of rendering we have so the vertex shader knows which matrices to
       // multiply , shader.setBool( "instanced", true );
       auto instanceData = scene->getData( model.first );
-      if ( instanceData != nullptr && instanceData->count >= 1 )
+      if ( instanceData != nullptr )
       {
-        shader.setBool( "instanced", true );
 
         // draw the instances
         glDrawElementsInstanced( GL_TRIANGLES, (GLsizei)mesh.getIndices().size(), GL_UNSIGNED_INT, nullptr,
                                  instanceData->count );
       }
-      else
-      {
-        auto& matrix = instanceData->instanceMatrices.at( model.second );
-        shader.setBool( "instanced", false );
-        shader.setMat4( "model", matrix );
-
-        // draw the indices
-        glDrawElements( GL_TRIANGLES, (GLsizei)mesh.getIndices().size(), GL_UNSIGNED_INT, nullptr );
-      }
-
       // unbind everything
       glBindVertexArray( 0 );
       glBindTextureUnit( 1, 0 );
