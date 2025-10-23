@@ -3,6 +3,7 @@
 // Inputs
 in vec2 TexCoord;
 in flat int v_EntityID;
+in vec3 Normal;
 
 // Textures
 layout(binding = 1) uniform sampler2D u_Texture;
@@ -12,5 +13,6 @@ layout(location = 0) out vec4 FragColor;
 
 void main()
 {
-    FragColor = texture(u_Texture, TexCoord);
+    //float ambient = 0.10f;
+	FragColor = texture(u_Texture, TexCoord) ;//* ambient ;
 }

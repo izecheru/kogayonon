@@ -647,9 +647,16 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     sceneObject.AddMember( "path", rapidjson::Value{ finalPath.c_str(), allocator }, allocator );
     // use the final path to serialize entities and states
     std::fstream sceneOut{ finalPath, std::ios::out | std::ios::binary };
+    std::map<int, entt::entity> models;
     for ( const auto& [entity, modelComponent] : modelView.each() )
     {
-      Entity ent{ scene->getRegistry(), entity };
+      models.emplace( std::filesystem::file_size( modelComponent.pModel->getPath() ), entity );
+    }
+
+    for ( auto& model : models )
+    {
+      Entity ent{ scene->getRegistry(), model.second };
+      const auto& modelComponent = ent.getComponent<ModelComponent>();
       const auto& modelPath = modelComponent.pModel->getPath();
       const auto& transformComponent = ent.getComponent<TransformComponent>();
       const auto& identifierComponent = ent.getComponent<IdentifierComponent>();

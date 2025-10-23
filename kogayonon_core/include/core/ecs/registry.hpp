@@ -19,6 +19,18 @@ public:
     return m_pRegistry->valid( entity );
   }
 
+  template <typename TComponent>
+  inline TComponent& getComponent( entt ::entity entityId )
+  {
+    return m_pRegistry->get<TComponent>( entityId );
+  }
+
+  template <typename TComponent>
+  inline TComponent* tryGetComponent( entt ::entity entityId )
+  {
+    return m_pRegistry->try_get<TComponent>( entityId );
+  }
+
   inline entt::entity createEntity()
   {
     return m_pRegistry->create();

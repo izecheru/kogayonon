@@ -3,6 +3,11 @@
 #include <memory>
 #include <vector>
 
+namespace kogayonon_resources
+{
+class Model;
+}
+
 namespace kogayonon_rendering
 {
 class Camera;
@@ -20,11 +25,6 @@ class Scene;
 
 namespace kogayonon_core
 {
-
-// sort renderable objects based on camera pos,
-// if let's say we have a house of a said z and then another smaller house with a z that's
-// behind the big house, we don't render the object, probably will have to look into drawing just
-// the right meshes but will get to that at some point in time
 class RenderingSystem
 {
 public:
@@ -32,6 +32,9 @@ public:
   ~RenderingSystem() = default;
 
   void render( std::shared_ptr<Scene> scene, glm::mat4& viewMatrix, glm::mat4& projection,
+               kogayonon_utilities::Shader& shader ) const;
+
+  void render( kogayonon_resources::Model* model, glm::mat4& viewMatrix, glm::mat4& projection,
                kogayonon_utilities::Shader& shader ) const;
 
   void begin( const kogayonon_utilities::Shader& shader ) const;

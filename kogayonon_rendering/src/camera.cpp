@@ -13,10 +13,10 @@ Camera::Camera()
 
 void Camera::setupCamera()
 {
-  m_props.position = glm::vec3( 0.0f, 2.0f, 20.0f );
-  m_props.direction = glm::vec3( 0.0f, 0.0f, -1.0f );
-  m_props.cameraUp = glm::vec3( 0.0f, 1.0f, 0.0f );
-  m_props.worldUp = glm::vec3( 0.0f, 1.0f, 0.0f );
+  m_props.position = glm::vec3{ 0.0f, 2.0f, 20.0f };
+  m_props.direction = glm::vec3{ 0.0f, 0.0f, -1.0f };
+  m_props.cameraUp = glm::vec3{ 0.0f, 1.0f, 0.0f };
+  m_props.worldUp = glm::vec3{ 0.0f, 1.0f, 0.0f };
   m_props.yaw = -90.0f;
   m_props.pitch = -10.0f;
   m_props.mouseSensitivity = 0.2f;
@@ -56,7 +56,7 @@ void Camera::onMouseMoved( float x, float y, bool constrainPitch = true )
 
 void Camera::onKeyPressed( float delta )
 {
-  float velocity = m_props.movementSpeed * delta / 3.0f;
+  float velocity = m_props.movementSpeed * delta;
 
   if ( KeyboardState::getKeyState( KeyCode::W ) )
   {

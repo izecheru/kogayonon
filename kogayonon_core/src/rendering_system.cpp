@@ -9,6 +9,8 @@
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/scene/scene.hpp"
+#include "core/scene/scene_manager.hpp"
+#include "resources/model.hpp"
 #include "utilities/math/math.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
 using namespace kogayonon_utilities;
@@ -39,14 +41,12 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
       orderedModels.emplace( model, indexComp.index );
   }
 
+  shader.setMat4( "projection", projection );
+  shader.setMat4( "view", viewMatrix );
   for ( auto& model : orderedModels )
   {
     if ( !model.first )
       continue;
-
-    // then draw
-    shader.setMat4( "projection", projection );
-    shader.setMat4( "view", viewMatrix );
 
     for ( auto& mesh : model.first->getMeshes() )
     {
@@ -71,6 +71,39 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
       glBindTextureUnit( 1, 0 );
     }
   }
+  end( shader );
+}
+
+void RenderingSystem::render( kogayonon_resources::Model* model, glm::mat4& viewMatrix, glm::mat4& projection,
+                              kogayonon_utilities::Shader& shader ) const
+{
+  begin( shader );
+
+  auto& meshes = model->getMeshes();
+
+  for ( auto& mesh : meshes )
+  {
+    glBindVertexArray( mesh.getVao() );
+
+    const auto& textures = mesh.getTextures();
+    for ( const auto& texture : textures )
+    {
+      // bind the texture we need (this is bad)
+      glBindTextureUnit( 1, texture->getTextureId() );
+    }
+
+    auto instanceData = SceneManager::getCurrentScene().lock()->getData( model );
+    if ( instanceData != nullptr )
+    {
+      // draw the instances
+      glDrawElementsInstanced( GL_TRIANGLES, (GLsizei)mesh.getIndices().size(), GL_UNSIGNED_INT, nullptr,
+                               instanceData->count );
+    }
+    // unbind everything
+    glBindVertexArray( 0 );
+    glBindTextureUnit( 1, 0 );
+  }
+
   end( shader );
 }
 

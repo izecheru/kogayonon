@@ -24,7 +24,7 @@ using namespace kogayonon_core;
 namespace kogayonon_gui
 {
 EntityPropertiesWindow::EntityPropertiesWindow( std::string name )
-    : ImGuiWindow{ std::move( name ), ImGuiWindowFlags_None, { 300.0f, 300.0f } }
+    : ImGuiWindow{ std::move( name ) }
     , m_entity{ entt::null }
 {
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();

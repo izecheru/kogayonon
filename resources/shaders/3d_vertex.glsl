@@ -15,9 +15,11 @@ uniform mat4 model;
 
 // Outputs
 out vec2 TexCoord;
+out vec3 Normal;
 
 void main()
 {
     gl_Position = projection * view * instanceMatrix* vec4(aPos, 1.0);
     TexCoord = aTexCoord;
+    Normal = aNormal;
 }
