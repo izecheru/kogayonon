@@ -13,10 +13,7 @@ public:
 
   static void setKeyState( KeyCode code, bool state )
   {
-    if ( keyState.contains( code ) )
-    {
-      keyState.at( code ) = state;
-    }
+    keyState[code] = state;
   }
 
   static bool getKeyState( KeyCode code )
@@ -30,7 +27,7 @@ public:
     for ( auto& code : codes )
     {
       // if all are true &=
-      result &= keyState.at( code );
+      result &= keyState[code];
     }
     return result;
   }

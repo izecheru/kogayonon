@@ -52,7 +52,6 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureWithoutParam
   );
 
   m_loadedTextures.try_emplace( textureName, tex );
-  spdlog::info( "Loaded texture {} {}", textureName, texturePath );
 
   return m_loadedTextures.at( textureName );
 }
@@ -375,7 +374,6 @@ void AssetManager::parseTextures( const cgltf_material* material, std::vector<ko
     else
     {
       texture = std::make_shared<kogayonon_resources::Texture>( texturePath.string(), textureName );
-      spdlog::info( "Loaded texture {} {}", textureName, texturePath.string() );
       m_loadedTextures.emplace( texturePath.string(), texture );
     }
 
@@ -398,7 +396,6 @@ void AssetManager::parseTextures( const cgltf_material* material, std::vector<ko
     else
     {
       texture = std::make_shared<kogayonon_resources::Texture>( texturePath.string(), textureName );
-      spdlog::info( "Loaded texture {} {}", textureName, texturePath.string() );
       m_loadedTextures.emplace( texturePath.string(), texture );
     }
 

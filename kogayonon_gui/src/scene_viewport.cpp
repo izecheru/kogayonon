@@ -36,10 +36,30 @@ static ImGuizmo::OPERATION gizmoModeToImGuizmo( GizmoMode mode )
   {
   case GizmoMode::SCALE:
     return ImGuizmo::SCALE;
+  case GizmoMode::SCALE_X:
+    return ImGuizmo::SCALE_X;
+  case GizmoMode::SCALE_Y:
+    return ImGuizmo::SCALE_Y;
+  case GizmoMode::SCALE_Z:
+    return ImGuizmo::SCALE_Z;
+
   case GizmoMode::ROTATE:
     return ImGuizmo::ROTATE;
+  case GizmoMode::ROTATE_X:
+    return ImGuizmo::ROTATE_X;
+  case GizmoMode::ROTATE_Y:
+    return ImGuizmo::ROTATE_Y;
+  case GizmoMode::ROTATE_Z:
+    return ImGuizmo::ROTATE_Z;
+
   case GizmoMode::TRANSLATE:
     return ImGuizmo::TRANSLATE;
+  case GizmoMode::TRANSLATE_X:
+    return ImGuizmo::TRANSLATE_X;
+  case GizmoMode::TRANSLATE_Y:
+    return ImGuizmo::TRANSLATE_Y;
+  case GizmoMode::TRANSLATE_Z:
+    return ImGuizmo::TRANSLATE_Z;
   }
 }
 
@@ -70,49 +90,6 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
 
 void SceneViewportWindow::onSaveScene( const SaveSceneEvent& e )
 {
-  std::filesystem::path path{ std::filesystem::absolute( "resources\\scenes" ) };
-  if ( !std::filesystem::exists( path ) )
-  {
-    std::filesystem::create_directories( path );
-
-    auto scene = SceneManager::getCurrentScene().lock();
-    auto scenePath = path.string() + "/" + scene->getName() + ".kscene";
-
-    std::fstream out{ scenePath, std::ios::out | std::ios::binary };
-
-    if ( !out )
-      spdlog::error( "Could not create {}", scenePath );
-
-    std::string test{ "test2" };
-    size_t size = test.size();
-    Serializer::serialize( size, out );
-    Serializer::serialize( test.data(), test.size() * sizeof( char ), out );
-
-    if ( out )
-    {
-      out.close();
-    }
-  }
-  else
-  {
-    std::filesystem::create_directories( path );
-
-    auto scene = SceneManager::getCurrentScene().lock();
-    auto scenePath = path.string() + "/" + scene->getName() + ".kscene";
-
-    std::fstream in{ scenePath, std::ios::in | std::ios::binary };
-
-    size_t size;
-    Serializer::deserialize( size, in );
-
-    std::string test;
-    test.resize( size );
-    Serializer::deserialize( test.data(), size * sizeof( char ), in );
-    spdlog::info( test );
-
-    if ( in )
-      in.close();
-  }
 }
 
 void SceneViewportWindow::onMouseScrolled( const MouseScrolledEvent& e )
@@ -232,11 +209,6 @@ void SceneViewportWindow::drawPickingScene()
 
 void SceneViewportWindow::onKeyPressed( const KeyPressedEvent& e )
 {
-  if ( KeyboardState::getKeyCombinationState( { KeyCode::LeftControl, KeyCode::S } ) )
-  {
-    onSaveScene( SaveSceneEvent{} );
-  }
-
   // change gizmo mode if we press SHIFT + S R T
   if ( !KeyboardState::getKeyState( KeyCode::LeftShift ) )
     return;
@@ -251,6 +223,62 @@ void SceneViewportWindow::onKeyPressed( const KeyPressedEvent& e )
     break;
   case KeyCode::T:
     m_gizmoMode = GizmoMode::TRANSLATE;
+    break;
+
+  case KeyCode::X:
+    if ( m_gizmoMode == GizmoMode::SCALE || m_gizmoMode == GizmoMode::SCALE_Y || m_gizmoMode == GizmoMode::SCALE_Z )
+    {
+      m_gizmoMode = GizmoMode::SCALE_X;
+      break;
+    }
+
+    if ( m_gizmoMode == GizmoMode::TRANSLATE || m_gizmoMode == GizmoMode::TRANSLATE_Y ||
+         m_gizmoMode == GizmoMode::TRANSLATE_Z )
+    {
+      m_gizmoMode = GizmoMode::TRANSLATE_X;
+      break;
+    }
+
+    if ( m_gizmoMode == GizmoMode::ROTATE || m_gizmoMode == GizmoMode::ROTATE_Y || m_gizmoMode == GizmoMode::ROTATE_Z )
+      m_gizmoMode = GizmoMode::ROTATE_X;
+    break;
+
+  case KeyCode::Y:
+    if ( m_gizmoMode == GizmoMode::SCALE || m_gizmoMode == GizmoMode::SCALE_X || m_gizmoMode == GizmoMode::SCALE_Z )
+    {
+      m_gizmoMode = GizmoMode::SCALE_Y;
+      break;
+    }
+
+    if ( m_gizmoMode == GizmoMode::TRANSLATE || m_gizmoMode == GizmoMode::TRANSLATE_X ||
+         m_gizmoMode == GizmoMode::TRANSLATE_Z )
+    {
+      m_gizmoMode = GizmoMode::TRANSLATE_Y;
+      break;
+    }
+
+    if ( m_gizmoMode == GizmoMode::ROTATE || m_gizmoMode == GizmoMode::ROTATE_X || m_gizmoMode == GizmoMode::ROTATE_Z )
+      m_gizmoMode = GizmoMode::ROTATE_Y;
+
+    break;
+
+  case KeyCode::Z:
+    if ( m_gizmoMode == GizmoMode::SCALE || m_gizmoMode == GizmoMode::SCALE_X || m_gizmoMode == GizmoMode::SCALE_Y )
+    {
+      m_gizmoMode = GizmoMode::SCALE_Z;
+      break;
+    }
+
+    if ( m_gizmoMode == GizmoMode::TRANSLATE || m_gizmoMode == GizmoMode::TRANSLATE_X ||
+         m_gizmoMode == GizmoMode::TRANSLATE_Y )
+    {
+      m_gizmoMode = GizmoMode::TRANSLATE_Z;
+      break;
+    }
+
+    if ( m_gizmoMode == GizmoMode::ROTATE || m_gizmoMode == GizmoMode::ROTATE_X || m_gizmoMode == GizmoMode::ROTATE_Y )
+      m_gizmoMode = GizmoMode::ROTATE_Z;
+
     break;
   }
 }
@@ -284,13 +312,13 @@ void SceneViewportWindow::draw()
 
   if ( m_selectedEntity != entt::null )
   {
-    Entity ent{ scene->getRegistry(), m_selectedEntity };
-    const auto& modelComponent = ent.tryGetComponent<ModelComponent>();
+    auto& registry = scene->getRegistry();
+    const auto& modelComponent = registry.tryGetComponent<ModelComponent>( m_selectedEntity );
     if ( modelComponent && modelComponent->pModel != nullptr && modelComponent->loaded == true )
     {
       const auto& instanceData = scene->getData( modelComponent->pModel );
-      const auto& indexComponet = ent.tryGetComponent<IndexComponent>();
-      const auto& transform = ent.tryGetComponent<TransformComponent>();
+      const auto& indexComponet = registry.tryGetComponent<IndexComponent>( m_selectedEntity );
+      const auto& transform = registry.tryGetComponent<TransformComponent>( m_selectedEntity );
       auto& instanceMatrix = instanceData->instanceMatrices.at( indexComponet->index );
 
       ImGuizmo::Enable( ( m_props->hovered && m_props->focused ) || ImGuizmo::IsUsingAny() );

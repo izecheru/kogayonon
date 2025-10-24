@@ -29,8 +29,19 @@ namespace kogayonon_gui
 enum class GizmoMode
 {
   SCALE,
+  SCALE_X,
+  SCALE_Y,
+  SCALE_Z,
+
   ROTATE,
-  TRANSLATE
+  ROTATE_X,
+  ROTATE_Y,
+  ROTATE_Z,
+
+  TRANSLATE,
+  TRANSLATE_X,
+  TRANSLATE_Y,
+  TRANSLATE_Z
 };
 
 class SceneViewportWindow : public ImGuiWindow

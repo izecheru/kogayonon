@@ -245,10 +245,6 @@ void Scene::setupMultipleInstances( InstanceData* data )
   }
   else
   {
-    // Resize existing buffer (optional, only if count changed)
-    glNamedBufferData( data->instanceBuffer, sizeof( glm::mat4 ) * data->count, nullptr, GL_DYNAMIC_DRAW );
-    glNamedBufferData( data->entityIdBuffer, sizeof( int ) * data->count, nullptr, GL_DYNAMIC_DRAW );
-
     // upload new data
     glNamedBufferSubData( data->instanceBuffer, 0, sizeof( glm::mat4 ) * data->count, data->instanceMatrices.data() );
     glNamedBufferSubData( data->entityIdBuffer, 0, sizeof( int ) * data->count, data->entityIds.data() );
