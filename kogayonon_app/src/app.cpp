@@ -342,11 +342,7 @@ bool App::initGuiForProject()
 
 bool App::init()
 {
-#ifdef _DEBUG
-  m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine (DEBUG)", 600, 400, 1, false );
-#else
-  m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine", 500, 500, 1, true );
-#endif
+  m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine", 600, 400, 1, false );
 
   if ( !initSDL() )
   {
@@ -647,15 +643,24 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     sceneObject.AddMember( "path", rapidjson::Value{ finalPath.c_str(), allocator }, allocator );
     // use the final path to serialize entities and states
     std::fstream sceneOut{ finalPath, std::ios::out | std::ios::binary };
-    std::map<int, entt::entity> models;
+    std::vector<entt::entity> modelEntities;
+
     for ( const auto& [entity, modelComponent] : modelView.each() )
     {
-      models.emplace( std::filesystem::file_size( modelComponent.pModel->getPath() ), entity );
+      modelEntities.push_back( entity );
     }
 
-    for ( auto& model : models )
+    std::sort( modelEntities.begin(), modelEntities.end(), [&]( entt::entity a, entt::entity b ) {
+      auto& modelA = scene->getRegistry().getComponent<ModelComponent>( a );
+      auto& modelB = scene->getRegistry().getComponent<ModelComponent>( b );
+      auto sizeA = std::filesystem::file_size( modelA.pModel->getPath() );
+      auto sizeB = std::filesystem::file_size( modelB.pModel->getPath() );
+      return sizeA < sizeB;
+    } );
+
+    for ( auto& entity : modelEntities )
     {
-      Entity ent{ scene->getRegistry(), model.second };
+      Entity ent{ scene->getRegistry(), entity };
       const auto& modelComponent = ent.getComponent<ModelComponent>();
       const auto& modelPath = modelComponent.pModel->getPath();
       const auto& transformComponent = ent.getComponent<TransformComponent>();

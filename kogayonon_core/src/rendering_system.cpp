@@ -48,11 +48,12 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
     if ( !model.first )
       continue;
 
-    for ( auto& mesh : model.first->getMeshes() )
+    auto& meshes = model.first->getMeshes();
+    for ( int i = 0; i < meshes.size(); i++ )
     {
-      glBindVertexArray( mesh.getVao() );
+      glBindVertexArray( meshes.at( i ).getVao() );
 
-      const auto& textures = mesh.getTextures();
+      const auto& textures = meshes.at( i ).getTextures();
       for ( const auto& texture : textures )
       {
         // bind the texture we need (this is bad)
@@ -63,7 +64,7 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
       if ( instanceData != nullptr )
       {
         // draw the instances
-        glDrawElementsInstanced( GL_TRIANGLES, (GLsizei)mesh.getIndices().size(), GL_UNSIGNED_INT, nullptr,
+        glDrawElementsInstanced( GL_TRIANGLES, (GLsizei)meshes.at( i ).getIndices().size(), GL_UNSIGNED_INT, nullptr,
                                  instanceData->count );
       }
       // unbind everything
