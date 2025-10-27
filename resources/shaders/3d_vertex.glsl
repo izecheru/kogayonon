@@ -16,10 +16,12 @@ uniform mat4 model;
 // Outputs
 out vec2 TexCoord;
 out vec3 Normal;
+out vec3 FragPos;
 
 void main()
 {
-    gl_Position = projection * view * instanceMatrix* vec4(aPos, 1.0);
+    gl_Position = projection * view * instanceMatrix * vec4(aPos, 1.0);
     TexCoord = aTexCoord;
     Normal = aNormal;
+    FragPos = vec3(instanceMatrix*vec4(aPos,1.0));
 }

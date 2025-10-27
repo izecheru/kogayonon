@@ -43,7 +43,17 @@ void SceneHierarchyWindow::onKeyPressed( const KeyPressedEvent& e )
   if ( e.getKeyCode() == KeyCode::Escape )
   {
     const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
-    auto pTaskManager = MainRegistry::getInstance().getTaskManager();
+
+    m_selectedEntity = entt::null;
+    pEventDispatcher->emitEvent( SelectEntityEvent{} );
+  }
+
+  if ( e.getKeyCode() == KeyCode::Delete && m_selectedEntity != entt::null )
+  {
+    const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+
+    auto scene = SceneManager::getCurrentScene().lock();
+    scene->removeEntity( m_selectedEntity );
 
     m_selectedEntity = entt::null;
     pEventDispatcher->emitEvent( SelectEntityEvent{} );
