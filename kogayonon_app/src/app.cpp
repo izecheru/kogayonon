@@ -9,7 +9,7 @@
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/index_component.h"
-#include "core/ecs/components/model_component.hpp"
+#include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
@@ -284,7 +284,7 @@ bool App::initRegistries() const
   assetManager->addTexture( "3d-cube.png" );
   assetManager->addTexture( "logo.png" );
 
-  assetManager->addModel( "default", "resources/models/Cube.gltf" );
+  assetManager->addMesh( "default", "resources/models/Cube.gltf" );
 
   mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::AssetManager>>( std::move( assetManager ) );
 
@@ -319,10 +319,10 @@ bool App::initGuiForProject()
   const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
 
   // textures for imgui buttons or windows and what not
-  auto playTexture = pAssetManager->getTexture( "play.png" ).lock()->getTextureId();
-  auto stopTexture = pAssetManager->getTexture( "stop.png" ).lock()->getTextureId();
-  auto fileTexture = pAssetManager->getTexture( "file.png" ).lock()->getTextureId();
-  auto folderTexture = pAssetManager->getTexture( "folder.png" ).lock()->getTextureId();
+  auto playTexture = pAssetManager->getTextureByName( "play.png" ).lock()->getTextureId();
+  auto stopTexture = pAssetManager->getTextureByName( "stop.png" ).lock()->getTextureId();
+  auto fileTexture = pAssetManager->getTextureByName( "file.png" ).lock()->getTextureId();
+  auto folderTexture = pAssetManager->getTextureByName( "folder.png" ).lock()->getTextureId();
 
   auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( m_pWindow->getWindow(), "Viewport",
                                                                              playTexture, stopTexture );
@@ -485,14 +485,14 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
       const auto& scene_ = std::make_shared<Scene>( scenePath.stem().string() );
       // TODO deserialize entities here
       std::fstream sceneIn{ scenePath, std::ios::in | std::ios::binary };
-      for ( int x = 0; x < scene["modelEntityCount"].GetInt(); x++ )
+      for ( int x = 0; x < scene["meshEntityCount"].GetInt(); x++ )
       {
-        size_t modelPathSize;
-        Serializer::deserialize( modelPathSize, sceneIn );
+        size_t meshPathSize;
+        Serializer::deserialize( meshPathSize, sceneIn );
 
-        std::string modelPath;
-        modelPath.resize( modelPathSize );
-        Serializer::deserialize( modelPath.data(), modelPathSize * sizeof( char ), sceneIn );
+        std::string meshPath;
+        meshPath.resize( meshPathSize );
+        Serializer::deserialize( meshPath.data(), meshPathSize * sizeof( char ), sceneIn );
 
         // now rotation > scale > translation in this order
         TransformComponent tmp;
@@ -513,12 +513,12 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
           TransformComponent{ .translation = tmp.translation, .rotation = tmp.rotation, .scale = tmp.scale } );
 
         // create the entity
-        const auto path = std::filesystem::path{ modelPath };
+        const auto path = std::filesystem::path{ meshPath };
         const auto& enttId = ent.getEntityId();
 
         pTaskManager->enqueue( [scene_, path, enttId, pAssetManager]() {
-          const auto model = pAssetManager->addModel( path.stem().string(), path.string() );
-          scene_->addModelToEntity( enttId, model );
+          const auto mesh = pAssetManager->addMesh( path.stem().string(), path.string() );
+          scene_->addMeshToEntity( enttId, mesh );
         } );
 
         std::string group;
@@ -600,6 +600,9 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
   // set the close flag
   m_running = false;
 
+  if ( ProjectManager::getTitle() == "none" )
+    return;
+
   // begin to save the work and build the json files
   rapidjson::Document projectDoc{};
   projectDoc.SetObject();
@@ -613,14 +616,14 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
   {
     rapidjson::Value sceneObject{ rapidjson::Type::kObjectType };
 
-    const auto& modelView = scene->getRegistry().getRegistry().view<ModelComponent>();
+    const auto& meshView = scene->getRegistry().getRegistry().view<MeshComponent>();
     const auto& emptyEntityView =
-      scene->getRegistry().getRegistry().view<IdentifierComponent>( entt::exclude<ModelComponent> );
+      scene->getRegistry().getRegistry().view<IdentifierComponent>( entt::exclude<MeshComponent> );
 
     // count them accurately, don't think performance drops here
-    size_t modelCount = 0;
-    for ( const auto& ent : modelView.each() )
-      ++modelCount;
+    size_t meshCount = 0;
+    for ( const auto& ent : meshView.each() )
+      ++meshCount;
 
     // count them accurately, don't think performance drops here
     size_t emptyCount = 0;
@@ -628,7 +631,7 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
       ++emptyCount;
 
     sceneObject.AddMember( "name", rapidjson::Value{ name.c_str(), allocator }, allocator );
-    sceneObject.AddMember( "modelEntityCount", modelCount, allocator );
+    sceneObject.AddMember( "meshEntityCount", meshCount, allocator );
     sceneObject.AddMember( "emptyEntityCount", emptyCount, allocator );
 
     auto finalPath = std::format( "{}\\{}.kscene", scenesDirPath.string(), scene->getName().c_str() );
@@ -645,24 +648,24 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     std::fstream sceneOut{ finalPath, std::ios::out | std::ios::binary };
     std::vector<entt::entity> modelEntities;
 
-    for ( const auto& [entity, modelComponent] : modelView.each() )
+    for ( const auto& [entity, modelComponent] : meshView.each() )
     {
       modelEntities.push_back( entity );
     }
 
     std::sort( modelEntities.begin(), modelEntities.end(), [&]( entt::entity a, entt::entity b ) {
-      auto& modelA = scene->getRegistry().getComponent<ModelComponent>( a );
-      auto& modelB = scene->getRegistry().getComponent<ModelComponent>( b );
-      auto sizeA = std::filesystem::file_size( modelA.pModel->getPath() );
-      auto sizeB = std::filesystem::file_size( modelB.pModel->getPath() );
+      auto& meshA = scene->getRegistry().getComponent<MeshComponent>( a );
+      auto& meshB = scene->getRegistry().getComponent<MeshComponent>( b );
+      auto sizeA = std::filesystem::file_size( meshA.pMesh->getPath() );
+      auto sizeB = std::filesystem::file_size( meshB.pMesh->getPath() );
       return sizeA < sizeB;
     } );
 
     for ( auto& entity : modelEntities )
     {
       Entity ent{ scene->getRegistry(), entity };
-      const auto& modelComponent = ent.getComponent<ModelComponent>();
-      const auto& modelPath = modelComponent.pModel->getPath();
+      const auto& meshComponent = ent.getComponent<MeshComponent>();
+      const auto& modelPath = meshComponent.pMesh->getPath();
       const auto& transformComponent = ent.getComponent<TransformComponent>();
       const auto& identifierComponent = ent.getComponent<IdentifierComponent>();
 
@@ -700,7 +703,7 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
 
     // all entities that have only identifier component
     for ( const auto& [entity, identifierComponent] :
-          scene->getRegistry().getRegistry().view<IdentifierComponent>( entt::exclude<ModelComponent> ).each() )
+          scene->getRegistry().getRegistry().view<IdentifierComponent>( entt::exclude<MeshComponent> ).each() )
     {
       // now the identifier data
       const auto& group = identifierComponent.group;

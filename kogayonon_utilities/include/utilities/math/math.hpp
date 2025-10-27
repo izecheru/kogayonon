@@ -7,7 +7,7 @@
 // Avoid including 'detail' files manually.
 namespace kogayonon_utilities::math
 {
-static glm::mat4 computeModelMatrix( const glm::vec3& pos, const glm::vec3& rotation, const glm::vec3& scale )
+static glm::mat4 computeTransform( const glm::vec3& pos, const glm::vec3& rotation, const glm::vec3& scale )
 {
   glm::mat4 model{ 1.0f };
   model = glm::translate( model, pos );

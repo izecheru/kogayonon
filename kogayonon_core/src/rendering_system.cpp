@@ -5,12 +5,11 @@
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/index_component.h"
-#include "core/ecs/components/model_component.hpp"
+#include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
-#include "resources/model.hpp"
 #include "utilities/math/math.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
 using namespace kogayonon_utilities;
@@ -22,89 +21,52 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
 {
   begin( shader );
 
-  auto view = scene->getEnttRegistry().view<TransformComponent, ModelComponent, IndexComponent>();
+  auto view = scene->getEnttRegistry().view<TransformComponent, MeshComponent, IndexComponent>();
 
-  std::unordered_map<kogayonon_resources::Model*, int> orderedModels;
-  std::unordered_set<kogayonon_resources::Model*> uniqueModels;
+  std::unordered_map<kogayonon_resources::Mesh*, int> orderedMeshes;
+  std::unordered_set<kogayonon_resources::Mesh*> uniqueMeshes;
 
-  for ( const auto& [entity, transformComp, modelComp, indexComp] : view.each() )
+  for ( const auto& [entity, transformComp, meshComponent, indexComp] : view.each() )
   {
-    if ( !modelComp.loaded )
+    if ( !meshComponent.loaded )
       continue;
+    auto& mesh = meshComponent.pMesh;
 
-    auto model = modelComp.pModel;
-    if ( !model )
+    if ( !mesh )
       continue;
 
     // only true if first seen
-    if ( uniqueModels.insert( model ).second )
-      orderedModels.emplace( model, indexComp.index );
+    if ( uniqueMeshes.insert( mesh ).second )
+      orderedMeshes.emplace( mesh, indexComp.index );
   }
 
   shader.setMat4( "projection", projection );
   shader.setMat4( "view", viewMatrix );
-  for ( auto& model : orderedModels )
+  for ( auto& mesh : orderedMeshes )
   {
-    if ( !model.first )
+    if ( !mesh.first )
       continue;
 
-    auto& meshes = model.first->getMeshes();
-    for ( int i = 0; i < meshes.size(); i++ )
-    {
-      glBindVertexArray( meshes.at( i ).getVao() );
-
-      const auto& textures = meshes.at( i ).getTextures();
-      for ( const auto& texture : textures )
-      {
-        // bind the texture we need (this is bad)
-        glBindTextureUnit( 1, texture->getTextureId() );
-      }
-
-      auto instanceData = scene->getData( model.first );
-      if ( instanceData != nullptr )
-      {
-        // draw the instances
-        glDrawElementsInstanced( GL_TRIANGLES, (GLsizei)meshes.at( i ).getIndices().size(), GL_UNSIGNED_INT, nullptr,
-                                 instanceData->count );
-      }
-      // unbind everything
-      glBindVertexArray( 0 );
-      glBindTextureUnit( 1, 0 );
-    }
-  }
-  end( shader );
-}
-
-void RenderingSystem::render( kogayonon_resources::Model* model, glm::mat4& viewMatrix, glm::mat4& projection,
-                              kogayonon_utilities::Shader& shader ) const
-{
-  begin( shader );
-
-  auto& meshes = model->getMeshes();
-
-  for ( auto& mesh : meshes )
-  {
-    glBindVertexArray( mesh.getVao() );
-
-    const auto& textures = mesh.getTextures();
-    for ( const auto& texture : textures )
+    glBindVertexArray( mesh.first->getVao() );
+    const auto& textures = mesh.first->getTextures();
+    for ( int i = 0; i < textures.size(); i++ )
     {
       // bind the texture we need (this is bad)
-      glBindTextureUnit( 1, texture->getTextureId() );
+      glBindTextureUnit( 1, textures.at( i )->getTextureId() );
     }
 
-    auto instanceData = SceneManager::getCurrentScene().lock()->getData( model );
-    if ( instanceData != nullptr )
+    auto instanceData = scene->getData( mesh.first );
+    auto& submeshes = mesh.first->getSubmeshes();
+    for ( int i = 0; i < submeshes.size() && instanceData != nullptr; i++ )
     {
-      // draw the instances
-      glDrawElementsInstanced( GL_TRIANGLES, (GLsizei)mesh.getIndices().size(), GL_UNSIGNED_INT, nullptr,
-                               instanceData->count );
+
+      glDrawElementsInstancedBaseVertex( GL_TRIANGLES, submeshes.at( i ).indexCount, GL_UNSIGNED_INT,
+                                         (void*)( submeshes.at( i ).indexOffset * sizeof( uint32_t ) ),
+                                         instanceData->count, submeshes.at( i ).vertexOffest );
     }
-    // unbind everything
     glBindVertexArray( 0 );
     glBindTextureUnit( 1, 0 );
   }
-
   end( shader );
 }
 

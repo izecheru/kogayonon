@@ -14,7 +14,7 @@ class Scene;
 class SelectEntityEvent;
 class SelectEntityInViewportEvent;
 struct TextureComponent;
-struct ModelComponent;
+struct MeshComponent;
 struct TransformComponent;
 class Entity;
 } // namespace kogayonon_core
@@ -36,7 +36,7 @@ private:
   void drawEnttProperties( std::shared_ptr<kogayonon_core::Scene> scene );
   void drawTextureContextMenu( std::vector<kogayonon_resources::Texture*>& textures, int index ) const;
   void drawTextureComponent( kogayonon_core::Entity& ent ) const;
-  void drawModelComponent( kogayonon_core::Entity& ent );
+  void drawMeshComponent( kogayonon_core::Entity& ent );
   void drawTransformComponent( kogayonon_core::Entity& ent ) const;
 
   void manageModelPayload( const ImGuiPayload* payload );

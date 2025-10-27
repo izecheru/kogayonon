@@ -1,7 +1,8 @@
 #include "gui/scene_hierarchy.hpp"
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/identifier_component.hpp"
-#include "core/ecs/components/model_component.hpp"
+#include "core/ecs/components/mesh_component.hpp"
+
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -59,7 +60,7 @@ void SceneHierarchyWindow::draw()
   const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
 
-  static auto cubeIcon = pAssetManager->getTexture( "3d-cube.png" );
+  static auto cubeIcon = pAssetManager->getTextureByName( "3d-cube.png" );
 
   initProps();
 
@@ -211,13 +212,13 @@ void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity
       if ( auto scene = pScene.lock() )
       {
         auto entity = scene->addEntity();
-        if ( ent.hasComponent<ModelComponent>() )
+        if ( ent.hasComponent<MeshComponent>() )
         {
-          const auto& modelComponent = ent.getComponent<ModelComponent>();
+          const auto& meshComponent = ent.getComponent<MeshComponent>();
           const auto& transform = ent.getComponent<TransformComponent>();
           entity.addComponent<TransformComponent>( TransformComponent{
             .translation = transform.translation, .rotation = transform.rotation, .scale = transform.scale } );
-          scene->addModelToEntity( entity.getEntityId(), modelComponent.pModel );
+          scene->addMeshToEntity( entity.getEntityId(), meshComponent.pMesh );
         }
         pEventDispatcher->emitEvent( SelectEntityEvent{ entity.getEntityId() } );
       }

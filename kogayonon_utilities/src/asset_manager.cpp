@@ -5,7 +5,7 @@
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <spdlog/spdlog.h>
-#include "resources/model.hpp"
+
 #include "resources/texture.hpp"
 #include "resources/vertex.hpp"
 
@@ -91,43 +91,47 @@ kogayonon_resources::Texture* AssetManager::addTexture( const std::string& textu
   return m_loadedTextures.at( textureName ).get();
 }
 
-kogayonon_resources::Model* AssetManager::addModel( const std::string& modelName, const std::string& modelPath )
+kogayonon_resources::Mesh* AssetManager::addMesh( const std::string& meshName, const std::string& meshPath )
 {
   std::lock_guard lock{ m_assetMutex };
 
-  if ( m_loadedModels.contains( modelName ) )
+  if ( m_loadedMeshes.contains( meshName ) )
   {
-    spdlog::info( "Model already loaded {} ", modelName );
-    return m_loadedModels.at( modelName ).get();
+    spdlog::info( "Mesh already loaded {} ", meshName );
+    return m_loadedMeshes.at( meshName ).get();
   }
 
-  assert( std::filesystem::exists( modelPath ) && "model file does not exist" );
+  assert( std::filesystem::exists( meshPath ) && "mesh file does not exist" );
 
   cgltf_options options{};
   cgltf_data* data = nullptr;
 
   // Parse GLTF
-  if ( cgltf_parse_file( &options, modelPath.c_str(), &data ) != cgltf_result_success )
+  if ( cgltf_parse_file( &options, meshPath.c_str(), &data ) != cgltf_result_success )
   {
-    spdlog::error( "Failed to parse GLTF {} ", modelPath );
+    spdlog::error( "Failed to parse GLTF {} ", meshPath );
+    cgltf_free( data );
     return {};
   }
 
-  if ( cgltf_load_buffers( &options, data, modelPath.c_str() ) != cgltf_result_success )
+  if ( cgltf_load_buffers( &options, data, meshPath.c_str() ) != cgltf_result_success )
   {
-    spdlog::error( "Failed to load GLTF buffers {} ", modelPath );
+    spdlog::error( "Failed to load GLTF buffers {} ", meshPath );
     cgltf_free( data );
     return {};
   }
 
   if ( cgltf_validate( data ) != cgltf_result_success )
   {
-    spdlog::error( "GLTF validation failed {} ", modelPath );
+    spdlog::error( "GLTF validation failed {} ", meshPath );
     cgltf_free( data );
     return {};
   }
 
-  std::vector<kogayonon_resources::Mesh> meshes;
+  std::vector<kogayonon_resources::Submesh> submeshes;
+  std::vector<kogayonon_resources::Vertex> vertices;
+  std::vector<uint32_t> indices;
+  std::vector<kogayonon_resources::Texture*> textures;
 
   for ( size_t i = 0; i < data->nodes_count; ++i )
   {
@@ -136,17 +140,16 @@ kogayonon_resources::Model* AssetManager::addModel( const std::string& modelName
       continue;
 
     cgltf_mesh& mesh = *node.mesh;
-
     auto transform = glm::mat4( 1.0f );
     if ( node.has_matrix )
       transform = glm::make_mat4( node.matrix );
     else
     {
       glm::mat4 translation =
-        glm::translate( glm::mat4( 1.0f ), glm::vec3( node.translation[0], node.translation[1], node.translation[2] ) );
+        glm::translate( glm::mat4{ 1.0f }, glm::vec3{ node.translation[0], node.translation[1], node.translation[2] } );
       glm::mat4 rotation =
-        glm::mat4_cast( glm::quat( node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2] ) );
-      glm::mat4 scale = glm::scale( glm::mat4( 1.0f ), glm::vec3( node.scale[0], node.scale[1], node.scale[2] ) );
+        glm::mat4_cast( glm::quat{ node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2] } );
+      glm::mat4 scale = glm::scale( glm::mat4{ 1.0f }, glm::vec3{ node.scale[0], node.scale[1], node.scale[2] } );
       transform = translation * rotation * scale;
     }
 
@@ -154,94 +157,100 @@ kogayonon_resources::Model* AssetManager::addModel( const std::string& modelName
     {
       cgltf_primitive& primitive = mesh.primitives[j];
 
-      std::vector<glm::vec3> positions;
-      std::vector<glm::vec3> normals;
-      std::vector<glm::vec2> texCoords;
-      std::vector<kogayonon_resources::Texture*> textures;
-      std::vector<uint32_t> indices;
+      std::vector<glm::vec3> localPositions;
+      std::vector<glm::vec3> localNormals;
+      std::vector<glm::vec2> localTextureCoords;
+      std::vector<uint32_t> localIndices;
+      std::vector<kogayonon_resources::Vertex> localVertices;
 
-      parseVertices( primitive, positions, normals, texCoords, transform );
+      parseVertices( primitive, localPositions, localNormals, localTextureCoords, transform );
 
       if ( primitive.indices )
-        parseIndices( primitive.indices, indices );
+        parseIndices( primitive.indices, localIndices );
 
       if ( primitive.material )
         parseTextures( primitive.material, textures );
 
-      std::vector<kogayonon_resources::Vertex> vertices;
-      for ( size_t x = 0; x < positions.size(); ++x )
+      for ( size_t x = 0; x < localPositions.size(); ++x )
       {
-        kogayonon_resources::Vertex v;
-        v.position = positions[x];
-        v.normal = ( x < normals.size() ) ? normals[x] : glm::vec3( 0.0f );
-        v.textureCoords = ( x < texCoords.size() ) ? texCoords[x] : glm::vec2( 0.0f );
-        vertices.push_back( v );
+        kogayonon_resources::Vertex v{ .position = localPositions[x],
+                                       .normal = ( x < localNormals.size() ) ? localNormals[x] : glm::vec3{ 0.0f },
+                                       .textureCoords = ( x < localTextureCoords.size() ) ? localTextureCoords[x]
+                                                                                          : glm::vec2{ 0.0f } };
+        localVertices.emplace_back( v );
       }
 
-      meshes.emplace_back( std::move( vertices ), std::move( indices ), std::move( textures ) );
+      uint32_t vertexOffset = static_cast<uint32_t>( vertices.size() );
+      uint32_t indexOffset = static_cast<uint32_t>( indices.size() );
+
+      vertices.insert( vertices.end(), localVertices.begin(), localVertices.end() );
+      indices.insert( indices.end(), localIndices.begin(), localIndices.end() );
+
+      submeshes.emplace_back(
+        kogayonon_resources::Submesh{ .vertexOffest = static_cast<uint32_t>( vertexOffset ),
+                                      .indexOffset = static_cast<uint32_t>( indexOffset ),
+                                      .indexCount = static_cast<uint32_t>( localIndices.size() ) } );
     }
   }
-  auto model = std::make_shared<kogayonon_resources::Model>( std::move( meshes ), modelPath );
 
-  m_loadedModels.try_emplace( modelName, model );
+  auto mesh_ = std::make_shared<kogayonon_resources::Mesh>( meshPath, std::move( vertices ), std::move( indices ),
+                                                            std::move( textures ), std::move( submeshes ) );
+  m_loadedMeshes.try_emplace( meshName, mesh_ );
 
   cgltf_free( data );
 
-  spdlog::info( "Loaded model {} ", modelName );
-  return getModel( modelName );
+  spdlog::info( "Loaded mesh {} ", meshName );
+  return getMesh( meshName );
 }
 
-void AssetManager::uploadMeshGeometry( std::vector<kogayonon_resources::Mesh>& meshes ) const
+void AssetManager::uploadMeshGeometry( kogayonon_resources::Mesh* mesh ) const
 {
-  for ( auto& mesh : meshes )
-  {
-    auto& vao = mesh.getVao();
-    auto& vbo = mesh.getVbo();
-    auto& ebo = mesh.getEbo();
+  auto& vao = mesh->getVao();
+  auto& vbo = mesh->getVbo();
+  auto& ebo = mesh->getEbo();
 
-    auto& vertices = mesh.getVertices();
-    auto& indices = mesh.getIndices();
+  auto& vertices = mesh->getVertices();
+  auto& indices = mesh->getIndices();
 
-    // prepare the buffers to tell OpenGL how to interpret our data
-    glCreateVertexArrays( 1, &vao );
-    assert( vao != 0 && "vao cannot be 0" );
+  // prepare the buffers to tell OpenGL how to interpret our data
+  glCreateVertexArrays( 1, &vao );
+  assert( vao != 0 && "vao cannot be 0" );
 
-    // upload data to vertex buffer
-    glCreateBuffers( 1, &vbo );
-    assert( vbo != 0 && "vbo cannot be 0" );
+  // upload data to vertex buffer
+  glCreateBuffers( 1, &vbo );
+  assert( vbo != 0 && "vbo cannot be 0" );
 
-    glNamedBufferData( vbo, vertices.size() * sizeof( kogayonon_resources::Vertex ), vertices.data(), GL_DYNAMIC_DRAW );
+  glNamedBufferData( vbo, vertices.size() * sizeof( kogayonon_resources::Vertex ), vertices.data(), GL_DYNAMIC_DRAW );
 
-    // upload indices to element buffer
-    glCreateBuffers( 1, &ebo );
-    assert( ebo != 0 && "ebo cannot be 0" );
-    glNamedBufferData( ebo, indices.size() * sizeof( unsigned int ), indices.data(), GL_DYNAMIC_DRAW );
+  // upload indices to element buffer
+  glCreateBuffers( 1, &ebo );
+  assert( ebo != 0 && "ebo cannot be 0" );
+  glNamedBufferData( ebo, indices.size() * sizeof( unsigned int ), indices.data(), GL_DYNAMIC_DRAW );
 
-    // link vao to vbo (vbo will be binded by this call)
-    glVertexArrayVertexBuffer( vao, 0, vbo, 0, sizeof( kogayonon_resources::Vertex ) );
+  // link vao to vbo (vbo will be binded by this call)
+  glVertexArrayVertexBuffer( vao, 0, vbo, 0, sizeof( kogayonon_resources::Vertex ) );
 
-    // link ebo to vao
-    glVertexArrayElementBuffer( vao, ebo );
+  // link ebo to vao
+  glVertexArrayElementBuffer( vao, ebo );
 
-    // tell OpenGL how the data layout looks
+  // tell OpenGL how the data layout looks
 
-    // position
-    glEnableVertexArrayAttrib( vao, 0 );
+  // position
+  glEnableVertexArrayAttrib( vao, 0 );
 
-    // normal
-    glEnableVertexArrayAttrib( vao, 1 );
+  // normal
+  glEnableVertexArrayAttrib( vao, 1 );
 
-    // texture coordinates
-    glEnableVertexArrayAttrib( vao, 2 );
+  // texture coordinates
+  glEnableVertexArrayAttrib( vao, 2 );
 
-    glVertexArrayAttribFormat( vao, 0, 3, GL_FLOAT, GL_FLOAT, offsetof( kogayonon_resources::Vertex, position ) );
-    glVertexArrayAttribFormat( vao, 1, 3, GL_FLOAT, GL_FLOAT, offsetof( kogayonon_resources::Vertex, normal ) );
-    glVertexArrayAttribFormat( vao, 2, 2, GL_FLOAT, GL_FLOAT, offsetof( kogayonon_resources::Vertex, textureCoords ) );
+  glVertexArrayAttribFormat( vao, 0, 3, GL_FLOAT, GL_FLOAT, offsetof( kogayonon_resources::Vertex, position ) );
+  glVertexArrayAttribFormat( vao, 1, 3, GL_FLOAT, GL_FLOAT, offsetof( kogayonon_resources::Vertex, normal ) );
+  glVertexArrayAttribFormat( vao, 2, 2, GL_FLOAT, GL_FLOAT, offsetof( kogayonon_resources::Vertex, textureCoords ) );
 
-    glVertexArrayAttribBinding( vao, 0, 0 );
-    glVertexArrayAttribBinding( vao, 1, 0 );
-    glVertexArrayAttribBinding( vao, 2, 0 );
-  }
+  glVertexArrayAttribBinding( vao, 0, 0 );
+  glVertexArrayAttribBinding( vao, 1, 0 );
+  glVertexArrayAttribBinding( vao, 2, 0 );
 }
 
 std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureFromMemory( const std::string& textureName,
@@ -250,7 +259,7 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureFromMemory( 
   return std::weak_ptr<kogayonon_resources::Texture>();
 }
 
-std::weak_ptr<kogayonon_resources::Texture> AssetManager::getTexture( const std::string& textureName )
+std::weak_ptr<kogayonon_resources::Texture> AssetManager::getTextureByName( const std::string& textureName )
 {
   auto it = m_loadedTextures.find( textureName );
   assert( it != m_loadedTextures.end() && "texture must be in the map" );
@@ -277,15 +286,15 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::getTextureById( uint32
     if ( texture->getTextureId() == id )
       return texture;
   }
-  return getTexture( "default" );
+  return getTextureByName( "default" );
 }
 
-kogayonon_resources::Model* kogayonon_utilities::AssetManager::getModel( const std::string& modelName )
+kogayonon_resources::Mesh* kogayonon_utilities::AssetManager::getMesh( const std::string& meshName )
 {
-  if ( !m_loadedModels.contains( modelName ) )
+  if ( !m_loadedMeshes.contains( meshName ) )
     return nullptr;
 
-  return m_loadedModels.at( modelName ).get();
+  return m_loadedMeshes.at( meshName ).get();
 }
 
 void AssetManager::parseVertices( cgltf_primitive& primitive, std::vector<glm::vec3>& positions,

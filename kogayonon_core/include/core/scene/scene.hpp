@@ -5,7 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include "core/ecs/entity.hpp"
-#include "resources/model.hpp"
+#include "resources/mesh.hpp"
 
 namespace kogayonon_core
 {
@@ -26,13 +26,13 @@ struct InstanceData
   uint32_t instanceBuffer{ 0 };
 
   // each instance has its own instance matrix that enables transformations
-  std::vector<glm::mat4> instanceMatrices{};
+  std::vector<glm::mat4> instanceMatrices{ 0 };
 
   // the amount of instances that will be drawn for a specific model using glDrawElementsInstanced
   int count{ 1 };
 
-  // pointer to the model, we use this as a key in unordered_map<Model*,unique_ptr<InstanceData>>
-  kogayonon_resources::Model* pModel{ nullptr };
+  // pointer to the mesh, we use this as a key in unordered_map<Model*,unique_ptr<InstanceData>>
+  kogayonon_resources::Mesh* pMesh{ nullptr };
 };
 
 class Scene
@@ -81,23 +81,23 @@ public:
   /**
    * @brief Adds a model to an already existing entity in the scene registry
    * @param entity The entity id
-   * @param pModel The model weak_ptr from the asset manager
+   * @param pMesh The mesh weak_ptr from the asset manager
    */
-  void addModelToEntity( entt::entity entity, kogayonon_resources::Model* pModel );
+  void addMeshToEntity( entt::entity entity, kogayonon_resources::Mesh* pMesh );
 
   /**
-   * @brief Removes the ModelComponent from the entity and clears the related data in the instance data struct
+   * @brief Removes the MeshComponent from the entity and clears the related data in the instance data struct
    * @param entity The entity we edit
    * @param pModel The model weak_ptr from asset manager
    */
-  void removeModelFromEntity( entt::entity entity );
+  void removeMeshFromEntity( entt::entity entity );
 
   /**
    * @brief Get instance data for a specified model since Model* is a key used in the instance map
    * @param pModel The model weak_ptr
    * @return Returns an InstanceData* to the instance data linked to the model
    */
-  InstanceData* getData( kogayonon_resources::Model* pModel );
+  InstanceData* getData( kogayonon_resources::Mesh* pModel );
 
   /**
    * @brief Sets up the instance buffer, entity buffer and uploads the required data for rendering to the gpu
@@ -123,6 +123,6 @@ private:
   uint32_t m_entityCount;
   std::string m_name;
   std::unique_ptr<Registry> m_pRegistry;
-  std::unordered_map<kogayonon_resources::Model*, std::unique_ptr<InstanceData>> m_instances;
+  std::unordered_map<kogayonon_resources::Mesh*, std::unique_ptr<InstanceData>> m_instances;
 };
 } // namespace kogayonon_core

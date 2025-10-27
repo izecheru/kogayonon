@@ -34,9 +34,6 @@ public:
   void render( std::shared_ptr<Scene> scene, glm::mat4& viewMatrix, glm::mat4& projection,
                kogayonon_utilities::Shader& shader ) const;
 
-  void render( kogayonon_resources::Model* model, glm::mat4& viewMatrix, glm::mat4& projection,
-               kogayonon_utilities::Shader& shader ) const;
-
   void begin( const kogayonon_utilities::Shader& shader ) const;
   void end( const kogayonon_utilities::Shader& shader ) const;
 };

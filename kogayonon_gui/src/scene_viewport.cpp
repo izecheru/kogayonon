@@ -6,7 +6,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/index_component.h"
-#include "core/ecs/components/model_component.hpp"
+#include "core/ecs/components/mesh_component.hpp"
+
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -302,7 +303,7 @@ void SceneViewportWindow::draw()
 
   drawScene();
 
-  ImGui::GetWindowDrawList()->AddImage( (ImTextureID)m_frameBuffer.getColorAttachmentId( 0 ), win_pos,
+  ImGui::GetWindowDrawList()->AddImage( m_frameBuffer.getColorAttachmentId( 0 ), win_pos,
                                         ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y }, ImVec2{ 0, 1 },
                                         ImVec2{ 1, 0 } );
 
@@ -313,10 +314,10 @@ void SceneViewportWindow::draw()
   if ( m_selectedEntity != entt::null )
   {
     auto& registry = scene->getRegistry();
-    const auto& modelComponent = registry.tryGetComponent<ModelComponent>( m_selectedEntity );
-    if ( modelComponent && modelComponent->pModel != nullptr && modelComponent->loaded == true )
+    const auto& modelComponent = registry.tryGetComponent<MeshComponent>( m_selectedEntity );
+    if ( modelComponent && modelComponent->pMesh != nullptr && modelComponent->loaded == true )
     {
-      const auto& instanceData = scene->getData( modelComponent->pModel );
+      const auto& instanceData = scene->getData( modelComponent->pMesh );
       const auto& indexComponet = registry.tryGetComponent<IndexComponent>( m_selectedEntity );
       const auto& transform = registry.tryGetComponent<TransformComponent>( m_selectedEntity );
       auto& instanceMatrix = instanceData->instanceMatrices.at( indexComponet->index );

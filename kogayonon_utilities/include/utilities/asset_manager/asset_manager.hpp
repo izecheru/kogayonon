@@ -5,7 +5,7 @@
 #include <string>
 #include <thread>
 #include <unordered_map>
-#include "resources/model.hpp"
+#include "resources/mesh.hpp"
 #include "resources/texture.hpp"
 
 struct cgltf_primitive;
@@ -32,7 +32,8 @@ public:
 
   std::weak_ptr<kogayonon_resources::Texture> addTextureFromMemory( const std::string& textureName,
                                                                     const unsigned char* data );
-  std::weak_ptr<kogayonon_resources::Texture> getTexture( const std::string& textureName );
+  std::weak_ptr<kogayonon_resources::Texture> getTextureByName( const std::string& textureName );
+
   /**
    * @brief Deletes a texture from the loaded map, even though we index with texture name which is not actual filename,
    * we will loop through the map with an iterator it and look if the path == it->second->getPath() since we store the
@@ -44,14 +45,14 @@ public:
   std::weak_ptr<kogayonon_resources::Texture> getTextureById( uint32_t id );
 
   // Models
-  kogayonon_resources::Model* addModel( const std::string& modelName, const std::string& modelPath );
-  kogayonon_resources::Model* getModel( const std::string& modelName );
+  kogayonon_resources::Mesh* addMesh( const std::string& meshName, const std::string& meshPath );
+  kogayonon_resources::Mesh* getMesh( const std::string& meshName );
 
   /**
    * @brief Uploads each mesh data to the gpu and tells it how to interpret every buffer
    * @param meshes A vector of meshes that will need to be prepared for rendering
    */
-  void uploadMeshGeometry( std::vector<kogayonon_resources::Mesh>& meshes ) const;
+  void uploadMeshGeometry( kogayonon_resources::Mesh* mesh ) const;
 
 private:
   void parseVertices( cgltf_primitive& primitive, std::vector<glm::vec3>& positions, std::vector<glm::vec3>& normals,
@@ -65,6 +66,6 @@ private:
   std::mutex m_assetMutex{};
 
   std::unordered_map<std::string, std::shared_ptr<kogayonon_resources::Texture>> m_loadedTextures;
-  std::unordered_map<std::string, std::shared_ptr<kogayonon_resources::Model>> m_loadedModels;
+  std::unordered_map<std::string, std::shared_ptr<kogayonon_resources::Mesh>> m_loadedMeshes;
 };
 } // namespace kogayonon_utilities

@@ -7,7 +7,7 @@ namespace kogayonon_core
 struct KogayononProject
 {
   // title of the project
-  std::string title;
+  std::string title{ "none" };
 
   // path of the project file
   std::filesystem::path path;

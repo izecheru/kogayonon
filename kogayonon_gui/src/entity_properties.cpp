@@ -4,7 +4,8 @@
 #include <imgui_stdlib.h>
 #include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/index_component.h"
-#include "core/ecs/components/model_component.hpp"
+#include "core/ecs/components/mesh_component.hpp"
+
 #include "core/ecs/components/texture_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
@@ -78,11 +79,11 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
   {
     if ( ImGui::BeginMenu( "Add component" ) )
     {
-      if ( !entity.hasComponent<ModelComponent>() )
+      if ( !entity.hasComponent<MeshComponent>() )
       {
-        if ( ImGui::MenuItem( "Model component" ) )
+        if ( ImGui::MenuItem( "Mesh component" ) )
         {
-          entity.addComponent<ModelComponent>();
+          entity.addComponent<MeshComponent>();
         }
       }
       if ( ImGui::MenuItem( "Texture component" ) )
@@ -93,15 +94,15 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
     ImGui::EndPopup();
   }
 
-  if ( entity.hasComponent<ModelComponent>() )
+  if ( entity.hasComponent<MeshComponent>() )
   {
-    ImGui::SeparatorText( "Model" );
-    drawModelComponent( entity );
+    ImGui::SeparatorText( "  Mesh  " );
+    drawMeshComponent( entity );
   }
 
   if ( entity.hasComponent<TransformComponent>() )
   {
-    ImGui::SeparatorText( "Transform" );
+    ImGui::SeparatorText( "  Transform  " );
     drawTransformComponent( entity );
   }
 }
@@ -116,12 +117,12 @@ void EntityPropertiesWindow::onEntitySelect( const SelectEntityEvent& e )
 
 void EntityPropertiesWindow::drawTextureComponent( Entity& ent ) const
 {
-  const auto& pModelComponent = ent.tryGetComponent<ModelComponent>();
-  if ( !pModelComponent )
+  const auto& pMeshComponent = ent.tryGetComponent<MeshComponent>();
+  if ( !pMeshComponent )
     return;
 
-  auto& meshes = pModelComponent->pModel->getMeshes();
-  if ( meshes.empty() )
+  auto& mesh = pMeshComponent->pMesh;
+  if ( !mesh )
     return;
 
   ImGui::BeginGroup();
@@ -132,74 +133,12 @@ void EntityPropertiesWindow::drawTextureComponent( Entity& ent ) const
   }
 
   ImGui::BeginListBox( "##texture_list" );
-  std::unordered_set<uint32_t> seen;
-  for ( auto& mesh : meshes )
-  {
-    auto& textures = mesh.getTextures();
-    for ( int i = 0; i < textures.size(); i++ )
-    {
-      if ( const auto& texture = textures.at( i ); seen.insert( texture->getTextureId() ).second )
-      {
-        ImGui::Text( "%s", texture->getName().c_str() );
-        if ( ImGui::IsItemHovered() )
-        {
-          ImGui::BeginTooltip();
-          if ( texture )
-          {
-            ImGui::Image( (ImTextureID)texture->getTextureId(), ImVec2{ 100.0f, 100.0f } );
-          }
-          ImGui::EndTooltip();
-        }
-      }
-
-      drawTextureContextMenu( textures, i );
-    }
-  }
-
   ImGui::EndListBox();
   ImGui::EndGroup();
 }
 
 void EntityPropertiesWindow::manageTexturePayload( const ImGuiPayload* payload ) const
 {
-  if ( !payload )
-    return;
-
-  const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
-  auto data = static_cast<const char*>( payload->Data );
-  std::string dropResult( data, payload->DataSize );
-  std::filesystem::path p{ dropResult };
-  std::string extension = p.extension().string();
-
-  // sometimes the file extension check would fail because of the hidden null character
-  // so we clear it
-  if ( !extension.empty() && extension.back() == '\0' )
-  {
-    extension.pop_back();
-  }
-
-  if ( extension != ".png" && extension != ".jpg" )
-  {
-    spdlog::info( "format currently unsupported {}", p.extension().string() );
-    return;
-  }
-
-  auto pTexture = pAssetManager->addTexture( p.filename().string(), p.string() );
-  auto scene = SceneManager::getCurrentScene().lock();
-  Entity ent{ scene->getRegistry(), m_entity };
-
-  if ( const auto& model = ent.tryGetComponent<ModelComponent>() )
-  {
-    auto& meshes = model->pModel->getMeshes();
-    for ( auto& mesh : meshes )
-    {
-      // get the textures vector for each mesh
-      auto& textures = mesh.getTextures();
-
-      // add it to the vector
-      textures.push_back( pTexture );
-    }
-  }
 }
 
 void EntityPropertiesWindow::drawTextureContextMenu( std::vector<kogayonon_resources::Texture*>& textures,
@@ -216,9 +155,9 @@ void EntityPropertiesWindow::drawTextureContextMenu( std::vector<kogayonon_resou
   }
 }
 
-void EntityPropertiesWindow::drawModelComponent( Entity& ent )
+void EntityPropertiesWindow::drawMeshComponent( Entity& ent )
 {
-  auto pModelComponent = ent.tryGetComponent<ModelComponent>();
+  auto pMeshComponent = ent.tryGetComponent<MeshComponent>();
   if ( ImGui::BeginDragDropTarget() )
   {
     // if we have a payload
@@ -227,23 +166,23 @@ void EntityPropertiesWindow::drawModelComponent( Entity& ent )
     ImGui::EndDragDropTarget();
   }
 
-  auto model = pModelComponent->pModel;
+  auto& mesh = pMeshComponent->pMesh;
 
-  if ( !model )
+  if ( !mesh )
     return;
 
   Entity entity{ SceneManager::getCurrentScene().lock()->getRegistry(), m_entity };
 
-  ImGui::Text( "Model has %d meshes", model->getMeshes().size() );
-  ImGui::TextWrapped( "Path: %s", model->getPath().c_str() );
+  ImGui::Text( "Mesh has %d submeshes", mesh->getSubmeshes().size() );
+  ImGui::TextWrapped( "Path: %s", mesh->getPath().c_str() );
 
-  if ( ImGui::Button( "Remove model" ) )
+  if ( ImGui::Button( "Remove mesh" ) )
   {
     auto scene = SceneManager::getCurrentScene().lock();
     if ( !scene )
       return;
 
-    scene->removeModelFromEntity( ent.getEntityId() );
+    scene->removeMeshFromEntity( ent.getEntityId() );
   }
 }
 
@@ -273,27 +212,27 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
 
     auto entTemp = m_entity;
     Entity ent{ pScene->getRegistry(), m_entity };
-    if ( ent.hasComponent<ModelComponent>() )
+    if ( ent.hasComponent<MeshComponent>() )
     {
-      pScene->removeModelFromEntity( ent.getEntityId() );
+      pScene->removeMeshFromEntity( ent.getEntityId() );
     }
     else
     {
-      ent.addComponent<ModelComponent>();
+      ent.addComponent<MeshComponent>();
     }
 
-    const auto model = pAssetManager->getModel( p.filename().string() );
+    const auto model = pAssetManager->getMesh( p.filename().string() );
     if ( model != nullptr )
     {
-      pScene->addModelToEntity( entTemp, model );
+      pScene->addMeshToEntity( entTemp, model );
     }
     else
     {
       pTaskManager->enqueue( [entTemp, p, pScene]() {
         const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
-        const auto model = pAssetManager->addModel( p.filename().string(), p.string() );
+        const auto model = pAssetManager->addMesh( p.filename().string(), p.string() );
         Entity ent{ pScene->getRegistry(), entTemp };
-        pScene->addModelToEntity( entTemp, model );
+        pScene->addMeshToEntity( entTemp, model );
       } );
     }
   }
@@ -309,8 +248,8 @@ void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
   if ( !transformComponent )
     return;
 
-  // if it has transform, it definetely has a model component
-  const auto& modelComponent = ent.tryGetComponent<ModelComponent>();
+  // if it has transform, it definetely has a mesh component
+  const auto& modelComponent = ent.tryGetComponent<MeshComponent>();
 
   bool changed = false;
   auto& translation = transformComponent->translation;
@@ -383,7 +322,7 @@ void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
       const auto& indexComponent = ent.getComponent<IndexComponent>();
 
       // get the instance data of this model
-      const auto data = scene->getData( modelComponent->pModel );
+      const auto data = scene->getData( modelComponent->pMesh );
 
       // update the matrix in the instance matrices vector
       ImGuizmo::RecomposeMatrixFromComponents( glm::value_ptr( translation ), glm::value_ptr( rotation ),

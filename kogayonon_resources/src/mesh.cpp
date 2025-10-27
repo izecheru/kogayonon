@@ -3,47 +3,30 @@
 
 namespace kogayonon_resources
 {
-Mesh::Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices, std::vector<Texture*>&& textures )
-    : m_textures{ std::move( textures ) }
-    , m_vertices{ std::move( vertices ) }
-    , m_indices{ std::move( indices ) }
-    , vao{ 0 }
-    , vbo{ 0 }
-    , ebo{ 0 }
+
+Mesh::Mesh( const std::string& path, const std::vector<Vertex>&& vertices, const std::vector<uint32_t>&& indices,
+            const std::vector<Texture*>&& textures, const std::vector<Submesh>&& submeshes )
+    : m_path{ path }
+    , m_vertices{ vertices }
+    , m_indices{ indices }
+    , m_textures{ textures }
+    , m_submeshes{ submeshes }
+    , m_vao{ 0 }
+    , m_vbo{ 0 }
+    , m_ebo{ 0 }
 {
 }
 
-Mesh::Mesh( std::vector<Vertex>&& vertices, std::vector<uint32_t>&& indices )
-    : m_vertices{ std::move( vertices ) }
-    , m_indices{ std::move( indices ) }
-    , vao{ 0 }
-    , vbo{ 0 }
-    , ebo{ 0 }
-
+Mesh::Mesh( const std::string& path, const std::vector<Vertex>&& vertices, const std::vector<uint32_t>&& indices,
+            const std::vector<Submesh>&& submeshes )
+    : m_path{ path }
+    , m_vertices{ vertices }
+    , m_indices{ indices }
+    , m_submeshes{ submeshes }
+    , m_vao{ 0 }
+    , m_vbo{ 0 }
+    , m_ebo{ 0 }
 {
-}
-
-Mesh::Mesh( const Mesh& other )
-    : m_textures( other.m_textures )
-    , m_vertices( other.m_vertices )
-    , m_indices( other.m_indices )
-    , vao{ other.vao }
-    , vbo{ other.vbo }
-    , ebo{ other.ebo }
-{
-}
-
-Mesh& Mesh::operator=( const Mesh& other )
-{
-  if ( this == &other )
-    return *this;
-  m_textures = other.m_textures;
-  m_vertices = other.m_vertices;
-  m_indices = other.m_indices;
-  vao = other.vao;
-  vbo = other.vbo;
-  ebo = other.ebo;
-  return *this;
 }
 
 std::vector<Vertex>& Mesh::getVertices()
@@ -63,16 +46,22 @@ std::vector<Texture*>& Mesh::getTextures()
 
 uint32_t& Mesh::getVao()
 {
-  return vao;
+  return m_vao;
 }
 
 uint32_t& Mesh::getVbo()
 {
-  return vbo;
+  return m_vbo;
 }
 
 uint32_t& Mesh::getEbo()
 {
-  return ebo;
+  return m_ebo;
 }
+
+std::vector<Submesh>& Mesh::getSubmeshes()
+{
+  return m_submeshes;
+}
+
 } // namespace kogayonon_resources
