@@ -22,6 +22,7 @@ void Camera::setupCamera()
   m_props.mouseSensitivity = 0.2f;
   m_props.movementSpeed = 90.0f;
   m_props.mouseZoomSpeed = 1.0f;
+  m_props.fov = 45.0f;
 }
 
 glm::mat4& Camera::getViewMatrix() const
@@ -68,11 +69,11 @@ void Camera::onKeyPressed( float delta )
   }
   if ( KeyboardState::getKeyState( KeyCode::D ) )
   {
-    m_props.position += m_props.right * velocity;
+    m_props.position += glm::normalize( glm::cross( m_props.direction, m_props.cameraUp ) ) * velocity;
   }
   if ( KeyboardState::getKeyState( KeyCode::A ) )
   {
-    m_props.position -= m_props.right * velocity;
+    m_props.position -= glm::normalize( glm::cross( m_props.direction, m_props.cameraUp ) ) * velocity;
   }
   if ( KeyboardState::getKeyState( KeyCode::Space ) )
   {
@@ -83,7 +84,6 @@ void Camera::onKeyPressed( float delta )
     m_props.position.y -= 1.4f * velocity;
   }
 
-  // m_props.position.y = 0.0f;
   updateCameraVectors();
 }
 
@@ -101,11 +101,17 @@ void Camera::updateCameraVectors()
 
 void Camera::zoom( float amount )
 {
-  m_props.position += m_props.direction * amount * m_props.mouseZoomSpeed * 2.0f;
+  if ( m_props.fov >= 1.0f && m_props.fov <= 45.0f )
+    m_props.fov -= amount;
+
+  if ( m_props.fov <= 1.0f )
+    m_props.fov = 1.0f;
+  if ( m_props.fov >= 45.0f )
+    m_props.fov = 45.0f;
 }
 
 glm::mat4 Camera::getProjectionMatrix( const glm::vec2& contentSize ) const
 {
-  return glm::perspective( glm::radians( 45.0f ), contentSize.x / contentSize.y, 0.1f, 400.0f );
+  return glm::perspective( glm::radians( m_props.fov ), contentSize.x / contentSize.y, 0.1f, 100.0f );
 }
 } // namespace kogayonon_rendering

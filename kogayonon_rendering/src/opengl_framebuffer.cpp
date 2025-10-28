@@ -10,6 +10,8 @@ static GLenum textureFormatToOpenglInternal( FramebufferTextureFormat format )
 {
   switch ( format )
   {
+  case FramebufferTextureFormat::RGBA:
+    return GL_RGBA;
   case FramebufferTextureFormat::RGBA8:
     return GL_RGBA8;
   case FramebufferTextureFormat::RED_INTEGER:
@@ -25,6 +27,8 @@ static GLenum textureFormatToBaseFormat( FramebufferTextureFormat format )
 {
   switch ( format )
   {
+  case FramebufferTextureFormat::RGBA:
+    return GL_RGBA16F;
   case FramebufferTextureFormat::RGBA8:
     return GL_RGBA;
   case FramebufferTextureFormat::RED_INTEGER:
@@ -40,6 +44,8 @@ static GLenum textureFormatToType( FramebufferTextureFormat format )
 {
   switch ( format )
   {
+  case FramebufferTextureFormat::RGBA:
+    return GL_FLOAT;
   case FramebufferTextureFormat::RGBA8:
     return GL_UNSIGNED_BYTE;
   case FramebufferTextureFormat::RED_INTEGER:
@@ -143,6 +149,9 @@ void OpenGLFramebuffer::init()
     utils::createTexture( &attachment.id, 1 );
     switch ( attachment.textureFormat )
     {
+    case FramebufferTextureFormat::RGBA:
+      utils::attachColorTexture( attachment.id, m_specification.width, m_specification.height, GL_RGBA16F, m_fbo, i );
+      break;
     case FramebufferTextureFormat::RGBA8:
       utils::attachColorTexture( attachment.id, m_specification.width, m_specification.height, GL_RGBA8, m_fbo, i );
       break;
@@ -152,6 +161,7 @@ void OpenGLFramebuffer::init()
     case FramebufferTextureFormat::DEPTH:
       utils::attachDepthTexture( attachment.id, m_specification.width, m_specification.height, GL_DEPTH24_STENCIL8,
                                  GL_DEPTH_ATTACHMENT, m_fbo );
+
       break;
     default:
       break;

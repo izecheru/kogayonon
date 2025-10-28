@@ -12,6 +12,7 @@ struct CameraProps
   glm::vec3 right;
   glm::mat4x4 view;
   glm::mat4 projection;
+  float fov;
   float yaw;
   float pitch;
   float movementSpeed;
@@ -29,7 +30,6 @@ public:
   void setupCamera();
 
   glm::mat4& getViewMatrix() const;
-  glm::mat4 getProjectionMatrix( int fov, int aspectRatio, float near, float far ) const;
   void onMouseMoved( float x, float y, bool constrainPitch );
   void onKeyPressed( float delta );
   void updateCameraVectors();
