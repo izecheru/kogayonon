@@ -50,7 +50,7 @@ void LightShaderStoragebuffer::update()
     glBufferData( GL_SHADER_STORAGE_BUFFER, sizeof( kogayonon_resources::PointLight ) * m_pointLights.size(),
                   m_pointLights.data(), GL_DYNAMIC_DRAW );
 
-  glBindBufferBase( GL_SHADER_STORAGE_BUFFER, 0, m_ssbo );
+  glBindBufferBase( GL_SHADER_STORAGE_BUFFER, m_bindingIndex, m_ssbo );
   unbind();
 }
 

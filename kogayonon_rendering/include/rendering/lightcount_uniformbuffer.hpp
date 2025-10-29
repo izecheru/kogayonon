@@ -8,7 +8,7 @@ struct LightCount
 {
   int numPointLights{ 0 };
   int numDirectionalLigths{ 0 };
-  int pad;
+  int pad[2];
 };
 
 class LightCountUniformbuffer : public Uniformbuffer

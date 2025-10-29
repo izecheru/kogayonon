@@ -365,10 +365,9 @@ void EntityPropertiesWindow::drawPointLightComponent( kogayonon_core::Entity& en
   auto& translation = pointLight.position;
   auto& diffuse = pointLight.diffuse;
   auto& ambient = pointLight.ambient;
-  auto& quadratic = pointLight.quadratic;
   auto& specular = pointLight.specular;
 
-  static auto textSize = ImGui::CalcTextSize( "Quadratic" );
+  static auto textSize = ImGui::CalcTextSize( "Translation" );
 
   if ( ImGui::BeginTable( "##table_pointLight", 4 ) )
   {
@@ -398,11 +397,19 @@ void EntityPropertiesWindow::drawPointLightComponent( kogayonon_core::Entity& en
     ImGui::Text( "Ambient" );
 
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Xscale", &ambient.x, 0.1f, 0.0f, 100.0f, "%.2f" );
+    changed |= ImGui::DragFloat( "##Red", &ambient.x, 0.1f, 0.0f, 100.0f, "%.2f" );
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Yscale", &ambient.y, 0.1f, 0.0f, 100.0f, "%.2f" );
+    changed |= ImGui::DragFloat( "##Green", &ambient.y, 0.1f, 0.0f, 100.0f, "%.2f" );
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Zscale", &ambient.z, 0.1f, 0.0f, 100.0f, "%.2f" );
+    changed |= ImGui::DragFloat( "##Blue", &ambient.z, 0.1f, 0.0f, 100.0f, "%.2f" );
+
+    ImGui::TableNextColumn();
+    bool visible = pointLight.params.w > 0.5f ? true : false;
+    if ( ImGui::Checkbox( "##enable", &visible ) )
+    {
+      pointLight.params.w = visible;
+      changed = true;
+    }
 
     ImGui::EndTable();
 

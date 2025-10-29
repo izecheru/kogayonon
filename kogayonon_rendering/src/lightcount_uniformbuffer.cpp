@@ -52,7 +52,7 @@ void LightCountUniformbuffer::update()
 
   bind();
   glNamedBufferData( m_ubo, sizeof( LightCount ), &m_count, GL_STATIC_DRAW );
-  glBindBufferBase( GL_UNIFORM_BUFFER, 0, m_ubo );
+  glBindBufferBase( GL_UNIFORM_BUFFER, m_bindingIndex, m_ubo );
   unbind();
 }
 

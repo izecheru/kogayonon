@@ -9,12 +9,8 @@ struct PointLight
   glm::vec4 ambient = glm::vec4{ 0.1f, 0.1f, 0.1f, 1.0f };  // subtle ambient
   glm::vec4 diffuse = glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f };  // full white diffuse
   glm::vec4 specular = glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f }; // white highlights
-
-  float constant{ 1.0f };
-  float linear{ 0.09f };
-  float quadratic{ 0.032f };
-
-  // Padding to align to 16 bytes (optional, depends on std140 layout)
-  float pad{ 0.0f };
+  glm::vec4 params{ 1.0f, 0.09f, 0.032f, 1.0f };
 };
+
+static_assert( sizeof( PointLight ) % 16 == 0, "must be multiple of 16" );
 } // namespace kogayonon_resources
