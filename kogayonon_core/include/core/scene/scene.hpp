@@ -5,6 +5,8 @@
 #include <string>
 #include <unordered_map>
 #include "core/ecs/entity.hpp"
+#include "rendering/light_shader_storagebuffer.hpp"
+#include "rendering/lightcount_uniformbuffer.hpp"
 #include "resources/mesh.hpp"
 
 namespace kogayonon_core
@@ -105,6 +107,16 @@ public:
    */
   void setupMultipleInstances( InstanceData* data );
 
+  void addPointLight();
+  void addPointLight( entt::entity entityId );
+
+  void bindLightBuffers();
+  void unbindLightBuffers();
+
+  void updateLightBuffers();
+
+  kogayonon_resources::PointLight& getPointLight( uint32_t index );
+
   inline uint32_t getEntityCount() const
   {
     return m_entityCount;
@@ -124,5 +136,8 @@ private:
   std::string m_name;
   std::unique_ptr<Registry> m_pRegistry;
   std::unordered_map<kogayonon_resources::Mesh*, std::unique_ptr<InstanceData>> m_instances;
+
+  kogayonon_rendering::LightCountUniformbuffer m_lightUBO;
+  kogayonon_rendering::LightShaderStoragebuffer m_lightSSBO;
 };
 } // namespace kogayonon_core

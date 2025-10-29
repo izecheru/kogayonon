@@ -5,7 +5,7 @@
 #include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/mesh_component.hpp"
-
+#include "core/ecs/components/pointlight_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
@@ -86,6 +86,15 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
           entity.addComponent<MeshComponent>();
         }
       }
+
+      if ( !entity.hasComponent<PointLightComponent>() )
+      {
+        if ( ImGui::MenuItem( "Point light" ) )
+        {
+          scene->addPointLight( entity.getEntityId() );
+        }
+      }
+
       if ( ImGui::MenuItem( "Texture component" ) )
       {
       }
@@ -104,6 +113,12 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
   {
     ImGui::SeparatorText( "  Transform  " );
     drawTransformComponent( entity );
+  }
+
+  if ( entity.hasComponent<PointLightComponent>() )
+  {
+    ImGui::SeparatorText( "  Point light " );
+    drawPointLightComponent( entity );
   }
 }
 
@@ -330,6 +345,72 @@ void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
                                                glm::value_ptr( data->instanceMatrices.at( indexComponent.index ) ) );
 
       scene->setupMultipleInstances( data );
+    }
+  }
+}
+
+void EntityPropertiesWindow::drawPointLightComponent( kogayonon_core::Entity& ent ) const
+{
+  const auto& pPointLightComponent = ent.tryGetComponent<PointLightComponent>();
+  if ( !pPointLightComponent )
+    return;
+  auto scene = SceneManager::getCurrentScene().lock();
+
+  if ( !scene )
+    return;
+
+  auto& pointLight = scene->getPointLight( pPointLightComponent->pointLightIndex );
+
+  bool changed = false;
+  auto& translation = pointLight.position;
+  auto& diffuse = pointLight.diffuse;
+  auto& ambient = pointLight.ambient;
+  auto& quadratic = pointLight.quadratic;
+  auto& specular = pointLight.specular;
+
+  static auto textSize = ImGui::CalcTextSize( "Quadratic" );
+
+  if ( ImGui::BeginTable( "##table_pointLight", 4 ) )
+  {
+    ImGui::TableSetupColumn( "label", ImGuiTableColumnFlags_WidthFixed, textSize.x );
+    ImGui::TableSetupColumn( "x", ImGuiTableColumnFlags_WidthFixed, 100.0f );
+    ImGui::TableSetupColumn( "y", ImGuiTableColumnFlags_WidthFixed, 100.0f );
+    ImGui::TableSetupColumn( "z", ImGuiTableColumnFlags_WidthFixed, 100.0f );
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+
+    ImGui::Text( "Translation" );
+
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Xtranslation", &translation.x, 0.1f, translation.x - 100.0f, translation.x + 100.0f,
+                                 "%.2f" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Ytranslation", &translation.y, 0.1f, translation.y - 100.0f, translation.y + 100.0f,
+                                 "%.2f" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Ztranslation", &translation.z, 0.1f, translation.z - 100.0f, translation.z + 100.0f,
+                                 "%.2f" );
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+
+    ImGui::Text( "Ambient" );
+
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Xscale", &ambient.x, 0.1f, 0.0f, 100.0f, "%.2f" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Yscale", &ambient.y, 0.1f, 0.0f, 100.0f, "%.2f" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Zscale", &ambient.z, 0.1f, 0.0f, 100.0f, "%.2f" );
+
+    ImGui::EndTable();
+
+    if ( changed )
+    {
+      auto scene = SceneManager::getCurrentScene().lock();
+      // update the ubo and ssbo if needed
+      scene->updateLightBuffers();
     }
   }
 }

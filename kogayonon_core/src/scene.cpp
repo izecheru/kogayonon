@@ -2,9 +2,11 @@
 #include <glad/glad.h>
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/pointlight_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
+#include "resources/pointlight.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/math/math.hpp"
 using namespace kogayonon_utilities;
@@ -17,6 +19,8 @@ Scene::Scene( const std::string& name )
     , m_pRegistry{ std::make_unique<Registry>() }
 
 {
+  m_lightUBO.initialize( 0 );
+  m_lightSSBO.initialize( 1 );
 }
 
 Registry& Scene::getRegistry()
@@ -289,6 +293,46 @@ void Scene::prepareForRendering()
     }
     meshComponent.loaded = true;
   }
+}
+
+void Scene::addPointLight()
+{
+  auto entity = addEntity();
+  m_lightUBO.incrementPointLights();
+  auto index = m_lightSSBO.addPointLight();
+  entity.addComponent<PointLightComponent>( PointLightComponent{ .pointLightIndex = index } );
+}
+
+void Scene::addPointLight( entt::entity entityId )
+{
+  Entity ent{ *m_pRegistry, entityId };
+  m_lightUBO.incrementPointLights();
+  auto index = m_lightSSBO.addPointLight();
+  ent.addComponent<PointLightComponent>( PointLightComponent{ .pointLightIndex = index } );
+}
+
+void Scene::bindLightBuffers()
+{
+  m_lightSSBO.bind();
+  m_lightUBO.bind();
+}
+
+void Scene::unbindLightBuffers()
+{
+  m_lightSSBO.unbind();
+  m_lightUBO.unbind();
+}
+
+kogayonon_resources::PointLight& Scene::getPointLight( uint32_t index )
+{
+  auto& lights = m_lightSSBO.getPointLights();
+  return lights.at( index );
+}
+
+void Scene::updateLightBuffers()
+{
+  m_lightSSBO.update();
+  m_lightUBO.update();
 }
 
 } // namespace kogayonon_core

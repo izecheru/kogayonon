@@ -3,6 +3,7 @@ add_library(
   "include/resources/mesh.hpp"
   "include/resources/vertex.hpp"
   "include/resources/texture.hpp"
+  "include/resources/pointlight.hpp"
   "src/mesh.cpp"
 
    "src/texture.cpp")

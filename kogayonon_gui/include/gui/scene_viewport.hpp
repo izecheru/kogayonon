@@ -2,8 +2,14 @@
 #include <SDL2/SDL.h>
 #include <entt/entt.hpp>
 #include <filesystem>
+#include <glm/glm.hpp>
 #include "imgui_window.hpp"
 #include "rendering/opengl_framebuffer.hpp"
+
+namespace kogayonon_resources
+{
+
+} // namespace kogayonon_resources
 
 namespace kogayonon_rendering
 {

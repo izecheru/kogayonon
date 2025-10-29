@@ -4,10 +4,10 @@
 #include <glad/glad.h>
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <random>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/mesh_component.hpp"
-
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -160,7 +160,12 @@ void SceneViewportWindow::drawScene()
   glm::mat4 proj = m_pCamera->getProjectionMatrix( { size.x, size.y } );
 
   if ( const auto& scene = SceneManager::getCurrentScene().lock() )
+  {
+
+    scene->bindLightBuffers();
     m_pRenderingSystem->render( scene, m_pCamera->getViewMatrix(), proj, shader );
+    scene->unbindLightBuffers();
+  }
 
   m_frameBuffer.unbind();
 }

@@ -38,6 +38,7 @@ private:
   void drawTextureComponent( kogayonon_core::Entity& ent ) const;
   void drawMeshComponent( kogayonon_core::Entity& ent );
   void drawTransformComponent( kogayonon_core::Entity& ent ) const;
+  void drawPointLightComponent( kogayonon_core::Entity& ent ) const;
 
   void manageModelPayload( const ImGuiPayload* payload );
   void manageTexturePayload( const ImGuiPayload* payload ) const;
