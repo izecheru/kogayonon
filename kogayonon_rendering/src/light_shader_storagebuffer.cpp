@@ -47,8 +47,29 @@ void LightShaderStoragebuffer::update()
   bind();
 
   if ( !m_pointLights.empty() )
-    glBufferData( GL_SHADER_STORAGE_BUFFER, sizeof( kogayonon_resources::PointLight ) * m_pointLights.size(),
-                  m_pointLights.data(), GL_DYNAMIC_DRAW );
+    glNamedBufferData( m_ssbo, sizeof( kogayonon_resources::PointLight ) * m_pointLights.size(), m_pointLights.data(),
+                       GL_DYNAMIC_DRAW );
+
+  glBindBufferBase( GL_SHADER_STORAGE_BUFFER, m_bindingIndex, m_ssbo );
+  unbind();
+}
+
+void LightShaderStoragebuffer::update( uint32_t lightIndex )
+{
+  if ( m_ssbo == 0 )
+    initialize( m_bindingIndex );
+
+  bind();
+
+  if ( !m_pointLights.empty() )
+  {
+
+    void* ptr = glMapNamedBufferRange( m_ssbo, sizeof( kogayonon_resources::PointLight ) * lightIndex,
+                                       sizeof( kogayonon_resources::PointLight ),
+                                       GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT );
+    memcpy( ptr, &m_pointLights.at( lightIndex ), sizeof( kogayonon_resources::PointLight ) );
+    glUnmapNamedBuffer( m_ssbo );
+  }
 
   glBindBufferBase( GL_SHADER_STORAGE_BUFFER, m_bindingIndex, m_ssbo );
   unbind();

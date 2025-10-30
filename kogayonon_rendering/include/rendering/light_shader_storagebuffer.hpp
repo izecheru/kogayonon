@@ -19,6 +19,7 @@ public:
   void initialize( uint32_t bindingIndex ) override;
   void destroy() override;
   void update() override;
+  void update( uint32_t lightIndex );
 
   std::vector<kogayonon_resources::PointLight>& getPointLights();
   int addPointLight();

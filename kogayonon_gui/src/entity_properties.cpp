@@ -367,10 +367,6 @@ void EntityPropertiesWindow::drawPointLightComponent( kogayonon_core::Entity& en
   auto& pointLight = scene->getPointLight( pPointLightComponent->pointLightIndex );
 
   bool changed = false;
-  auto& translation = pointLight.position;
-  auto& diffuse = pointLight.diffuse;
-  auto& ambient = pointLight.ambient;
-  auto& specular = pointLight.specular;
 
   static auto textSize = ImGui::CalcTextSize( "Translation" );
 
@@ -387,27 +383,24 @@ void EntityPropertiesWindow::drawPointLightComponent( kogayonon_core::Entity& en
     ImGui::Text( "Translation" );
 
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Xtranslation", &translation.x, 0.1f, translation.x - 100.0f, translation.x + 100.0f,
-                                 "%.2f" );
+    changed |= ImGui::DragFloat( "##Xtranslation", &pointLight.position.x, 0.1f, pointLight.position.x - 100.0f,
+                                 pointLight.position.x + 100.0f, "%.2f" );
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Ytranslation", &translation.y, 0.1f, translation.y - 100.0f, translation.y + 100.0f,
-                                 "%.2f" );
+    changed |= ImGui::DragFloat( "##Ytranslation", &pointLight.position.y, 0.1f, pointLight.position.y - 100.0f,
+                                 pointLight.position.y + 100.0f, "%.2f" );
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Ztranslation", &translation.z, 0.1f, translation.z - 100.0f, translation.z + 100.0f,
-                                 "%.2f" );
+    changed |= ImGui::DragFloat( "##Ztranslation", &pointLight.position.z, 0.1f, pointLight.position.z - 100.0f,
+                                 pointLight.position.z + 100.0f, "%.2f" );
 
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
 
-    ImGui::Text( "Ambient" );
+    ImGui::Text( "Color" );
 
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Red", &ambient.x, 0.1f, 0.0f, 100.0f, "%.2f" );
-    ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Green", &ambient.y, 0.1f, 0.0f, 100.0f, "%.2f" );
-    ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Blue", &ambient.z, 0.1f, 0.0f, 100.0f, "%.2f" );
-
+    changed |= ImGui::ColorEdit4( "##color_change", reinterpret_cast<float*>( &pointLight.color ),
+                                  ImGuiColorEditFlags_NoInputs );
+    ImGui::TableNextRow();
     ImGui::TableNextColumn();
     bool visible = pointLight.params.w > 0.5f ? true : false;
     if ( ImGui::Checkbox( "##enable", &visible ) )

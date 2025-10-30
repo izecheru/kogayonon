@@ -5,11 +5,8 @@ struct PointLight {
     vec4 ambient;
     vec4 diffuse;
     vec4 specular;
-    vec4 params;
-    //float constant;
-    //float linear;
-    //float quadratic;
-    //bool enabled;
+    vec4 color;
+    vec4 params;// x = constant, y = linear, z = quadratic, w = enabled
 };
 
 layout(std140, binding = 0) uniform LightCounts {
@@ -28,8 +25,7 @@ in vec3 Normal;
 in vec3 FragPos;
 
 layout(binding = 1) uniform sampler2D u_Texture;
-
-layout(location = 0) out vec4 FragColor;
+out vec4 FragColor;
 
 
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
@@ -45,8 +41,10 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
     vec3 ambient  = vec3(light.ambient);
     vec3 diffuse  = diff * vec3(light.diffuse);
     vec3 specular = spec * vec3(light.specular);
-
-    return (ambient + diffuse + specular) * attenuation;
+    vec3 toReturn = (ambient + diffuse + specular) * attenuation;
+    // apply alpha
+    toReturn = toReturn * light.color.w;
+    return toReturn * light.color.xyz;
 }
 
 void main()
