@@ -46,9 +46,10 @@ void Scene::changeName( const std::string& name )
 void Scene::removeEntity( entt::entity ent )
 {
   auto& registry = m_pRegistry->getRegistry();
+  Entity entity{ *m_pRegistry, ent };
 
-  // first remove instance data
-  removeInstanceData( ent );
+  if ( entity.hasComponent<MeshComponent>() )
+    removeInstanceData( ent );
 
   // then destroy the entity
   if ( registry.valid( ent ) )
@@ -139,13 +140,10 @@ void Scene::removeInstanceData( entt::entity ent )
   // upon deletion we must remove that specific instance
   Entity entity{ *m_pRegistry, ent };
 
-  if ( !entity.hasComponent<MeshComponent>() )
-    return;
-
-  const auto& modelComponent = entity.getComponent<MeshComponent>();
+  const auto& meshComponent = entity.getComponent<MeshComponent>();
 
   // if we have instances
-  auto pMesh = modelComponent.pMesh;
+  auto pMesh = meshComponent.pMesh;
 
   if ( !pMesh )
     return;

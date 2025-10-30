@@ -2,6 +2,7 @@
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/pointlight_component.hpp"
 
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
@@ -229,6 +230,12 @@ void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity
           entity.addComponent<TransformComponent>( TransformComponent{
             .translation = transform.translation, .rotation = transform.rotation, .scale = transform.scale } );
           scene->addMeshToEntity( entity.getEntityId(), meshComponent.pMesh );
+        }
+        if ( ent.hasComponent<PointLightComponent>() )
+        {
+          const auto& pointLightComp = ent.getComponent<PointLightComponent>();
+          scene->addPointLight( entity.getEntityId() );
+          const auto& pointLight = entity.getComponent<PointLightComponent>();
         }
         pEventDispatcher->emitEvent( SelectEntityEvent{ entity.getEntityId() } );
       }

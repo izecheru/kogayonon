@@ -21,7 +21,6 @@ add_library(
   "include/core/event/project_event.hpp"
   "include/core/project/project.hpp"
   "include/core/project/project_manager.hpp"
-  "include/core/scene/light_manager.hpp"
 
   "src/main_registry.cpp"
   "src/entity.cpp"

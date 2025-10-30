@@ -176,10 +176,15 @@ void EntityPropertiesWindow::drawMeshComponent( Entity& ent )
   if ( ImGui::BeginDragDropTarget() )
   {
     // if we have a payload
-    const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "ASSET_DROP" );
-    manageModelPayload( payload );
-    ImGui::EndDragDropTarget();
+    if ( !pMeshComponent )
+    {
+      const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "ASSET_DROP" );
+      manageModelPayload( payload );
+      ImGui::EndDragDropTarget();
+    }
   }
+  if ( !pMeshComponent )
+    return;
 
   auto& mesh = pMeshComponent->pMesh;
 

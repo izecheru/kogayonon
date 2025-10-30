@@ -37,7 +37,6 @@ public:
   bool initRegistries() const;
   bool initGui();
   bool initGuiForProject();
-  bool initScenes() const;
 
   void rescaleMainViewport( int w, int h );
   bool onWindowResize( const kogayonon_core::WindowResizeEvent& e );
