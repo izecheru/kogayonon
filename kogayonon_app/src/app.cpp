@@ -270,6 +270,8 @@ bool App::initRegistries() const
   shaderManager->pushShader( "resources/shaders/white_vertex.glsl", "resources/shaders/white_fragment.glsl", "white" );
   shaderManager->pushShader( "resources/shaders/picking_vertex.glsl", "resources/shaders/picking_fragment.glsl",
                              "picking" );
+  shaderManager->pushShader( "resources/shaders/depth_vert.glsl", "resources/shaders/depth_frag.glsl", "depth" );
+
   mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::ShaderManager>>( std::move( shaderManager ) );
 
   // init asset manager
@@ -283,6 +285,7 @@ bool App::initRegistries() const
   assetManager->addTexture( "default.png" );
   assetManager->addTexture( "3d-cube.png" );
   assetManager->addTexture( "logo.png" );
+  assetManager->addTexture( "render_mode_icon.png" );
 
   assetManager->addMesh( "default", "resources/models/Cube.gltf" );
 

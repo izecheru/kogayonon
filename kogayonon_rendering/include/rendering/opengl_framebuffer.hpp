@@ -18,6 +18,7 @@ public:
   void resize( uint32_t w, uint32_t h ) override;
   const FramebufferSpecification& getSpecification() override;
   uint32_t getColorAttachmentId( uint32_t index = 0 ) const override;
+  uint32_t getDepthAttachmentId() const;
   void clearColorAttachment( uint32_t index, int value ) const;
   int readPixel( uint32_t attachmentIndex, int x, int y );
 

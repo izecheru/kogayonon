@@ -235,6 +235,14 @@ const FramebufferSpecification& OpenGLFramebuffer::getSpecification()
   return m_specification;
 }
 
+uint32_t OpenGLFramebuffer::getDepthAttachmentId() const
+{
+  for ( auto& att : m_specification.attachments )
+    if ( att.textureFormat == FramebufferTextureFormat::DEPTH )
+      return att.id;
+  return 0;
+}
+
 uint32_t OpenGLFramebuffer::getColorAttachmentId( uint32_t index ) const
 {
   return m_specification.attachments.at( index ).id;

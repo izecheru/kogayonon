@@ -78,8 +78,12 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
   FramebufferSpecification spec{ { FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::DEPTH }, 800, 800 };
   FramebufferSpecification pickingSpec{
     { FramebufferTextureFormat::RED_INTEGER, FramebufferTextureFormat::DEPTH }, 800, 800 };
+
+  FramebufferSpecification depthSpec{ { FramebufferTextureFormat::DEPTH }, 800, 800 };
+
   m_frameBuffer = OpenGLFramebuffer{ spec };
   m_pickingFrameBuffer = OpenGLFramebuffer{ pickingSpec };
+  m_depthBuffer = OpenGLFramebuffer{ depthSpec };
 
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
   pEventDispatcher->addHandler<SelectEntityEvent, &SceneViewportWindow::onSelectedEntity>( *this );
@@ -149,24 +153,40 @@ void SceneViewportWindow::drawScene()
   scene->prepareForRendering();
 
   auto& spec = m_frameBuffer.getSpecification();
+
+  // geometry pass currently has lights too
   m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
   m_frameBuffer.bind();
   glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
   const auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
-  auto& shader = pShaderManager->getShader( "3d" );
   const auto& size = ImGui::GetWindowSize();
   glm::mat4 proj = m_pCamera->getProjectionMatrix( { size.x, size.y } );
 
-  if ( const auto& scene = SceneManager::getCurrentScene().lock() )
+  auto& depthShader = pShaderManager->getShader( "depth" );
+  auto& geometryShader = pShaderManager->getShader( "3d" );
+  switch ( m_renderMode )
   {
-
-    scene->bindLightBuffers();
-    m_pRenderingSystem->render( scene, m_pCamera->getViewMatrix(), proj, shader );
-    scene->unbindLightBuffers();
+  case RenderMode::GeometryAndLights:
+    if ( scene )
+    {
+      scene->bindLightBuffers();
+      m_pRenderingSystem->render( scene, m_pCamera->getViewMatrix(), proj, geometryShader );
+      scene->unbindLightBuffers();
+    }
+    break;
+  case RenderMode::Geometry:
+    break;
+  case RenderMode::Depth:
+    if ( scene )
+    {
+      scene->bindLightBuffers();
+      m_pRenderingSystem->render( scene, m_pCamera->getViewMatrix(), proj, depthShader );
+      scene->unbindLightBuffers();
+    }
+    break;
   }
-
   m_frameBuffer.unbind();
 }
 
@@ -347,6 +367,46 @@ void SceneViewportWindow::draw()
     }
   }
 
+  const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
+  static auto renderModeIcon = pAssetManager->getTextureByName( "render_mode_icon.png" ).lock()->getTextureId();
+  ImGui::SetCursorPos( ImVec2{ 20.0f, 20.0f } );
+  ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) );       // normal
+  ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0, 0, 0, 0 ) ); // active (pressed)
+
+  // place the viewport buttons here
+  if ( ImGui::ImageButton( "##RenderModeButton", renderModeIcon, ImVec2{ 20.0f, 20.0f }, ImVec2{ 0, 0 },
+                           ImVec2{ 1, 1 }, ImVec4{ 0, 0, 0, 0 }, ImVec4{ 1, 1, 1, 1 } ) )
+  {
+    ImGui::OpenPopup( "Render mode" );
+  }
+
+  ImGui::PopStyleColor( 2 ); // pop Button, Hovered, Active
+
+  bool open = true;
+  static auto padding = ImVec2{ 10.0f, 10.0f };
+  ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, padding );
+
+  if ( ImGui::BeginPopupModal( "Render mode", &open, ImGuiWindowFlags_AlwaysAutoResize ) )
+  {
+    ImGui::Text( "You can change the render modes here, this is a work in progress though" );
+
+    if ( ImGui::Button( "Geometry and lights" ) )
+    {
+      m_renderMode = RenderMode::GeometryAndLights;
+      ImGui::CloseCurrentPopup();
+      open = false;
+    }
+
+    if ( ImGui::Button( "Depth" ) )
+    {
+      m_renderMode = RenderMode::Depth;
+      ImGui::CloseCurrentPopup();
+      open = false;
+    }
+
+    ImGui::EndPopup();
+  }
+  ImGui::PopStyleVar();
   end();
 }
 } // namespace kogayonon_gui

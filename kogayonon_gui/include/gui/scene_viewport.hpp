@@ -8,7 +8,6 @@
 
 namespace kogayonon_resources
 {
-
 } // namespace kogayonon_resources
 
 namespace kogayonon_rendering
@@ -18,6 +17,7 @@ class Camera;
 
 namespace kogayonon_core
 {
+
 class Scene;
 class RenderingSystem;
 
@@ -48,6 +48,13 @@ enum class GizmoMode
   TRANSLATE_X,
   TRANSLATE_Y,
   TRANSLATE_Z
+};
+
+enum class RenderMode
+{
+  Geometry,
+  GeometryAndLights,
+  Depth
 };
 
 class SceneViewportWindow : public ImGuiWindow
@@ -87,10 +94,14 @@ private:
   kogayonon_rendering::OpenGLFramebuffer m_frameBuffer;
   // picking framebuffer
   kogayonon_rendering::OpenGLFramebuffer m_pickingFrameBuffer;
+  // depth buffer for shadow mapping
+  kogayonon_rendering::OpenGLFramebuffer m_depthBuffer;
 
   std::unique_ptr<kogayonon_core::RenderingSystem> m_pRenderingSystem;
   // perspective camera, should make it an entity and add it to registry
   std::unique_ptr<kogayonon_rendering::Camera> m_pCamera;
   GizmoMode m_gizmoMode;
+
+  RenderMode m_renderMode{ RenderMode::GeometryAndLights };
 };
 } // namespace kogayonon_gui
