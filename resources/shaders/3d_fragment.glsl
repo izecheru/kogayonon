@@ -40,7 +40,8 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
 
     vec3 ambient  = vec3(light.ambient);
     vec3 diffuse  = diff * vec3(light.diffuse);
-    vec3 specular = spec * vec3(light.specular);
+    // add alpha to specular if we want it transparent
+    vec3 specular = spec * vec3(light.specular)*light.specular.w;
     vec3 toReturn = (ambient + diffuse + specular) * attenuation;
     // apply alpha
     toReturn = toReturn * light.color.w;
@@ -60,9 +61,9 @@ void main()
     result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
   }
   vec3 objectColor = texture(u_Texture, TexCoord).rgb;
-  vec3 litColor = result * objectColor;
   if(u_NumPointLights>=1)
   {
+    vec3 litColor = result * objectColor;
     FragColor = vec4(litColor, 1.0);
   }
   else

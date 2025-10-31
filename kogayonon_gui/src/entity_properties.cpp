@@ -176,12 +176,9 @@ void EntityPropertiesWindow::drawMeshComponent( Entity& ent )
   if ( ImGui::BeginDragDropTarget() )
   {
     // if we have a payload
-    if ( !pMeshComponent )
-    {
-      const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "ASSET_DROP" );
-      manageModelPayload( payload );
-      ImGui::EndDragDropTarget();
-    }
+    const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "ASSET_DROP" );
+    manageModelPayload( payload );
+    ImGui::EndDragDropTarget();
   }
   if ( !pMeshComponent )
     return;
@@ -391,6 +388,52 @@ void EntityPropertiesWindow::drawPointLightComponent( kogayonon_core::Entity& en
     ImGui::TableNextColumn();
     changed |= ImGui::DragFloat( "##Ztranslation", &pointLight.position.z, 0.1f, pointLight.position.z - 100.0f,
                                  pointLight.position.z + 100.0f, "%.2f" );
+
+    //    vec4 params;// x = constant, y = linear, z = quadratic, w = enabled
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::Text( "Constant" );
+    ImGui::SameLine();
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##constant", &pointLight.params.x, 0.001f, 0.5f, 1.5f, "%.2f" );
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::Text( "Linear" );
+    ImGui::SameLine();
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##linear", &pointLight.params.y, 0.001f, 0.01f, 2.0f, "%.2f" );
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::Text( "Quadratic" );
+    ImGui::SameLine();
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Quadratic", &pointLight.params.z, 0.0001f, 0.001f, 0.05f, "%.2f" );
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+
+    ImGui::Text( "Diffuse" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::ColorEdit4( "##diffuse_change", reinterpret_cast<float*>( &pointLight.diffuse ),
+                                  ImGuiColorEditFlags_NoInputs );
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+
+    ImGui::Text( "Speclar" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::ColorEdit4( "##specular_change", reinterpret_cast<float*>( &pointLight.specular ),
+                                  ImGuiColorEditFlags_NoInputs );
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+
+    ImGui::Text( "Ambient" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::ColorEdit4( "##ambient_change", reinterpret_cast<float*>( &pointLight.ambient ),
+                                  ImGuiColorEditFlags_NoInputs );
 
     ImGui::TableNextRow();
     ImGui::TableNextColumn();

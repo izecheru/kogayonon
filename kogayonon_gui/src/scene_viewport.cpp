@@ -75,11 +75,12 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
     , m_pCamera{ std::make_unique<Camera>() }
     , m_gizmoMode{ GizmoMode::TRANSLATE }
 {
-  FramebufferSpecification spec{ { FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::DEPTH }, 800, 800 };
+  FramebufferSpecification spec{
+    { FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::DEPTH24STENCIL8 }, 800, 800 };
   FramebufferSpecification pickingSpec{
-    { FramebufferTextureFormat::RED_INTEGER, FramebufferTextureFormat::DEPTH }, 800, 800 };
+    { FramebufferTextureFormat::RED_INTEGER, FramebufferTextureFormat::DEPTH24STENCIL8 }, 800, 800 };
 
-  FramebufferSpecification depthSpec{ { FramebufferTextureFormat::DEPTH }, 800, 800 };
+  FramebufferSpecification depthSpec{ { FramebufferTextureFormat::RGBA, FramebufferTextureFormat::DEPTH }, 800, 800 };
 
   m_frameBuffer = OpenGLFramebuffer{ spec };
   m_pickingFrameBuffer = OpenGLFramebuffer{ pickingSpec };
@@ -152,14 +153,6 @@ void SceneViewportWindow::drawScene()
 
   scene->prepareForRendering();
 
-  auto& spec = m_frameBuffer.getSpecification();
-
-  // geometry pass currently has lights too
-  m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
-  m_frameBuffer.bind();
-  glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
-  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
   const auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
   const auto& size = ImGui::GetWindowSize();
   glm::mat4 proj = m_pCamera->getProjectionMatrix( { size.x, size.y } );
@@ -171,9 +164,16 @@ void SceneViewportWindow::drawScene()
   case RenderMode::GeometryAndLights:
     if ( scene )
     {
+      auto& spec = m_frameBuffer.getSpecification();
+      m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
+      m_frameBuffer.bind();
+      glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
+      glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
       scene->bindLightBuffers();
       m_pRenderingSystem->render( scene, m_pCamera->getViewMatrix(), proj, geometryShader );
       scene->unbindLightBuffers();
+      m_frameBuffer.unbind();
     }
     break;
   case RenderMode::Geometry:
@@ -181,13 +181,17 @@ void SceneViewportWindow::drawScene()
   case RenderMode::Depth:
     if ( scene )
     {
-      scene->bindLightBuffers();
+      auto& spec = m_frameBuffer.getSpecification();
+      m_depthBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
+      m_depthBuffer.bind();
+      glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
+      glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
       m_pRenderingSystem->render( scene, m_pCamera->getViewMatrix(), proj, depthShader );
-      scene->unbindLightBuffers();
+      m_depthBuffer.unbind();
     }
     break;
   }
-  m_frameBuffer.unbind();
 }
 
 void SceneViewportWindow::drawPickingScene()
@@ -328,9 +332,19 @@ void SceneViewportWindow::draw()
 
   drawScene();
 
-  ImGui::GetWindowDrawList()->AddImage( m_frameBuffer.getColorAttachmentId( 0 ), win_pos,
-                                        ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y }, ImVec2{ 0, 1 },
-                                        ImVec2{ 1, 0 } );
+  switch ( m_renderMode )
+  {
+  case RenderMode::Geometry:
+  case RenderMode::GeometryAndLights:
+    ImGui::GetWindowDrawList()->AddImage( m_frameBuffer.getColorAttachmentId( 0 ), win_pos,
+                                          ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y },
+                                          ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
+    break;
+  default:
+    ImGui::GetWindowDrawList()->AddImage( m_depthBuffer.getColorAttachmentId( 0 ), win_pos,
+                                          ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y },
+                                          ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
+  }
 
   ImGuizmo::SetOrthographic( false );
   ImGuizmo::SetDrawlist();
@@ -374,8 +388,8 @@ void SceneViewportWindow::draw()
   ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0, 0, 0, 0 ) ); // active (pressed)
 
   // place the viewport buttons here
-  if ( ImGui::ImageButton( "##RenderModeButton", renderModeIcon, ImVec2{ 20.0f, 20.0f }, ImVec2{ 0, 0 },
-                           ImVec2{ 1, 1 }, ImVec4{ 0, 0, 0, 0 }, ImVec4{ 1, 1, 1, 1 } ) )
+  if ( ImGui::ImageButton( "##RenderModeButton", renderModeIcon, ImVec2{ 20.0f, 20.0f }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 },
+                           ImVec4{ 0, 0, 0, 0 }, ImVec4{ 1, 1, 1, 1 } ) )
   {
     ImGui::OpenPopup( "Render mode" );
   }

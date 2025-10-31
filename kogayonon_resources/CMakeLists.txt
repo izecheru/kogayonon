@@ -4,6 +4,7 @@ add_library(
   "include/resources/vertex.hpp"
   "include/resources/texture.hpp"
   "include/resources/pointlight.hpp"
+  "include/resources/spotlight.hpp"
   "src/mesh.cpp"
 
    "src/texture.cpp")
