@@ -51,6 +51,21 @@ void Scene::removeEntity( entt::entity ent )
   if ( entity.hasComponent<MeshComponent>() )
     removeInstanceData( ent );
 
+  if ( entity.hasComponent<PointLightComponent>() )
+  {
+    const auto& pLightComponent = entity.getComponent<PointLightComponent>();
+    const auto toErase = pLightComponent.pointLightIndex;
+    m_lightSSBO.removePointLight( toErase );
+    m_lightUBO.decrementPointLights();
+
+    for ( const auto& [entity, pLightComponent_] : m_pRegistry->getRegistry().view<PointLightComponent>().each() )
+    {
+      if ( pLightComponent_.pointLightIndex > toErase )
+        --pLightComponent_.pointLightIndex;
+    }
+    // no need for updateLightBuffers(); since both update themselves
+  }
+
   // then destroy the entity
   if ( registry.valid( ent ) )
     registry.destroy( ent );

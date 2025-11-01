@@ -23,6 +23,7 @@ public:
 
   std::vector<kogayonon_resources::PointLight>& getPointLights();
   int addPointLight();
+  void removePointLight( uint32_t index );
 
 private:
   uint32_t m_ssbo{ 0 };

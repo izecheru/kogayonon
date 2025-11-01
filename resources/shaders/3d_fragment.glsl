@@ -38,7 +38,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
     float distance_ = length(vec3(light.position) - fragPos);
     float attenuation = 1.0 / (light.params.x+ light.params.y* distance_ + light.params.z* (distance_ * distance_));
 
-    vec3 ambient  = vec3(light.ambient);
+    vec3 ambient  = vec3(light.ambient)*0.6;
     vec3 diffuse  = diff * vec3(light.diffuse);
     // add alpha to specular if we want it transparent
     vec3 specular = spec * vec3(light.specular)*light.specular.w;

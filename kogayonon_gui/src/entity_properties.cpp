@@ -183,19 +183,19 @@ void EntityPropertiesWindow::drawMeshComponent( Entity& ent )
   if ( !pMeshComponent )
     return;
 
+  auto scene = SceneManager::getCurrentScene().lock();
   auto& mesh = pMeshComponent->pMesh;
 
   if ( !mesh )
     return;
 
-  Entity entity{ SceneManager::getCurrentScene().lock()->getRegistry(), m_entity };
+  Entity entity{ scene->getRegistry(), m_entity };
 
   ImGui::Text( "Mesh has %d submeshes", mesh->getSubmeshes().size() );
   ImGui::TextWrapped( "Path: %s", mesh->getPath().c_str() );
 
   if ( ImGui::Button( "Remove mesh" ) )
   {
-    auto scene = SceneManager::getCurrentScene().lock();
     if ( !scene )
       return;
 
@@ -218,12 +218,13 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
   auto scene = SceneManager::getCurrentScene();
   auto pScene = scene.lock();
 
+  if ( !pScene )
+    return;
+
   const auto& extension = p.extension().string();
   if ( extension.find( ".gltf" ) != std::string::npos )
   {
     spdlog::info( "loaded {}", dropResult, p.extension().string() );
-    if ( !pScene )
-      return;
 
     const auto& pTaskManager = MainRegistry::getInstance().getTaskManager();
 
