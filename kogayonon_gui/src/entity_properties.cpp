@@ -381,14 +381,14 @@ void EntityPropertiesWindow::drawPointLightComponent( kogayonon_core::Entity& en
     ImGui::Text( "Translation" );
 
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Xtranslation", &pointLight.position.x, 0.1f, pointLight.position.x - 100.0f,
-                                 pointLight.position.x + 100.0f, "%.2f" );
+    changed |= ImGui::DragFloat( "##Xtranslation", &pointLight.translation.x, 0.1f, pointLight.translation.x - 100.0f,
+                                 pointLight.translation.x + 100.0f, "%.2f" );
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Ytranslation", &pointLight.position.y, 0.1f, pointLight.position.y - 100.0f,
-                                 pointLight.position.y + 100.0f, "%.2f" );
+    changed |= ImGui::DragFloat( "##Ytranslation", &pointLight.translation.y, 0.1f, pointLight.translation.y - 100.0f,
+                                 pointLight.translation.y + 100.0f, "%.2f" );
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Ztranslation", &pointLight.position.z, 0.1f, pointLight.position.z - 100.0f,
-                                 pointLight.position.z + 100.0f, "%.2f" );
+    changed |= ImGui::DragFloat( "##Ztranslation", &pointLight.translation.z, 0.1f, pointLight.translation.z - 100.0f,
+                                 pointLight.translation.z + 100.0f, "%.2f" );
 
     //    vec4 params;// x = constant, y = linear, z = quadratic, w = enabled
     ImGui::TableNextRow();

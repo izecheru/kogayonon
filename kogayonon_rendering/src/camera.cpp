@@ -13,7 +13,7 @@ Camera::Camera()
 
 void Camera::setupCamera()
 {
-  m_props.position = glm::vec3{ 0.0f, 2.0f, 20.0f };
+  m_props.translation = glm::vec3{ 0.0f, 2.0f, 20.0f };
   m_props.direction = glm::vec3{ 0.0f, 0.0f, -1.0f };
   m_props.cameraUp = glm::vec3{ 0.0f, 1.0f, 0.0f };
   m_props.worldUp = glm::vec3{ 0.0f, 1.0f, 0.0f };
@@ -28,7 +28,7 @@ void Camera::setupCamera()
 glm::mat4& Camera::getViewMatrix() const
 {
   static glm::mat4 view;
-  view = glm::lookAt( m_props.position, m_props.position + m_props.direction, m_props.cameraUp );
+  view = glm::lookAt( m_props.translation, m_props.translation + m_props.direction, m_props.cameraUp );
   return view;
 }
 
@@ -61,27 +61,27 @@ void Camera::onKeyPressed( float delta )
 
   if ( KeyboardState::getKeyState( KeyCode::W ) )
   {
-    m_props.position += m_props.direction * velocity;
+    m_props.translation += m_props.direction * velocity;
   }
   if ( KeyboardState::getKeyState( KeyCode::S ) )
   {
-    m_props.position -= m_props.direction * velocity;
+    m_props.translation -= m_props.direction * velocity;
   }
   if ( KeyboardState::getKeyState( KeyCode::D ) )
   {
-    m_props.position += glm::normalize( glm::cross( m_props.direction, m_props.cameraUp ) ) * velocity;
+    m_props.translation += glm::normalize( glm::cross( m_props.direction, m_props.cameraUp ) ) * velocity;
   }
   if ( KeyboardState::getKeyState( KeyCode::A ) )
   {
-    m_props.position -= glm::normalize( glm::cross( m_props.direction, m_props.cameraUp ) ) * velocity;
+    m_props.translation -= glm::normalize( glm::cross( m_props.direction, m_props.cameraUp ) ) * velocity;
   }
   if ( KeyboardState::getKeyState( KeyCode::Space ) )
   {
-    m_props.position.y += 1.4f * velocity;
+    m_props.translation.y += 1.4f * velocity;
   }
   if ( KeyboardState::getKeyState( KeyCode::LeftControl ) )
   {
-    m_props.position.y -= 1.4f * velocity;
+    m_props.translation.y -= 1.4f * velocity;
   }
 
   updateCameraVectors();

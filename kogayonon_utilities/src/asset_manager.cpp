@@ -173,7 +173,7 @@ kogayonon_resources::Mesh* AssetManager::addMesh( const std::string& meshName, c
 
       for ( size_t x = 0; x < localPositions.size(); ++x )
       {
-        kogayonon_resources::Vertex v{ .position = localPositions[x],
+        kogayonon_resources::Vertex v{ .translation = localPositions[x],
                                        .normal = ( x < localNormals.size() ) ? localNormals[x] : glm::vec3{ 0.0f },
                                        .textureCoords = ( x < localTextureCoords.size() ) ? localTextureCoords[x]
                                                                                           : glm::vec2{ 0.0f } };
@@ -244,7 +244,7 @@ void AssetManager::uploadMeshGeometry( kogayonon_resources::Mesh* mesh ) const
   // texture coordinates
   glEnableVertexArrayAttrib( vao, 2 );
 
-  glVertexArrayAttribFormat( vao, 0, 3, GL_FLOAT, GL_FLOAT, offsetof( kogayonon_resources::Vertex, position ) );
+  glVertexArrayAttribFormat( vao, 0, 3, GL_FLOAT, GL_FLOAT, offsetof( kogayonon_resources::Vertex, translation ) );
   glVertexArrayAttribFormat( vao, 1, 3, GL_FLOAT, GL_FLOAT, offsetof( kogayonon_resources::Vertex, normal ) );
   glVertexArrayAttribFormat( vao, 2, 2, GL_FLOAT, GL_FLOAT, offsetof( kogayonon_resources::Vertex, textureCoords ) );
 
@@ -320,9 +320,9 @@ void AssetManager::parseVertices( cgltf_primitive& primitive, std::vector<glm::v
       switch ( attribute.type )
       {
       case cgltf_attribute_type_position:
-        glm::vec3 position( t_data[0], t_data[1], t_data[2] );
-        position = glm::vec3( transformation * glm::vec4( position, 1.0f ) );
-        positions.push_back( position );
+        glm::vec3 translation( t_data[0], t_data[1], t_data[2] );
+        translation = glm::vec3( transformation * glm::vec4( translation, 1.0f ) );
+        positions.push_back( translation );
         break;
       case cgltf_attribute_type_normal:
         glm::vec3 normal( t_data[0], t_data[1], t_data[2] );

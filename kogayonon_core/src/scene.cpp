@@ -57,6 +57,7 @@ void Scene::removeEntity( entt::entity ent )
     const auto toErase = pLightComponent.pointLightIndex;
     m_lightSSBO.removePointLight( toErase );
     m_lightUBO.decrementPointLights();
+    updateLightBuffers();
 
     for ( const auto& [entity, pLightComponent_] : m_pRegistry->getRegistry().view<PointLightComponent>().each() )
     {
@@ -264,6 +265,11 @@ void Scene::setupMultipleInstances( InstanceData* data )
   }
 }
 
+uint32_t Scene::getPointLightCount()
+{
+  return m_lightUBO.getPointLightCount();
+}
+
 void Scene::prepareForRendering()
 {
   // skip this function if we did not add a new entity or something
@@ -271,6 +277,8 @@ void Scene::prepareForRendering()
     return;
 
   m_registryModified = false;
+
+  updateLightBuffers();
 
   const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
 

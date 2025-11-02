@@ -5,7 +5,7 @@ namespace kogayonon_rendering
 {
 struct CameraProps
 {
-  glm::vec3 position;
+  glm::vec3 translation;
   glm::vec3 direction;
   glm::vec3 cameraUp;
   glm::vec3 worldUp;
@@ -37,22 +37,22 @@ public:
 
   inline float getX() const
   {
-    return m_props.position.x;
+    return m_props.translation.x;
   }
 
   inline float getY() const
   {
-    return m_props.position.y;
+    return m_props.translation.y;
   }
 
   inline float getZ() const
   {
-    return m_props.position.z;
+    return m_props.translation.z;
   }
 
   inline glm::vec3& getPosition()
   {
-    return m_props.position;
+    return m_props.translation;
   }
 
   inline CameraProps& getProps()

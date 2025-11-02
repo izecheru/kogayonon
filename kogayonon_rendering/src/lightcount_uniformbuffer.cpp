@@ -6,25 +6,21 @@ namespace kogayonon_rendering
 void LightCountUniformbuffer::incrementPointLights()
 {
   ++m_count.numPointLights;
-  update();
 }
 
 void LightCountUniformbuffer::incrementDirectionalLights()
 {
   ++m_count.numDirectionalLigths;
-  update();
 }
 
 void LightCountUniformbuffer::decrementPointLights()
 {
   --m_count.numPointLights;
-  update();
 }
 
 void LightCountUniformbuffer::decrementDirectionalLights()
 {
   --m_count.numDirectionalLigths;
-  update();
 }
 
 void LightCountUniformbuffer::initialize( uint32_t bindingIndex )
@@ -65,4 +61,15 @@ void LightCountUniformbuffer::unbind()
 {
   glBindBuffer( GL_UNIFORM_BUFFER, 0 );
 }
+
+uint32_t LightCountUniformbuffer::getPointLightCount() const
+{
+  return m_count.numPointLights;
+}
+
+uint32_t LightCountUniformbuffer::getDirectionalLightCount() const
+{
+  return m_count.numDirectionalLigths;
+}
+
 } // namespace kogayonon_rendering

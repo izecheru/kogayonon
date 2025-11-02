@@ -189,6 +189,7 @@ void SceneHierarchyWindow::draw()
 void SceneHierarchyWindow::drawContextMenu()
 {
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+  const auto scene = SceneManager::getCurrentScene().lock();
 
   if ( ImGui::BeginPopupContextWindow( "SceneHierarchyContext",
                                        ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight ) )
@@ -207,6 +208,25 @@ void SceneHierarchyWindow::drawContextMenu()
     {
       m_selectedEntity = entt::null;
       pEventDispatcher->emitEvent( SelectEntityEvent{} );
+    }
+
+    ImGui::SeparatorText( "Predefined entity types" );
+
+    if ( ImGui::MenuItem( "Mesh entity" ) )
+    {
+      auto entity = scene->addEntity();
+      entity.addComponent<MeshComponent>();
+      m_selectedEntity = entity.getEntityId();
+      pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
+    }
+
+    if ( ImGui::MenuItem( "Point light entity" ) )
+    {
+      auto entity = scene->addEntity();
+      scene->addPointLight( entity.getEntityId() );
+      m_selectedEntity = entity.getEntityId();
+      scene->updateLightBuffers();
+      pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
     }
     ImGui::EndPopup();
   }

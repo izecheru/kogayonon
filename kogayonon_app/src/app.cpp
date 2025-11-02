@@ -10,6 +10,7 @@
 #include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/pointlight_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
@@ -564,6 +565,52 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
         ent.replaceComponent<IdentifierComponent>( IdentifierComponent{ .name = name, .type = type, .group = group } );
       }
 
+      for ( int x = 0; x < scene["pointLightEntityCount"].GetInt(); x++ )
+      {
+        auto ent = scene_->addEntity();
+
+        // we add a default point light component to the entity
+        scene_->addPointLight( ent.getEntityId() );
+        // we retrieve the newly created component
+        const auto& pointLightComponent = ent.getComponent<PointLightComponent>();
+        auto& light = scene_->getPointLight( pointLightComponent.pointLightIndex );
+
+        kogayonon_resources::PointLight tempLight{};
+        Serializer::deserialize( tempLight.color.x, sceneIn );
+        Serializer::deserialize( tempLight.color.y, sceneIn );
+        Serializer::deserialize( tempLight.color.z, sceneIn );
+        Serializer::deserialize( tempLight.color.w, sceneIn );
+
+        Serializer::deserialize( tempLight.params.x, sceneIn );
+        Serializer::deserialize( tempLight.params.y, sceneIn );
+        Serializer::deserialize( tempLight.params.z, sceneIn );
+        Serializer::deserialize( tempLight.params.w, sceneIn );
+
+        Serializer::deserialize( tempLight.translation.x, sceneIn );
+        Serializer::deserialize( tempLight.translation.y, sceneIn );
+        Serializer::deserialize( tempLight.translation.z, sceneIn );
+        Serializer::deserialize( tempLight.translation.w, sceneIn );
+
+        light = tempLight;
+
+        std::string group;
+        size_t groupSize;
+        Serializer::deserialize( groupSize, sceneIn );
+        group.resize( groupSize );
+        Serializer::deserialize( group.data(), sizeof( char ) * groupSize, sceneIn );
+
+        std::string name;
+        size_t nameSize;
+        Serializer::deserialize( nameSize, sceneIn );
+        name.resize( nameSize );
+        Serializer::deserialize( name.data(), sizeof( char ) * nameSize, sceneIn );
+
+        EntityType type;
+        Serializer::deserialize( type, sceneIn );
+
+        ent.replaceComponent<IdentifierComponent>( IdentifierComponent{ .name = name, .type = type, .group = group } );
+      }
+
       if ( sceneIn )
         sceneIn.close();
 
@@ -621,7 +668,7 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
 
     const auto& meshView = scene->getRegistry().getRegistry().view<MeshComponent>();
     const auto& emptyEntityView =
-      scene->getRegistry().getRegistry().view<IdentifierComponent>( entt::exclude<MeshComponent> );
+      scene->getRegistry().getRegistry().view<IdentifierComponent>( entt::exclude<MeshComponent, PointLightComponent> );
 
     // count them accurately, don't think performance drops here
     size_t meshCount = 0;
@@ -636,6 +683,7 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     sceneObject.AddMember( "name", rapidjson::Value{ name.c_str(), allocator }, allocator );
     sceneObject.AddMember( "meshEntityCount", meshCount, allocator );
     sceneObject.AddMember( "emptyEntityCount", emptyCount, allocator );
+    sceneObject.AddMember( "pointLightEntityCount", scene->getPointLightCount(), allocator );
 
     auto finalPath = std::format( "{}\\{}.kscene", scenesDirPath.string(), scene->getName().c_str() );
 
@@ -705,9 +753,44 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     }
 
     // all entities that have only identifier component
-    for ( const auto& [entity, identifierComponent] :
-          scene->getRegistry().getRegistry().view<IdentifierComponent>( entt::exclude<MeshComponent> ).each() )
+    for ( const auto& [entity, identifierComponent] : emptyEntityView.each() )
     {
+
+      // now the identifier data
+      const auto& group = identifierComponent.group;
+      const size_t groupSize = group.size();
+      Serializer::serialize( groupSize, sceneOut );
+      Serializer::serialize( group.data(), sizeof( char ) * groupSize, sceneOut );
+
+      const auto& name = identifierComponent.name;
+      const size_t nameSize = name.size();
+      Serializer::serialize( nameSize, sceneOut );
+      Serializer::serialize( name.data(), sizeof( char ) * nameSize, sceneOut );
+
+      const auto& type = identifierComponent.type;
+      Serializer::serialize( type, sceneOut );
+    }
+
+    // serialize point lights
+    for ( const auto& [entity, identifierComponent, pointLightComponent] :
+          scene->getRegistry().getRegistry().view<IdentifierComponent, PointLightComponent>().each() )
+    {
+      const auto& light = scene->getPointLight( pointLightComponent.pointLightIndex );
+      Serializer::serialize( light.color.x, sceneOut );
+      Serializer::serialize( light.color.y, sceneOut );
+      Serializer::serialize( light.color.z, sceneOut );
+      Serializer::serialize( light.color.w, sceneOut );
+
+      Serializer::serialize( light.params.x, sceneOut );
+      Serializer::serialize( light.params.y, sceneOut );
+      Serializer::serialize( light.params.z, sceneOut );
+      Serializer::serialize( light.params.w, sceneOut );
+
+      Serializer::serialize( light.translation.x, sceneOut );
+      Serializer::serialize( light.translation.y, sceneOut );
+      Serializer::serialize( light.translation.z, sceneOut );
+      Serializer::serialize( light.translation.w, sceneOut );
+
       // now the identifier data
       const auto& group = identifierComponent.group;
       const size_t groupSize = group.size();

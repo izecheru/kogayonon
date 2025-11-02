@@ -78,10 +78,10 @@ static void attachColorTexture( uint32_t id, uint32_t w, uint32_t h, GLenum form
   assert( w != 0 && h != 0 && "width and height CANNOT be 0" );
   glTextureStorage2D( id, 1, format, w, h );
 
-  glTextureParameteri( id, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-  glTextureParameteri( id, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-  glTextureParameteri( id, GL_TEXTURE_WRAP_S, GL_REPEAT );
-  glTextureParameteri( id, GL_TEXTURE_WRAP_T, GL_REPEAT );
+  glTextureParameteri( id, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+  glTextureParameteri( id, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+  glTextureParameteri( id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+  glTextureParameteri( id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
   glNamedFramebufferTexture( fbo, GL_COLOR_ATTACHMENT0 + index, id, 0 );
 }
 

@@ -107,6 +107,8 @@ public:
    */
   void setupMultipleInstances( InstanceData* data );
 
+  uint32_t getPointLightCount();
+
   void addPointLight();
   void addPointLight( entt::entity entityId );
 

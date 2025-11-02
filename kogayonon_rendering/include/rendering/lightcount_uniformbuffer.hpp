@@ -23,6 +23,9 @@ public:
   void decrementPointLights();
   void decrementDirectionalLights();
 
+  uint32_t getPointLightCount() const;
+  uint32_t getDirectionalLightCount() const;
+
   void initialize( uint32_t bindingIndex ) override;
   void destroy() override;
   void update();

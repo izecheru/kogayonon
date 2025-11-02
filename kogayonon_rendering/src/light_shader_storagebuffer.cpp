@@ -85,14 +85,12 @@ int LightShaderStoragebuffer::addPointLight()
   auto light = kogayonon_resources::PointLight{};
   auto index = m_pointLights.size();
   m_pointLights.emplace_back( light );
-  update();
   return index;
 }
 
 void LightShaderStoragebuffer::removePointLight( uint32_t index )
 {
   m_pointLights.erase( m_pointLights.begin() + index );
-  update();
 }
 
 } // namespace kogayonon_rendering
