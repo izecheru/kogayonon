@@ -5,30 +5,21 @@
 
 namespace kogayonon_rendering
 {
-struct Vertex_
-{
-  glm::vec3 pos; // Position
-  glm::vec2 textureCoordinates;
-  glm::vec4 color;
-};
-
-struct Quad
-{
-  std::vector<Vertex_> vertices{};
-  std::vector<uint32_t> indices{
-    0, 1, 2, // First triangle
-    2, 3, 0  // Second triangle
-  };
-};
-
 class Renderer
 {
 public:
   Renderer();
   ~Renderer();
 
-  void drawQuad();
+  void clearColor( float r, float g, float b );
+  void clearColor( float r, float g, float b, float alpha );
+  void clearDepth();
+  void clearColor();
+  void clearDepthAndColor();
 
-private:
+  void bindTexture( uint32_t id );
+  void bindBuffer( uint32_t id );
+
+  void destroyBuffer( uint32_t id );
 };
 } // namespace kogayonon_rendering

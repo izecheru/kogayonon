@@ -21,6 +21,7 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
 {
   begin( shader );
 
+  static glm::mat4 biasMatrix{ 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0 };
   auto view = scene->getEnttRegistry().view<TransformComponent, MeshComponent, IndexComponent>();
 
   std::unordered_map<kogayonon_resources::Mesh*, int> orderedMeshes;
@@ -54,6 +55,63 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
       // bind the texture we need (this is bad)
       glBindTextureUnit( 1, textures.at( i )->getTextureId() );
     }
+
+    auto instanceData = scene->getData( mesh.first );
+    auto& submeshes = mesh.first->getSubmeshes();
+    for ( int i = 0; i < submeshes.size() && instanceData != nullptr; i++ )
+    {
+
+      glDrawElementsInstancedBaseVertex( GL_TRIANGLES, submeshes.at( i ).indexCount, GL_UNSIGNED_INT,
+                                         (void*)( submeshes.at( i ).indexOffset * sizeof( uint32_t ) ),
+                                         instanceData->count, submeshes.at( i ).vertexOffest );
+    }
+    glBindVertexArray( 0 );
+    glBindTextureUnit( 1, 0 );
+  }
+  end( shader );
+}
+
+void RenderingSystem::renderGeometryWithShadows( std::shared_ptr<Scene> scene, const glm::mat4& viewMatrix,
+                                       const glm::mat4& projection, kogayonon_utilities::Shader& shader,
+                                       const glm::mat4& lightProjectionView, const uint32_t depthMap )
+{
+  begin( shader );
+
+  auto view = scene->getEnttRegistry().view<TransformComponent, MeshComponent, IndexComponent>();
+
+  std::unordered_map<kogayonon_resources::Mesh*, int> orderedMeshes;
+  std::unordered_set<kogayonon_resources::Mesh*> uniqueMeshes;
+
+  for ( const auto& [entity, transformComp, meshComponent, indexComp] : view.each() )
+  {
+    if ( !meshComponent.loaded )
+      continue;
+    auto& mesh = meshComponent.pMesh;
+
+    if ( !mesh )
+      continue;
+
+    // only true if first seen
+    if ( uniqueMeshes.insert( mesh ).second )
+      orderedMeshes.emplace( mesh, indexComp.index );
+  }
+
+  shader.setMat4( "projection", projection );
+  shader.setMat4( "view", viewMatrix );
+  shader.setMat4( "lightVP", lightProjectionView );
+  for ( auto& mesh : orderedMeshes )
+  {
+    if ( !mesh.first )
+      continue;
+
+    glBindVertexArray( mesh.first->getVao() );
+    const auto& textures = mesh.first->getTextures();
+    for ( int i = 0; i < textures.size(); i++ )
+    {
+      // bind the texture we need (this is bad)
+      glBindTextureUnit( 1, textures.at( i )->getTextureId() );
+    }
+    glBindTextureUnit( 2, depthMap );
 
     auto instanceData = scene->getData( mesh.first );
     auto& submeshes = mesh.first->getSubmeshes();

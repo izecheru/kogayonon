@@ -2,6 +2,7 @@
 #include <ImGuizmo.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui_stdlib.h>
+#include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/mesh_component.hpp"
@@ -119,6 +120,12 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
   {
     ImGui::SeparatorText( "  Point light " );
     drawPointLightComponent( entity );
+  }
+
+  if ( entity.hasComponent<DirectionalLightComponent>() )
+  {
+    ImGui::SeparatorText( "  Directional light " );
+    drawDirectionalLightComponent( entity );
   }
 }
 
@@ -379,7 +386,6 @@ void EntityPropertiesWindow::drawPointLightComponent( kogayonon_core::Entity& en
     ImGui::TableNextColumn();
 
     ImGui::Text( "Translation" );
-
     ImGui::TableNextColumn();
     changed |= ImGui::DragFloat( "##Xtranslation", &pointLight.translation.x, 0.1f, pointLight.translation.x - 100.0f,
                                  pointLight.translation.x + 100.0f, "%.2f" );
@@ -389,58 +395,110 @@ void EntityPropertiesWindow::drawPointLightComponent( kogayonon_core::Entity& en
     ImGui::TableNextColumn();
     changed |= ImGui::DragFloat( "##Ztranslation", &pointLight.translation.z, 0.1f, pointLight.translation.z - 100.0f,
                                  pointLight.translation.z + 100.0f, "%.2f" );
-
-    //    vec4 params;// x = constant, y = linear, z = quadratic, w = enabled
-    ImGui::TableNextRow();
-    ImGui::TableNextColumn();
-    ImGui::Text( "Constant" );
-    ImGui::SameLine();
-    ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##constant", &pointLight.params.x, 0.001f, 0.5f, 1.5f, "%.2f" );
-
-    ImGui::TableNextRow();
-    ImGui::TableNextColumn();
-    ImGui::Text( "Linear" );
-    ImGui::SameLine();
-    ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##linear", &pointLight.params.y, 0.001f, 0.01f, 2.0f, "%.2f" );
-
-    ImGui::TableNextRow();
-    ImGui::TableNextColumn();
-    ImGui::Text( "Quadratic" );
-    ImGui::SameLine();
-    ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Quadratic", &pointLight.params.z, 0.0001f, 0.001f, 0.05f, "%.2f" );
-
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
 
-    ImGui::Text( "Diffuse" );
-    ImGui::TableNextColumn();
-    changed |= ImGui::ColorEdit4( "##diffuse_change", reinterpret_cast<float*>( &pointLight.diffuse ),
-                                  ImGuiColorEditFlags_NoInputs );
-
-    ImGui::TableNextRow();
+    ImGui::Text( "Distance" );
     ImGui::TableNextColumn();
 
-    ImGui::Text( "Speclar" );
-    ImGui::TableNextColumn();
-    changed |= ImGui::ColorEdit4( "##specular_change", reinterpret_cast<float*>( &pointLight.specular ),
-                                  ImGuiColorEditFlags_NoInputs );
+    bool distance = false;
+    static std::string distanceValue = "7";
+    if ( ImGui::BeginCombo( "##distance", distanceValue.c_str() ) )
+    {
+      // x = constant, y = linear, z = quadratic, w = enabled
 
-    ImGui::TableNextRow();
-    ImGui::TableNextColumn();
-
-    ImGui::Text( "Ambient" );
-    ImGui::TableNextColumn();
-    changed |= ImGui::ColorEdit4( "##ambient_change", reinterpret_cast<float*>( &pointLight.ambient ),
-                                  ImGuiColorEditFlags_NoInputs );
+      if ( ImGui::MenuItem( "7" ) )
+      {
+        pointLight.params.y = 0.7f;
+        pointLight.params.z = 1.8f;
+        distance = true;
+        distanceValue = "7";
+      }
+      if ( ImGui::MenuItem( "13" ) )
+      {
+        pointLight.params.y = 0.35f;
+        pointLight.params.z = 0.44f;
+        distance = true;
+        distanceValue = "13";
+      }
+      if ( ImGui::MenuItem( "20" ) )
+      {
+        pointLight.params.y = 0.22f;
+        pointLight.params.z = 0.20f;
+        distance = true;
+        distanceValue = "20";
+      }
+      if ( ImGui::MenuItem( "32" ) )
+      {
+        pointLight.params.y = 0.14f;
+        pointLight.params.z = 0.07f;
+        distance = true;
+        distanceValue = "32";
+      }
+      if ( ImGui::MenuItem( "50" ) )
+      {
+        pointLight.params.y = 0.09f;
+        pointLight.params.z = 0.032f;
+        distance = true;
+        distanceValue = "50";
+      }
+      if ( ImGui::MenuItem( "65" ) )
+      {
+        pointLight.params.y = 0.07f;
+        pointLight.params.z = 0.017f;
+        distance = true;
+        distanceValue = "65";
+      }
+      if ( ImGui::MenuItem( "100" ) )
+      {
+        pointLight.params.y = 0.045f;
+        pointLight.params.z = 0.0075f;
+        distance = true;
+        distanceValue = "100";
+      }
+      if ( ImGui::MenuItem( "160" ) )
+      {
+        pointLight.params.y = 0.027f;
+        pointLight.params.z = 0.0028f;
+        distance = true;
+        distanceValue = "160";
+      }
+      if ( ImGui::MenuItem( "200" ) )
+      {
+        pointLight.params.y = 0.022f;
+        pointLight.params.z = 0.0019f;
+        distance = true;
+        distanceValue = "200";
+      }
+      if ( ImGui::MenuItem( "325" ) )
+      {
+        pointLight.params.y = 0.014f;
+        pointLight.params.z = 0.0007f;
+        distance = true;
+        distanceValue = "325";
+      }
+      if ( ImGui::MenuItem( "600" ) )
+      {
+        pointLight.params.y = 0.007f;
+        pointLight.params.z = 0.0002f;
+        distance = true;
+        distanceValue = "600";
+      }
+      if ( ImGui::MenuItem( "3250" ) )
+      {
+        pointLight.params.y = 0.0014f;
+        pointLight.params.z = 0.000007f;
+        distance = true;
+        distanceValue = "3250";
+      }
+      ImGui::EndCombo();
+    }
+    changed |= distance;
 
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
 
     ImGui::Text( "Color" );
-
     ImGui::TableNextColumn();
     changed |= ImGui::ColorEdit4( "##color_change", reinterpret_cast<float*>( &pointLight.color ),
                                   ImGuiColorEditFlags_NoInputs );
@@ -450,8 +508,87 @@ void EntityPropertiesWindow::drawPointLightComponent( kogayonon_core::Entity& en
     if ( ImGui::Checkbox( "##enable", &visible ) )
     {
       pointLight.params.w = visible;
-      changed = true;
+      changed |= true;
     }
+
+    ImGui::EndTable();
+
+    if ( changed )
+    {
+      auto scene = SceneManager::getCurrentScene().lock();
+      // update the ubo and ssbo if needed
+      scene->updateLightBuffers();
+    }
+  }
+}
+
+void EntityPropertiesWindow::drawDirectionalLightComponent( kogayonon_core::Entity& ent ) const
+{
+  const auto& pDirectionalLightComponent = ent.tryGetComponent<DirectionalLightComponent>();
+
+  if ( !pDirectionalLightComponent )
+    return;
+
+  auto scene = SceneManager::getCurrentScene().lock();
+
+  if ( !scene )
+    return;
+
+  auto& directionalLight = scene->getDirectionalLight( pDirectionalLightComponent->directionalLightIndex );
+
+  bool changed = false;
+
+  static auto textSize = ImGui::CalcTextSize( "Position factor" );
+
+  if ( ImGui::BeginTable( "##table_directional_light", 4 ) )
+  {
+    ImGui::TableSetupColumn( "label", ImGuiTableColumnFlags_WidthFixed, textSize.x );
+    ImGui::TableSetupColumn( "x", ImGuiTableColumnFlags_WidthFixed, 100.0f );
+    ImGui::TableSetupColumn( "y", ImGuiTableColumnFlags_WidthFixed, 100.0f );
+    ImGui::TableSetupColumn( "z", ImGuiTableColumnFlags_WidthFixed, 100.0f );
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+
+    ImGui::Text( "Direction" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Xdirection", &directionalLight.direction.x, 0.1f,
+                                 directionalLight.direction.x - 100.0f, directionalLight.direction.x + 100.0f, "%.2f" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Ydirection", &directionalLight.direction.y, 0.1f,
+                                 directionalLight.direction.y - 100.0f, directionalLight.direction.y + 100.0f, "%.2f" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##Zdirection", &directionalLight.direction.z, 0.1f,
+                                 directionalLight.direction.z - 100.0f, directionalLight.direction.z + 100.0f, "%.2f" );
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+
+    ImGui::Text( "Ortho size" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##OrthoSize", &pDirectionalLightComponent->orthoSize, 0.1f, 0.1f, 2000.0f, "%.2f" );
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+
+    ImGui::Text( "Near plane" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##NearPlane", &pDirectionalLightComponent->nearPlane, 0.1f, 0.1f, 2000.0f, "%.2f" );
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+
+    ImGui::Text( "Far plane" );
+    ImGui::TableNextColumn();
+    changed |= ImGui::DragFloat( "##FarPlane", &pDirectionalLightComponent->farPlane, 0.1f, 0.1f, 2000.0f, "%.2f" );
+
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+
+    ImGui::Text( "Position factor" );
+    ImGui::TableNextColumn();
+    changed |=
+      ImGui::DragFloat( "##PositionFactor", &pDirectionalLightComponent->positionFactor, 0.1f, 0.1f, 2000.0f, "%.2f" );
 
     ImGui::EndTable();
 

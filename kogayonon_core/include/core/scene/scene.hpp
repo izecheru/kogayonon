@@ -7,6 +7,7 @@
 #include "core/ecs/entity.hpp"
 #include "rendering/light_shader_storagebuffer.hpp"
 #include "rendering/lightcount_uniformbuffer.hpp"
+#include "resources/directional_light.hpp"
 #include "resources/mesh.hpp"
 
 namespace kogayonon_core
@@ -107,10 +108,11 @@ public:
    */
   void setupMultipleInstances( InstanceData* data );
 
-  uint32_t getPointLightCount();
-
   void addPointLight();
   void addPointLight( entt::entity entityId );
+
+  void addDirectionalLight();
+  void addDirectionalLight( entt::entity entityId );
 
   void bindLightBuffers();
   void unbindLightBuffers();
@@ -118,6 +120,9 @@ public:
   void updateLightBuffers();
 
   kogayonon_resources::PointLight& getPointLight( uint32_t index );
+  kogayonon_resources::DirectionalLight& getDirectionalLight( uint32_t index = 0 );
+
+  uint32_t getLightCount( const kogayonon_resources::LightType& type );
 
   inline uint32_t getEntityCount() const
   {

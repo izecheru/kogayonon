@@ -272,6 +272,8 @@ bool App::initRegistries() const
   shaderManager->pushShader( "resources/shaders/picking_vertex.glsl", "resources/shaders/picking_fragment.glsl",
                              "picking" );
   shaderManager->pushShader( "resources/shaders/depth_vert.glsl", "resources/shaders/depth_frag.glsl", "depth" );
+  shaderManager->pushShader( "resources/shaders/depth_vert.glsl", "resources/shaders/depth_debug_frag.glsl",
+                             "depthDebug" );
 
   mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::ShaderManager>>( std::move( shaderManager ) );
 
@@ -662,6 +664,11 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
 
   rapidjson::Value scenesArray{ rapidjson::Type::kArrayType };
   auto scenesDirPath = std::filesystem::absolute( "resources\\scenes" );
+  if ( !std::filesystem::exists( scenesDirPath ) )
+  {
+    std::filesystem::create_directory( scenesDirPath );
+  }
+
   for ( const auto& [name, scene] : scenes )
   {
     rapidjson::Value sceneObject{ rapidjson::Type::kObjectType };
@@ -683,7 +690,8 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     sceneObject.AddMember( "name", rapidjson::Value{ name.c_str(), allocator }, allocator );
     sceneObject.AddMember( "meshEntityCount", meshCount, allocator );
     sceneObject.AddMember( "emptyEntityCount", emptyCount, allocator );
-    sceneObject.AddMember( "pointLightEntityCount", scene->getPointLightCount(), allocator );
+    sceneObject.AddMember( "pointLightEntityCount", scene->getLightCount( kogayonon_resources::LightType::Point ),
+                           allocator );
 
     auto finalPath = std::format( "{}\\{}.kscene", scenesDirPath.string(), scene->getName().c_str() );
 
@@ -807,9 +815,7 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     }
 
     if ( sceneOut )
-    {
       sceneOut.close();
-    }
 
     scenesArray.PushBack( sceneObject, allocator );
   }

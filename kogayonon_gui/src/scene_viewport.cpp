@@ -2,10 +2,9 @@
 #include <ImGuizmo.h>
 #include <filesystem>
 #include <glad/glad.h>
-#include <glm/ext/matrix_clip_space.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <random>
 #include <spdlog/spdlog.h>
+#include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
@@ -20,9 +19,7 @@
 #include "core/systems/rendering_system.h"
 #include "rendering/camera/camera.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
-#include "utilities/serializer/serializer.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
-#include "utilities/task_manager/task_manager.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
 
 using namespace kogayonon_core;
@@ -80,6 +77,7 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
   FramebufferSpecification pickingSpec{
     { FramebufferTextureFormat::RED_INTEGER, FramebufferTextureFormat::DEPTH24STENCIL8 }, 800, 800 };
 
+  // we should use this depth spec for the shadow mapping texture
   FramebufferSpecification depthSpec{ { FramebufferTextureFormat::RGBA, FramebufferTextureFormat::DEPTH }, 800, 800 };
 
   m_frameBuffer = OpenGLFramebuffer{ spec };
@@ -148,49 +146,107 @@ void SceneViewportWindow::onMouseClicked( const MouseClickedEvent& e )
 
 void SceneViewportWindow::drawScene()
 {
-  // prepare model entities for rendering if they were not loaded
   auto scene = SceneManager::getCurrentScene().lock();
+  if ( !scene )
+    return;
 
+  // prepare model entities for rendering if they were not loaded
   scene->prepareForRendering();
 
   const auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
-  const auto& size = ImGui::GetWindowSize();
-  glm::mat4 proj = m_pCamera->getProjectionMatrix( { size.x, size.y } );
-
+  auto proj = m_pCamera->getProjectionMatrix( { m_props->width, m_props->height } );
+  auto view = m_pCamera->getViewMatrix();
   auto& depthShader = pShaderManager->getShader( "depth" );
+  auto& depthDebugShader = pShaderManager->getShader( "depthDebug" );
   auto& geometryShader = pShaderManager->getShader( "3d" );
+
   switch ( m_renderMode )
   {
-  case RenderMode::GeometryAndLights:
-    if ( scene )
+  case RenderMode::GeometryAndLights: {
+    if ( scene->getLightCount( kogayonon_resources::LightType::Directional ) == 1 )
     {
-      auto& spec = m_frameBuffer.getSpecification();
+      // depth pass first for shadow mapping
+      glCullFace( GL_FRONT );
+      m_depthBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
+      m_depthBuffer.bind();
+      glClear( GL_DEPTH_BUFFER_BIT );
+
+      // since atm we have only one directional light we get the index 0 light
+      const auto& directionalLight = scene->getDirectionalLight();
+      entt::entity ent = entt::null;
+      for ( const auto& [entity, lightComponent] : scene->getEnttRegistry().view<DirectionalLightComponent>().each() )
+      {
+        ent = entity;
+      }
+
+      const auto& directionalLightComponent = scene->getRegistry().getComponent<DirectionalLightComponent>( ent );
+
+      auto lightProjection = glm::ortho( -directionalLightComponent.orthoSize, directionalLightComponent.orthoSize,
+                                         -directionalLightComponent.orthoSize, directionalLightComponent.orthoSize,
+                                         directionalLightComponent.nearPlane, directionalLightComponent.farPlane );
+
+      auto lightDir = glm::normalize(
+        glm::vec3( directionalLight.direction.x, directionalLight.direction.y, directionalLight.direction.z ) );
+      auto lightPos = -lightDir * directionalLightComponent.positionFactor; // further back
+
+      auto lightView = glm::lookAt( lightPos,
+                                    glm::vec3( 0.0f ), // center of scene
+                                    glm::vec3( 0.0f, 1.0f, 0.0f ) );
+
+      auto lightSpaceMatrix = lightProjection * lightView;
+
+      m_pRenderingSystem->render( scene, lightView, lightProjection, depthShader );
+      m_depthBuffer.unbind();
+
+      // now render the depth to a rgba texture to see the depth
+      m_depthBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
+      m_depthBuffer.bind();
+      glClearColor( 1.0f, 0.4f, 0.4f, 1.0f );
+      glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+      m_pRenderingSystem->render( scene, lightView, lightProjection, depthDebugShader );
+      m_depthBuffer.unbind();
+
+      // upload the texture to the geometry shader
+      const auto depthMap = m_depthBuffer.getDepthAttachmentId();
+      // render geometry
+      glCullFace( GL_BACK );
       m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
       m_frameBuffer.bind();
       glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
       glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
       scene->bindLightBuffers();
-      m_pRenderingSystem->render( scene, m_pCamera->getViewMatrix(), proj, geometryShader );
+      m_pRenderingSystem->renderGeometryWithShadows( scene, view, proj, geometryShader, lightSpaceMatrix, depthMap );
       scene->unbindLightBuffers();
       m_frameBuffer.unbind();
     }
-    break;
-  case RenderMode::Geometry:
-    break;
-  case RenderMode::Depth:
-    if ( scene )
+    else
     {
-      auto& spec = m_frameBuffer.getSpecification();
-      m_depthBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
-      m_depthBuffer.bind();
+      // render geometry
+      m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
+      m_frameBuffer.bind();
       glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
       glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-      m_pRenderingSystem->render( scene, m_pCamera->getViewMatrix(), proj, depthShader );
-      m_depthBuffer.unbind();
+      scene->bindLightBuffers();
+      m_pRenderingSystem->render( scene, view, proj, geometryShader );
+      scene->unbindLightBuffers();
+      m_frameBuffer.unbind();
     }
+  }
+  break;
+  case RenderMode::Geometry:
     break;
+  case RenderMode::Depth: {
+    m_depthBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
+    m_depthBuffer.bind();
+    glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+    m_pRenderingSystem->render( scene, view, proj, depthShader );
+    m_depthBuffer.unbind();
+    break;
+  }
   }
 }
 
@@ -219,7 +275,7 @@ void SceneViewportWindow::drawPickingScene()
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
   m_pickingFrameBuffer.clearColorAttachment( 0, -1 );
   m_pRenderingSystem->render( SceneManager::getCurrentScene().lock(), m_pCamera->getViewMatrix(), proj, shader );
-  int result = m_pickingFrameBuffer.readPixel( 0, static_cast<int>( mx ), static_cast<int>( my ) );
+  auto result = m_pickingFrameBuffer.readPixel( 0, static_cast<int>( mx ), static_cast<int>( my ) );
   m_pickingFrameBuffer.unbind();
 
   if ( const auto& scene = SceneManager::getCurrentScene().lock() )
@@ -339,11 +395,15 @@ void SceneViewportWindow::draw()
     ImGui::GetWindowDrawList()->AddImage( m_frameBuffer.getColorAttachmentId( 0 ), win_pos,
                                           ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y },
                                           ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
+    ImGui::GetWindowDrawList()->AddImage( m_depthBuffer.getColorAttachmentId( 0 ), win_pos,
+                                          ImVec2{ win_pos.x + 140.0f, win_pos.y + 140.0f }, ImVec2{ 0, 1 },
+                                          ImVec2{ 1, 0 } );
+
     break;
   default:
     ImGui::GetWindowDrawList()->AddImage( m_depthBuffer.getColorAttachmentId( 0 ), win_pos,
-                                          ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y },
-                                          ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
+                                          ImVec2{ win_pos.x + contentSize.x, 40.0f + contentSize.y }, ImVec2{ 0, 1 },
+                                          ImVec2{ 1, 0 } );
   }
 
   ImGuizmo::SetOrthographic( false );
@@ -403,6 +463,13 @@ void SceneViewportWindow::draw()
   if ( ImGui::BeginPopupModal( "Render mode", &open, ImGuiWindowFlags_AlwaysAutoResize ) )
   {
     ImGui::Text( "You can change the render modes here, this is a work in progress though" );
+
+    if ( ImGui::Button( "Geometry alone" ) )
+    {
+      m_renderMode = RenderMode::Geometry;
+      ImGui::CloseCurrentPopup();
+      open = false;
+    }
 
     if ( ImGui::Button( "Geometry and lights" ) )
     {

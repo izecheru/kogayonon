@@ -1,11 +1,13 @@
 #include "core/scene/scene.hpp"
 #include <glad/glad.h>
+#include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/pointlight_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
+#include "resources/light_types.hpp"
 #include "resources/pointlight.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/math/math.hpp"
@@ -19,8 +21,8 @@ Scene::Scene( const std::string& name )
     , m_pRegistry{ std::make_unique<Registry>() }
 
 {
-  m_lightUBO.initialize( 0 );
-  m_lightSSBO.initialize( 1 );
+  m_lightUBO.initialize( 3 );
+  m_lightSSBO.initialize();
 }
 
 Registry& Scene::getRegistry()
@@ -55,8 +57,8 @@ void Scene::removeEntity( entt::entity ent )
   {
     const auto& pLightComponent = entity.getComponent<PointLightComponent>();
     const auto toErase = pLightComponent.pointLightIndex;
-    m_lightSSBO.removePointLight( toErase );
-    m_lightUBO.decrementPointLights();
+    m_lightSSBO.removeLight( kogayonon_resources::LightType::Point, toErase );
+    m_lightUBO.decrementLightCount( kogayonon_resources::LightType::Point );
     updateLightBuffers();
 
     for ( const auto& [entity, pLightComponent_] : m_pRegistry->getRegistry().view<PointLightComponent>().each() )
@@ -64,7 +66,6 @@ void Scene::removeEntity( entt::entity ent )
       if ( pLightComponent_.pointLightIndex > toErase )
         --pLightComponent_.pointLightIndex;
     }
-    // no need for updateLightBuffers(); since both update themselves
   }
 
   // then destroy the entity
@@ -265,9 +266,9 @@ void Scene::setupMultipleInstances( InstanceData* data )
   }
 }
 
-uint32_t Scene::getPointLightCount()
+uint32_t Scene::getLightCount( const kogayonon_resources::LightType& type )
 {
-  return m_lightUBO.getPointLightCount();
+  return m_lightUBO.getLightCount( type );
 }
 
 void Scene::prepareForRendering()
@@ -319,17 +320,46 @@ void Scene::prepareForRendering()
 void Scene::addPointLight()
 {
   auto entity = addEntity();
-  m_lightUBO.incrementPointLights();
-  auto index = m_lightSSBO.addPointLight();
+  m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Point );
+  int index{ 0 };
+  index = m_lightSSBO.addLight( kogayonon_resources::LightType::Point );
   entity.addComponent<PointLightComponent>( PointLightComponent{ .pointLightIndex = index } );
 }
 
 void Scene::addPointLight( entt::entity entityId )
 {
   Entity ent{ *m_pRegistry, entityId };
-  m_lightUBO.incrementPointLights();
-  auto index = m_lightSSBO.addPointLight();
+  m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Point );
+  int index{ 0 };
+  index = m_lightSSBO.addLight( kogayonon_resources::LightType::Point );
   ent.addComponent<PointLightComponent>( PointLightComponent{ .pointLightIndex = index } );
+}
+
+void Scene::addDirectionalLight()
+{
+  // maximum amount of directional lights is = 1
+  if ( m_lightUBO.getLightCount( kogayonon_resources::LightType::Directional ) == 1 )
+    return;
+
+  auto entity = addEntity();
+  m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Directional );
+  int index{ 0 };
+  index = m_lightSSBO.addLight( kogayonon_resources::LightType::Directional );
+  entity.addComponent<DirectionalLightComponent>( DirectionalLightComponent{ .directionalLightIndex = index } );
+}
+
+void Scene::addDirectionalLight( entt::entity entityId )
+{
+  // maximum amount of directional lights is = 1
+  if ( m_lightUBO.getLightCount( kogayonon_resources::LightType::Directional ) == 1 )
+    return;
+
+  Entity entity{ *m_pRegistry, entityId };
+
+  m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Directional );
+  int index{ 0 };
+  index = m_lightSSBO.addLight( kogayonon_resources::LightType::Directional );
+  entity.addComponent<DirectionalLightComponent>( DirectionalLightComponent{ .directionalLightIndex = index } );
 }
 
 void Scene::bindLightBuffers()
@@ -346,8 +376,14 @@ void Scene::unbindLightBuffers()
 
 kogayonon_resources::PointLight& Scene::getPointLight( uint32_t index )
 {
-  auto& lights = m_lightSSBO.getPointLights();
-  return lights.at( index );
+  assert( index >= 0 && "index must not be negative" );
+  return m_lightSSBO.getPointLights().at( index );
+}
+
+kogayonon_resources::DirectionalLight& Scene::getDirectionalLight( uint32_t index )
+{
+  assert( index >= 0 && "index must not be negative" );
+  return m_lightSSBO.getDirectionalLights().at( index );
 }
 
 void Scene::updateLightBuffers()

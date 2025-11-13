@@ -1,34 +1,65 @@
 #pragma once
 #include <cinttypes>
 #include <memory>
+#include <string>
+#include <unordered_map>
+#include <variant>
 #include <vector>
+#include "resources/directional_light.hpp"
+#include "resources/light_types.hpp"
 #include "resources/pointlight.hpp"
+#include "resources/spotlight.hpp"
 #include "shader_storagebuffer.hpp"
 
 namespace kogayonon_rendering
 {
-class LightShaderStoragebuffer : public ShaderStoragebuffer
+using point_lights = std::vector<kogayonon_resources::PointLight>;
+using directional_lights = std::vector<kogayonon_resources::DirectionalLight>;
+using spot_lights = std::vector<kogayonon_resources::SpotLight>;
+
+enum class SSBOType
+{
+  Point = 0,
+  Directional = 1,
+  Spot = 2
+};
+
+class LightShaderStoragebuffer : public IShaderStorageBuffer
 {
 public:
+  struct SSBO
+  {
+    uint32_t id{ 0 };
+    uint32_t bindingIndex{ 0 };
+  };
+
   LightShaderStoragebuffer() = default;
   ~LightShaderStoragebuffer() = default;
 
-  void bind() override;
   void unbind() override;
+  void bind( uint32_t index ) override;
+  void bind() override;
 
-  void initialize( uint32_t bindingIndex ) override;
+  void initialize() override;
+  void initStorageBuffer( const kogayonon_resources::LightType& type, SSBO& ssbo );
+  void destroy( uint32_t index ) override;
   void destroy() override;
-  void update() override;
-  void update( uint32_t lightIndex );
+  void update( uint32_t index ) override;
 
-  std::vector<kogayonon_resources::PointLight>& getPointLights();
-  int addPointLight();
-  void removePointLight( uint32_t index );
+  void update() override;
+
+  int addLight( const kogayonon_resources::LightType& type );
+  void removeLight( const kogayonon_resources::LightType& type, uint32_t index );
+
+  point_lights& getPointLights();
+  directional_lights& getDirectionalLights();
+  spot_lights& getSpotLights();
 
 private:
-  uint32_t m_ssbo{ 0 };
-  uint32_t m_bindingIndex{ 0 };
+  std::vector<SSBO> m_ssbos;
 
-  std::vector<kogayonon_resources::PointLight> m_pointLights;
+  point_lights m_pointLights;
+  directional_lights m_directionalLights;
+  spot_lights m_spotLights;
 };
 } // namespace kogayonon_rendering

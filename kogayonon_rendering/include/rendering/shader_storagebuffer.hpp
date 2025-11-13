@@ -1,19 +1,24 @@
 #pragma once
+#include <cinttypes>
 
 namespace kogayonon_rendering
 {
-class ShaderStoragebuffer
+class IShaderStorageBuffer
 {
 public:
-  ShaderStoragebuffer() = default;
-  virtual ~ShaderStoragebuffer() = default;
+  IShaderStorageBuffer() = default;
+  virtual ~IShaderStorageBuffer() = default;
 
   virtual void bind() = 0;
+  virtual void bind( uint32_t index ) = 0;
   virtual void unbind() = 0;
 
-  virtual void initialize( uint32_t bindingIndex ) = 0;
+  virtual void initialize() = 0;
   virtual void destroy() = 0;
+  virtual void destroy( uint32_t index ) = 0;
+
   virtual void update() = 0;
+  virtual void update( uint32_t index ) = 0;
 
 private:
 };

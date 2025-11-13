@@ -1,12 +1,12 @@
 #pragma once
 #include <entt/entt.hpp>
-#include <mutex>
 #include "gui/imgui_window.hpp"
 
 namespace kogayonon_resources
 {
 class Texture;
-}
+struct PointLight;
+} // namespace kogayonon_resources
 
 namespace kogayonon_core
 {
@@ -39,6 +39,7 @@ private:
   void drawMeshComponent( kogayonon_core::Entity& ent );
   void drawTransformComponent( kogayonon_core::Entity& ent ) const;
   void drawPointLightComponent( kogayonon_core::Entity& ent ) const;
+  void drawDirectionalLightComponent( kogayonon_core::Entity& ent ) const;
 
   void manageModelPayload( const ImGuiPayload* payload );
   void manageTexturePayload( const ImGuiPayload* payload ) const;

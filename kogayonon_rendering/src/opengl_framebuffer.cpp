@@ -95,8 +95,10 @@ static void attachDepthTexture( uint32_t id, uint32_t w, uint32_t h, GLenum form
 
   glTextureParameteri( id, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
   glTextureParameteri( id, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-  glTextureParameteri( id, GL_TEXTURE_WRAP_S, GL_REPEAT );
-  glTextureParameteri( id, GL_TEXTURE_WRAP_T, GL_REPEAT );
+  glTextureParameteri( id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
+  glTextureParameteri( id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+  float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+  glTextureParameterfv( id, GL_TEXTURE_BORDER_COLOR, borderColor );
 
   glNamedFramebufferTexture( fbo, attachmentType, id, 0 );
 }
@@ -165,7 +167,10 @@ void OpenGLFramebuffer::init()
     case FramebufferTextureFormat::DEPTH24STENCIL8:
       utils::attachDepthTexture( attachment.id, m_specification.width, m_specification.height, GL_DEPTH24_STENCIL8,
                                  GL_DEPTH_ATTACHMENT, m_fbo );
-
+      break;
+    case FramebufferTextureFormat::R32F:
+      utils::attachColorTexture( attachment.id, m_specification.width, m_specification.height, GL_R32F, m_fbo, i );
+      attachRenderbuffer();
       break;
     default:
       break;
@@ -174,13 +179,15 @@ void OpenGLFramebuffer::init()
   std::vector<GLenum> drawBuffers;
   for ( size_t i = 0; i < m_specification.attachments.size(); ++i )
   {
-    if ( m_specification.attachments.at( i ).textureFormat != FramebufferTextureFormat::DEPTH24STENCIL8 )
+    const auto& texFormat = m_specification.attachments.at( i ).textureFormat;
+    if ( texFormat != FramebufferTextureFormat::DEPTH24STENCIL8 && texFormat != FramebufferTextureFormat::DEPTH )
       drawBuffers.push_back( GL_COLOR_ATTACHMENT0 + static_cast<GLenum>( i ) );
   }
 
   if ( drawBuffers.empty() )
   {
     glNamedFramebufferDrawBuffer( m_fbo, GL_NONE );
+    glNamedFramebufferReadBuffer( m_fbo, GL_NONE );
   }
   else
   {
@@ -263,9 +270,28 @@ int OpenGLFramebuffer::readPixel( uint32_t attachmentIndex, int x, int y )
   return pixelData;
 }
 
-void OpenGLFramebuffer::clearColorAttachment( uint32_t index, int value ) const
+void OpenGLFramebuffer::attachRenderbuffer()
+{
+  glGenRenderbuffers( 1, &m_rbo );
+  glNamedRenderbufferStorage( m_rbo, GL_DEPTH_COMPONENT24, m_specification.width, m_specification.height );
+  glNamedFramebufferRenderbuffer( m_fbo, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_rbo );
+  GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+  glDrawBuffers( 1, drawBuffers );
+}
+
+void OpenGLFramebuffer::bindTexture( uint32_t index )
+{
+  glBindTexture( m_fbo, index );
+}
+
+uint32_t& OpenGLFramebuffer::getId()
+{
+  return m_fbo;
+}
+
+void OpenGLFramebuffer::clearColorAttachment( uint32_t index, int id ) const
 {
   auto& attachment = m_specification.attachments.at( index );
-  glClearTexImage( attachment.id, 0, utils::textureFormatToBaseFormat( attachment.textureFormat ), GL_INT, &value );
+  glClearTexImage( attachment.id, 0, utils::textureFormatToBaseFormat( attachment.textureFormat ), GL_INT, &id );
 }
 } // namespace kogayonon_rendering

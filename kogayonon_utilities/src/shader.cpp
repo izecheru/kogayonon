@@ -78,7 +78,7 @@ void Shader::setInt( const char* uniform, int value ) const
   }
 }
 
-void Shader::setMat4( const char* uniform, glm::mat4& mat )
+void Shader::setMat4( const char* uniform, const glm::mat4& mat )
 {
   if ( int location = glGetUniformLocation( m_programId, uniform ); location == -1 )
   {

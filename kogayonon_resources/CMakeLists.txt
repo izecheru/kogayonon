@@ -5,9 +5,11 @@ add_library(
   "include/resources/texture.hpp"
   "include/resources/pointlight.hpp"
   "include/resources/spotlight.hpp"
-  "src/mesh.cpp"
+  "include/resources/directional_light.hpp"
+  "include/resources/light_types.hpp"
 
-   "src/texture.cpp")
+  "src/mesh.cpp"
+  "src/texture.cpp")
 
 target_include_directories(kogayonon_resources
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

@@ -1,4 +1,5 @@
 #pragma once
+#include <assert.h>
 #include <fstream>
 
 namespace kogayonon_utilities
@@ -16,8 +17,8 @@ public:
   template <typename T>
   static bool serialize( const T& data, std::fstream& out )
   {
+    assert( out.is_open() );
     out.write( reinterpret_cast<const char*>( &data ), sizeof( T ) );
-
     return out.good();
   }
 
@@ -31,19 +32,21 @@ public:
   template <typename T>
   static bool deserialize( T& data, std::fstream& in )
   {
+    assert( in.is_open() );
     in.read( reinterpret_cast<char*>( &data ), sizeof( T ) );
-
     return in.good();
   }
 
   static bool serialize( const void* data, size_t size, std::fstream& out )
   {
+    assert( out.is_open() );
     out.write( reinterpret_cast<const char*>( data ), size );
     return out.good();
   }
 
   static bool deserialize( void* data, size_t size, std::fstream& in )
   {
+    assert( in.is_open() );
     in.read( reinterpret_cast<char*>( data ), size );
     return in.good();
   }

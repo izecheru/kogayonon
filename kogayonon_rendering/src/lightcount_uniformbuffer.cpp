@@ -3,25 +3,6 @@
 
 namespace kogayonon_rendering
 {
-void LightCountUniformbuffer::incrementPointLights()
-{
-  ++m_count.numPointLights;
-}
-
-void LightCountUniformbuffer::incrementDirectionalLights()
-{
-  ++m_count.numDirectionalLigths;
-}
-
-void LightCountUniformbuffer::decrementPointLights()
-{
-  --m_count.numPointLights;
-}
-
-void LightCountUniformbuffer::decrementDirectionalLights()
-{
-  --m_count.numDirectionalLigths;
-}
 
 void LightCountUniformbuffer::initialize( uint32_t bindingIndex )
 {
@@ -62,14 +43,59 @@ void LightCountUniformbuffer::unbind()
   glBindBuffer( GL_UNIFORM_BUFFER, 0 );
 }
 
-uint32_t LightCountUniformbuffer::getPointLightCount() const
+uint32_t LightCountUniformbuffer::getLightCount( const kogayonon_resources::LightType& type ) const
 {
-  return m_count.numPointLights;
+  switch ( type )
+  {
+  case kogayonon_resources::LightType::Point: {
+    return m_count.numPointLights;
+  }
+  case kogayonon_resources::LightType::Directional: {
+    return m_count.numDirectionalLigths;
+  }
+  case kogayonon_resources::LightType::Spot: {
+    return m_count.numSpotLigths;
+  }
+  }
 }
 
-uint32_t LightCountUniformbuffer::getDirectionalLightCount() const
+void LightCountUniformbuffer::incrementLightCount( const kogayonon_resources::LightType& type )
 {
-  return m_count.numDirectionalLigths;
+  switch ( type )
+  {
+  case kogayonon_resources::LightType::Point: {
+    ++m_count.numPointLights;
+    break;
+  }
+  case kogayonon_resources::LightType::Directional: {
+    ++m_count.numDirectionalLigths;
+    break;
+  }
+  case kogayonon_resources::LightType::Spot: {
+    ++m_count.numSpotLigths;
+    break;
+  }
+  }
+}
+
+void LightCountUniformbuffer::decrementLightCount( const kogayonon_resources::LightType& type )
+{
+
+  switch ( type )
+  {
+  case kogayonon_resources::LightType::Point: {
+    --m_count.numPointLights;
+    break;
+  }
+  case kogayonon_resources::LightType::Directional: {
+    --m_count.numDirectionalLigths;
+    break;
+  }
+  case kogayonon_resources::LightType::Spot: {
+    --m_count.numSpotLigths;
+    break;
+  }
+  }
 }
 
 } // namespace kogayonon_rendering

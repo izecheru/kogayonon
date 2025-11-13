@@ -1,6 +1,7 @@
 #pragma once
 #include <cinttypes>
 #include "rendering/uniformbuffer.hpp"
+#include "resources/light_types.hpp"
 
 namespace kogayonon_rendering
 {
@@ -8,7 +9,8 @@ struct LightCount
 {
   int numPointLights{ 0 };
   int numDirectionalLigths{ 0 };
-  int pad[2];
+  int numSpotLigths{ 0 };
+  int pad;
 };
 
 class LightCountUniformbuffer : public Uniformbuffer
@@ -17,14 +19,9 @@ public:
   LightCountUniformbuffer() = default;
   ~LightCountUniformbuffer() = default;
 
-  void incrementPointLights();
-  void incrementDirectionalLights();
-
-  void decrementPointLights();
-  void decrementDirectionalLights();
-
-  uint32_t getPointLightCount() const;
-  uint32_t getDirectionalLightCount() const;
+  void incrementLightCount( const kogayonon_resources::LightType& type );
+  void decrementLightCount( const kogayonon_resources::LightType& type );
+  uint32_t getLightCount( const kogayonon_resources::LightType& type ) const;
 
   void initialize( uint32_t bindingIndex ) override;
   void destroy() override;
@@ -34,7 +31,8 @@ public:
 
 private:
   uint32_t m_ubo{ 0 };
-  LightCount m_count;
   uint32_t m_bindingIndex{ 0 };
+
+  LightCount m_count{};
 };
 } // namespace kogayonon_rendering

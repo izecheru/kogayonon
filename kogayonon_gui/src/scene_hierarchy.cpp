@@ -224,10 +224,23 @@ void SceneHierarchyWindow::drawContextMenu()
     {
       auto entity = scene->addEntity();
       scene->addPointLight( entity.getEntityId() );
+      spdlog::info( "{} number of point lights", scene->getLightCount( kogayonon_resources::LightType::Point ) );
       m_selectedEntity = entity.getEntityId();
       scene->updateLightBuffers();
       pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
     }
+
+    if ( ImGui::MenuItem( "Directional light" ) )
+    {
+      auto entity = scene->addEntity();
+      scene->addDirectionalLight( entity.getEntityId() );
+      m_selectedEntity = entity.getEntityId();
+      scene->updateLightBuffers();
+      spdlog::info( "{} number of directional lights",
+                    scene->getLightCount( kogayonon_resources::LightType::Directional ) );
+      pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
+    }
+
     ImGui::EndPopup();
   }
 }

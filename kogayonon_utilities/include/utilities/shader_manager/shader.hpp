@@ -38,7 +38,7 @@ public:
   void unbind() const;
 
   void setInt( const char* uniform, int value ) const;
-  void setMat4( const char* uniform, glm::mat4& mat );
+  void setMat4( const char* uniform, const glm::mat4& mat );
   void setBool( const char* uniform, bool value ) const;
 
   unsigned int getShaderId() const;

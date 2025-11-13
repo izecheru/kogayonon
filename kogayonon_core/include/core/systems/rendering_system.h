@@ -1,7 +1,7 @@
 #pragma once
+#include <cstdint>
 #include <glm/glm.hpp>
 #include <memory>
-#include <vector>
 
 namespace kogayonon_resources
 {
@@ -25,6 +25,11 @@ class Scene;
 
 namespace kogayonon_core
 {
+struct RenderCommand
+{
+  uint32_t fboId{ 0 };
+};
+
 class RenderingSystem
 {
 public:
@@ -33,6 +38,9 @@ public:
 
   void render( std::shared_ptr<Scene> scene, glm::mat4& viewMatrix, glm::mat4& projection,
                kogayonon_utilities::Shader& shader ) const;
+
+  void renderGeometryWithShadows( std::shared_ptr<Scene> scene, const glm::mat4& viewMatrix, const glm::mat4& projection,
+                        kogayonon_utilities::Shader& shader, const glm::mat4& depthBias, const uint32_t depthMap );
 
   void begin( const kogayonon_utilities::Shader& shader ) const;
   void end( const kogayonon_utilities::Shader& shader ) const;

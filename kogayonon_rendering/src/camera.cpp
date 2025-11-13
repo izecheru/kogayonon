@@ -112,6 +112,6 @@ void Camera::zoom( float amount )
 
 glm::mat4 Camera::getProjectionMatrix( const glm::vec2& contentSize ) const
 {
-  return glm::perspective( glm::radians( m_props.fov ), contentSize.x / contentSize.y, 0.1f, 100.0f );
+  return glm::perspective( glm::radians( m_props.fov ), contentSize.x / contentSize.y, 0.1f, 1000.0f );
 }
 } // namespace kogayonon_rendering

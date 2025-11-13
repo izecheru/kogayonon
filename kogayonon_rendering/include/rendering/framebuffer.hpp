@@ -14,6 +14,7 @@ enum class FramebufferTextureFormat
 {
   None = 0,
 
+  R32F,
   RGBA,
   RGBA8,
   RED_INTEGER,
@@ -33,6 +34,8 @@ static GLenum FramebufferTextureFormatToOpenGL( FramebufferTextureFormat format 
     return GL_RGBA8;
   case FramebufferTextureFormat::RED_INTEGER:
     return GL_RED_INTEGER;
+  case FramebufferTextureFormat::R32F:
+    return GL_R32F;
   }
 }
 
