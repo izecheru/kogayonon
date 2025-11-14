@@ -35,6 +35,9 @@ public:
   void drawContextMenu();
 
 private:
+  void duplicateEntity();
+
+private:
   entt::entity m_selectedEntity;
 };
 } // namespace kogayonon_gui

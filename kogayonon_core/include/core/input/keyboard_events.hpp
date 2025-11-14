@@ -10,33 +10,42 @@ namespace kogayonon_core
 class KeyEvent : public IEvent
 {
 public:
-  explicit KeyEvent( const KeyCode& code, bool isPressed )
-      : m_keyCode{ code }
+  explicit KeyEvent( const KeyScanCode& code, const KeyScanCode& modifier, bool isPressed )
+      : m_scanCode{ code }
+      , m_modifier{ modifier }
   {
-    if ( isPressed )
-    {
-      KeyboardState::setKeyState( code, true );
-    }
-    else
-    {
-      KeyboardState::setKeyState( code, false );
-    }
   }
 
-  KeyCode getKeyCode() const
+  inline KeyScanCode getKeyScanCode() const
   {
-    return m_keyCode;
+    return m_scanCode;
+  }
+
+  inline KeyScanCode getKeyModifier() const
+  {
+    return m_modifier;
+  }
+
+  inline void setKeyScanCode( const KeyScanCode& code )
+  {
+    m_scanCode = code;
+  }
+
+  inline void setKeyModifier( const KeyScanCode& code )
+  {
+    m_modifier = code;
   }
 
 protected:
-  KeyCode m_keyCode;
+  KeyScanCode m_scanCode;
+  KeyScanCode m_modifier;
 };
 
 class KeyPressedEvent : public KeyEvent
 {
 public:
-  explicit KeyPressedEvent( KeyCode keycode, int repeatCount )
-      : KeyEvent{ keycode, true }
+  explicit KeyPressedEvent( const KeyScanCode& keycode, const KeyScanCode& modifier, int repeatCount )
+      : KeyEvent{ keycode, modifier, true }
       , m_RepeatCount{ repeatCount }
   {
   }
@@ -53,8 +62,8 @@ private:
 class KeyReleasedEvent : public KeyEvent
 {
 public:
-  explicit KeyReleasedEvent( KeyCode keycode )
-      : KeyEvent{ keycode, false }
+  explicit KeyReleasedEvent( const KeyScanCode& keycode, const KeyScanCode& modifier )
+      : KeyEvent{ keycode, modifier, false }
   {
   }
 };
@@ -62,7 +71,7 @@ public:
 class KeyTypedEvent : public IEvent
 {
 public:
-  explicit KeyTypedEvent( KeyCode keycode )
+  explicit KeyTypedEvent( KeyScanCode keycode )
   {
   }
 };

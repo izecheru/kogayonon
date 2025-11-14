@@ -1,6 +1,6 @@
 #pragma once
-#include <unordered_map>
-
+#include <SDL2/SDL.h>
+#include <vector>
 #include "key_codes.hpp"
 
 namespace kogayonon_utilities
@@ -11,28 +11,33 @@ public:
   KeyboardState() = delete;
   ~KeyboardState() = default;
 
-  static void setKeyState( KeyCode code, bool state )
+  static void updateState()
   {
-    keyState[code] = state;
+    SDL_PumpEvents();
   }
 
-  static bool getKeyState( KeyCode code )
+  static void initState()
   {
-    return keyState[code];
+    m_keyboardState = SDL_GetKeyboardState( NULL );
   }
 
-  static bool getKeyCombinationState( const std::vector<KeyCode>& codes )
+  static bool getKeyState( KeyScanCode code )
+  {
+    return m_keyboardState[code];
+  }
+
+  static bool getKeyCombinationState( const std::vector<KeyScanCode>& codes )
   {
     bool result = true;
     for ( auto& code : codes )
     {
       // if all are true &=
-      result &= keyState[code];
+      result &= m_keyboardState[code];
     }
     return result;
   }
 
-public:
-  static inline std::unordered_map<KeyCode, bool> keyState;
+private:
+  static inline const Uint8* m_keyboardState;
 };
 } // namespace kogayonon_utilities

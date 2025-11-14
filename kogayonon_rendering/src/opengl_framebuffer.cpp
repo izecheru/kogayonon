@@ -166,7 +166,7 @@ void OpenGLFramebuffer::init()
       break;
     case FramebufferTextureFormat::DEPTH24STENCIL8:
       utils::attachDepthTexture( attachment.id, m_specification.width, m_specification.height, GL_DEPTH24_STENCIL8,
-                                 GL_DEPTH_ATTACHMENT, m_fbo );
+                                 GL_DEPTH_STENCIL_ATTACHMENT, m_fbo );
       break;
     case FramebufferTextureFormat::R32F:
       utils::attachColorTexture( attachment.id, m_specification.width, m_specification.height, GL_R32F, m_fbo, i );

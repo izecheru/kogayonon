@@ -72,8 +72,8 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
 }
 
 void RenderingSystem::renderGeometryWithShadows( std::shared_ptr<Scene> scene, const glm::mat4& viewMatrix,
-                                       const glm::mat4& projection, kogayonon_utilities::Shader& shader,
-                                       const glm::mat4& lightProjectionView, const uint32_t depthMap )
+                                                 const glm::mat4& projection, kogayonon_utilities::Shader& shader,
+                                                 const glm::mat4& lightProjectionView, const uint32_t depthMap )
 {
   begin( shader );
 

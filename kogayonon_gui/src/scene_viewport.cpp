@@ -78,7 +78,7 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
     { FramebufferTextureFormat::RED_INTEGER, FramebufferTextureFormat::DEPTH24STENCIL8 }, 800, 800 };
 
   // we should use this depth spec for the shadow mapping texture
-  FramebufferSpecification depthSpec{ { FramebufferTextureFormat::RGBA, FramebufferTextureFormat::DEPTH }, 800, 800 };
+  FramebufferSpecification depthSpec{ { FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::DEPTH }, 800, 800 };
 
   m_frameBuffer = OpenGLFramebuffer{ spec };
   m_pickingFrameBuffer = OpenGLFramebuffer{ pickingSpec };
@@ -173,10 +173,13 @@ void SceneViewportWindow::drawScene()
 
       // since atm we have only one directional light we get the index 0 light
       const auto& directionalLight = scene->getDirectionalLight();
-      entt::entity ent = entt::null;
-      for ( const auto& [entity, lightComponent] : scene->getEnttRegistry().view<DirectionalLightComponent>().each() )
+      static entt::entity ent = entt::null;
+      if ( ent == entt::null )
       {
-        ent = entity;
+        for ( const auto& [entity, lightComponent] : scene->getEnttRegistry().view<DirectionalLightComponent>().each() )
+        {
+          ent = entity;
+        }
       }
 
       const auto& directionalLightComponent = scene->getRegistry().getComponent<DirectionalLightComponent>( ent );
@@ -184,7 +187,6 @@ void SceneViewportWindow::drawScene()
       auto lightProjection = glm::ortho( -directionalLightComponent.orthoSize, directionalLightComponent.orthoSize,
                                          -directionalLightComponent.orthoSize, directionalLightComponent.orthoSize,
                                          directionalLightComponent.nearPlane, directionalLightComponent.farPlane );
-
       auto lightDir = glm::normalize(
         glm::vec3( directionalLight.direction.x, directionalLight.direction.y, directionalLight.direction.z ) );
       auto lightPos = -lightDir * directionalLightComponent.positionFactor; // further back
@@ -198,18 +200,10 @@ void SceneViewportWindow::drawScene()
       m_pRenderingSystem->render( scene, lightView, lightProjection, depthShader );
       m_depthBuffer.unbind();
 
-      // now render the depth to a rgba texture to see the depth
-      m_depthBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
-      m_depthBuffer.bind();
-      glClearColor( 1.0f, 0.4f, 0.4f, 1.0f );
-      glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-      m_pRenderingSystem->render( scene, lightView, lightProjection, depthDebugShader );
-      m_depthBuffer.unbind();
-
+      glCullFace( GL_BACK );
       // upload the texture to the geometry shader
       const auto depthMap = m_depthBuffer.getDepthAttachmentId();
       // render geometry
-      glCullFace( GL_BACK );
       m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
       m_frameBuffer.bind();
       glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
@@ -296,22 +290,22 @@ void SceneViewportWindow::drawPickingScene()
 void SceneViewportWindow::onKeyPressed( const KeyPressedEvent& e )
 {
   // change gizmo mode if we press SHIFT + S R T
-  if ( !KeyboardState::getKeyState( KeyCode::LeftShift ) )
+  if ( !KeyboardState::getKeyState( KeyScanCode::LeftShift ) )
     return;
 
-  switch ( e.getKeyCode() )
+  switch ( e.getKeyScanCode() )
   {
-  case KeyCode::S:
+  case KeyScanCode::S:
     m_gizmoMode = GizmoMode::SCALE;
     break;
-  case KeyCode::R:
+  case KeyScanCode::R:
     m_gizmoMode = GizmoMode::ROTATE;
     break;
-  case KeyCode::T:
+  case KeyScanCode::T:
     m_gizmoMode = GizmoMode::TRANSLATE;
     break;
 
-  case KeyCode::X:
+  case KeyScanCode::X:
     if ( m_gizmoMode == GizmoMode::SCALE || m_gizmoMode == GizmoMode::SCALE_Y || m_gizmoMode == GizmoMode::SCALE_Z )
     {
       m_gizmoMode = GizmoMode::SCALE_X;
@@ -329,7 +323,7 @@ void SceneViewportWindow::onKeyPressed( const KeyPressedEvent& e )
       m_gizmoMode = GizmoMode::ROTATE_X;
     break;
 
-  case KeyCode::Y:
+  case KeyScanCode::Y:
     if ( m_gizmoMode == GizmoMode::SCALE || m_gizmoMode == GizmoMode::SCALE_X || m_gizmoMode == GizmoMode::SCALE_Z )
     {
       m_gizmoMode = GizmoMode::SCALE_Y;
@@ -348,7 +342,7 @@ void SceneViewportWindow::onKeyPressed( const KeyPressedEvent& e )
 
     break;
 
-  case KeyCode::Z:
+  case KeyScanCode::Z:
     if ( m_gizmoMode == GizmoMode::SCALE || m_gizmoMode == GizmoMode::SCALE_X || m_gizmoMode == GizmoMode::SCALE_Y )
     {
       m_gizmoMode = GizmoMode::SCALE_Z;
@@ -376,7 +370,7 @@ void SceneViewportWindow::draw()
 
   // this must be called every frame, not on key press function because it would never move smoothly
   // also the keyboard button check is a map of keys with a bool set to true if button is currently pressed
-  if ( m_props->focused && !KeyboardState::getKeyState( KeyCode::LeftShift ) )
+  if ( m_props->focused && !KeyboardState::getKeyState( KeyScanCode::LeftShift ) )
   {
     const auto& pTimeTracker = MainRegistry::getInstance().getTimeTracker();
     m_pCamera->onKeyPressed( static_cast<float>( pTimeTracker->getDuration( "deltaTime" ).count() ) );
@@ -395,9 +389,10 @@ void SceneViewportWindow::draw()
     ImGui::GetWindowDrawList()->AddImage( m_frameBuffer.getColorAttachmentId( 0 ), win_pos,
                                           ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y },
                                           ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
-    ImGui::GetWindowDrawList()->AddImage( m_depthBuffer.getColorAttachmentId( 0 ), win_pos,
-                                          ImVec2{ win_pos.x + 140.0f, win_pos.y + 140.0f }, ImVec2{ 0, 1 },
-                                          ImVec2{ 1, 0 } );
+
+    ImGui::GetWindowDrawList()->AddImage(
+      m_depthBuffer.getColorAttachmentId( 0 ), ImVec2{ win_pos.x + 50.0f, win_pos.y + 50.0f },
+      ImVec2{ win_pos.x + 150.0f, win_pos.y + 150.0f }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
 
     break;
   default:

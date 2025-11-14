@@ -20,7 +20,7 @@ void Camera::setupCamera()
   m_props.yaw = -90.0f;
   m_props.pitch = -10.0f;
   m_props.mouseSensitivity = 0.2f;
-  m_props.movementSpeed = 90.0f;
+  m_props.movementSpeed = 46.0f;
   m_props.mouseZoomSpeed = 1.0f;
   m_props.fov = 45.0f;
 }
@@ -59,27 +59,27 @@ void Camera::onKeyPressed( float delta )
 {
   float velocity = m_props.movementSpeed * delta;
 
-  if ( KeyboardState::getKeyState( KeyCode::W ) )
+  if ( KeyboardState::getKeyState( KeyScanCode::W ) )
   {
     m_props.translation += m_props.direction * velocity;
   }
-  if ( KeyboardState::getKeyState( KeyCode::S ) )
+  if ( KeyboardState::getKeyState( KeyScanCode::S ) )
   {
     m_props.translation -= m_props.direction * velocity;
   }
-  if ( KeyboardState::getKeyState( KeyCode::D ) )
+  if ( KeyboardState::getKeyState( KeyScanCode::D ) )
   {
     m_props.translation += glm::normalize( glm::cross( m_props.direction, m_props.cameraUp ) ) * velocity;
   }
-  if ( KeyboardState::getKeyState( KeyCode::A ) )
+  if ( KeyboardState::getKeyState( KeyScanCode::A ) )
   {
     m_props.translation -= glm::normalize( glm::cross( m_props.direction, m_props.cameraUp ) ) * velocity;
   }
-  if ( KeyboardState::getKeyState( KeyCode::Space ) )
+  if ( KeyboardState::getKeyState( KeyScanCode::Space ) )
   {
     m_props.translation.y += 1.4f * velocity;
   }
-  if ( KeyboardState::getKeyState( KeyCode::LeftControl ) )
+  if ( KeyboardState::getKeyState( KeyScanCode::LeftControl ) )
   {
     m_props.translation.y -= 1.4f * velocity;
   }

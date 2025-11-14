@@ -314,11 +314,11 @@ void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
     ImGui::Text( "Scale" );
 
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Xscale", &scale.x, 0.1f, 0.0f, 100.0f, "%.2f" );
+    changed |= ImGui::DragFloat( "##Xscale", &scale.x, 1.0f, 0.0f, 100.0f, "%.2f" );
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Yscale", &scale.y, 0.1f, 0.0f, 100.0f, "%.2f" );
+    changed |= ImGui::DragFloat( "##Yscale", &scale.y, 1.0f, 0.0f, 100.0f, "%.2f" );
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Zscale", &scale.z, 0.1f, 0.0f, 100.0f, "%.2f" );
+    changed |= ImGui::DragFloat( "##Zscale", &scale.z, 1.0f, 0.0f, 100.0f, "%.2f" );
 
     ImGui::TableNextRow();
     ImGui::TableNextColumn();

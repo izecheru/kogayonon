@@ -1,4 +1,5 @@
 #include "gui/scene_hierarchy.hpp"
+#include <SDL.h>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
@@ -16,7 +17,6 @@
 #include "core/scene/scene_manager.hpp"
 #include "imgui_utils/imgui_utils.h"
 #include "utilities/asset_manager/asset_manager.hpp"
-#include "utilities/task_manager/task_manager.hpp"
 
 using namespace kogayonon_core;
 
@@ -41,7 +41,13 @@ void SceneHierarchyWindow::onEntitySelectInViewport( const SelectEntityInViewpor
 
 void SceneHierarchyWindow::onKeyPressed( const KeyPressedEvent& e )
 {
-  if ( e.getKeyCode() == KeyCode::Escape )
+  const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+
+  if ( m_selectedEntity == entt::null )
+    return;
+
+  // Escape to deselect entity
+  if ( e.getKeyScanCode() == KeyScanCode::Escape && e.getKeyModifier() == KeyScanCode::None )
   {
     const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
 
@@ -49,7 +55,8 @@ void SceneHierarchyWindow::onKeyPressed( const KeyPressedEvent& e )
     pEventDispatcher->emitEvent( SelectEntityEvent{} );
   }
 
-  if ( e.getKeyCode() == KeyCode::Delete && m_selectedEntity != entt::null )
+  // Delete to delete entity
+  if ( e.getKeyScanCode() == KeyScanCode::Delete && e.getKeyModifier() == KeyScanCode::None )
   {
     const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
 
@@ -58,6 +65,32 @@ void SceneHierarchyWindow::onKeyPressed( const KeyPressedEvent& e )
 
     m_selectedEntity = entt::null;
     pEventDispatcher->emitEvent( SelectEntityEvent{} );
+  }
+
+  // Shift + D to duplicate entity
+  if ( e.getKeyModifier() == KeyScanCode::LeftShift && e.getKeyScanCode() == KeyScanCode::D )
+  {
+    auto pScene = SceneManager::getCurrentScene().lock();
+    Entity ent{ pScene->getRegistry(), m_selectedEntity };
+    if ( pScene )
+    {
+      auto entity = pScene->addEntity();
+      if ( ent.hasComponent<MeshComponent>() )
+      {
+        const auto& meshComponent = ent.getComponent<MeshComponent>();
+        const auto& transform = ent.getComponent<TransformComponent>();
+        entity.addComponent<TransformComponent>( TransformComponent{
+          .translation = transform.translation, .rotation = transform.rotation, .scale = transform.scale } );
+        pScene->addMeshToEntity( entity.getEntityId(), meshComponent.pMesh );
+      }
+      if ( ent.hasComponent<PointLightComponent>() )
+      {
+        const auto& pointLightComp = ent.getComponent<PointLightComponent>();
+        pScene->addPointLight( entity.getEntityId() );
+        const auto& pointLight = entity.getComponent<PointLightComponent>();
+      }
+      pEventDispatcher->emitEvent( SelectEntityEvent{ entity.getEntityId() } );
+    }
   }
 }
 

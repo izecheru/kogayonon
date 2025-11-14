@@ -68,6 +68,22 @@ void Scene::removeEntity( entt::entity ent )
     }
   }
 
+  if ( entity.hasComponent<DirectionalLightComponent>() )
+  {
+    const auto& pDirectionalLightComponent = entity.getComponent<DirectionalLightComponent>();
+    const auto toErase = pDirectionalLightComponent.directionalLightIndex;
+    m_lightSSBO.removeLight( kogayonon_resources::LightType::Directional, toErase );
+    m_lightUBO.decrementLightCount( kogayonon_resources::LightType::Directional );
+    updateLightBuffers();
+
+    for ( const auto& [entity, pDirectionalLightComponent_] :
+          m_pRegistry->getRegistry().view<DirectionalLightComponent>().each() )
+    {
+      if ( pDirectionalLightComponent_.directionalLightIndex > toErase )
+        --pDirectionalLightComponent_.directionalLightIndex;
+    }
+  }
+
   // then destroy the entity
   if ( registry.valid( ent ) )
     registry.destroy( ent );

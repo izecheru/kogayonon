@@ -119,14 +119,27 @@ void App::pollEvents()
       break;
     }
     case SDL_KEYDOWN: {
-      auto keycode = static_cast<KeyCode>( e.key.keysym.sym );
-      KeyPressedEvent keyPressEvent{ keycode, 0 };
+      KeyboardState::updateState();
+      auto scanCode = static_cast<KeyScanCode>( e.key.keysym.scancode );
+
+      KeyPressedEvent keyPressEvent{ scanCode, KeyScanCode::None, 0 };
+      if ( KeyboardState::getKeyState( KeyScanCode::LeftControl ) )
+      {
+        keyPressEvent.setKeyModifier( KeyScanCode::LeftControl );
+      }
+
+      if ( KeyboardState::getKeyState( KeyScanCode::LeftShift ) )
+      {
+        keyPressEvent.setKeyModifier( KeyScanCode::LeftShift );
+      }
+
       pEventDispatcher->emitEvent( keyPressEvent );
       break;
     }
     case SDL_KEYUP: {
-      auto keycode = static_cast<KeyCode>( e.key.keysym.sym );
-      KeyReleasedEvent keyReleaseEvent{ keycode };
+      KeyboardState::updateState();
+      auto scanCode = static_cast<KeyScanCode>( e.key.keysym.scancode );
+      KeyReleasedEvent keyReleaseEvent{ scanCode, KeyScanCode::None };
       pEventDispatcher->emitEvent( keyReleaseEvent );
       break;
     }
@@ -349,6 +362,8 @@ bool App::initGuiForProject()
 bool App::init()
 {
   m_pWindow = std::make_shared<kogayonon_window::Window>( "kogayonon engine", 600, 400, 1, false );
+  // initialize the keyboard state
+  KeyboardState::initState();
 
   if ( !initSDL() )
   {
@@ -545,28 +560,6 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
         ent.replaceComponent<IdentifierComponent>( IdentifierComponent{ .name = name, .type = type, .group = group } );
       }
 
-      for ( int x = 0; x < scene["emptyEntityCount"].GetInt(); x++ )
-      {
-        auto ent = scene_->addEntity();
-
-        std::string group;
-        size_t groupSize;
-        Serializer::deserialize( groupSize, sceneIn );
-        group.resize( groupSize );
-        Serializer::deserialize( group.data(), sizeof( char ) * groupSize, sceneIn );
-
-        std::string name;
-        size_t nameSize;
-        Serializer::deserialize( nameSize, sceneIn );
-        name.resize( nameSize );
-        Serializer::deserialize( name.data(), sizeof( char ) * nameSize, sceneIn );
-
-        EntityType type;
-        Serializer::deserialize( type, sceneIn );
-
-        ent.replaceComponent<IdentifierComponent>( IdentifierComponent{ .name = name, .type = type, .group = group } );
-      }
-
       for ( int x = 0; x < scene["pointLightEntityCount"].GetInt(); x++ )
       {
         auto ent = scene_->addEntity();
@@ -689,7 +682,6 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
 
     sceneObject.AddMember( "name", rapidjson::Value{ name.c_str(), allocator }, allocator );
     sceneObject.AddMember( "meshEntityCount", meshCount, allocator );
-    sceneObject.AddMember( "emptyEntityCount", emptyCount, allocator );
     sceneObject.AddMember( "pointLightEntityCount", scene->getLightCount( kogayonon_resources::LightType::Point ),
                            allocator );
 
@@ -744,25 +736,6 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
       Serializer::serialize( transformComponent.translation.x, sceneOut );
       Serializer::serialize( transformComponent.translation.y, sceneOut );
       Serializer::serialize( transformComponent.translation.z, sceneOut );
-
-      // now the identifier data
-      const auto& group = identifierComponent.group;
-      const size_t groupSize = group.size();
-      Serializer::serialize( groupSize, sceneOut );
-      Serializer::serialize( group.data(), sizeof( char ) * groupSize, sceneOut );
-
-      const auto& name = identifierComponent.name;
-      const size_t nameSize = name.size();
-      Serializer::serialize( nameSize, sceneOut );
-      Serializer::serialize( name.data(), sizeof( char ) * nameSize, sceneOut );
-
-      const auto& type = identifierComponent.type;
-      Serializer::serialize( type, sceneOut );
-    }
-
-    // all entities that have only identifier component
-    for ( const auto& [entity, identifierComponent] : emptyEntityView.each() )
-    {
 
       // now the identifier data
       const auto& group = identifierComponent.group;
