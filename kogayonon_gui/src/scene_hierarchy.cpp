@@ -71,25 +71,25 @@ void SceneHierarchyWindow::onKeyPressed( const KeyPressedEvent& e )
   if ( e.getKeyModifier() == KeyScanCode::LeftShift && e.getKeyScanCode() == KeyScanCode::D )
   {
     auto pScene = SceneManager::getCurrentScene().lock();
-    Entity ent{ pScene->getRegistry(), m_selectedEntity };
+    Entity entity{ pScene->getRegistry(), m_selectedEntity };
     if ( pScene )
     {
-      auto entity = pScene->addEntity();
-      if ( ent.hasComponent<MeshComponent>() )
+      auto duplicatedEntity = pScene->addEntity();
+      if ( entity.hasComponent<MeshComponent>() )
       {
-        const auto& meshComponent = ent.getComponent<MeshComponent>();
-        const auto& transform = ent.getComponent<TransformComponent>();
-        entity.addComponent<TransformComponent>( TransformComponent{
+        const auto& meshComponent = entity.getComponent<MeshComponent>();
+        const auto& transform = entity.getComponent<TransformComponent>();
+        duplicatedEntity.addComponent<TransformComponent>( TransformComponent{
           .translation = transform.translation, .rotation = transform.rotation, .scale = transform.scale } );
-        pScene->addMeshToEntity( entity.getEntityId(), meshComponent.pMesh );
+        pScene->addMeshToEntity( duplicatedEntity.getEntityId(), meshComponent.pMesh );
       }
-      if ( ent.hasComponent<PointLightComponent>() )
+      if ( entity.hasComponent<PointLightComponent>() )
       {
-        const auto& pointLightComp = ent.getComponent<PointLightComponent>();
-        pScene->addPointLight( entity.getEntityId() );
-        const auto& pointLight = entity.getComponent<PointLightComponent>();
+        const auto& pointLightComp = entity.getComponent<PointLightComponent>();
+        pScene->addPointLight( duplicatedEntity.getEntityId() );
       }
-      pEventDispatcher->emitEvent( SelectEntityEvent{ entity.getEntityId() } );
+      pEventDispatcher->emitEvent( SelectEntityInViewportEvent{ duplicatedEntity.getEntityId() } );
+      pEventDispatcher->emitEvent( SelectEntityEvent{ duplicatedEntity.getEntityId() } );
     }
   }
 }
@@ -139,6 +139,8 @@ void SceneHierarchyWindow::draw()
   {
     entities.emplace_back( scene->getRegistry(), entity );
   }
+
+  drawContextMenu();
 
   const auto& io = ImGui::GetIO();
   auto avail = ImGui::GetContentRegionAvail();
@@ -211,7 +213,6 @@ void SceneHierarchyWindow::draw()
 
       ImGui::EndGroup();
     }
-    drawContextMenu();
     ImGui::EndTable();
   }
 
@@ -227,25 +228,7 @@ void SceneHierarchyWindow::drawContextMenu()
   if ( ImGui::BeginPopupContextWindow( "SceneHierarchyContext",
                                        ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight ) )
   {
-    if ( ImGui::MenuItem( "Create Entity" ) )
-    {
-      if ( auto scene = SceneManager::getCurrentScene().lock() )
-      {
-        // no component entity
-        auto entity = scene->addEntity();
-        m_selectedEntity = entity.getEntityId();
-        pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
-      }
-    }
-    if ( ImGui::MenuItem( "Clear Selection" ) )
-    {
-      m_selectedEntity = entt::null;
-      pEventDispatcher->emitEvent( SelectEntityEvent{} );
-    }
-
-    ImGui::SeparatorText( "Predefined entity types" );
-
-    if ( ImGui::MenuItem( "Mesh entity" ) )
+    if ( ImGui::MenuItem( "Mesh" ) )
     {
       auto entity = scene->addEntity();
       entity.addComponent<MeshComponent>();
@@ -253,7 +236,7 @@ void SceneHierarchyWindow::drawContextMenu()
       pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
     }
 
-    if ( ImGui::MenuItem( "Point light entity" ) )
+    if ( ImGui::MenuItem( "Point light" ) )
     {
       auto entity = scene->addEntity();
       scene->addPointLight( entity.getEntityId() );

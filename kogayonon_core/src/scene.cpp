@@ -161,7 +161,7 @@ void Scene::addMeshToEntity( entt::entity entity, kogayonon_resources::Mesh* pMe
   std::lock_guard lock{ m_registryMutex };
   m_registryModified = true;
   Entity ent{ *m_pRegistry, entity };
-  ent.replaceComponent<MeshComponent>( MeshComponent{ .pMesh = pMesh } );
+  ent.replaceComponent<MeshComponent>( MeshComponent{ .pMesh = pMesh, .staticMesh = false, .loaded = false } );
 
   // if we did not setup the transform from somewhere else like deserialized, we initialise a default one
   if ( !ent.hasComponent<TransformComponent>() )

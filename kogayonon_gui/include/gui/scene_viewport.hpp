@@ -101,6 +101,7 @@ private:
   // perspective camera, should make it an entity and add it to registry
   std::unique_ptr<kogayonon_rendering::Camera> m_pCamera;
   GizmoMode m_gizmoMode;
+  bool m_gizmoEnabled{ false };
 
   RenderMode m_renderMode{ RenderMode::GeometryAndLights };
 };

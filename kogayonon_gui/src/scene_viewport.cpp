@@ -78,7 +78,7 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
     { FramebufferTextureFormat::RED_INTEGER, FramebufferTextureFormat::DEPTH24STENCIL8 }, 800, 800 };
 
   // we should use this depth spec for the shadow mapping texture
-  FramebufferSpecification depthSpec{ { FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::DEPTH }, 800, 800 };
+  FramebufferSpecification depthSpec{ { FramebufferTextureFormat::DEPTH }, 800, 800 };
 
   m_frameBuffer = OpenGLFramebuffer{ spec };
   m_pickingFrameBuffer = OpenGLFramebuffer{ pickingSpec };
@@ -247,8 +247,7 @@ void SceneViewportWindow::drawScene()
 void SceneViewportWindow::drawPickingScene()
 {
   // you must deselect the current entity to be able to select a new one
-  if ( m_selectedEntity != entt::null )
-    return;
+  const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
 
   const auto& io = ImGui::GetIO();
   auto [mx, my] = ImGui::GetMousePos();
@@ -260,7 +259,6 @@ void SceneViewportWindow::drawPickingScene()
     return;
 
   const auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
-  const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
   auto& shader = pShaderManager->getShader( "picking" );
   m_pickingFrameBuffer.resize( m_props->width, m_props->height );
 
@@ -289,12 +287,16 @@ void SceneViewportWindow::drawPickingScene()
 
 void SceneViewportWindow::onKeyPressed( const KeyPressedEvent& e )
 {
-  // change gizmo mode if we press SHIFT + S R T
+  // change gizmo mode if we press SHIFT + S R T and once selected SHIFT + X Y Z for axis
+
   if ( !KeyboardState::getKeyState( KeyScanCode::LeftShift ) )
     return;
 
   switch ( e.getKeyScanCode() )
   {
+  case KeyScanCode::G:
+    m_gizmoEnabled = !m_gizmoEnabled;
+    break;
   case KeyScanCode::S:
     m_gizmoMode = GizmoMode::SCALE;
     break;
@@ -416,7 +418,7 @@ void SceneViewportWindow::draw()
       const auto& transform = registry.tryGetComponent<TransformComponent>( m_selectedEntity );
       auto& instanceMatrix = instanceData->instanceMatrices.at( indexComponet->index );
 
-      ImGuizmo::Enable( ( m_props->hovered && m_props->focused ) || ImGuizmo::IsUsingAny() );
+      ImGuizmo::Enable( ( m_props->hovered && m_props->focused && m_gizmoEnabled ) || ImGuizmo::IsUsingAny() );
 
       ImGuizmo::Manipulate( glm::value_ptr( m_pCamera->getViewMatrix() ),
                             glm::value_ptr( m_pCamera->getProjectionMatrix( { contentSize.x, contentSize.y } ) ),

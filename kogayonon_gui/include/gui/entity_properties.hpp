@@ -45,6 +45,6 @@ private:
   void manageTexturePayload( const ImGuiPayload* payload ) const;
 
 private:
-  entt::entity m_entity;
+  entt::entity m_selectedEntity;
 };
 } // namespace kogayonon_gui

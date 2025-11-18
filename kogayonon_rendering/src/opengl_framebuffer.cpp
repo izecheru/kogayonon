@@ -95,10 +95,10 @@ static void attachDepthTexture( uint32_t id, uint32_t w, uint32_t h, GLenum form
 
   glTextureParameteri( id, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
   glTextureParameteri( id, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-  glTextureParameteri( id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-  glTextureParameteri( id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
-  float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-  glTextureParameterfv( id, GL_TEXTURE_BORDER_COLOR, borderColor );
+  glTextureParameteri( id, GL_TEXTURE_WRAP_S, GL_REPEAT );
+  glTextureParameteri( id, GL_TEXTURE_WRAP_T, GL_REPEAT );
+  // float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+  // glTextureParameterfv( id, GL_TEXTURE_BORDER_COLOR, borderColor );
 
   glNamedFramebufferTexture( fbo, attachmentType, id, 0 );
 }
@@ -161,7 +161,7 @@ void OpenGLFramebuffer::init()
       utils::attachColorTexture( attachment.id, m_specification.width, m_specification.height, GL_R32I, m_fbo, i );
       break;
     case FramebufferTextureFormat::DEPTH:
-      utils::attachDepthTexture( attachment.id, m_specification.width, m_specification.height, GL_DEPTH_COMPONENT24,
+      utils::attachDepthTexture( attachment.id, m_specification.width, m_specification.height, GL_DEPTH_COMPONENT16,
                                  GL_DEPTH_ATTACHMENT, m_fbo );
       break;
     case FramebufferTextureFormat::DEPTH24STENCIL8:

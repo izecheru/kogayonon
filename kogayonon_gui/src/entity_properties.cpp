@@ -27,7 +27,7 @@ namespace kogayonon_gui
 {
 EntityPropertiesWindow::EntityPropertiesWindow( std::string name )
     : ImGuiWindow{ std::move( name ) }
-    , m_entity{ entt::null }
+    , m_selectedEntity{ entt::null }
 {
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
   pEventDispatcher->addHandler<SelectEntityEvent, &EntityPropertiesWindow::onEntitySelect>( *this );
@@ -36,10 +36,7 @@ EntityPropertiesWindow::EntityPropertiesWindow( std::string name )
 
 void EntityPropertiesWindow::onSelectEntityInViewport( const SelectEntityInViewportEvent& e )
 {
-  if ( m_entity == e.getEntity() )
-    return;
-
-  m_entity = e.getEntity();
+  m_selectedEntity = e.getEntity();
 }
 
 void EntityPropertiesWindow::draw()
@@ -52,7 +49,7 @@ void EntityPropertiesWindow::draw()
   auto pScene = SceneManager::getCurrentScene();
   if ( auto scene = pScene.lock() )
   {
-    if ( m_entity != entt::null )
+    if ( m_selectedEntity != entt::null )
     {
       drawEnttProperties( scene );
     }
@@ -66,7 +63,7 @@ void EntityPropertiesWindow::draw()
 
 void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
 {
-  Entity entity{ scene->getRegistry(), m_entity };
+  Entity entity{ scene->getRegistry(), m_selectedEntity };
 
   if ( auto pIdentifierComponent = entity.tryGetComponent<IdentifierComponent>() )
   {
@@ -131,10 +128,10 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
 
 void EntityPropertiesWindow::onEntitySelect( const SelectEntityEvent& e )
 {
-  if ( m_entity == e.getEntity() )
+  if ( m_selectedEntity == e.getEntity() )
     return;
 
-  m_entity = e.getEntity();
+  m_selectedEntity = e.getEntity();
 }
 
 void EntityPropertiesWindow::drawTextureComponent( Entity& ent ) const
@@ -196,7 +193,7 @@ void EntityPropertiesWindow::drawMeshComponent( Entity& ent )
   if ( !mesh )
     return;
 
-  Entity entity{ scene->getRegistry(), m_entity };
+  Entity entity{ scene->getRegistry(), m_selectedEntity };
 
   ImGui::Text( "Mesh has %d submeshes", mesh->getSubmeshes().size() );
   ImGui::TextWrapped( "Path: %s", mesh->getPath().c_str() );
@@ -235,8 +232,8 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
 
     const auto& pTaskManager = MainRegistry::getInstance().getTaskManager();
 
-    auto entTemp = m_entity;
-    Entity ent{ pScene->getRegistry(), m_entity };
+    auto entTemp = m_selectedEntity;
+    Entity ent{ pScene->getRegistry(), m_selectedEntity };
     if ( ent.hasComponent<MeshComponent>() )
     {
       pScene->removeMeshFromEntity( ent.getEntityId() );
