@@ -53,7 +53,7 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
     for ( int i = 0; i < textures.size(); i++ )
     {
       // bind the texture we need (this is bad)
-      glBindTextureUnit( 1, textures.at( i )->getTextureId() );
+      glBindTextureUnit( 3, textures.at( i )->getTextureId() );
     }
 
     auto instanceData = scene->getData( mesh.first );
@@ -109,9 +109,9 @@ void RenderingSystem::renderGeometryWithShadows( std::shared_ptr<Scene> scene, c
     for ( int i = 0; i < textures.size(); i++ )
     {
       // bind the texture we need (this is bad)
-      glBindTextureUnit( 1, textures.at( i )->getTextureId() );
+      glBindTextureUnit( 3, textures.at( i )->getTextureId() );
     }
-    glBindTextureUnit( 2, depthMap );
+    glBindTextureUnit( 4, depthMap );
 
     auto instanceData = scene->getData( mesh.first );
     auto& submeshes = mesh.first->getSubmeshes();

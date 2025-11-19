@@ -201,7 +201,7 @@ void SceneViewportWindow::drawScene()
       m_depthBuffer.unbind();
 
       glCullFace( GL_BACK );
-      // upload the texture to the geometry shader
+      //  upload the texture to the geometry shader
       const auto depthMap = m_depthBuffer.getDepthAttachmentId();
       // render geometry
       m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
@@ -246,6 +246,9 @@ void SceneViewportWindow::drawScene()
 
 void SceneViewportWindow::drawPickingScene()
 {
+  if ( m_selectedEntity != entt::null )
+    return;
+
   // you must deselect the current entity to be able to select a new one
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
 
