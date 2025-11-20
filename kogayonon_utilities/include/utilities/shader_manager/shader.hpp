@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <glm/mat4x4.hpp>
 #include <string>
 
@@ -14,23 +15,16 @@ enum class ShaderType
 
 struct shader_source
 {
-  shader_source( const std::string& vert, const std::string& frag )
-      : vertex_source( vert )
-      , fragment_source( frag )
-  {
-  }
-
-  shader_source() = default;
-  std::string vertex_source;
-  std::string fragment_source;
+  std::string vertexSource;
+  std::string fragmentSource;
+  std::filesystem::path vertexPath;
+  std::filesystem::path fragmentPath;
 };
 
 class Shader
 {
 public:
   Shader() = default;
-
-  explicit Shader( const std::string& vertexPath, const std::string& fragmentPath );
 
   shader_source parseShaderFile( const std::string& vertexPath, const std::string& fragmentPath );
 
@@ -41,14 +35,26 @@ public:
   void setMat4( const char* uniform, const glm::mat4& mat );
   void setBool( const char* uniform, bool value ) const;
 
+  void initializeShaderSource( const std::string& vertexPath, const std::string& fragmentPath );
+  void destroy() const;
+
+  void markForCompilation();
+  bool isCompiled() const;
+
+  void initializeProgram();
+
+  std::string getVertexShaderPath();
+  std::string getFragmentShaderPath();
+
   unsigned int getShaderId() const;
 
 private:
-  static unsigned int compileShader( unsigned int shaderType, std::string& sourceData );
-  static int createShader( shader_source& src );
+  unsigned int compileShader( unsigned int shaderType, std::string& sourceData );
+  uint32_t createShader();
 
 private:
   uint32_t m_programId = 0;
+  bool m_isCompiled{ false };
   shader_source m_shaderSource;
 };
 } // namespace kogayonon_utilities

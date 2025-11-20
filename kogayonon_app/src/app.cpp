@@ -288,6 +288,8 @@ bool App::initRegistries() const
   shaderManager->pushShader( "resources/shaders/depth_vert.glsl", "resources/shaders/depth_debug_frag.glsl",
                              "depthDebug" );
 
+  shaderManager->compileShaders();
+
   mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::ShaderManager>>( std::move( shaderManager ) );
 
   // init asset manager

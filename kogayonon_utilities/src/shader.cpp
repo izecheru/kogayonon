@@ -7,35 +7,64 @@
 
 namespace kogayonon_utilities
 {
-Shader::Shader( const std::string& vert_path, const std::string& frag_path )
+
+void Shader::initializeShaderSource( const std::string& vertexPath, const std::string& fragmentPath )
 {
-  m_shaderSource = parseShaderFile( vert_path, frag_path );
-  m_programId = createShader( m_shaderSource );
+  m_shaderSource = parseShaderFile( vertexPath, fragmentPath );
 }
 
-shader_source Shader::parseShaderFile( const std::string& vert_path, const std::string& frag_path )
+void Shader::initializeProgram()
 {
-  std::ifstream vertex_stream( vert_path );
-  if ( !vertex_stream.is_open() )
+  // cache the paths
+  std::string v = m_shaderSource.vertexPath.string();
+  std::string f = m_shaderSource.fragmentPath.string();
+
+  // reparse the files
+  m_shaderSource = parseShaderFile( v, f );
+  m_programId = createShader();
+
+  // mark compiled
+  m_isCompiled = true;
+}
+
+bool Shader::isCompiled() const
+{
+  return m_isCompiled;
+}
+
+std::string Shader::getVertexShaderPath()
+{
+  return m_shaderSource.vertexPath.string();
+}
+
+std::string Shader::getFragmentShaderPath()
+{
+  return m_shaderSource.fragmentPath.string();
+}
+
+shader_source Shader::parseShaderFile( const std::string& vertPath, const std::string& fragPath )
+{
+  std::ifstream vertexStream( vertPath );
+  if ( !vertexStream.is_open() )
   {
-    spdlog::error( "Failed to open shader file {}", vert_path );
+    spdlog::error( "Failed to open shader file {}", vertPath );
     std::string result = "";
     assert( result.size() > 0 );
     return { result, result };
   }
 
-  std::stringstream vertex_ss; // 0 for vertex, 1 for fragment
+  std::stringstream vertex_ss;
   std::string line;
 
-  while ( getline( vertex_stream, line ) )
+  while ( getline( vertexStream, line ) )
   {
     vertex_ss << line << '\n';
   }
 
-  std::ifstream fragment_stream( frag_path );
-  if ( !fragment_stream.is_open() )
+  std::ifstream fragmentStream( fragPath );
+  if ( !fragmentStream.is_open() )
   {
-    spdlog::error( "Failed to open shader file {} ", frag_path );
+    spdlog::error( "Failed to open shader file {} ", fragPath );
     std::string result = "";
 
     assert( result.size() > 0 );
@@ -44,14 +73,15 @@ shader_source Shader::parseShaderFile( const std::string& vert_path, const std::
 
   std::stringstream fragment_ss; // 0 for vertex, 1 for fragment
   line = "";
-  while ( getline( fragment_stream, line ) )
+  while ( getline( fragmentStream, line ) )
   {
     fragment_ss << line << '\n';
   }
   std::string vertex = vertex_ss.str();
   std::string fragment = fragment_ss.str();
 
-  shader_source source( vertex, fragment );
+  shader_source source{
+    .vertexSource = vertex, .fragmentSource = fragment, .vertexPath = vertPath, .fragmentPath = fragPath };
   return source;
 }
 
@@ -110,8 +140,8 @@ unsigned int Shader::getShaderId() const
 unsigned int Shader::compileShader( unsigned int shader_type, std::string& source_data )
 {
   unsigned int id = glCreateShader( shader_type );
-  const char* src = source_data.c_str();
-  glShaderSource( id, 1, &src, nullptr );
+  const char* m_shaderSource = source_data.c_str();
+  glShaderSource( id, 1, &m_shaderSource, nullptr );
   glCompileShader( id );
   int result;
   glGetShaderiv( id, GL_COMPILE_STATUS, &result );
@@ -132,24 +162,26 @@ unsigned int Shader::compileShader( unsigned int shader_type, std::string& sourc
     glDeleteShader( id );
     return 0;
   }
-  const std::string vert = "Vertex shader";
-  const std::string frag = "Fragment shader";
-  if ( shader_type == GL_VERTEX_SHADER )
-  {
-    spdlog::info( "Shader compiled successfully:{}", vert );
-  }
-  else
-  {
-    spdlog::info( "Shader compiled successfully:{}", vert );
-  }
+  spdlog::info( "Shader compilation is done" );
+  ;
   return id;
 }
 
-int Shader::createShader( shader_source& src )
+void Shader::destroy() const
 {
-  unsigned int program = glCreateProgram();
-  unsigned int vs = compileShader( GL_VERTEX_SHADER, src.vertex_source );
-  unsigned int fs = compileShader( GL_FRAGMENT_SHADER, src.fragment_source );
+  glDeleteProgram( m_programId );
+}
+
+void Shader::markForCompilation()
+{
+  m_isCompiled = false;
+}
+
+uint32_t Shader::createShader()
+{
+  uint32_t program = glCreateProgram();
+  uint32_t vs = compileShader( GL_VERTEX_SHADER, m_shaderSource.vertexSource );
+  uint32_t fs = compileShader( GL_FRAGMENT_SHADER, m_shaderSource.fragmentSource );
 
   // Attach shaders now
   glAttachShader( program, vs );

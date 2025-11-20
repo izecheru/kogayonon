@@ -19,8 +19,15 @@ public:
   void unbindShader( const std::string& shaderName );
   void removeShader( const std::string& shaderName );
 
-private:
+  void compileShaders();
 
+  /**
+   * @brief Recompiles a shader if either vertex or fragment shader path is == to the one in the param list
+   * @param filePath Path to the file we are looking for
+   */
+  void markForRecompilation( const std::string& filePath );
+
+private:
   // this mutex is not needed atm, might add if shaders take too much time to compile
   // std::mutex m_mutex;
   std::unordered_map<std::string, Shader> m_shaders;

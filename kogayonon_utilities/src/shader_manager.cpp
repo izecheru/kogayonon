@@ -1,13 +1,45 @@
 #include "utilities/shader_manager/shader_manager.hpp"
+#include <spdlog/spdlog.h>
 #include <stdexcept>
 
 namespace kogayonon_utilities
 {
+void ShaderManager::markForRecompilation( const std::string& filePath )
+{
+  for ( auto& shaders : m_shaders )
+  {
+    auto fragment = shaders.second.getFragmentShaderPath();
+    auto vertex = shaders.second.getVertexShaderPath();
+    std::replace( fragment.begin(), fragment.end(), '/', '\\' );
+    std::replace( vertex.begin(), vertex.end(), '/', '\\' );
+    if ( fragment == filePath || vertex == filePath )
+    {
+      shaders.second.markForCompilation();
+    }
+  }
+}
+
 void ShaderManager::pushShader( const std::string& vertex_shader, const std::string& fragment_shader,
                                 const std::string& shader_name )
 {
-  Shader sh( vertex_shader, fragment_shader );
+  if ( m_shaders.contains( shader_name ) )
+  {
+    m_shaders.at( shader_name ).destroy();
+    m_shaders.erase( shader_name );
+  }
+
+  Shader sh;
+  sh.initializeShaderSource( vertex_shader, fragment_shader );
   m_shaders.emplace( shader_name, std::move( sh ) );
+}
+
+void ShaderManager::compileShaders()
+{
+  for ( auto& shader : m_shaders )
+  {
+    if ( shader.second.isCompiled() == false )
+      shader.second.initializeProgram();
+  }
 }
 
 Shader& ShaderManager::getShader( const std::string& shader_name )

@@ -131,7 +131,7 @@ void main()
   }
   else
   {
-	vec3 litColor = result * objectColor;
+	vec3 litColor = result * objectColor *gAmbi;
 	FragColor = vec4(litColor, 1.0);
   }
 }

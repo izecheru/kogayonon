@@ -7,6 +7,7 @@
 #include "imgui_utils/imgui_utils.h"
 #include "utilities/configurator/configurator.hpp"
 #include "utilities/directory_watcher/directory_watcher.hpp"
+#include "utilities/shader_manager/shader_manager.hpp"
 
 using namespace kogayonon_core;
 using namespace kogayonon_utilities;
@@ -73,7 +74,9 @@ void FileExplorerWindow::onFileModified( FileModifiedEvent& e )
 {
   if ( m_update == true )
     return;
-
+  auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
+  spdlog::info( "recompiling {}", e.getPath() );
+  pShaderManager->markForRecompilation( e.getPath() );
   m_update.store( true );
 }
 
@@ -82,6 +85,7 @@ void FileExplorerWindow::onFileCreated( FileCreatedEvent& e )
   if ( m_update == true )
     return;
 
+  spdlog::info( "File created {} {}", e.getName(), e.getPath() );
   m_update.store( true );
 }
 
@@ -90,6 +94,7 @@ void FileExplorerWindow::onFileDeleted( FileDeletedEvent& e )
   if ( m_update == true )
     return;
 
+  spdlog::info( "File deleted {} {}", e.getName(), e.getPath() );
   m_update.store( true );
 }
 
@@ -98,6 +103,7 @@ void FileExplorerWindow::onFileRenamed( FileRenamedEvent& e )
   if ( m_update == true )
     return;
 
+  spdlog::info( "File renamed {} {}", e.getName(), e.getPath() );
   m_update.store( true );
 }
 
@@ -164,6 +170,10 @@ void FileExplorerWindow::draw()
   // we build the vector of files only when we change the path or get a file event
   if ( m_update == true || m_currentPath != lastPath )
   {
+    // since here we process file events we should recompile shaders here
+    const auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
+    pShaderManager->compileShaders();
+
     lastPath = m_currentPath;
     buildFileVector();
     m_update.store( false );
@@ -189,6 +199,13 @@ void FileExplorerWindow::draw()
     {
       auto filename = file.path.filename();
       ImGui::BeginGroup();
+      // open shaders in notepad for editing
+      if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) &&
+           file.path.extension().string() == ".glsl" )
+      {
+        std::string command = "notepad " + file.path.string();
+        system( command.c_str() );
+      }
       ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_fileTextureId, size );
       if ( ImGui::BeginDragDropSource() )
       {
