@@ -115,23 +115,25 @@ void FileExplorerWindow::buildFileVector()
   for ( auto const& dirEntry : std::filesystem::directory_iterator( m_currentPath ) )
   {
     bool found = false;
-    if ( !dirEntry.is_directory() )
-    {
-      for ( const auto& entry : config.fileFilters )
-      {
-        if ( dirEntry.path().extension().string().find( entry ) != std::string ::npos )
-        {
-          found = true;
-        }
-      }
-    }
-    else
+    if ( dirEntry.is_directory() )
     {
       for ( const auto& entry : config.folderFilters )
       {
         if ( dirEntry.path().filename().string().find( entry ) != std::string ::npos )
         {
           found = true;
+          break;
+        }
+      }
+    }
+    else
+    {
+      for ( const auto& entry : config.fileFilters )
+      {
+        if ( dirEntry.path().extension().string().find( entry ) != std::string ::npos )
+        {
+          found = true;
+          break;
         }
       }
     }
@@ -203,8 +205,7 @@ void FileExplorerWindow::draw()
       if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) &&
            file.path.extension().string() == ".glsl" )
       {
-        std::string command = "notepad " + file.path.string();
-        system( command.c_str() );
+        ShellExecute( NULL, "open", "notepad.exe", file.path.string().c_str(), NULL, SW_SHOWNORMAL );
       }
       ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_fileTextureId, size );
       if ( ImGui::BeginDragDropSource() )
