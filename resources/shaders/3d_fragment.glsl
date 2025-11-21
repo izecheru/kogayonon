@@ -56,7 +56,7 @@ layout(binding = 4) uniform sampler2D u_ShadowMap;
 
 out vec4 FragColor;
 
-float gAmbient = 0.6;
+float gAmbient = 0.8;
 
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
@@ -100,7 +100,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
 
     if(u_NumDirectionalLights>=1)
     {
-	  shadow = ShadowCalculation(ShadowCoord);
+      shadow = ShadowCalculation(ShadowCoord);
     }
 
     vec3 ambient  = gAmbient * vec3(light.color);
@@ -109,10 +109,34 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
     return (ambient + diffuse + specular) * attenuation;
 }
 
+vec3 CalcDirLight(DirectionalLight light, vec3 normal, vec3 viewDir, vec3 objectColor)
+{
+    vec3 lightDir = normalize(-light.direction.xyz);
+
+    // diffuse
+    float diff = max(dot(normal, lightDir), 0.0);
+
+    // specular
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+
+    // lighting components
+    float shadow = ShadowCalculation(ShadowCoord);
+    vec3 ambient  = gAmbient * light.ambient.xyz * objectColor;
+    vec3 diffuse  = light.diffuse.xyz * diff * objectColor;
+    vec3 specular = light.specular.xyz * spec; // no specular map, you could scale this if needed
+
+    diffuse *= 1.0-shadow;
+    specular *= 1.0-shadow;
+    return ambient + diffuse + specular;
+}
+
+
 void main()
 {
   vec3 norm = normalize(Normal);
   vec3 result = vec3(0.0);
+  vec3 objectColor = texture(u_Texture, TexCoord).rgb;
   for (int i = 0; i < u_NumPointLights; ++i)
   {
     // if it is not visible just skip this light
@@ -122,16 +146,12 @@ void main()
     result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
   }
 
-  vec3 objectColor = texture(u_Texture, TexCoord).rgb;
-  if(u_NumPointLights<1)
+  for (int i = 0; i < u_NumDirectionalLights; ++i)
   {
-    float shadow = ShadowCalculation(ShadowCoord);
-    objectColor*=gAmbient;
-	FragColor = vec4((1.0-shadow)*objectColor, 1.0);
+      vec3 viewDir = normalize(-FragPos);
+      result += CalcDirLight(directionalLights[i], norm, viewDir, objectColor);
   }
-  else
-  {
-	vec3 litColor = result * objectColor *gAmbi;
+
+	vec3 litColor = result * objectColor;
 	FragColor = vec4(litColor, 1.0);
-  }
 }

@@ -18,6 +18,13 @@ namespace kogayonon_gui
 {
 class FileExplorerWindow : public ImGuiWindow
 {
+  struct File_
+  {
+    bool isDir{ false };
+    std::string imguiId{ "##" };
+    std::filesystem::path path;
+  };
+
 public:
   explicit FileExplorerWindow( std::string name, uint32_t folderTextureId, uint32_t fileTextureId );
 
@@ -25,6 +32,7 @@ public:
 
   void draw() override;
 
+  // Event
   void onFileModified( kogayonon_core::FileModifiedEvent& e );
   void onFileCreated( kogayonon_core::FileCreatedEvent& e );
   void onFileRenamed( kogayonon_core::FileRenamedEvent& e );
@@ -37,12 +45,12 @@ private:
   void drawToolbar();
 
   /**
-   * @brief Sets a set of callbacks for the DirectoryWatcher to call on a file event
+   * @brief Initializes a map of callbacks for the DirectoryWatcher to use and call when a file event is triggered
    */
   void installCommands();
 
   /**
-   * @brief Adds event handlers and ties them to onEvent from FilExplorerWindow class
+   * @brief Adds event handlers and links them to onEvent functions from FilExplorerWindow
    */
   void installHandlers();
 
@@ -53,12 +61,12 @@ private:
    */
   void buildFileVector();
 
-  struct File_
-  {
-    bool isDir{ false };
-    std::string imguiId{ "##" };
-    std::filesystem::path path;
-  };
+  /**
+   * @brief Draws the context menu for files, here are defined funcs like Delete file and more to come
+   * @param file The file we draw the context menu for
+   * @param id This is the id for the ImGui::BeginPopupContextItem(id) since the filename is unique
+   */
+  void drawFileContextMenu( const File_& file, const std::string& id );
 
 private:
   std::vector<File_> m_files;

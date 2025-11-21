@@ -216,6 +216,7 @@ void SceneHierarchyWindow::draw()
     ImGui::EndTable();
   }
 
+  drawContextMenu();
   ImGui::EndChild();
   ImGui::End();
 }

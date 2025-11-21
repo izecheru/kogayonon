@@ -33,7 +33,7 @@ void ShaderManager::pushShader( const std::string& vertex_shader, const std::str
   m_shaders.emplace( shader_name, std::move( sh ) );
 }
 
-void ShaderManager::compileShaders()
+void ShaderManager::compileMarkedShaders()
 {
   for ( auto& shader : m_shaders )
   {

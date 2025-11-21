@@ -75,7 +75,6 @@ void FileExplorerWindow::onFileModified( FileModifiedEvent& e )
   if ( m_update == true )
     return;
   auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
-  spdlog::info( "recompiling {}", e.getPath() );
   pShaderManager->markForRecompilation( e.getPath() );
   m_update.store( true );
 }
@@ -85,7 +84,6 @@ void FileExplorerWindow::onFileCreated( FileCreatedEvent& e )
   if ( m_update == true )
     return;
 
-  spdlog::info( "File created {} {}", e.getName(), e.getPath() );
   m_update.store( true );
 }
 
@@ -94,7 +92,6 @@ void FileExplorerWindow::onFileDeleted( FileDeletedEvent& e )
   if ( m_update == true )
     return;
 
-  spdlog::info( "File deleted {} {}", e.getName(), e.getPath() );
   m_update.store( true );
 }
 
@@ -103,7 +100,6 @@ void FileExplorerWindow::onFileRenamed( FileRenamedEvent& e )
   if ( m_update == true )
     return;
 
-  spdlog::info( "File renamed {} {}", e.getName(), e.getPath() );
   m_update.store( true );
 }
 
@@ -145,7 +141,20 @@ void FileExplorerWindow::buildFileVector()
                 .imguiId = std::format( "{}{}", "##file", std::to_string( dirId ) ),
                 .path = dirEntry.path() };
     dirId++;
-    m_files.emplace_back( file );
+    m_files.push_back( file );
+  }
+}
+
+void FileExplorerWindow::drawFileContextMenu( const File_& file, const std::string& id )
+{
+  if ( ImGui::BeginPopupContextItem( id.c_str() ) )
+  {
+    if ( ImGui::MenuItem( "Delete file" ) )
+    {
+      std::filesystem::remove( file.path );
+      spdlog::info( "removed {}", file.path.string() );
+    }
+    ImGui::EndPopup();
   }
 }
 
@@ -174,7 +183,7 @@ void FileExplorerWindow::draw()
   {
     // since here we process file events we should recompile shaders here
     const auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
-    pShaderManager->compileShaders();
+    pShaderManager->compileMarkedShaders();
 
     lastPath = m_currentPath;
     buildFileVector();
@@ -201,13 +210,14 @@ void FileExplorerWindow::draw()
     {
       auto filename = file.path.filename();
       ImGui::BeginGroup();
-      // open shaders in notepad for editing
+      drawFileContextMenu( file, filename.string() );
+      // open shaders in the editor
+      ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_fileTextureId, size );
       if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) &&
            file.path.extension().string() == ".glsl" )
       {
-        ShellExecute( NULL, "open", "notepad.exe", file.path.string().c_str(), NULL, SW_SHOWNORMAL );
+        ShellExecute( NULL, "open", "code", file.path.string().c_str(), NULL, SW_HIDE );
       }
-      ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_fileTextureId, size );
       if ( ImGui::BeginDragDropSource() )
       {
         std::string path = file.path.string();
