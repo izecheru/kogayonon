@@ -21,8 +21,10 @@ out vec4 ShadowCoord;
 
 void main()
 {
+    mat3 normalMatrix = transpose(inverse(mat3(instanceMatrix)));
+
     FragPos = vec3(instanceMatrix * vec4(aPos,1.0f));
-    Normal = aNormal;
+    Normal = normalize(normalMatrix * aNormal);
     TexCoord = aTexCoord;
     ShadowCoord = lightVP  * vec4(FragPos,1.0f);
     gl_Position = projection * view * vec4(FragPos,1.0f);
