@@ -49,6 +49,7 @@ in vec2 TexCoord;
 in vec4 ShadowCoord;
 in vec3 Normal;
 in vec3 FragPos;
+in vec3 ViewPos;
 
 layout(binding = 3) uniform sampler2D u_Texture;
 layout(binding = 4) uniform sampler2D u_ShadowMap;
@@ -56,6 +57,28 @@ layout(binding = 4) uniform sampler2D u_ShadowMap;
 out vec4 FragColor;
 
 float gAmbient = 0.3;
+
+float FogAlphaCalculation(float distance_, float near, float far)
+{
+  float fogMax = 1.0 * far;
+  float fogMin = 0.7 * far;
+
+  if(distance_ >= fogMax) return 1.0;
+  if(distance_ <= fogMin) return 0.0;
+
+  return 1.0 - (fogMax - distance_) / (fogMax - fogMin);
+}
+
+float FogCalculation(float distance_, float near, float far)
+{
+  float fogMax = 1.0 * far;
+  float fogMin = 0.5 * far;
+
+  if(distance_ >= fogMax) return 1.0;
+  if(distance_ <= fogMin) return 0.0;
+
+  return 1.0 - (fogMax - distance_) / (fogMax - fogMin);
+}
 
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
@@ -82,8 +105,8 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 	  }    
 	}
 
-  float shadowFactor = shadow/16;
-  return shadowFactor;
+  float shadowFactor = shadow / 16.0;
+  return clamp(shadowFactor, 0.0, 1.0);
 }  
 
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, float shadow)
@@ -96,7 +119,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, f
     float distance_ = length(vec3(light.translation) - fragPos);
     float attenuation = 1.0 / (light.params.x + light.params.y * distance_ + light.params.z * (distance_ * distance_));
 
-    vec3 ambient  = gAmbient * vec3(light.color) * shadow;
+    vec3 ambient  = gAmbient * vec3(light.color);
     vec3 diffuse  = diff * vec3(light.color) * shadow;
     vec3 specular = spec * vec3(light.color) * shadow;
     return (ambient + diffuse + specular) * attenuation;
@@ -119,7 +142,6 @@ vec3 CalcDirLight(DirectionalLight light, vec3 normal, vec3 viewDir, float shado
     vec3 diffuse  = light.diffuse.xyz * diff ;
     vec3 specular = light.specular.xyz * spec; // no specular map, you could scale this if needed
 
-    ambient *= shadow;
     diffuse *= shadow;
     specular *= shadow;
     return ambient + diffuse + specular;
@@ -145,7 +167,15 @@ void main()
       vec3 viewDir = normalize(-directionalLights[i].direction.xyz);
       result += CalcDirLight(directionalLights[i], Normal, viewDir, shadow);
   }
+  // calculate fog here
+  float d = distance(ViewPos,FragPos);
+  float fog = FogCalculation(d, 0.1,100.0);
 
 	vec3 litColor = result * objectColor;
-	FragColor = vec4(litColor, 1.0);
+  vec4 baseColor = vec4(litColor, 1.0);
+
+  vec3 fogColor = vec3(0.3);  // light sky color
+  vec3 finalRGB = mix(baseColor.rgb, fogColor, fog);
+  float fadeAlpha = smoothstep(100.0, 70.0, d);
+  FragColor = vec4(finalRGB, fadeAlpha);
 }

@@ -13,7 +13,7 @@ Camera::Camera()
 
 void Camera::setupCamera()
 {
-  m_props.translation = glm::vec3{ 0.0f, 2.0f, 20.0f };
+  m_props.translation = glm::vec3{ 0.0f, 0.0f, -10.0f };
   m_props.direction = glm::vec3{ 0.0f, 0.0f, -1.0f };
   m_props.cameraUp = glm::vec3{ 0.0f, 1.0f, 0.0f };
   m_props.worldUp = glm::vec3{ 0.0f, 1.0f, 0.0f };
@@ -22,7 +22,7 @@ void Camera::setupCamera()
   m_props.mouseSensitivity = 0.2f;
   m_props.movementSpeed = 46.0f;
   m_props.mouseZoomSpeed = 1.0f;
-  m_props.fov = 45.0f;
+  m_props.fov = 60.0f;
 }
 
 glm::mat4& Camera::getViewMatrix() const
@@ -112,6 +112,6 @@ void Camera::zoom( float amount )
 
 glm::mat4 Camera::getProjectionMatrix( const glm::vec2& contentSize ) const
 {
-  return glm::perspective( glm::radians( m_props.fov ), contentSize.x / contentSize.y, 0.1f, 1000.0f );
+  return glm::perspective( glm::radians( m_props.fov ), contentSize.x / contentSize.y, 0.1f, 100.0f );
 }
 } // namespace kogayonon_rendering

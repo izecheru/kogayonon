@@ -18,6 +18,7 @@ out vec2 TexCoord;
 out vec3 Normal;
 out vec3 FragPos;
 out vec4 ShadowCoord;
+out vec3 ViewPos;
 
 void main()
 {
@@ -28,4 +29,9 @@ void main()
     TexCoord = aTexCoord;
     ShadowCoord = lightVP  * vec4(FragPos,1.0f);
     gl_Position = projection * view * vec4(FragPos,1.0f);
+
+    // calculate the view pos by inversing the view matrix
+    mat4 viewInverse = inverse(view); 
+    // now get the x, y, z
+    ViewPos = vec3(viewInverse[3][0],viewInverse[3][1],viewInverse[3][2]);
 }

@@ -206,37 +206,18 @@ void SceneViewportWindow::drawScene()
       // render geometry
       m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
       m_frameBuffer.bind();
-      glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
+      glClearColor( 0.3f, 0.3f, 0.3f, 0.5f );
       glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
       m_pRenderingSystem->renderGeometryWithShadows( scene, view, proj, geometryShader, lightSpaceMatrix, depthMap );
       m_frameBuffer.unbind();
     }
-    else
-    {
-      // render geometry
-      m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
-      m_frameBuffer.bind();
-      glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
-      glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-      m_pRenderingSystem->render( scene, view, proj, geometryShader );
-      m_frameBuffer.unbind();
-    }
   }
   break;
   case RenderMode::Geometry:
+  case RenderMode::Depth:
+  default:
     break;
-  case RenderMode::Depth: {
-    m_depthBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
-    m_depthBuffer.bind();
-    glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-    m_pRenderingSystem->render( scene, view, proj, depthShader );
-    m_depthBuffer.unbind();
-    break;
-  }
   }
 }
 
