@@ -21,7 +21,8 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
 {
   begin( shader );
 
-  static glm::mat4 biasMatrix{ 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.5, 1.0 };
+  scene->bindLightBuffers();
+
   auto view = scene->getEnttRegistry().view<TransformComponent, MeshComponent, IndexComponent>();
 
   std::unordered_map<kogayonon_resources::Mesh*, int> orderedMeshes;
@@ -68,14 +69,16 @@ void RenderingSystem::render( std::shared_ptr<Scene> scene, glm::mat4& viewMatri
     glBindVertexArray( 0 );
     glBindTextureUnit( 1, 0 );
   }
+  scene->unbindLightBuffers();
   end( shader );
 }
 
 void RenderingSystem::renderGeometryWithShadows( std::shared_ptr<Scene> scene, const glm::mat4& viewMatrix,
                                                  const glm::mat4& projection, kogayonon_utilities::Shader& shader,
-                                                 const glm::mat4& lightProjectionView, const uint32_t depthMap )
+                                                 const glm::mat4& lightProjectionView, const uint32_t depthMap ) const
 {
   begin( shader );
+  scene->bindLightBuffers();
 
   auto view = scene->getEnttRegistry().view<TransformComponent, MeshComponent, IndexComponent>();
 
@@ -125,6 +128,7 @@ void RenderingSystem::renderGeometryWithShadows( std::shared_ptr<Scene> scene, c
     glBindVertexArray( 0 );
     glBindTextureUnit( 1, 0 );
   }
+  scene->unbindLightBuffers();
   end( shader );
 }
 

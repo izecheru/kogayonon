@@ -1,9 +1,9 @@
-   if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_executable(kogayonon_app
-        "include/app/app.hpp"
-        "src/app.cpp"
-        "src/main.cpp"
-    )
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+	add_executable(kogayonon_app
+		"include/app/app.hpp"
+		"src/app.cpp"
+		"src/main.cpp"
+	)
 else()
     add_executable(kogayonon_app WIN32
         "include/app/app.hpp"

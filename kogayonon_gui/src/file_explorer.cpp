@@ -198,7 +198,7 @@ void FileExplorerWindow::draw()
       auto filename = file.path.filename();
       ImGui::BeginGroup();
       ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_folderTextureId, size );
-      // navigate into folder like you do in windows explorer
+      // navigate into folder like you do in windows explorer with double click
       if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) )
       {
         m_currentPath = file.path;
@@ -216,6 +216,7 @@ void FileExplorerWindow::draw()
       if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) &&
            file.path.extension().string() == ".glsl" )
       {
+        // TODO add a setting for the user to choose his own editor
         ShellExecute( NULL, "open", "code", file.path.string().c_str(), NULL, SW_HIDE );
       }
       if ( ImGui::BeginDragDropSource() )

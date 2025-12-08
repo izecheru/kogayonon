@@ -12,7 +12,6 @@ struct PointLight {
 struct DirectionalLight
 {
   vec4 direction;
-  vec4 ambient;
   vec4 diffuse;
   vec4 specular;
 };
@@ -60,12 +59,12 @@ float gAmbient = 0.3;
 
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
-    vec3 shadowCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+  vec3 shadowCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
 	shadowCoords = shadowCoords * 0.5 + 0.5;
 	float closestDepth = texture(u_ShadowMap, shadowCoords.xy).r; 
 	float currentDepth = shadowCoords.z;
   int sampleRadius = 1;
-  float bias = 0.005;
+  float bias = 0.00005;
   vec2 texelSize = 1.0 / textureSize(u_ShadowMap, 0);
   float shadow = 0.0f;
 
@@ -76,10 +75,10 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 	{
 	  for(int x = -sampleRadius; x <= sampleRadius; x++)
 	  {
-        vec2 offset = vec2(x, y) * texelSize;
-		  float pcfDepth = texture(u_ShadowMap, shadowCoords.xy + offset ).x; 
-        if(currentDepth > pcfDepth + bias)
-          shadow += 1.0f;
+      vec2 offset = vec2(x, y) * texelSize;
+      float pcfDepth = texture(u_ShadowMap, shadowCoords.xy + offset ).x; 
+      if(currentDepth > pcfDepth + bias)
+        shadow += 0.8f;
 	  }    
 	}
 
@@ -113,7 +112,7 @@ vec3 CalcDirLight(DirectionalLight light, vec3 normal, vec3 viewDir, float shado
 
     // specular
     vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 50.0);
 
     // lighting components
     vec3 ambient  = gAmbient * vec3(1.0) ;
@@ -131,7 +130,7 @@ void main()
 {
   vec3 result = vec3(0.0);
   vec3 objectColor = texture(u_Texture, TexCoord).rgb;
-  float shadow = 1.0 - ShadowCalculation(ShadowCoord);
+  float shadow = 1 - ShadowCalculation(ShadowCoord);
   for (int i = 0; i < u_NumPointLights; ++i)
   {
     // if it is not visible just skip this light

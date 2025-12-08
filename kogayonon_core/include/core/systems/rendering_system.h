@@ -25,14 +25,6 @@ class Scene;
 
 namespace kogayonon_core
 {
-struct RenderCommand
-{
-  uint32_t fboId{ 0 };
-  glm::mat4* view{ nullptr };
-  glm::mat4* projection{ nullptr };
-  uint32_t depthMap{ 0 };
-};
-
 class RenderingSystem
 {
 public:
@@ -44,7 +36,7 @@ public:
 
   void renderGeometryWithShadows( std::shared_ptr<Scene> scene, const glm::mat4& viewMatrix,
                                   const glm::mat4& projection, kogayonon_utilities::Shader& shader,
-                                  const glm::mat4& depthBias, const uint32_t depthMap );
+                                  const glm::mat4& depthBias, const uint32_t depthMap ) const;
 
   void begin( const kogayonon_utilities::Shader& shader ) const;
   void end( const kogayonon_utilities::Shader& shader ) const;

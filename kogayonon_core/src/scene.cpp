@@ -337,8 +337,7 @@ void Scene::addPointLight()
 {
   auto entity = addEntity();
   m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Point );
-  int index{ 0 };
-  index = m_lightSSBO.addLight( kogayonon_resources::LightType::Point );
+  int index = m_lightSSBO.addLight( kogayonon_resources::LightType::Point );
   entity.addComponent<PointLightComponent>( PointLightComponent{ .pointLightIndex = index } );
 }
 
@@ -346,8 +345,7 @@ void Scene::addPointLight( entt::entity entityId )
 {
   Entity ent{ *m_pRegistry, entityId };
   m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Point );
-  int index{ 0 };
-  index = m_lightSSBO.addLight( kogayonon_resources::LightType::Point );
+  int index = m_lightSSBO.addLight( kogayonon_resources::LightType::Point );
   ent.addComponent<PointLightComponent>( PointLightComponent{ .pointLightIndex = index } );
 }
 
@@ -359,8 +357,7 @@ void Scene::addDirectionalLight()
 
   auto entity = addEntity();
   m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Directional );
-  int index{ 0 };
-  index = m_lightSSBO.addLight( kogayonon_resources::LightType::Directional );
+  int index = m_lightSSBO.addLight( kogayonon_resources::LightType::Directional );
   entity.addComponent<DirectionalLightComponent>( DirectionalLightComponent{ .directionalLightIndex = index } );
 }
 
@@ -373,8 +370,7 @@ void Scene::addDirectionalLight( entt::entity entityId )
   Entity entity{ *m_pRegistry, entityId };
 
   m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Directional );
-  int index{ 0 };
-  index = m_lightSSBO.addLight( kogayonon_resources::LightType::Directional );
+  int index = m_lightSSBO.addLight( kogayonon_resources::LightType::Directional );
   entity.addComponent<DirectionalLightComponent>( DirectionalLightComponent{ .directionalLightIndex = index } );
 }
 

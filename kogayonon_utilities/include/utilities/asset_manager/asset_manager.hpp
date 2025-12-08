@@ -46,6 +46,7 @@ public:
 
   // Models
   kogayonon_resources::Mesh* addMesh( const std::string& meshName, const std::string& meshPath );
+  kogayonon_resources::Mesh* addMesh( const std::string& meshName );
   kogayonon_resources::Mesh* getMesh( const std::string& meshName );
 
   /**

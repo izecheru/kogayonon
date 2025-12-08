@@ -163,7 +163,7 @@ void SceneViewportWindow::drawScene()
   switch ( m_renderMode )
   {
   case RenderMode::GeometryAndLights: {
-    if ( scene->getLightCount( kogayonon_resources::LightType::Directional ) == 1 )
+    if ( scene->getLightCount( kogayonon_resources::LightType::Directional ) != 0 )
     {
       // depth pass first for shadow mapping
       glCullFace( GL_FRONT );
@@ -209,9 +209,7 @@ void SceneViewportWindow::drawScene()
       glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
       glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-      scene->bindLightBuffers();
       m_pRenderingSystem->renderGeometryWithShadows( scene, view, proj, geometryShader, lightSpaceMatrix, depthMap );
-      scene->unbindLightBuffers();
       m_frameBuffer.unbind();
     }
     else
@@ -222,9 +220,7 @@ void SceneViewportWindow::drawScene()
       glClearColor( 0.3f, 0.3f, 0.3f, 1.0f );
       glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-      scene->bindLightBuffers();
       m_pRenderingSystem->render( scene, view, proj, geometryShader );
-      scene->unbindLightBuffers();
       m_frameBuffer.unbind();
     }
   }

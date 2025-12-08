@@ -52,7 +52,6 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureWithoutParam
   );
 
   m_loadedTextures.try_emplace( textureName, tex );
-
   return m_loadedTextures.at( textureName );
 }
 
@@ -201,6 +200,11 @@ kogayonon_resources::Mesh* AssetManager::addMesh( const std::string& meshName, c
 
   spdlog::info( "Loaded mesh {} ", meshName );
   return getMesh( meshName );
+}
+
+kogayonon_resources::Mesh* AssetManager::addMesh( const std::string& meshName )
+{
+  return addMesh( meshName, "resources/models/" + meshName );
 }
 
 void AssetManager::uploadMeshGeometry( kogayonon_resources::Mesh* mesh ) const

@@ -30,8 +30,6 @@ void TaskManager::workerThread()
 
       m_cvar.wait( lock, [this] { return m_stop || !m_tasks.empty(); } );
 
-      //
-
       if ( m_stop && m_tasks.empty() )
       {
         break;
