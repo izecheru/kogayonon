@@ -290,46 +290,51 @@ uint32_t Scene::getLightCount( const kogayonon_resources::LightType& type )
 void Scene::prepareForRendering()
 {
   // skip this function if we did not add a new entity or something
-  if ( !m_registryModified )
-    return;
+  // if ( !m_registryModified )
+  //  return;
 
-  m_registryModified = false;
+  // m_registryModified = false;
 
-  updateLightBuffers();
+  if ( m_registryModified )
+  {
+    updateLightBuffers();
+    m_registryModified = false;
+  }
 
-  const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
+  auto& assetManager = AssetManager::getInstance();
 
   for ( const auto& [entity, meshComponent] : getRegistry().getRegistry().view<MeshComponent>().each() )
   {
     Entity ent{ getRegistry(), entity };
+
     if ( meshComponent.pMesh == nullptr )
       continue;
 
-    if ( meshComponent.loaded )
-      continue;
-
-    // if we don't have the model in the instance map, we upload the geometry
-    if ( !addInstanceData( entity ) )
-      pAssetManager->uploadMeshGeometry( meshComponent.pMesh );
-
-    const auto& data = getData( meshComponent.pMesh );
-    setupMultipleInstances( data );
-
-    // check textures
-    for ( auto& texture : meshComponent.pMesh->getTextures() )
+    if ( !meshComponent.loaded )
     {
+      // if we don't have the model in the instance map, we insert it and based on the condition of
+      // it being already in the map OR NOT we return the boolean value of that statement and then we upload the
+      // geometry
+      if ( !addInstanceData( entity ) )
+        assetManager.uploadMeshGeometry( meshComponent.pMesh );
 
-      if ( texture == nullptr )
-        continue;
+      const auto& data = getData( meshComponent.pMesh );
+      setupMultipleInstances( data );
 
-      if ( texture->getLoaded() == true )
-        continue;
+      // check textures
+      for ( auto& texture : meshComponent.pMesh->getTextures() )
+      {
 
-      auto texture_ = pAssetManager->addTexture( texture->getName() );
-      texture_->setLoaded( true );
-      texture = std::move( texture_ );
+        // if either one of them is true then continue to the next one
+        if ( !texture || texture->getLoaded() )
+          continue;
+
+        texture = assetManager.addTexture( texture->getName() );
+        texture->setLoaded( true );
+      }
+
+      meshComponent.loaded = true;
     }
-    meshComponent.loaded = true;
   }
 }
 

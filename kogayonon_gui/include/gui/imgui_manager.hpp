@@ -18,6 +18,7 @@ public:
   void setupDockSpace( ImGuiViewport* viewport );
 
   void draw();
+  void payloadTooltip();
   void mainMenu();
   void begin();
   void end();

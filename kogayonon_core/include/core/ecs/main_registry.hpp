@@ -6,7 +6,6 @@ namespace kogayonon_utilities
 {
 class TaskManager;
 class ShaderManager;
-class AssetManager;
 class TimeTracker;
 } // namespace kogayonon_utilities
 
@@ -69,11 +68,6 @@ public:
   std::shared_ptr<kogayonon_utilities::TaskManager>& getTaskManager()
   {
     return getContext<std::shared_ptr<kogayonon_utilities::TaskManager>>();
-  }
-
-  std::shared_ptr<kogayonon_utilities::AssetManager>& getAssetManager()
-  {
-    return getContext<std::shared_ptr<kogayonon_utilities::AssetManager>>();
   }
 
   std::shared_ptr<kogayonon_utilities::TimeTracker>& getTimeTracker()

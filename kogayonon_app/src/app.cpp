@@ -292,22 +292,18 @@ bool App::initRegistries() const
 
   mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::ShaderManager>>( std::move( shaderManager ) );
 
-  // init asset manager
-  auto assetManager = std::make_shared<kogayonon_utilities::AssetManager>();
-  assert( assetManager && "could not initialise asset manager" );
+  // init asset manager and add all default icons and textures and whatnot
+  auto& assetManager = AssetManager::getInstance();
 
-  assetManager->addTexture( "play.png" );
-  assetManager->addTexture( "stop.png" );
-  assetManager->addTexture( "file.png" );
-  assetManager->addTexture( "folder.png" );
-  assetManager->addTexture( "default.png" );
-  assetManager->addTexture( "3d-cube.png" );
-  assetManager->addTexture( "logo.png" );
-  assetManager->addTexture( "render_mode_icon.png" );
-
-  assetManager->addMesh( "default", "resources/models/Cube.gltf" );
-
-  mainRegistry.addToContext<std::shared_ptr<kogayonon_utilities::AssetManager>>( std::move( assetManager ) );
+  assetManager.addTexture( "play.png" );
+  assetManager.addTexture( "stop.png" );
+  assetManager.addTexture( "file.png" );
+  assetManager.addTexture( "folder.png" );
+  assetManager.addTexture( "default.png" );
+  assetManager.addTexture( "3d-cube.png" );
+  assetManager.addTexture( "logo.png" );
+  assetManager.addTexture( "render_mode_icon.png" );
+  assetManager.addTexture( "gltf_icon.png" );
 
   return true;
 }
@@ -332,18 +328,18 @@ bool App::initGuiForProject()
   m_pWindow->setResizable( true );
 
   // maximize window
-  m_pWindow->maximize();
+  if ( config.maximized )
+  {
+    m_pWindow->maximize();
+  }
 
-  // deserialize data and read scene and entity stuff
-  // ---------
-
-  const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
+  auto& assetManager = AssetManager::getInstance();
 
   // textures for imgui buttons or windows and what not
-  auto playTexture = pAssetManager->getTextureByName( "play.png" ).lock()->getTextureId();
-  auto stopTexture = pAssetManager->getTextureByName( "stop.png" ).lock()->getTextureId();
-  auto fileTexture = pAssetManager->getTextureByName( "file.png" ).lock()->getTextureId();
-  auto folderTexture = pAssetManager->getTextureByName( "folder.png" ).lock()->getTextureId();
+  auto playTexture = assetManager.getTextureByName( "play.png" ).lock()->getTextureId();
+  auto stopTexture = assetManager.getTextureByName( "stop.png" ).lock()->getTextureId();
+  auto fileTexture = assetManager.getTextureByName( "file.png" ).lock()->getTextureId();
+  auto folderTexture = assetManager.getTextureByName( "folder.png" ).lock()->getTextureId();
 
   auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( m_pWindow->getWindow(), "Viewport",
                                                                              playTexture, stopTexture );
@@ -353,11 +349,13 @@ bool App::initGuiForProject()
   auto entityPropertiesWindow = std::make_unique<kogayonon_gui::EntityPropertiesWindow>( "Object properties" );
 
   auto pImguiManager = MainRegistry::getInstance().getImGuiManager();
+
   pImguiManager->pushWindow( "Viewport", std::move( sceneViewport ) );
   pImguiManager->pushWindow( "Object properties", std::move( entityPropertiesWindow ) );
   pImguiManager->pushWindow( "Performance", std::move( performanceWindow ) );
   pImguiManager->pushWindow( "Scene hierarchy", std::move( sceneHierarchy ) );
   pImguiManager->pushWindow( "Assets", std::move( fileExplorerWindow ) );
+
   return true;
 }
 
@@ -488,7 +486,7 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
   std::string windowTitle = std::format( "kogayonon - {}", title );
   m_pWindow->setTitle( windowTitle.c_str() );
 
-  const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
+  auto& assetManager = AssetManager::getInstance();
   const auto& pTaskManager = MainRegistry::getInstance().getTaskManager();
 
   rapidjson::Document doc{};
@@ -506,7 +504,7 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
     {
       const auto scenePath = std::filesystem::path{ scene["path"].GetString() };
       const auto& scene_ = std::make_shared<Scene>( scenePath.stem().string() );
-      // TODO deserialize entities here
+
       std::fstream sceneIn{ scenePath, std::ios::in | std::ios::binary };
       for ( int x = 0; x < scene["meshEntityCount"].GetInt(); x++ )
       {
@@ -539,8 +537,8 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
         const auto path = std::filesystem::path{ meshPath };
         const auto& enttId = ent.getEntityId();
 
-        pTaskManager->enqueue( [scene_, path, enttId, pAssetManager]() {
-          const auto mesh = pAssetManager->addMesh( path.stem().string(), path.string() );
+        pTaskManager->enqueue( [scene_, path, enttId, &assetManager]() {
+          const auto mesh = assetManager.addMesh( path.stem().string(), path.string() );
           scene_->addMeshToEntity( enttId, mesh );
         } );
 
@@ -634,6 +632,7 @@ void App::onProjectCreate( const kogayonon_core::ProjectCreateEvent& e )
 
   // add a default entity
   defaultScene->addEntity();
+  defaultScene->addDirectionalLight();
 
   // add it to the map
   SceneManager::addScene( defaultScene );
@@ -722,7 +721,7 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
       const auto& transformComponent = ent.getComponent<TransformComponent>();
       const auto& identifierComponent = ent.getComponent<IdentifierComponent>();
 
-      // we load the model and textures with the assetManager->addModel(name,path);
+      // we load the model and textures with the assetManager.addModel(name,path);
       size_t modelPathSize = modelPath.size();
       Serializer::serialize( modelPathSize, sceneOut );
       Serializer::serialize( modelPath.data(), modelPath.size() * sizeof( char ), sceneOut );

@@ -219,7 +219,7 @@ void FileExplorerWindow::draw()
         // TODO add a setting for the user to choose his own editor
         ShellExecute( NULL, "open", "code", file.path.string().c_str(), NULL, SW_HIDE );
       }
-      if ( ImGui::BeginDragDropSource() )
+      if ( ImGui::BeginDragDropSource( ImGuiDragDropFlags_SourceNoPreviewTooltip ) )
       {
         std::string path = file.path.string();
         ImGui::SetDragDropPayload( "ASSET_DROP", path.c_str(), path.size() + 1 );

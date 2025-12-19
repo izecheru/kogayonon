@@ -101,10 +101,10 @@ void SceneHierarchyWindow::draw()
   if ( !begin() )
     return;
 
-  const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
+  auto& assetManager = AssetManager::getInstance();
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
 
-  static auto cubeIcon = pAssetManager->getTextureByName( "3d-cube.png" );
+  static auto cubeIcon = assetManager.getTextureByName( "3d-cube.png" );
 
   initProps();
 

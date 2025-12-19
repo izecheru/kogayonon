@@ -17,20 +17,22 @@ AssetManager::AssetManager()
 
 AssetManager::~AssetManager()
 {
-  // don't forget to join the thread
-  if ( m_watchThread.joinable() )
-  {
-    m_watchThread.join();
-  }
+  destroy();
 }
 
 std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureWithoutParams( const std::string& textureName,
                                                                                    const std::string& texturePath )
 {
-  if ( m_loadedTextures.contains( textureName ) )
+  if ( m_loadedTextures.contains( texturePath ) )
   {
-    spdlog::info( "We already have the texture {} from {} ", textureName, texturePath );
-    return m_loadedTextures.at( textureName );
+    if ( m_loadedTextures.at( texturePath )->getLoaded() == true )
+    {
+      return m_loadedTextures.at( texturePath );
+    }
+    else
+    {
+      spdlog::info( "We have the texture in the map but it is not yet loaded in OpenGl" );
+    }
   }
 
   assert( std::filesystem::exists( texturePath ) && "Texture path does not exist" );
@@ -51,8 +53,21 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureWithoutParam
                                                              0  // channels unknown
   );
 
-  m_loadedTextures.try_emplace( textureName, tex );
-  return m_loadedTextures.at( textureName );
+  m_loadedTextures.try_emplace( texturePath, tex );
+  return m_loadedTextures.at( texturePath );
+}
+
+void AssetManager::destroy()
+{
+  // don't forget to join the thread
+  if ( m_watchThread.joinable() )
+  {
+    m_watchThread.join();
+  }
+}
+
+void AssetManager::init()
+{
 }
 
 kogayonon_resources::Texture* AssetManager::addTexture( const std::string& textureName )
@@ -62,10 +77,16 @@ kogayonon_resources::Texture* AssetManager::addTexture( const std::string& textu
 
 kogayonon_resources::Texture* AssetManager::addTexture( const std::string& textureName, const std::string& texturePath )
 {
-  if ( m_loadedTextures.contains( textureName ) )
+  if ( m_loadedTextures.contains( texturePath ) )
   {
-    spdlog::info( "We already have the texture {} from {} ", textureName, texturePath );
-    return m_loadedTextures.at( textureName ).get();
+    if ( m_loadedTextures.at( texturePath )->getLoaded() )
+    {
+      return m_loadedTextures.at( texturePath ).get();
+    }
+    else
+    {
+      spdlog::info( "We have the texture in the map but it is not yet loaded in OpenGl" );
+    }
   }
 
   // std::lock_guard lock( m_assetMutex );
@@ -83,21 +104,23 @@ kogayonon_resources::Texture* AssetManager::addTexture( const std::string& textu
   }
   auto id = SOIL_create_OGL_texture( data, &w, &h, channels, SOIL_CREATE_NEW_ID, SOIL_FLAG_MIPMAPS );
 
-  auto tex = std::make_shared<kogayonon_resources::Texture>( id, texturePath, textureName, w, h, channels );
-  m_loadedTextures.try_emplace( textureName, tex );
-  spdlog::info( "Loaded texture {} from {} ", textureName, texturePath );
   SOIL_free_image_data( data );
-  return m_loadedTextures.at( textureName ).get();
+
+  auto tex = std::make_shared<kogayonon_resources::Texture>( id, texturePath, textureName, w, h, channels );
+  m_loadedTextures.try_emplace( texturePath, tex );
+  spdlog::info( "Loaded texture {}", textureName, texturePath );
+
+  return m_loadedTextures.at( texturePath ).get();
 }
 
 kogayonon_resources::Mesh* AssetManager::addMesh( const std::string& meshName, const std::string& meshPath )
 {
   std::lock_guard lock{ m_assetMutex };
 
-  if ( m_loadedMeshes.contains( meshName ) )
+  if ( m_loadedMeshes.contains( meshPath ) )
   {
     spdlog::info( "Mesh already loaded {} ", meshName );
-    return m_loadedMeshes.at( meshName ).get();
+    return m_loadedMeshes.at( meshPath ).get();
   }
 
   assert( std::filesystem::exists( meshPath ) && "mesh file does not exist" );
@@ -131,6 +154,8 @@ kogayonon_resources::Mesh* AssetManager::addMesh( const std::string& meshName, c
   std::vector<kogayonon_resources::Vertex> vertices;
   std::vector<uint32_t> indices;
   std::vector<kogayonon_resources::Texture*> textures;
+
+  spdlog::debug( "Mesh has {} nodes", data->nodes_count );
 
   for ( size_t i = 0; i < data->nodes_count; ++i )
   {
@@ -194,12 +219,12 @@ kogayonon_resources::Mesh* AssetManager::addMesh( const std::string& meshName, c
 
   auto mesh_ = std::make_shared<kogayonon_resources::Mesh>( meshPath, std::move( vertices ), std::move( indices ),
                                                             std::move( textures ), std::move( submeshes ) );
-  m_loadedMeshes.try_emplace( meshName, mesh_ );
+  m_loadedMeshes.try_emplace( meshPath, mesh_ );
 
   cgltf_free( data );
 
   spdlog::info( "Loaded mesh {} ", meshName );
-  return getMesh( meshName );
+  return getMesh( meshPath );
 }
 
 kogayonon_resources::Mesh* AssetManager::addMesh( const std::string& meshName )
@@ -263,11 +288,11 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureFromMemory( 
   return std::weak_ptr<kogayonon_resources::Texture>();
 }
 
-std::weak_ptr<kogayonon_resources::Texture> AssetManager::getTextureByName( const std::string& textureName )
+std::weak_ptr<kogayonon_resources::Texture> AssetManager::getTextureByName( const std::string& textureName,
+                                                                            const std::string& folder )
 {
-  auto it = m_loadedTextures.find( textureName );
-  assert( it != m_loadedTextures.end() && "texture must be in the map" );
-  return m_loadedTextures.at( textureName );
+  std::filesystem::path p{ folder + textureName };
+  return m_loadedTextures.at( p.string() );
 }
 
 void AssetManager::removeTexture( const std::string& path )
@@ -293,12 +318,12 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::getTextureById( uint32
   return getTextureByName( "default" );
 }
 
-kogayonon_resources::Mesh* kogayonon_utilities::AssetManager::getMesh( const std::string& meshName )
+kogayonon_resources::Mesh* kogayonon_utilities::AssetManager::getMesh( const std::string& meshPath )
 {
-  if ( !m_loadedMeshes.contains( meshName ) )
+  if ( !m_loadedMeshes.contains( meshPath ) )
     return nullptr;
 
-  return m_loadedMeshes.at( meshName ).get();
+  return m_loadedMeshes.at( meshPath ).get();
 }
 
 void AssetManager::parseVertices( cgltf_primitive& primitive, std::vector<glm::vec3>& positions,
@@ -387,7 +412,9 @@ void AssetManager::parseTextures( const cgltf_material* material, std::vector<ko
     else
     {
       texture = std::make_shared<kogayonon_resources::Texture>( texturePath.string(), textureName );
-      m_loadedTextures.emplace( texturePath.string(), texture );
+
+      if ( !m_loadedTextures.contains( texturePath.string() ) )
+        m_loadedTextures.emplace( texturePath.string(), texture );
     }
 
     textures.push_back( texture.get() );
@@ -409,7 +436,9 @@ void AssetManager::parseTextures( const cgltf_material* material, std::vector<ko
     else
     {
       texture = std::make_shared<kogayonon_resources::Texture>( texturePath.string(), textureName );
-      m_loadedTextures.emplace( texturePath.string(), texture );
+
+      if ( !m_loadedTextures.contains( texturePath.string() ) )
+        m_loadedTextures.emplace( texturePath.string(), texture );
     }
 
     textures.push_back( texture.get() );

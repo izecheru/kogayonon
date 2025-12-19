@@ -179,7 +179,6 @@ void EntityPropertiesWindow::drawMeshComponent( Entity& ent )
   auto pMeshComponent = ent.tryGetComponent<MeshComponent>();
   if ( ImGui::BeginDragDropTarget() )
   {
-    // if we have a payload
     const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "ASSET_DROP" );
     manageModelPayload( payload );
     ImGui::EndDragDropTarget();
@@ -214,7 +213,7 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
     return;
   }
 
-  const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
+  auto& assetManager = AssetManager::getInstance();
   auto data = static_cast<const char*>( payload->Data );
   std::string dropResult( data, payload->DataSize );
   std::filesystem::path p{ dropResult };
@@ -228,8 +227,6 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
   const auto& extension = p.extension().string();
   if ( extension.find( ".gltf" ) != std::string::npos )
   {
-    spdlog::info( "loaded {}", dropResult, p.extension().string() );
-
     const auto& pTaskManager = MainRegistry::getInstance().getTaskManager();
 
     auto entTemp = m_selectedEntity;
@@ -243,7 +240,7 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
       ent.addComponent<MeshComponent>();
     }
 
-    const auto model = pAssetManager->getMesh( p.filename().string() );
+    const auto model = assetManager.getMesh( p.filename().string() );
     if ( model != nullptr )
     {
       pScene->addMeshToEntity( entTemp, model );
@@ -251,9 +248,11 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
     else
     {
       pTaskManager->enqueue( [entTemp, p, pScene]() {
-        const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
-        const auto model = pAssetManager->addMesh( p.filename().string(), p.string() );
+        auto& assetManager = AssetManager::getInstance();
         Entity ent{ pScene->getRegistry(), entTemp };
+
+        // both protected by their own mutexes
+        const auto model = assetManager.addMesh( p.filename().string(), p.string() );
         pScene->addMeshToEntity( entTemp, model );
       } );
     }

@@ -189,11 +189,9 @@ void SceneViewportWindow::drawScene()
                                          directionalLightComponent.nearPlane, directionalLightComponent.farPlane );
       auto lightDir = glm::normalize(
         glm::vec3( directionalLight.direction.x, directionalLight.direction.y, directionalLight.direction.z ) );
-      auto lightPos = -lightDir * directionalLightComponent.positionFactor; // further back
+      auto lightPos = -lightDir * directionalLightComponent.positionFactor;
 
-      auto lightView = glm::lookAt( lightPos,
-                                    glm::vec3( 0.0f ), // center of scene
-                                    glm::vec3( 0.0f, 1.0f, 0.0f ) );
+      auto lightView = glm::lookAt( lightPos, glm::vec3{ 0.0f }, glm::vec3{ 0.0f, 1.0f, 0.0f } );
 
       auto lightSpaceMatrix = lightProjection * lightView;
 
@@ -418,8 +416,8 @@ void SceneViewportWindow::draw()
     }
   }
 
-  const auto& pAssetManager = MainRegistry::getInstance().getAssetManager();
-  static auto renderModeIcon = pAssetManager->getTextureByName( "render_mode_icon.png" ).lock()->getTextureId();
+  auto& assetManager = AssetManager::getInstance();
+  static auto renderModeIcon = assetManager.getTextureByName( "render_mode_icon.png" ).lock()->getTextureId();
   ImGui::SetCursorPos( ImVec2{ 20.0f, 20.0f } );
   ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) );       // normal
   ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0, 0, 0, 0 ) ); // active (pressed)

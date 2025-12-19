@@ -17,8 +17,11 @@ namespace kogayonon_utilities
 class AssetManager
 {
 public:
-  AssetManager();
-  ~AssetManager();
+  inline static AssetManager& getInstance()
+  {
+    static AssetManager instance;
+    return instance;
+  }
 
   /**
    * @brief Loads a texture from /resources/textures/<textureName>, texture name must hold the extension too
@@ -32,7 +35,15 @@ public:
 
   std::weak_ptr<kogayonon_resources::Texture> addTextureFromMemory( const std::string& textureName,
                                                                     const unsigned char* data );
-  std::weak_ptr<kogayonon_resources::Texture> getTextureByName( const std::string& textureName );
+
+  /**
+   * @brief Finds a texture by name
+   * @param textureName Name of the texture you are looking for
+   * @param folder Folder we retrieve the texture from, defaults to "resources/textures/" if not specified as param
+   * @return A weak ptr to the texture found
+   */
+  std::weak_ptr<kogayonon_resources::Texture> getTextureByName( const std::string& textureName,
+                                                                const std::string& folder = "resources/textures/" );
 
   /**
    * @brief Deletes a texture from the loaded map, even though we index with texture name which is not actual filename,
@@ -47,7 +58,7 @@ public:
   // Models
   kogayonon_resources::Mesh* addMesh( const std::string& meshName, const std::string& meshPath );
   kogayonon_resources::Mesh* addMesh( const std::string& meshName );
-  kogayonon_resources::Mesh* getMesh( const std::string& meshName );
+  kogayonon_resources::Mesh* getMesh( const std::string& meshPath );
 
   /**
    * @brief Uploads each mesh data to the gpu and tells it how to interpret every buffer
@@ -56,6 +67,18 @@ public:
   void uploadMeshGeometry( kogayonon_resources::Mesh* mesh ) const;
 
 private:
+  AssetManager();
+  ~AssetManager();
+
+  void destroy();
+  void init();
+
+  // copy is not allowed
+  AssetManager( const AssetManager& ) = delete;
+  AssetManager& operator=( const AssetManager& ) = delete;
+  AssetManager( AssetManager&& ) = delete;
+  AssetManager& operator=( AssetManager&& ) = delete;
+
   void parseVertices( cgltf_primitive& primitive, std::vector<glm::vec3>& positions, std::vector<glm::vec3>& normals,
                       std::vector<glm::vec2>& tex_coords, const glm::mat4& transformation ) const;
 

@@ -13,7 +13,7 @@ Camera::Camera()
 
 void Camera::setupCamera()
 {
-  m_props.translation = glm::vec3{ 0.0f, 0.0f, -10.0f };
+  m_props.translation = glm::vec3{ 16.0f, 6.0f, 18.0f };
   m_props.direction = glm::vec3{ 0.0f, 0.0f, -1.0f };
   m_props.cameraUp = glm::vec3{ 0.0f, 1.0f, 0.0f };
   m_props.worldUp = glm::vec3{ 0.0f, 1.0f, 0.0f };
@@ -106,6 +106,7 @@ void Camera::zoom( float amount )
 
   if ( m_props.fov <= 1.0f )
     m_props.fov = 1.0f;
+
   if ( m_props.fov >= 45.0f )
     m_props.fov = 45.0f;
 }

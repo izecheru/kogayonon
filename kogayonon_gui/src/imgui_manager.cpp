@@ -10,15 +10,17 @@
 #include "core/event/app_event.hpp"
 #include "core/event/event_dispatcher.hpp"
 #include "gui/debug_window.hpp"
+#include "utilities/asset_manager/asset_manager.hpp"
 
 namespace kogayonon_gui
 {
 ImGuiManager::~ImGuiManager()
 {
+  m_windows.clear();
+
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplSDL2_Shutdown();
   ImGui::DestroyContext();
-  m_windows.clear();
 }
 
 ImGuiManager::ImGuiManager( SDL_Window* window, SDL_GLContext context )
@@ -197,7 +199,48 @@ void ImGuiManager::draw()
   {
     win.second->draw();
   }
+  payloadTooltip();
   end();
+}
+
+void ImGuiManager::payloadTooltip()
+{
+  // TODO make this a bit more readable since i might use many icons ore none at all and just
+  // draw something representative
+  static uint32_t gltfIcon = 0;
+  if ( gltfIcon == 0 )
+  {
+    auto& assetManager = kogayonon_utilities::AssetManager::getInstance();
+    if ( auto tex = assetManager.getTextureByName( "gltf_icon.png" ).lock() )
+    {
+      gltfIcon = tex->getTextureId();
+    }
+    else
+    {
+      return;
+    }
+  }
+
+  if ( const ImGuiPayload* payload = ImGui::GetDragDropPayload() )
+  {
+    if ( payload->IsDataType( "ASSET_DROP" ) )
+    {
+      // TODO stylise this a bit with icons and whatnot
+      ImGui::SetNextWindowSize( ImVec2{ 60.0f, 60.0f } );
+      ImGui::PushStyleColor( ImGuiCol_PopupBg, ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f } );
+      ImGui::BeginTooltip();
+      auto data = static_cast<const char*>( payload->Data );
+      std::string dropResult( data, payload->DataSize );
+      std::filesystem::path p{ dropResult };
+      if ( p.extension().string().find( ".gltf" ) != std::string::npos )
+      {
+        ImGui::SetCursorPos( ImVec2{ 5.0f, 5.0f } );
+        ImGui::Image( (ImTextureID)gltfIcon, ImVec2{ 50.0f, 50.0f } );
+      }
+      ImGui::EndTooltip();
+      ImGui::PopStyleColor();
+    }
+  }
 }
 
 void ImGuiManager::mainMenu()
