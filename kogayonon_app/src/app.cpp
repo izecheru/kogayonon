@@ -1,4 +1,5 @@
 #include "app/app.hpp"
+#include <core/ecs/components/directional_light_component.hpp>
 #include <fstream>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui_impl_sdl2.h>
@@ -32,6 +33,7 @@
 #include "gui/project_window.hpp"
 #include "gui/scene_hierarchy.hpp"
 #include "gui/scene_viewport.hpp"
+#include "physics/nvidia_physx.hpp"
 #include "rendering/renderer.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/configurator/configurator.hpp"
@@ -44,6 +46,7 @@
 #include "window/window.hpp"
 
 using namespace kogayonon_core;
+using namespace kogayonon_physics;
 
 namespace kogayonon_app
 {
@@ -93,6 +96,7 @@ App::~App()
 void App::cleanup() const
 {
   spdlog::info( "Closing app and cleaning up" );
+  NvidiaPhysx::getInstance().releasePhysx();
 }
 
 void App::pollEvents()
@@ -194,6 +198,7 @@ void App::run()
 {
   const auto& pTimeTracker = MainRegistry::getInstance().getTimeTracker();
   const auto& pImGuiManager = MainRegistry::getInstance().getImGuiManager();
+  auto& nvidiaPhysics = NvidiaPhysx::getInstance();
 
   pTimeTracker->start( "deltaTime" );
 
@@ -201,6 +206,10 @@ void App::run()
   {
     pTimeTracker->update( "deltaTime" );
     pollEvents();
+    if ( nvidiaPhysics.isRunning() )
+    {
+      nvidiaPhysics.simulate( pTimeTracker->getDuration( "deltaTime" ).count() );
+    }
     pImGuiManager->draw();
     m_pWindow->swapWindow();
   }
@@ -304,6 +313,12 @@ bool App::initRegistries() const
   assetManager.addTexture( "logo.png" );
   assetManager.addTexture( "render_mode_icon.png" );
   assetManager.addTexture( "gltf_icon.png" );
+  assetManager.addTexture( "txt_icon.png" );
+  assetManager.addTexture( "shader_icon.png" );
+  assetManager.addTexture( "png_icon.png" );
+
+  // ugly init but it is what it is
+  auto& physics = NvidiaPhysx::getInstance();
 
   return true;
 }
@@ -336,14 +351,14 @@ bool App::initGuiForProject()
   auto& assetManager = AssetManager::getInstance();
 
   // textures for imgui buttons or windows and what not
-  auto playTexture = assetManager.getTextureByName( "play.png" ).lock()->getTextureId();
-  auto stopTexture = assetManager.getTextureByName( "stop.png" ).lock()->getTextureId();
-  auto fileTexture = assetManager.getTextureByName( "file.png" ).lock()->getTextureId();
-  auto folderTexture = assetManager.getTextureByName( "folder.png" ).lock()->getTextureId();
+  auto playTexture = assetManager.getTexture( "play.png" ).lock()->getTextureId();
+  auto stopTexture = assetManager.getTexture( "stop.png" ).lock()->getTextureId();
+  auto fileTexture = assetManager.getTexture( "file.png" ).lock()->getTextureId();
+  auto folderTexture = assetManager.getTexture( "folder.png" ).lock()->getTextureId();
 
   auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( m_pWindow->getWindow(), "Viewport",
                                                                              playTexture, stopTexture );
-  auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets", folderTexture, fileTexture );
+  auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets" );
   auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>( "Scene hierarchy" );
   auto performanceWindow = std::make_unique<kogayonon_gui::PerformanceWindow>( "Performance" );
   auto entityPropertiesWindow = std::make_unique<kogayonon_gui::EntityPropertiesWindow>( "Object properties" );
@@ -570,23 +585,20 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
         const auto& pointLightComponent = ent.getComponent<PointLightComponent>();
         auto& light = scene_->getPointLight( pointLightComponent.pointLightIndex );
 
-        kogayonon_resources::PointLight tempLight{};
-        Serializer::deserialize( tempLight.color.x, sceneIn );
-        Serializer::deserialize( tempLight.color.y, sceneIn );
-        Serializer::deserialize( tempLight.color.z, sceneIn );
-        Serializer::deserialize( tempLight.color.w, sceneIn );
+        Serializer::deserialize( light.color.x, sceneIn );
+        Serializer::deserialize( light.color.y, sceneIn );
+        Serializer::deserialize( light.color.z, sceneIn );
+        Serializer::deserialize( light.color.w, sceneIn );
 
-        Serializer::deserialize( tempLight.params.x, sceneIn );
-        Serializer::deserialize( tempLight.params.y, sceneIn );
-        Serializer::deserialize( tempLight.params.z, sceneIn );
-        Serializer::deserialize( tempLight.params.w, sceneIn );
+        Serializer::deserialize( light.params.x, sceneIn );
+        Serializer::deserialize( light.params.y, sceneIn );
+        Serializer::deserialize( light.params.z, sceneIn );
+        Serializer::deserialize( light.params.w, sceneIn );
 
-        Serializer::deserialize( tempLight.translation.x, sceneIn );
-        Serializer::deserialize( tempLight.translation.y, sceneIn );
-        Serializer::deserialize( tempLight.translation.z, sceneIn );
-        Serializer::deserialize( tempLight.translation.w, sceneIn );
-
-        light = tempLight;
+        Serializer::deserialize( light.translation.x, sceneIn );
+        Serializer::deserialize( light.translation.y, sceneIn );
+        Serializer::deserialize( light.translation.z, sceneIn );
+        Serializer::deserialize( light.translation.w, sceneIn );
 
         std::string group;
         size_t groupSize;
@@ -606,6 +618,53 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
         ent.replaceComponent<IdentifierComponent>( IdentifierComponent{ .name = name, .type = type, .group = group } );
       }
 
+      // doing this only once since we have only one directional light
+      {
+        auto ent = scene_->addEntity();
+
+        scene_->addDirectionalLight( ent.getEntityId() );
+
+        // we retrieve the newly created component
+        auto& directionalLightComponent = ent.getComponent<DirectionalLightComponent>();
+        auto& light = scene_->getDirectionalLight( directionalLightComponent.directionalLightIndex );
+
+        Serializer::deserialize( light.direction.x, sceneIn );
+        Serializer::deserialize( light.direction.y, sceneIn );
+        Serializer::deserialize( light.direction.z, sceneIn );
+        Serializer::deserialize( light.direction.w, sceneIn );
+
+        Serializer::deserialize( light.diffuse.x, sceneIn );
+        Serializer::deserialize( light.diffuse.y, sceneIn );
+        Serializer::deserialize( light.diffuse.z, sceneIn );
+        Serializer::deserialize( light.diffuse.w, sceneIn );
+
+        Serializer::deserialize( light.specular.x, sceneIn );
+        Serializer::deserialize( light.specular.y, sceneIn );
+        Serializer::deserialize( light.specular.z, sceneIn );
+        Serializer::deserialize( light.specular.w, sceneIn );
+
+        Serializer::deserialize( directionalLightComponent.orthoSize, sceneIn );
+        Serializer::deserialize( directionalLightComponent.nearPlane, sceneIn );
+        Serializer::deserialize( directionalLightComponent.farPlane, sceneIn );
+        Serializer::deserialize( directionalLightComponent.positionFactor, sceneIn );
+
+        std::string group;
+        size_t groupSize;
+        Serializer::deserialize( groupSize, sceneIn );
+        group.resize( groupSize );
+        Serializer::deserialize( group.data(), sizeof( char ) * groupSize, sceneIn );
+
+        std::string name;
+        size_t nameSize;
+        Serializer::deserialize( nameSize, sceneIn );
+        name.resize( nameSize );
+        Serializer::deserialize( name.data(), sizeof( char ) * nameSize, sceneIn );
+
+        EntityType type;
+        Serializer::deserialize( type, sceneIn );
+
+        ent.replaceComponent<IdentifierComponent>( IdentifierComponent{ .name = name, .type = type, .group = group } );
+      }
       if ( sceneIn )
         sceneIn.close();
 
@@ -682,6 +741,7 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
       ++emptyCount;
 
     sceneObject.AddMember( "name", rapidjson::Value{ name.c_str(), allocator }, allocator );
+    sceneObject.AddMember( "directionalLightEntityCount", 1, allocator );
     sceneObject.AddMember( "meshEntityCount", meshCount, allocator );
     sceneObject.AddMember( "pointLightEntityCount", scene->getLightCount( kogayonon_resources::LightType::Point ),
                            allocator );
@@ -772,6 +832,47 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
       Serializer::serialize( light.translation.y, sceneOut );
       Serializer::serialize( light.translation.z, sceneOut );
       Serializer::serialize( light.translation.w, sceneOut );
+
+      // now the identifier data
+      const auto& group = identifierComponent.group;
+      const size_t groupSize = group.size();
+      Serializer::serialize( groupSize, sceneOut );
+      Serializer::serialize( group.data(), sizeof( char ) * groupSize, sceneOut );
+
+      const auto& name = identifierComponent.name;
+      const size_t nameSize = name.size();
+      Serializer::serialize( nameSize, sceneOut );
+      Serializer::serialize( name.data(), sizeof( char ) * nameSize, sceneOut );
+
+      const auto& type = identifierComponent.type;
+      Serializer::serialize( type, sceneOut );
+    }
+
+    for ( const auto& [entity, identifierComponent, directionalLightComponent] :
+          scene->getRegistry().getRegistry().view<IdentifierComponent, DirectionalLightComponent>().each() )
+    {
+
+      auto& light = scene->getDirectionalLight( directionalLightComponent.directionalLightIndex );
+
+      Serializer::serialize( light.direction.x, sceneOut );
+      Serializer::serialize( light.direction.y, sceneOut );
+      Serializer::serialize( light.direction.z, sceneOut );
+      Serializer::serialize( light.direction.w, sceneOut );
+
+      Serializer::serialize( light.diffuse.x, sceneOut );
+      Serializer::serialize( light.diffuse.y, sceneOut );
+      Serializer::serialize( light.diffuse.z, sceneOut );
+      Serializer::serialize( light.diffuse.w, sceneOut );
+
+      Serializer::serialize( light.specular.x, sceneOut );
+      Serializer::serialize( light.specular.y, sceneOut );
+      Serializer::serialize( light.specular.z, sceneOut );
+      Serializer::serialize( light.specular.w, sceneOut );
+
+      Serializer::serialize( directionalLightComponent.orthoSize, sceneOut );
+      Serializer::serialize( directionalLightComponent.nearPlane, sceneOut );
+      Serializer::serialize( directionalLightComponent.farPlane, sceneOut );
+      Serializer::serialize( directionalLightComponent.positionFactor, sceneOut );
 
       // now the identifier data
       const auto& group = identifierComponent.group;

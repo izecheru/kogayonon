@@ -7,6 +7,7 @@
 #include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/rigidbody_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -17,6 +18,7 @@
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "core/systems/rendering_system.h"
+#include "physics/nvidia_physx.hpp"
 #include "rendering/camera/camera.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
@@ -25,6 +27,8 @@
 using namespace kogayonon_core;
 using namespace kogayonon_rendering;
 using namespace kogayonon_utilities;
+
+constexpr ImVec2 toolbarButtonSize{ 14.0f, 14.0f };
 
 namespace kogayonon_gui
 {
@@ -219,12 +223,13 @@ void SceneViewportWindow::drawScene()
   }
 }
 
+constexpr float topCornerMenu = 10.0f;
+
 void SceneViewportWindow::drawPickingScene()
 {
-  if ( m_selectedEntity != entt::null )
+  if ( m_selectedEntity != entt::null && m_gizmoEnabled )
     return;
 
-  // you must deselect the current entity to be able to select a new one
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
 
   const auto& io = ImGui::GetIO();
@@ -233,7 +238,7 @@ void SceneViewportWindow::drawPickingScene()
   mx -= static_cast<float>( m_props->x );
   my -= static_cast<float>( m_props->y );
 
-  if ( mx < 0 || my < 0 || mx > m_props->width || my > m_props->height )
+  if ( mx < topCornerMenu || my < topCornerMenu || mx > m_props->width || my > m_props->height )
     return;
 
   const auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
@@ -348,6 +353,8 @@ void SceneViewportWindow::draw()
   if ( !begin() )
     return;
 
+  auto& assetManager = AssetManager::getInstance();
+
   // this must be called every frame, not on key press function because it would never move smoothly
   // also the keyboard button check is a map of keys with a bool set to true if button is currently pressed
   if ( m_props->focused && !KeyboardState::getKeyState( KeyScanCode::LeftShift ) )
@@ -360,21 +367,26 @@ void SceneViewportWindow::draw()
   ImVec2 win_pos = ImGui::GetCursorScreenPos();
   ImVec2 contentSize = ImGui::GetContentRegionAvail();
 
+  scene->updateRigidbodyEntities();
+
   drawScene();
 
   switch ( m_renderMode )
   {
-  case RenderMode::Geometry:
   case RenderMode::GeometryAndLights:
+
     ImGui::GetWindowDrawList()->AddImage( m_frameBuffer.getColorAttachmentId( 0 ), win_pos,
                                           ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y },
                                           ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
 
-    ImGui::GetWindowDrawList()->AddImage(
-      m_depthBuffer.getColorAttachmentId( 0 ), ImVec2{ win_pos.x + 50.0f, win_pos.y + 50.0f },
-      ImVec2{ win_pos.x + 150.0f, win_pos.y + 150.0f }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
+    // Should send this with some kind of event to the object properties window and draw it there
+    // ImGui::GetWindowDrawList()->AddImage(
+    //   m_depthBuffer.getColorAttachmentId( 0 ), ImVec2{ win_pos.x + 50.0f, win_pos.y + 50.0f },
+    //   ImVec2{ win_pos.x + 150.0f, win_pos.y + 150.0f }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
 
     break;
+
+  case RenderMode::Geometry:
   default:
     ImGui::GetWindowDrawList()->AddImage( m_depthBuffer.getColorAttachmentId( 0 ), win_pos,
                                           ImVec2{ win_pos.x + contentSize.x, 40.0f + contentSize.y }, ImVec2{ 0, 1 },
@@ -387,13 +399,13 @@ void SceneViewportWindow::draw()
 
   if ( m_selectedEntity != entt::null )
   {
-    auto& registry = scene->getRegistry();
-    const auto& modelComponent = registry.tryGetComponent<MeshComponent>( m_selectedEntity );
+    Entity entity{ scene->getRegistry(), m_selectedEntity };
+    const auto& modelComponent = entity.tryGetComponent<MeshComponent>();
     if ( modelComponent && modelComponent->pMesh != nullptr && modelComponent->loaded == true )
     {
       const auto& instanceData = scene->getData( modelComponent->pMesh );
-      const auto& indexComponet = registry.tryGetComponent<IndexComponent>( m_selectedEntity );
-      const auto& transform = registry.tryGetComponent<TransformComponent>( m_selectedEntity );
+      const auto& indexComponet = entity.tryGetComponent<IndexComponent>();
+      const auto& transform = entity.tryGetComponent<TransformComponent>();
       auto& instanceMatrix = instanceData->instanceMatrices.at( indexComponet->index );
 
       ImGuizmo::Enable( ( m_props->hovered && m_props->focused && m_gizmoEnabled ) || ImGuizmo::IsUsingAny() );
@@ -411,25 +423,30 @@ void SceneViewportWindow::draw()
         transform->translation = translation;
         transform->rotation = rotation;
         transform->scale = scale;
-        scene->setupMultipleInstances( instanceData );
+        scene->updateInstances( instanceData );
+
+        auto quat = glm::quat{ glm::radians( transform->rotation ) };
+
+        // now that translation has been changed, need to update physics too
+        if ( entity.hasComponent<DynamicRigidbodyComponent>() )
+        {
+          auto dynamicRigidBody = entity.getComponent<DynamicRigidbodyComponent>();
+          dynamicRigidBody.pBody->setGlobalPose(
+            physx::PxTransform{ transform->translation.x, transform->translation.y, transform->translation.z,
+                                physx::PxQuat{ quat.x, quat.y, quat.z, quat.w } } );
+        }
+        else if ( entity.hasComponent<StaticRigidbodyComponent>() )
+        {
+          auto staticRigidBody = entity.getComponent<StaticRigidbodyComponent>();
+          staticRigidBody.pBody->setGlobalPose( physx::PxTransform{ transform->translation.x, transform->translation.y,
+                                                                    transform->translation.z,
+                                                                    physx::PxQuat{ quat.x, quat.y, quat.z, quat.w } } );
+        }
       }
     }
   }
 
-  auto& assetManager = AssetManager::getInstance();
-  static auto renderModeIcon = assetManager.getTextureByName( "render_mode_icon.png" ).lock()->getTextureId();
-  ImGui::SetCursorPos( ImVec2{ 20.0f, 20.0f } );
-  ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0, 0, 0, 0 ) );       // normal
-  ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0, 0, 0, 0 ) ); // active (pressed)
-
-  // place the viewport buttons here
-  if ( ImGui::ImageButton( "##RenderModeButton", renderModeIcon, ImVec2{ 20.0f, 20.0f }, ImVec2{ 0, 0 }, ImVec2{ 1, 1 },
-                           ImVec4{ 0, 0, 0, 0 }, ImVec4{ 1, 1, 1, 1 } ) )
-  {
-    ImGui::OpenPopup( "Render mode" );
-  }
-
-  ImGui::PopStyleColor( 2 ); // pop Button, Hovered, Active
+  drawToolbar();
 
   bool open = true;
   static auto padding = ImVec2{ 10.0f, 10.0f };
@@ -464,5 +481,55 @@ void SceneViewportWindow::draw()
   }
   ImGui::PopStyleVar();
   end();
+}
+
+void SceneViewportWindow::drawToolbar()
+{
+  auto& style = ImGui::GetStyle();
+  auto& assetManager = AssetManager::getInstance();
+
+  static auto renderModeIcon = assetManager.getTexture( "render_mode_icon.png" ).lock()->getTextureId();
+  static auto playIcon = assetManager.getTexture( "play.png" ).lock()->getTextureId();
+  static auto stopIcon = assetManager.getTexture( "stop.png" ).lock()->getTextureId();
+
+  // WARNING thake this into account when mouse picking
+  ImGui::SetCursorPos( ImVec2{ topCornerMenu, topCornerMenu } );
+
+  ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 8 ) );
+  ImGui::PushStyleVar( ImGuiStyleVar_ChildRounding, 10.0f );
+  ImGui::PushStyleColor( ImGuiCol_ChildBg, ImVec4{ 0.15f, 0.15f, 0.15f, 0.75f } );
+
+  constexpr int buttonCount = 3;
+  static float toolbarWidth = style.WindowPadding.x * 2.0f + ( toolbarButtonSize.x * buttonCount ) +
+                              ( style.ItemSpacing.x * buttonCount ) + ( 2.0f * 5.0f );
+
+  if ( ImGui::BeginChild( "Toolbar", ImVec2{ toolbarWidth, 25.0f }, false,
+                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse ) )
+  {
+    ImGui::PushStyleColor( ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f } );
+
+    ImGui::SetCursorPos( ImVec2{ 5.0f, 2.5f } );
+    if ( ImGui::ImageButton( "#RenderMode", renderModeIcon, toolbarButtonSize ) )
+    {
+    }
+    ImGui::SameLine();
+
+    if ( ImGui::ImageButton( "#StopButton", stopIcon, toolbarButtonSize ) )
+    {
+      kogayonon_physics::NvidiaPhysx::getInstance().switchState( false );
+    }
+    ImGui::SameLine();
+
+    if ( ImGui::ImageButton( "#StartButton", playIcon, toolbarButtonSize ) )
+    {
+      kogayonon_physics::NvidiaPhysx::getInstance().switchState( true );
+    }
+
+    ImGui::PopStyleColor();
+    ImGui::EndChild();
+  }
+
+  ImGui::PopStyleColor();
+  ImGui::PopStyleVar( 2 );
 }
 } // namespace kogayonon_gui

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.18)
 
 project(kogayonon)
 
@@ -12,13 +12,6 @@ if (POLICY CMP0141)
   set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
-
-# Tell CMake to use vcpkg
-if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-  set(CMAKE_TOOLCHAIN_FILE
-      "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
-      CACHE STRING "")
-endif()
 
 # -------------------------------------------------------------------
 # Output directories for different artifact types
@@ -37,6 +30,7 @@ find_package(EnTT CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(rapidjson CONFIG REQUIRED)
 find_package(tinyfiledialogs CONFIG REQUIRED)
+find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 
 add_subdirectory(dependencies/imgui)
 add_subdirectory(dependencies/glad)
@@ -51,3 +45,4 @@ add_subdirectory(kogayonon_resources)
 add_subdirectory(kogayonon_app)
 add_subdirectory(kogayonon_gui)
 add_subdirectory(kogayonon_rendering)
+add_subdirectory(kogayonon_physics)

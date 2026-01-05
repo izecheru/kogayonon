@@ -25,6 +25,6 @@ target_link_libraries(
           kogayonon_utilities
           kogayonon_rendering
           kogayonon_resources
- PRIVATE
+          kogayonon_physics
           SDL2::SDL2
 )

@@ -22,7 +22,7 @@ void ProjectWindow::draw()
   auto& assetManager = kogayonon_utilities::AssetManager::getInstance();
   const auto& pEventDispatcher = kogayonon_core::MainRegistry::getInstance().getEventDispatcher();
 
-  static auto enginePictureTexture = assetManager.getTextureByName( "logo.png" ).lock();
+  static auto enginePictureTexture = assetManager.getTexture( "logo.png" ).lock();
   static auto max = ImGui::GetContentRegionMax();
   ImGui::Image( (ImTextureID)enginePictureTexture->getTextureId(), max );
 

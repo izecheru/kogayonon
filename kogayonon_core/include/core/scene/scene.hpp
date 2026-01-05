@@ -103,10 +103,19 @@ public:
   InstanceData* getData( kogayonon_resources::Mesh* pModel );
 
   /**
-   * @brief Sets up the instance buffer, entity buffer and uploads the required data for rendering to the gpu
-   * @param data InstanceData* (pointer) to the data that we are about to upload to the gpu
+   * @brief Updates the already existing buffers,
+   * call only when updating existing entities
+   * @param data Pointer to the instance data that the model belongs to
    */
-  void setupMultipleInstances( InstanceData* data );
+  void updateInstances( InstanceData* data );
+
+  /**
+   * @brief Uploads the data to the GPU, call when
+   * @param data
+   */
+  void setupInstances( InstanceData* data );
+
+  void updateRigidbodyEntities();
 
   void addPointLight();
   void addPointLight( entt::entity entityId );

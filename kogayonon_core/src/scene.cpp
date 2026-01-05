@@ -1,12 +1,17 @@
+#define GLM_ENABLE_EXPERIMENTAL
 #include "core/scene/scene.hpp"
 #include <glad/glad.h>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 #include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/pointlight_component.hpp"
+#include "core/ecs/components/rigidbody_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
+#include "physics/nvidia_physx.hpp"
 #include "resources/light_types.hpp"
 #include "resources/pointlight.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
@@ -47,8 +52,7 @@ void Scene::changeName( const std::string& name )
 
 void Scene::removeEntity( entt::entity ent )
 {
-  auto& registry = m_pRegistry->getRegistry();
-  Entity entity{ *m_pRegistry, ent };
+  Entity entity{ getRegistry(), ent };
 
   if ( entity.hasComponent<MeshComponent>() )
     removeInstanceData( ent );
@@ -59,13 +63,13 @@ void Scene::removeEntity( entt::entity ent )
     const auto toErase = pLightComponent.pointLightIndex;
     m_lightSSBO.removeLight( kogayonon_resources::LightType::Point, toErase );
     m_lightUBO.decrementLightCount( kogayonon_resources::LightType::Point );
-    updateLightBuffers();
 
     for ( const auto& [entity, pLightComponent_] : m_pRegistry->getRegistry().view<PointLightComponent>().each() )
     {
       if ( pLightComponent_.pointLightIndex > toErase )
         --pLightComponent_.pointLightIndex;
     }
+    updateLightBuffers();
   }
 
   if ( entity.hasComponent<DirectionalLightComponent>() )
@@ -74,7 +78,6 @@ void Scene::removeEntity( entt::entity ent )
     const auto toErase = pDirectionalLightComponent.directionalLightIndex;
     m_lightSSBO.removeLight( kogayonon_resources::LightType::Directional, toErase );
     m_lightUBO.decrementLightCount( kogayonon_resources::LightType::Directional );
-    updateLightBuffers();
 
     for ( const auto& [entity, pDirectionalLightComponent_] :
           m_pRegistry->getRegistry().view<DirectionalLightComponent>().each() )
@@ -82,11 +85,12 @@ void Scene::removeEntity( entt::entity ent )
       if ( pDirectionalLightComponent_.directionalLightIndex > toErase )
         --pDirectionalLightComponent_.directionalLightIndex;
     }
+    updateLightBuffers();
   }
 
   // then destroy the entity
-  if ( registry.valid( ent ) )
-    registry.destroy( ent );
+  if ( m_pRegistry->getRegistry().valid( ent ) )
+    m_pRegistry->getRegistry().destroy( ent );
 
   --m_entityCount;
 }
@@ -110,11 +114,12 @@ bool Scene::addInstanceData( entt::entity entityId )
     if ( m_instances.contains( pMesh ) )
     {
       auto& instanceData = m_instances.at( pMesh );
-      // we increment the amount of models we need to render
-      ++instanceData->count;
 
       // we create a new instance matrix
       const auto& transform = entity.getComponent<TransformComponent>();
+
+      // increment the count
+      ++instanceData->count;
 
       // insert in the vector
       instanceData->instanceMatrices.push_back(
@@ -161,6 +166,7 @@ void Scene::addMeshToEntity( entt::entity entity, kogayonon_resources::Mesh* pMe
   std::lock_guard lock{ m_registryMutex };
   m_registryModified = true;
   Entity ent{ *m_pRegistry, entity };
+  ent.setType( EntityType::Object );
   ent.replaceComponent<MeshComponent>( MeshComponent{ .pMesh = pMesh, .staticMesh = false, .loaded = false } );
 
   // if we did not setup the transform from somewhere else like deserialized, we initialise a default one
@@ -207,7 +213,7 @@ void Scene::removeInstanceData( entt::entity ent )
     }
 
     // finally set up instances again to update the instance buffer and entityIds buffer
-    setupMultipleInstances( instance.get() );
+    setupInstances( instance.get() );
   }
 }
 
@@ -231,7 +237,14 @@ InstanceData* Scene::getData( kogayonon_resources::Mesh* pModel )
   return m_instances.at( pModel ).get();
 }
 
-void Scene::setupMultipleInstances( InstanceData* data )
+void Scene::updateInstances( InstanceData* data )
+{
+  // upload new data
+  glNamedBufferSubData( data->instanceBuffer, 0, sizeof( glm::mat4 ) * data->count, data->instanceMatrices.data() );
+  glNamedBufferSubData( data->entityIdBuffer, 0, sizeof( int ) * data->count, data->entityIds.data() );
+}
+
+void Scene::setupInstances( InstanceData* data )
 {
   if ( data->instanceBuffer == 0 )
     glCreateBuffers( 1, &data->instanceBuffer );
@@ -239,46 +252,62 @@ void Scene::setupMultipleInstances( InstanceData* data )
   if ( data->entityIdBuffer == 0 )
     glCreateBuffers( 1, &data->entityIdBuffer );
 
-  if ( data->instanceBuffer != 0 && data->entityIdBuffer != 0 )
+  // did not use glNamedBufferStorage cause it is immutable and instances change based on the amount of them
+  glNamedBufferData( data->instanceBuffer, sizeof( glm::mat4 ) * data->count, data->instanceMatrices.data(),
+                     GL_DYNAMIC_DRAW );
+
+  glNamedBufferData( data->entityIdBuffer, sizeof( int ) * data->count, data->entityIds.data(), GL_DYNAMIC_DRAW );
+
+  const auto& vao = data->pMesh->getVao();
+
+  glVertexArrayVertexBuffer( vao, 1, data->instanceBuffer, 0, sizeof( glm::mat4 ) );
+  glVertexArrayVertexBuffer( vao, 2, data->entityIdBuffer, 0, sizeof( int ) );
+
+  glEnableVertexArrayAttrib( vao, 3 );
+  glEnableVertexArrayAttrib( vao, 4 );
+  glEnableVertexArrayAttrib( vao, 5 );
+  glEnableVertexArrayAttrib( vao, 6 );
+  glEnableVertexArrayAttrib( vao, 7 );
+
+  glVertexArrayAttribFormat( vao, 3, 4, GL_FLOAT, GL_FALSE, 0 );
+  glVertexArrayAttribFormat( vao, 4, 4, GL_FLOAT, GL_FALSE, sizeof( glm::vec4 ) );
+  glVertexArrayAttribFormat( vao, 5, 4, GL_FLOAT, GL_FALSE, 2 * sizeof( glm::vec4 ) );
+  glVertexArrayAttribFormat( vao, 6, 4, GL_FLOAT, GL_FALSE, 3 * sizeof( glm::vec4 ) );
+  glVertexArrayAttribIFormat( vao, 7, 1, GL_INT, 0 );
+
+  glVertexArrayAttribBinding( vao, 3, 1 );
+  glVertexArrayAttribBinding( vao, 4, 1 );
+  glVertexArrayAttribBinding( vao, 5, 1 );
+  glVertexArrayAttribBinding( vao, 6, 1 );
+  glVertexArrayAttribBinding( vao, 7, 2 );
+
+  glVertexArrayBindingDivisor( vao, 1, 1 );
+  glVertexArrayBindingDivisor( vao, 2, 1 );
+}
+
+void Scene::updateRigidbodyEntities()
+{
+  if ( kogayonon_physics::NvidiaPhysx::getInstance().isRunning() )
   {
-    // did not use glNamedBufferStorage cause it is immutable and instances change based on the amount of them
-    glNamedBufferData( data->instanceBuffer, sizeof( glm::mat4 ) * data->count, data->instanceMatrices.data(),
-                       GL_DYNAMIC_DRAW );
+    for ( const auto& [entity, dynamicRigidbodyComponent, transformComponent, meshComponent, indexComponent] :
+          m_pRegistry->getRegistry()
+            .view<DynamicRigidbodyComponent, TransformComponent, MeshComponent, IndexComponent>()
+            .each() )
+    {
+      auto pose = dynamicRigidbodyComponent.pBody->getGlobalPose();
+      glm::vec3 position( pose.p.x, pose.p.y, pose.p.z );
+      glm::quat rotation( pose.q.w, pose.q.x, pose.q.y, pose.q.z );
 
-    glNamedBufferData( data->entityIdBuffer, sizeof( uint32_t ) * data->count, data->entityIds.data(),
-                       GL_DYNAMIC_DRAW );
+      glm::mat4 model = glm::translate( glm::mat4{ 1.0f }, position ) * glm::mat4{ rotation } *
+                        glm::scale( glm::mat4{ 1.0f }, transformComponent.scale );
 
-    const auto& vao = data->pMesh->getVao();
+      auto instanceData = getData( meshComponent.pMesh );
+      auto& instanceMatrix = instanceData->instanceMatrices.at( indexComponent.index );
+      instanceMatrix = model;
+      transformComponent.rotation = glm::eulerAngles( rotation );
 
-    glVertexArrayVertexBuffer( vao, 1, data->instanceBuffer, 0, sizeof( glm::mat4 ) );
-    glVertexArrayVertexBuffer( vao, 2, data->entityIdBuffer, 0, sizeof( int ) );
-
-    glEnableVertexArrayAttrib( vao, 3 );
-    glEnableVertexArrayAttrib( vao, 4 );
-    glEnableVertexArrayAttrib( vao, 5 );
-    glEnableVertexArrayAttrib( vao, 6 );
-    glEnableVertexArrayAttrib( vao, 7 );
-
-    glVertexArrayAttribFormat( vao, 3, 4, GL_FLOAT, GL_FALSE, 0 );
-    glVertexArrayAttribFormat( vao, 4, 4, GL_FLOAT, GL_FALSE, sizeof( glm::vec4 ) );
-    glVertexArrayAttribFormat( vao, 5, 4, GL_FLOAT, GL_FALSE, 2 * sizeof( glm::vec4 ) );
-    glVertexArrayAttribFormat( vao, 6, 4, GL_FLOAT, GL_FALSE, 3 * sizeof( glm::vec4 ) );
-    glVertexArrayAttribIFormat( vao, 7, 1, GL_INT, 0 );
-
-    glVertexArrayAttribBinding( vao, 3, 1 );
-    glVertexArrayAttribBinding( vao, 4, 1 );
-    glVertexArrayAttribBinding( vao, 5, 1 );
-    glVertexArrayAttribBinding( vao, 6, 1 );
-    glVertexArrayAttribBinding( vao, 7, 2 );
-
-    glVertexArrayBindingDivisor( vao, 1, 1 );
-    glVertexArrayBindingDivisor( vao, 2, 1 );
-  }
-  else
-  {
-    // upload new data
-    glNamedBufferSubData( data->instanceBuffer, 0, sizeof( glm::mat4 ) * data->count, data->instanceMatrices.data() );
-    glNamedBufferSubData( data->entityIdBuffer, 0, sizeof( int ) * data->count, data->entityIds.data() );
+      updateInstances( instanceData );
+    }
   }
 }
 
@@ -316,10 +345,11 @@ void Scene::prepareForRendering()
       // it being already in the map OR NOT we return the boolean value of that statement and then we upload the
       // geometry
       if ( !addInstanceData( entity ) )
+      {
         assetManager.uploadMeshGeometry( meshComponent.pMesh );
+      }
 
-      const auto& data = getData( meshComponent.pMesh );
-      setupMultipleInstances( data );
+      setupInstances( getData( meshComponent.pMesh ) );
 
       // check textures
       for ( auto& texture : meshComponent.pMesh->getTextures() )
@@ -341,6 +371,7 @@ void Scene::prepareForRendering()
 void Scene::addPointLight()
 {
   auto entity = addEntity();
+  entity.setType( EntityType::Light );
   m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Point );
   int index = m_lightSSBO.addLight( kogayonon_resources::LightType::Point );
   entity.addComponent<PointLightComponent>( PointLightComponent{ .pointLightIndex = index } );
@@ -349,6 +380,7 @@ void Scene::addPointLight()
 void Scene::addPointLight( entt::entity entityId )
 {
   Entity ent{ *m_pRegistry, entityId };
+  ent.setType( EntityType::Light );
   m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Point );
   int index = m_lightSSBO.addLight( kogayonon_resources::LightType::Point );
   ent.addComponent<PointLightComponent>( PointLightComponent{ .pointLightIndex = index } );
@@ -361,6 +393,7 @@ void Scene::addDirectionalLight()
     return;
 
   auto entity = addEntity();
+  entity.setType( EntityType::Light );
   m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Directional );
   int index = m_lightSSBO.addLight( kogayonon_resources::LightType::Directional );
   entity.addComponent<DirectionalLightComponent>( DirectionalLightComponent{ .directionalLightIndex = index } );
@@ -373,6 +406,7 @@ void Scene::addDirectionalLight( entt::entity entityId )
     return;
 
   Entity entity{ *m_pRegistry, entityId };
+  entity.setType( EntityType::Light );
 
   m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Directional );
   int index = m_lightSSBO.addLight( kogayonon_resources::LightType::Directional );

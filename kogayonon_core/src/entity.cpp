@@ -29,4 +29,35 @@ Entity::Entity( Registry& registry, entt::entity entity, const std::string& name
   addComponent<IdentifierComponent>(
     IdentifierComponent{ .name = name, .type = EntityType::None, .group = "MainGroup" } );
 }
+
+void Entity::setName( const std::string& name )
+{
+  auto& idComponent = getComponent<IdentifierComponent>();
+  idComponent.name = name;
+}
+
+void Entity::setGroup( const std::string& group )
+{
+  auto& idComponent = getComponent<IdentifierComponent>();
+  idComponent.group = group;
+}
+
+void Entity::setType( const EntityType& type )
+{
+  auto& idComponent = getComponent<IdentifierComponent>();
+  idComponent.type = type;
+}
+
+bool Entity::isType( const EntityType& type )
+{
+  auto& idComponent = getComponent<IdentifierComponent>();
+  return idComponent.type == type;
+}
+
+bool Entity::isGroup( const std::string& group )
+{
+  auto& idComponent = getComponent<IdentifierComponent>();
+  return idComponent.group == group;
+}
+
 } // namespace kogayonon_core

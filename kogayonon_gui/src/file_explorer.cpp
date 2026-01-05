@@ -5,6 +5,7 @@
 #include "core/event/event_dispatcher.hpp"
 #include "core/event/file_events.hpp"
 #include "imgui_utils/imgui_utils.h"
+#include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/configurator/configurator.hpp"
 #include "utilities/directory_watcher/directory_watcher.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
@@ -14,12 +15,9 @@ using namespace kogayonon_utilities;
 
 namespace kogayonon_gui
 {
-kogayonon_gui::FileExplorerWindow::FileExplorerWindow( std::string name, uint32_t folderTextureId,
-                                                       uint32_t fileTextureId )
-    : ImGuiWindow{ std::move( name ) }
+FileExplorerWindow::FileExplorerWindow( const std::string& name )
+    : ImGuiWindow{ name }
     , m_update{ false }
-    , m_folderTextureId{ folderTextureId }
-    , m_fileTextureId{ fileTextureId }
     , m_currentPath{ std::filesystem::current_path() / "resources" }
     , m_pDirWatcher{ std::make_unique<DirectoryWatcher>( "resources\\" ) }
     , m_pDispatcher{ std::make_unique<EventDispatcher>() }
@@ -158,6 +156,25 @@ void FileExplorerWindow::drawFileContextMenu( const File_& file, const std::stri
   }
 }
 
+void FileExplorerWindow::initIcons()
+{
+  static bool first = false;
+
+  if ( first )
+    return;
+
+  first = true;
+  auto& assetManager = AssetManager::getInstance();
+  m_icons.emplace( "file_default", assetManager.getTexture( "file.png" ).lock()->getTextureId() );
+  m_icons.emplace( ".gltf", assetManager.getTexture( "gltf_icon.png" ).lock()->getTextureId() );
+  m_icons.emplace( "folder", assetManager.getTexture( "folder.png" ).lock()->getTextureId() );
+  m_icons.emplace( ".txt", assetManager.getTexture( "txt_icon.png" ).lock()->getTextureId() );
+  m_icons.emplace( ".glsl", assetManager.getTexture( "shader_icon.png" ).lock()->getTextureId() );
+  m_icons.emplace( ".png", assetManager.getTexture( "png_icon.png" ).lock()->getTextureId() );
+  m_icons.emplace( ".jpg", assetManager.getTexture( "png_icon.png" ).lock()->getTextureId() );
+  m_icons.emplace( ".jpeg", assetManager.getTexture( "png_icon.png" ).lock()->getTextureId() );
+}
+
 void FileExplorerWindow::draw()
 {
   ImGui_Utils::ScopedPadding padd{ ImVec2{ 10.0f, 10.0f } };
@@ -165,9 +182,12 @@ void FileExplorerWindow::draw()
   if ( !begin() )
     return;
 
+  initIcons();
+
   static ImVec2 size{ 80.0f, 80.0f };
   static float padding = 20.0f;
   static float thumbnailSize = size.x;
+
   float cellSize = thumbnailSize + padding;
   float width = ImGui::GetContentRegionAvail().x;
   int count = width / cellSize;
@@ -197,7 +217,7 @@ void FileExplorerWindow::draw()
     {
       auto filename = file.path.filename();
       ImGui::BeginGroup();
-      ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_folderTextureId, size );
+      ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_icons.at( "folder" ), size );
       // navigate into folder like you do in windows explorer with double click
       if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) )
       {
@@ -212,7 +232,8 @@ void FileExplorerWindow::draw()
       ImGui::BeginGroup();
       drawFileContextMenu( file, filename.string() );
       // open shaders in the editor
-      ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_fileTextureId, size );
+      ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)fileExtensionToTextureId( file.path.extension().string() ),
+                          size );
       if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) &&
            file.path.extension().string() == ".glsl" )
       {
@@ -232,6 +253,14 @@ void FileExplorerWindow::draw()
   }
 
   ImGui::End();
+}
+
+uint32_t FileExplorerWindow::fileExtensionToTextureId( const std::string& fileExtension )
+{
+  if ( !m_icons.contains( fileExtension ) )
+    return m_icons.at( "file_default" );
+
+  return m_icons.at( fileExtension );
 }
 
 void FileExplorerWindow::drawToolbar()

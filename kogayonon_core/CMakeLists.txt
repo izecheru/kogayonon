@@ -10,6 +10,7 @@ add_library(
   "include/core/input/keyboard_events.hpp"
   "include/core/input/mouse_events.hpp"
   "include/core/ecs/components/texture_component.hpp"
+  "include/core/ecs/entity_types.hpp"
   "include/core/ecs/components/mesh_component.hpp"
   "include/core/ecs/components/identifier_component.hpp"
   "include/core/scene/scene_manager.hpp"
@@ -22,6 +23,8 @@ add_library(
   "include/core/project/project.hpp"
   "include/core/project/project_manager.hpp"
 
+  "include/core/ecs/components/rigidbody_component.hpp"
+
   "src/main_registry.cpp"
   "src/entity.cpp"
   "src/scene.cpp"
@@ -29,11 +32,12 @@ add_library(
   
   "src/scene_events.cpp"
   "src/rendering_system.cpp"
-  "src/project_manager.cpp")
+  "src/project_manager.cpp" )
 
 target_include_directories(kogayonon_core
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(
   kogayonon_core
-  PUBLIC EnTT::EnTT glm::glm-header-only
-  PRIVATE soil2 kogayonon_utilities kogayonon_rendering spdlog::spdlog kogayonon_resources glad)
+  PUBLIC EnTT::EnTT glm::glm-header-only kogayonon_physics
+  PRIVATE soil2 kogayonon_utilities kogayonon_rendering spdlog::spdlog kogayonon_resources glad
+)

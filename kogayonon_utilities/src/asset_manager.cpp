@@ -11,6 +11,7 @@
 
 namespace kogayonon_utilities
 {
+
 AssetManager::AssetManager()
 {
 }
@@ -288,8 +289,8 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureFromMemory( 
   return std::weak_ptr<kogayonon_resources::Texture>();
 }
 
-std::weak_ptr<kogayonon_resources::Texture> AssetManager::getTextureByName( const std::string& textureName,
-                                                                            const std::string& folder )
+std::weak_ptr<kogayonon_resources::Texture> AssetManager::getTexture( const std::string& textureName,
+                                                                      const std::string& folder )
 {
   std::filesystem::path p{ folder + textureName };
   return m_loadedTextures.at( p.string() );
@@ -315,7 +316,7 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::getTextureById( uint32
     if ( texture->getTextureId() == id )
       return texture;
   }
-  return getTextureByName( "default" );
+  return getTexture( "default" );
 }
 
 kogayonon_resources::Mesh* kogayonon_utilities::AssetManager::getMesh( const std::string& meshPath )

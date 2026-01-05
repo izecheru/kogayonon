@@ -74,6 +74,7 @@ public:
   void draw() override;
 
   void drawScene();
+  void drawToolbar();
   void drawPickingScene();
 
   // Events
@@ -83,6 +84,7 @@ public:
   void onKeyPressed( const kogayonon_core::KeyPressedEvent& e );
   void onMouseScrolled( const kogayonon_core::MouseScrolledEvent& e );
   void onSaveScene( const kogayonon_core::SaveSceneEvent& e );
+  
 
 private:
   entt::entity m_selectedEntity;

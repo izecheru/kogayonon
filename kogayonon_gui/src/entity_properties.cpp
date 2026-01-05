@@ -2,11 +2,15 @@
 #include <ImGuizmo.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui_stdlib.h>
+#include <physx/extensions/PxRigidActorExt.h>
+#include <physx/extensions/PxRigidBodyExt.h>
+#include <physx/extensions/PxSimpleFactory.h>
 #include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/pointlight_component.hpp"
+#include "core/ecs/components/rigidbody_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
@@ -16,6 +20,7 @@
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "imgui_utils/imgui_utils.h"
+#include "physics/nvidia_physx.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/math/math.hpp"
 #include "utilities/task_manager/task_manager.hpp"
@@ -61,6 +66,45 @@ void EntityPropertiesWindow::draw()
   ImGui::End();
 }
 
+void EntityPropertiesWindow::drawDynamicRigidbodyComponent( kogayonon_core::Entity& ent ) const
+{
+  if ( !ent.hasComponent<DynamicRigidbodyComponent>() )
+    return;
+
+  ImGui::SeparatorText( "Dynamic rigidbody" );
+  auto& dyanmicRigidbody = ent.getComponent<DynamicRigidbodyComponent>();
+  auto name = dyanmicRigidbody.pBody->getName();
+  ImGui::Text( "%s", name );
+}
+
+void EntityPropertiesWindow::drawStaticRigidbodyComponent( kogayonon_core::Entity& ent ) const
+{
+  if ( !ent.hasComponent<StaticRigidbodyComponent>() )
+    return;
+
+  ImGui::SeparatorText( "Static rigidbody" );
+  auto& staticRigidbody = ent.getComponent<StaticRigidbodyComponent>();
+  auto name = staticRigidbody.pBody->getName();
+  ImGui::Text( "%s", name );
+}
+
+void EntityPropertiesWindow::drawLightMenu( Entity& ent )
+{
+  auto scene = SceneManager::getCurrentScene().lock();
+  ImGui::SeparatorText( "Lighting" );
+  if ( ImGui::BeginMenu( "Light" ) )
+  {
+    if ( !ent.hasComponent<PointLightComponent>() )
+    {
+      if ( ImGui::MenuItem( "Point light" ) )
+      {
+        scene->addPointLight( ent.getEntityId() );
+      }
+    }
+    ImGui::EndMenu();
+  }
+}
+
 void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
 {
   Entity entity{ scene->getRegistry(), m_selectedEntity };
@@ -84,45 +128,136 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
           entity.addComponent<MeshComponent>();
         }
       }
-
-      if ( !entity.hasComponent<PointLightComponent>() )
+      // has mesh component so we can add physics to it
+      else
       {
-        if ( ImGui::MenuItem( "Point light" ) )
-        {
-          scene->addPointLight( entity.getEntityId() );
-        }
+        drawRigidbodyMenu( entity );
       }
+
+      drawLightMenu( entity );
 
       if ( ImGui::MenuItem( "Texture component" ) )
       {
+        // TODO add implementation for texture component
       }
       ImGui::EndMenu();
     }
     ImGui::EndPopup();
   }
 
-  if ( entity.hasComponent<MeshComponent>() )
+  drawMeshComponent( entity );
+  drawTransformComponent( entity );
+  drawPointLightComponent( entity );
+  drawDirectionalLightComponent( entity );
+  drawDynamicRigidbodyComponent( entity );
+  drawStaticRigidbodyComponent( entity );
+}
+
+void EntityPropertiesWindow::drawRigidbodyMenu( Entity& ent )
+{
+  ImGui::SeparatorText( "Physics" );
+  if ( ImGui::BeginMenu( "Dynamic rigid body" ) )
   {
-    ImGui::SeparatorText( "  Mesh  " );
-    drawMeshComponent( entity );
+    if ( !ent.hasComponent<DynamicRigidbodyComponent>() )
+    {
+      if ( ImGui::MenuItem( "Box" ) )
+      {
+        ent.addComponent<DynamicRigidbodyComponent>();
+
+        auto& box = ent.getComponent<DynamicRigidbodyComponent>();
+        auto& transform = ent.getComponent<TransformComponent>();
+        auto& nvidia = kogayonon_physics::NvidiaPhysx::getInstance();
+        auto physics = nvidia.getPhysics();
+        auto quat = glm::quat{ glm::radians( transform.rotation ) };
+
+        // TODO change the box size somehow
+        auto shape = physics->createShape(
+          physx::PxBoxGeometry{ transform.scale.x, transform.scale.y, transform.scale.z }, *nvidia.getMaterial() );
+        box.pBody = physics->createRigidDynamic(
+          physx::PxTransform{ transform.translation.x, transform.translation.y, transform.translation.z,
+                              physx::PxQuat{ quat.x, quat.y, quat.z, quat.w } } );
+        box.pBody->attachShape( *shape );
+        physx::PxRigidBodyExt::updateMassAndInertia( *box.pBody, 10.0f );
+        nvidia.getScene()->addActor( *box.pBody );
+        shape->release();
+      }
+      if ( ImGui::MenuItem( "Sphere" ) )
+      {
+        ent.addComponent<DynamicRigidbodyComponent>();
+
+        auto& sphere = ent.getComponent<DynamicRigidbodyComponent>();
+        auto& position = ent.getComponent<TransformComponent>().translation;
+        auto& nvidia = kogayonon_physics::NvidiaPhysx::getInstance();
+        auto physics = nvidia.getPhysics();
+
+        auto shape = physics->createShape( physx::PxSphereGeometry{ 2.0f }, *nvidia.getMaterial() );
+        sphere.pBody =
+          physics->createRigidDynamic( physx::PxTransform{ physx::PxVec3{ position.x, position.y, position.z } } );
+        sphere.pBody->attachShape( *shape );
+        physx::PxRigidBodyExt::updateMassAndInertia( *sphere.pBody, 10.0f );
+        nvidia.getScene()->addActor( *sphere.pBody );
+        shape->release();
+      }
+    }
+    ImGui::EndMenu();
   }
 
-  if ( entity.hasComponent<TransformComponent>() )
+  if ( ImGui::BeginMenu( "Static rigid body" ) )
   {
-    ImGui::SeparatorText( "  Transform  " );
-    drawTransformComponent( entity );
-  }
+    if ( !ent.hasComponent<StaticRigidbodyComponent>() )
+    {
+      if ( ImGui::MenuItem( "Box" ) )
+      {
+        ent.addComponent<StaticRigidbodyComponent>();
 
-  if ( entity.hasComponent<PointLightComponent>() )
-  {
-    ImGui::SeparatorText( "  Point light " );
-    drawPointLightComponent( entity );
-  }
+        auto& box = ent.getComponent<StaticRigidbodyComponent>();
+        auto& transform = ent.getComponent<TransformComponent>();
+        auto quat = glm::quat{ glm::radians( transform.rotation ) };
+        auto& nvidia = kogayonon_physics::NvidiaPhysx::getInstance();
+        auto physics = nvidia.getPhysics();
 
-  if ( entity.hasComponent<DirectionalLightComponent>() )
-  {
-    ImGui::SeparatorText( "  Directional light " );
-    drawDirectionalLightComponent( entity );
+        // TODO change the box size somehow
+        auto shape = physics->createShape(
+          physx::PxBoxGeometry{ transform.scale.x, transform.scale.y, transform.scale.z }, *nvidia.getMaterial() );
+        box.pBody = physics->createRigidStatic( physx::PxTransform{ transform.translation.x, transform.translation.y,
+                                                                    transform.translation.z,
+                                                                    physx::PxQuat{ quat.x, quat.y, quat.z, quat.w } } );
+        box.pBody->attachShape( *shape );
+        nvidia.getScene()->addActor( *box.pBody );
+        shape->release();
+      }
+      if ( ImGui::MenuItem( "Sphere" ) )
+      {
+        ent.addComponent<StaticRigidbodyComponent>();
+
+        auto& sphere = ent.getComponent<StaticRigidbodyComponent>();
+        auto& position = ent.getComponent<TransformComponent>().translation;
+        auto& nvidia = kogayonon_physics::NvidiaPhysx::getInstance();
+        auto physics = nvidia.getPhysics();
+
+        auto shape = physics->createShape( physx::PxSphereGeometry{ 2.0f }, *nvidia.getMaterial() );
+        sphere.pBody =
+          physics->createRigidStatic( physx::PxTransform{ physx::PxVec3{ position.x, position.y, position.z } } );
+        sphere.pBody->attachShape( *shape );
+        nvidia.getScene()->addActor( *sphere.pBody );
+        shape->release();
+      }
+      if ( ImGui::MenuItem( "Plane" ) )
+      {
+        ent.addComponent<StaticRigidbodyComponent>();
+
+        auto& plane = ent.getComponent<StaticRigidbodyComponent>();
+        auto& position = ent.getComponent<TransformComponent>().translation;
+        auto& nvidia = kogayonon_physics::NvidiaPhysx::getInstance();
+        auto physics = nvidia.getPhysics();
+        auto material = nvidia.getMaterial();
+
+        plane.pBody = physx::PxCreatePlane( *physics, physx::PxPlane{ 0, 1, 0, 0 }, *material );
+
+        nvidia.getScene()->addActor( *plane.pBody );
+      }
+    }
+    ImGui::EndMenu();
   }
 }
 
@@ -176,18 +311,20 @@ void EntityPropertiesWindow::drawTextureContextMenu( std::vector<kogayonon_resou
 
 void EntityPropertiesWindow::drawMeshComponent( Entity& ent )
 {
-  auto pMeshComponent = ent.tryGetComponent<MeshComponent>();
+  if ( !ent.hasComponent<MeshComponent>() )
+    return;
+
+  ImGui::SeparatorText( "Mesh" );
+  auto pMeshComponent = ent.getComponent<MeshComponent>();
   if ( ImGui::BeginDragDropTarget() )
   {
     const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( "ASSET_DROP" );
     manageModelPayload( payload );
     ImGui::EndDragDropTarget();
   }
-  if ( !pMeshComponent )
-    return;
 
   auto scene = SceneManager::getCurrentScene().lock();
-  auto& mesh = pMeshComponent->pMesh;
+  auto& mesh = pMeshComponent.pMesh;
 
   if ( !mesh )
     return;
@@ -196,6 +333,39 @@ void EntityPropertiesWindow::drawMeshComponent( Entity& ent )
 
   ImGui::Text( "Mesh has %d submeshes", mesh->getSubmeshes().size() );
   ImGui::TextWrapped( "Path: %s", mesh->getPath().c_str() );
+
+  // TODO must draw some other stuff here idk, removing textures or something
+  // draw every texture here, since each submesh references an already existing texture
+  // we get duplicates so we insert them in an unordered set and then render them
+  const auto& textures = mesh->getTextures();
+
+  // this is static and changes when entity id changes
+  static auto entityId = m_selectedEntity;
+  static std::unordered_set<kogayonon_resources::Texture*> uniqueTextures;
+  if ( entityId != m_selectedEntity )
+  {
+    entityId = m_selectedEntity;
+    uniqueTextures.clear();
+
+    for ( const auto& texture : textures )
+    {
+      uniqueTextures.insert( texture );
+    }
+  }
+
+  for ( const auto& uniqueTex : uniqueTextures )
+  {
+    ImGui::Image( (ImTextureID)uniqueTex->getTextureId(), ImVec2{ 50.0f, 50.0f } );
+    if ( ImGui::IsItemHovered() )
+    {
+      // should show here what submeshes uses this texture
+      ImGui::BeginTooltip();
+      ImGui::Image( (ImTextureID)uniqueTex->getTextureId(), ImVec2{ 250.0f, 250.0f } );
+      ImGui::Text( "%s", uniqueTex->getName().c_str() );
+      ImGui::Text( "%d/%d", uniqueTex->getWidth(), uniqueTex->getHeight() );
+      ImGui::EndTooltip();
+    }
+  }
 
   if ( ImGui::Button( "Remove mesh" ) )
   {
@@ -265,16 +435,18 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
 
 void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
 {
-  const auto& transformComponent = ent.tryGetComponent<TransformComponent>();
-  if ( !transformComponent )
+  if ( !ent.hasComponent<TransformComponent>() )
     return;
+
+  ImGui::SeparatorText( "Transform" );
+  auto& transformComponent = ent.getComponent<TransformComponent>();
 
   // if it has transform, it definetely has a mesh component
   const auto& modelComponent = ent.tryGetComponent<MeshComponent>();
 
   bool changed = false;
-  auto& translation = transformComponent->translation;
-  auto& scale = transformComponent->scale;
+  auto& translation = transformComponent.translation;
+  auto& scale = transformComponent.scale;
 
   // since the first two are the largest we make the width = largest size
   // position
@@ -321,7 +493,7 @@ void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
 
     ImGui::Text( "Rotation" );
 
-    auto& rotation = transformComponent->rotation;
+    auto& rotation = transformComponent.rotation;
 
     ImGui::TableNextColumn();
     changed |= ImGui::DragFloat( "##Xrotation", &rotation.x, 0.1f, -180.0f, 180.0f, "%.2f" );
@@ -350,22 +522,24 @@ void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
                                                glm::value_ptr( scale ),
                                                glm::value_ptr( data->instanceMatrices.at( indexComponent.index ) ) );
 
-      scene->setupMultipleInstances( data );
+      scene->updateInstances( data );
     }
   }
 }
 
 void EntityPropertiesWindow::drawPointLightComponent( kogayonon_core::Entity& ent ) const
 {
-  const auto& pPointLightComponent = ent.tryGetComponent<PointLightComponent>();
-  if ( !pPointLightComponent )
+  if ( !ent.hasComponent<PointLightComponent>() )
     return;
+  ImGui::SeparatorText( "Point light" );
+  const auto& pPointLightComponent = ent.getComponent<PointLightComponent>();
+
   auto scene = SceneManager::getCurrentScene().lock();
 
   if ( !scene )
     return;
 
-  auto& pointLight = scene->getPointLight( pPointLightComponent->pointLightIndex );
+  auto& pointLight = scene->getPointLight( pPointLightComponent.pointLightIndex );
 
   bool changed = false;
 
@@ -520,6 +694,10 @@ void EntityPropertiesWindow::drawPointLightComponent( kogayonon_core::Entity& en
 
 void EntityPropertiesWindow::drawDirectionalLightComponent( kogayonon_core::Entity& ent ) const
 {
+  if ( !ent.hasComponent<DirectionalLightComponent>() )
+    return;
+
+  ImGui::SeparatorText( "Directional light" );
   const auto& pDirectionalLightComponent = ent.tryGetComponent<DirectionalLightComponent>();
 
   if ( !pDirectionalLightComponent )

@@ -37,13 +37,13 @@ public:
                                                                     const unsigned char* data );
 
   /**
-   * @brief Finds a texture by name
+   * @brief Finds a texture by name, if no directory is provided it defaults to "resources/textures/"
    * @param textureName Name of the texture you are looking for
    * @param folder Folder we retrieve the texture from, defaults to "resources/textures/" if not specified as param
    * @return A weak ptr to the texture found
    */
-  std::weak_ptr<kogayonon_resources::Texture> getTextureByName( const std::string& textureName,
-                                                                const std::string& folder = "resources/textures/" );
+  std::weak_ptr<kogayonon_resources::Texture> getTexture( const std::string& textureName,
+                                                          const std::string& folder = "resources/textures/" );
 
   /**
    * @brief Deletes a texture from the loaded map, even though we index with texture name which is not actual filename,

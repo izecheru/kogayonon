@@ -26,7 +26,7 @@ class FileExplorerWindow : public ImGuiWindow
   };
 
 public:
-  explicit FileExplorerWindow( std::string name, uint32_t folderTextureId, uint32_t fileTextureId );
+  explicit FileExplorerWindow( const std::string& name );
 
   ~FileExplorerWindow() = default;
 
@@ -43,6 +43,8 @@ private:
    * @brief Draw the path, relative from resources folder, we can navigate back to "root" using it
    */
   void drawToolbar();
+
+  uint32_t fileExtensionToTextureId( const std::string& fileExtension );
 
   /**
    * @brief Initializes a map of callbacks for the DirectoryWatcher to use and call when a file event is triggered
@@ -68,11 +70,13 @@ private:
    */
   void drawFileContextMenu( const File_& file, const std::string& id );
 
+  void initIcons();
+
 private:
   std::vector<File_> m_files;
   std::atomic_bool m_update;
-  uint32_t m_folderTextureId;
-  uint32_t m_fileTextureId;
+
+  std::unordered_map<std::string, uint32_t> m_icons;
 
   std::filesystem::path m_currentPath;
   std::unique_ptr<kogayonon_utilities::DirectoryWatcher> m_pDirWatcher;

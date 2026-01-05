@@ -104,7 +104,7 @@ void SceneHierarchyWindow::draw()
   auto& assetManager = AssetManager::getInstance();
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
 
-  static auto cubeIcon = assetManager.getTextureByName( "3d-cube.png" );
+  static auto cubeIcon = assetManager.getTexture( "3d-cube.png" );
 
   initProps();
 
@@ -232,6 +232,7 @@ void SceneHierarchyWindow::drawContextMenu()
     if ( ImGui::MenuItem( "Mesh" ) )
     {
       auto entity = scene->addEntity();
+      entity.setType( EntityType::Object );
       entity.addComponent<MeshComponent>();
       m_selectedEntity = entity.getEntityId();
       pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
@@ -240,6 +241,7 @@ void SceneHierarchyWindow::drawContextMenu()
     if ( ImGui::MenuItem( "Point light" ) )
     {
       auto entity = scene->addEntity();
+      entity.setType( EntityType::Light );
       scene->addPointLight( entity.getEntityId() );
       spdlog::info( "{} number of point lights", scene->getLightCount( kogayonon_resources::LightType::Point ) );
       m_selectedEntity = entity.getEntityId();
@@ -250,6 +252,7 @@ void SceneHierarchyWindow::drawContextMenu()
     if ( ImGui::MenuItem( "Directional light" ) )
     {
       auto entity = scene->addEntity();
+      entity.setType( EntityType::Light );
       scene->addDirectionalLight( entity.getEntityId() );
       m_selectedEntity = entity.getEntityId();
       scene->updateLightBuffers();

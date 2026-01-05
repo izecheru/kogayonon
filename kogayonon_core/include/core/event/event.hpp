@@ -3,6 +3,7 @@
 
 namespace kogayonon_core
 {
+// THIS might not be needed since a listner listens to a certain event not a certain event TYPE
 enum class EventType
 {
   None = 0,

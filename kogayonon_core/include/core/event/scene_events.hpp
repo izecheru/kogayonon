@@ -4,9 +4,6 @@
 
 namespace kogayonon_core
 {
-/**
- * @brief Type of event for entity change in SceneHierarchyWindow to propagate to the PropertiesWindow
- */
 class SelectEntityEvent : public IEvent
 {
 public:

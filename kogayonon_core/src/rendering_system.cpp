@@ -89,6 +89,7 @@ void RenderingSystem::renderGeometryWithShadows( std::shared_ptr<Scene> scene, c
   {
     if ( !meshComponent.loaded )
       continue;
+
     auto& mesh = meshComponent.pMesh;
 
     if ( !mesh )

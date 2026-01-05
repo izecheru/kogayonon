@@ -139,7 +139,7 @@ void ImGuiManager::setupDockSpace( ImGuiViewport* viewport )
       ImGui::DockBuilderDockWindow( "Debug console", bottomCenterNodeId );
       ImGui::DockBuilderDockWindow( "Assets", bottomCenterNodeId );
       ImGui::DockBuilderDockWindow( "Scene hierarchy", upplerLeftNodeId );
-      ImGui::DockBuilderDockWindow( "Object properties", lowerLeftNodeId );
+      ImGui::DockBuilderDockWindow( "Object properties", rightNodeId );
       ImGui::DockBuilderDockWindow( "Performance", rightNodeId );
       ImGui::DockBuilderDockWindow( "Viewport", centerNodeId );
       ImGui::DockBuilderDockWindow( "Project", centerNodeId );
@@ -211,7 +211,7 @@ void ImGuiManager::payloadTooltip()
   if ( gltfIcon == 0 )
   {
     auto& assetManager = kogayonon_utilities::AssetManager::getInstance();
-    if ( auto tex = assetManager.getTextureByName( "gltf_icon.png" ).lock() )
+    if ( auto tex = assetManager.getTexture( "gltf_icon.png" ).lock() )
     {
       gltfIcon = tex->getTextureId();
     }
@@ -226,7 +226,7 @@ void ImGuiManager::payloadTooltip()
     if ( payload->IsDataType( "ASSET_DROP" ) )
     {
       // TODO stylise this a bit with icons and whatnot
-      ImGui::SetNextWindowSize( ImVec2{ 60.0f, 60.0f } );
+      ImGui::SetNextWindowSize( ImVec2{ 40.0f, 40.0f } );
       ImGui::PushStyleColor( ImGuiCol_PopupBg, ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f } );
       ImGui::BeginTooltip();
       auto data = static_cast<const char*>( payload->Data );
@@ -234,8 +234,8 @@ void ImGuiManager::payloadTooltip()
       std::filesystem::path p{ dropResult };
       if ( p.extension().string().find( ".gltf" ) != std::string::npos )
       {
-        ImGui::SetCursorPos( ImVec2{ 5.0f, 5.0f } );
-        ImGui::Image( (ImTextureID)gltfIcon, ImVec2{ 50.0f, 50.0f } );
+        // ImGui::SetCursorPos( ImVec2{ 5.0f, 5.0f } );
+        ImGui::Image( (ImTextureID)gltfIcon, ImVec2{ 40.0f, 40.0f } );
       }
       ImGui::EndTooltip();
       ImGui::PopStyleColor();

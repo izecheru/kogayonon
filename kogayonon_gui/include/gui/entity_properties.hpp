@@ -40,6 +40,11 @@ private:
   void drawTransformComponent( kogayonon_core::Entity& ent ) const;
   void drawPointLightComponent( kogayonon_core::Entity& ent ) const;
   void drawDirectionalLightComponent( kogayonon_core::Entity& ent ) const;
+  void drawDynamicRigidbodyComponent( kogayonon_core::Entity& ent ) const;
+  void drawStaticRigidbodyComponent( kogayonon_core::Entity& ent ) const;
+
+  void drawRigidbodyMenu( kogayonon_core::Entity& ent );
+  void drawLightMenu( kogayonon_core::Entity& ent );
 
   void manageModelPayload( const ImGuiPayload* payload );
   void manageTexturePayload( const ImGuiPayload* payload ) const;
