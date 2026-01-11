@@ -31,27 +31,27 @@ Texture::Texture( uint32_t id, const std::string& p, const std::string& name, in
 {
 }
 
-std::string Texture::getPath() const
+auto Texture::getPath() const -> std::string
 {
   return m_path;
 }
 
-std::string Texture::getName() const
+auto Texture::getName() const -> std::string
 {
   return m_name;
 }
 
-int Texture::getWidth() const
+auto Texture::getWidth() const -> int
 {
   return m_width;
 }
 
-int Texture::getHeight() const
+auto Texture::getHeight() const -> int
 {
   return m_height;
 }
 
-uint32_t Texture::getTextureId() const
+auto Texture::getTextureId() const -> uint32_t
 {
   return m_id;
 }

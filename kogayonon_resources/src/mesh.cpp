@@ -29,37 +29,37 @@ Mesh::Mesh( const std::string& path, const std::vector<Vertex>&& vertices, const
 {
 }
 
-std::vector<Vertex>& Mesh::getVertices()
+auto Mesh::getVertices() -> std::vector<Vertex>&
 {
   return m_vertices;
 }
 
-std::vector<uint32_t>& Mesh::getIndices()
+auto Mesh::getIndices() -> std::vector<uint32_t>&
 {
   return m_indices;
 }
 
-std::vector<Texture*>& Mesh::getTextures()
+auto Mesh::getTextures() -> std::vector<Texture*>&
 {
   return m_textures;
 }
 
-uint32_t& Mesh::getVao()
+auto Mesh::getVao() -> uint32_t&
 {
   return m_vao;
 }
 
-uint32_t& Mesh::getVbo()
+auto Mesh::getVbo() -> uint32_t&
 {
   return m_vbo;
 }
 
-uint32_t& Mesh::getEbo()
+auto Mesh::getEbo() -> uint32_t&
 {
   return m_ebo;
 }
 
-std::vector<Submesh>& Mesh::getSubmeshes()
+auto Mesh::getSubmeshes() -> std::vector<Submesh>&
 {
   return m_submeshes;
 }

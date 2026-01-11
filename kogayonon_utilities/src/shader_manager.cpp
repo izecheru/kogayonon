@@ -42,7 +42,7 @@ void ShaderManager::compileMarkedShaders()
   }
 }
 
-Shader& ShaderManager::getShader( const std::string& shader_name )
+auto ShaderManager::getShader( const std::string& shader_name ) -> Shader&
 {
   if ( m_shaders.find( shader_name ) == m_shaders.end() )
   {
@@ -51,7 +51,7 @@ Shader& ShaderManager::getShader( const std::string& shader_name )
   return m_shaders.at( shader_name );
 }
 
-unsigned int ShaderManager::getShaderId( const std::string& shader_name )
+auto ShaderManager::getShaderId( const std::string& shader_name ) -> uint32_t
 {
   return getShader( shader_name ).getShaderId();
 }

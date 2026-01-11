@@ -20,9 +20,18 @@ class FileExplorerWindow : public ImGuiWindow
 {
   struct File_
   {
+    // is it or not a directory
     bool isDir{ false };
+
+    // id used for the imgui
     std::string imguiId{ "##" };
+
+    // path to the file
     std::filesystem::path path;
+
+    // just a flag for search functionality, if the filename contains what we
+    // search for then this is true, otherwise false (in case of searching)
+    bool renderable{ true };
   };
 
 public:
@@ -44,7 +53,7 @@ private:
    */
   void drawToolbar();
 
-  uint32_t fileExtensionToTextureId( const std::string& fileExtension );
+  auto fileExtensionToTextureId( const std::string& fileExtension ) -> uint32_t;
 
   /**
    * @brief Initializes a map of callbacks for the DirectoryWatcher to use and call when a file event is triggered
@@ -71,6 +80,12 @@ private:
   void drawFileContextMenu( const File_& file, const std::string& id );
 
   void initIcons();
+
+  /**
+   * @brief Search for files that contain the string
+   * @param toFind The string we search with and compare
+   */
+  void searchFor( const std::string& toFind );
 
 private:
   std::vector<File_> m_files;

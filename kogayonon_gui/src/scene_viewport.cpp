@@ -159,67 +159,63 @@ void SceneViewportWindow::drawScene()
 
   const auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
   auto proj = m_pCamera->getProjectionMatrix( { m_props->width, m_props->height } );
-  auto view = m_pCamera->getViewMatrix();
+  auto& view = m_pCamera->getViewMatrix();
   auto& depthShader = pShaderManager->getShader( "depth" );
   auto& depthDebugShader = pShaderManager->getShader( "depthDebug" );
   auto& geometryShader = pShaderManager->getShader( "3d" );
+  auto& outliningShader = pShaderManager->getShader( "outlining" );
 
-  switch ( m_renderMode )
+  if ( scene->getLightCount( kogayonon_resources::LightType::Directional ) != 0 )
   {
-  case RenderMode::GeometryAndLights: {
-    if ( scene->getLightCount( kogayonon_resources::LightType::Directional ) != 0 )
+    // since atm we have only one directional light we get the index 0 light
+    const auto& directionalLight = scene->getDirectionalLight();
+    static entt::entity ent = entt::null;
+    if ( ent == entt::null )
     {
-      // depth pass first for shadow mapping
-      glCullFace( GL_FRONT );
-      m_depthBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
-      m_depthBuffer.bind();
-      glClear( GL_DEPTH_BUFFER_BIT );
-
-      // since atm we have only one directional light we get the index 0 light
-      const auto& directionalLight = scene->getDirectionalLight();
-      static entt::entity ent = entt::null;
-      if ( ent == entt::null )
+      for ( const auto& [entity, lightComponent] : scene->getEnttRegistry().view<DirectionalLightComponent>().each() )
       {
-        for ( const auto& [entity, lightComponent] : scene->getEnttRegistry().view<DirectionalLightComponent>().each() )
-        {
-          ent = entity;
-        }
+        ent = entity;
       }
-
-      const auto& directionalLightComponent = scene->getRegistry().getComponent<DirectionalLightComponent>( ent );
-
-      auto lightProjection = glm::ortho( -directionalLightComponent.orthoSize, directionalLightComponent.orthoSize,
-                                         -directionalLightComponent.orthoSize, directionalLightComponent.orthoSize,
-                                         directionalLightComponent.nearPlane, directionalLightComponent.farPlane );
-      auto lightDir = glm::normalize(
-        glm::vec3( directionalLight.direction.x, directionalLight.direction.y, directionalLight.direction.z ) );
-      auto lightPos = -lightDir * directionalLightComponent.positionFactor;
-
-      auto lightView = glm::lookAt( lightPos, glm::vec3{ 0.0f }, glm::vec3{ 0.0f, 1.0f, 0.0f } );
-
-      auto lightSpaceMatrix = lightProjection * lightView;
-
-      m_pRenderingSystem->render( scene, lightView, lightProjection, depthShader );
-      m_depthBuffer.unbind();
-
-      glCullFace( GL_BACK );
-      //  upload the texture to the geometry shader
-      const auto depthMap = m_depthBuffer.getDepthAttachmentId();
-      // render geometry
-      m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
-      m_frameBuffer.bind();
-      glClearColor( 0.3f, 0.3f, 0.3f, 0.5f );
-      glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-      m_pRenderingSystem->renderGeometryWithShadows( scene, view, proj, geometryShader, lightSpaceMatrix, depthMap );
-      m_frameBuffer.unbind();
     }
-  }
-  break;
-  case RenderMode::Geometry:
-  case RenderMode::Depth:
-  default:
-    break;
+
+    const auto& directionalLightComponent = scene->getRegistry().getComponent<DirectionalLightComponent>( ent );
+
+    auto lightProjection = glm::ortho( -directionalLightComponent.orthoSize, directionalLightComponent.orthoSize,
+                                       -directionalLightComponent.orthoSize, directionalLightComponent.orthoSize,
+                                       directionalLightComponent.nearPlane, directionalLightComponent.farPlane );
+    auto lightDir = glm::normalize(
+      glm::vec3( directionalLight.direction.x, directionalLight.direction.y, directionalLight.direction.z ) );
+    auto lightPos = -lightDir * directionalLightComponent.positionFactor;
+
+    auto lightView = glm::lookAt( lightPos, glm::vec3{ 0.0f }, glm::vec3{ 0.0f, 1.0f, 0.0f } );
+
+    auto lightSpaceMatrix = lightProjection * lightView;
+
+    Canvas canvas{
+      .framebuffer = m_depthBuffer, .w = static_cast<int>( m_props->width ), .h = static_cast<int>( m_props->height ) };
+    FrameContext frameContext{
+      .canvas = canvas, .scene = scene.get(), .view = lightView, .projection = lightProjection };
+    DepthPassContext depthPass{ .shader = depthShader };
+
+    m_pRenderingSystem->renderDepthPass( frameContext, depthPass );
+
+    //  upload the texture to the geometry shader
+    const auto depthMap = m_depthBuffer.getDepthAttachmentId();
+    // render geometry
+    // GeometryPassContext geometryPass{ .shader = geometryShader, .depthMap = depthMap };
+
+    // frameContext.canvas.framebuffer = m_frameBuffer;
+    // frameContext.projection = proj;
+    // frameContext.view = view;
+
+    // m_pRenderingSystem->renderGeometryPass( frameContext, geometryPass );
+
+    m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
+    m_frameBuffer.bind();
+    glClearColor( 0.3f, 0.3f, 0.3f, 0.5f );
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    m_pRenderingSystem->renderGeometryWithShadows( scene, view, proj, geometryShader, lightSpaceMatrix, depthMap );
+    m_frameBuffer.unbind();
   }
 }
 
@@ -243,28 +239,26 @@ void SceneViewportWindow::drawPickingScene()
 
   const auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
   auto& shader = pShaderManager->getShader( "picking" );
-  m_pickingFrameBuffer.resize( m_props->width, m_props->height );
-
   auto proj = m_pCamera->getProjectionMatrix( { m_props->width, m_props->height } );
-  m_pickingFrameBuffer.bind();
-  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-  m_pickingFrameBuffer.clearColorAttachment( 0, -1 );
-  m_pRenderingSystem->render( SceneManager::getCurrentScene().lock(), m_pCamera->getViewMatrix(), proj, shader );
-  auto result = m_pickingFrameBuffer.readPixel( 0, static_cast<int>( mx ), static_cast<int>( my ) );
-  m_pickingFrameBuffer.unbind();
+  const auto& scene = SceneManager::getCurrentScene().lock().get();
 
-  if ( const auto& scene = SceneManager::getCurrentScene().lock() )
+  Canvas canvas{ .framebuffer = m_pickingFrameBuffer,
+                 .w = static_cast<int>( m_props->width ),
+                 .h = static_cast<int>( m_props->height ) };
+
+  FrameContext frameContext{ .canvas = canvas, .scene = scene, .view = m_pCamera->getViewMatrix(), .projection = proj };
+  PickingPassContext pickingPass{ .shader = shader, .x = static_cast<int>( mx ), .y = static_cast<int>( my ) };
+  auto result = m_pRenderingSystem->renderPickingPass( frameContext, pickingPass );
+
+  auto ent = static_cast<entt::entity>( result );
+  if ( scene->getRegistry().isValid( ent ) )
   {
-    auto ent = static_cast<entt::entity>( result );
-    if ( scene->getRegistry().isValid( ent ) )
-    {
-      // select
-      if ( m_selectedEntity == ent )
-        return;
+    // select
+    if ( m_selectedEntity == ent )
+      return;
 
-      m_selectedEntity = ent;
-      pEventDispatcher->emitEvent( SelectEntityInViewportEvent{ ent } );
-    }
+    m_selectedEntity = ent;
+    pEventDispatcher->emitEvent( SelectEntityInViewportEvent{ ent } );
   }
 }
 

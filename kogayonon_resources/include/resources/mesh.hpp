@@ -32,19 +32,19 @@ public:
   explicit Mesh( const std::string& path, const std::vector<Vertex>&& vertices, const std::vector<uint32_t>&& indices,
                  const std::vector<Submesh>&& submeshes );
 
-  std::vector<Vertex>& getVertices();
-  std::vector<uint32_t>& getIndices();
-  std::vector<Texture*>& getTextures();
-  std::vector<Submesh>& getSubmeshes();
+  auto getVertices() -> std::vector<Vertex>&;
+  auto getIndices() -> std::vector<uint32_t>&;
+  auto getTextures() -> std::vector<Texture*>&;
+  auto getSubmeshes() -> std::vector<Submesh>&;
 
-  inline std::string& getPath()
+  auto getPath() -> std::string&
   {
     return m_path;
   }
 
-  uint32_t& getVao();
-  uint32_t& getVbo();
-  uint32_t& getEbo();
+  auto getVao() -> uint32_t&;
+  auto getVbo() -> uint32_t&;
+  auto getEbo() -> uint32_t&;
 
 private:
   std::vector<Texture*> m_textures;

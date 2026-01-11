@@ -27,7 +27,7 @@ public:
   }
 
   void releasePhysx();
-  bool isRunning() const;
+  auto isRunning() const -> bool;
   void simulate( float delta );
   void fetchResults( bool block );
 
@@ -36,9 +36,9 @@ public:
    */
   void switchState( bool state );
 
-  physx::PxPhysics* getPhysics();
-  physx::PxMaterial* getMaterial();
-  physx::PxScene* getScene();
+  auto getPhysics() -> physx::PxPhysics*;
+  auto getMaterial() -> physx::PxMaterial*;
+  auto getScene() -> physx::PxScene*;
 
 private:
   void initPhysx();

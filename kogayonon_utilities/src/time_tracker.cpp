@@ -22,7 +22,7 @@ void TimeTracker::start( const std::string& key )
   m_durationMap.emplace( key, std::make_pair( now, duration( 0.0 ) ) );
 }
 
-TimeTracker::duration TimeTracker::getDuration( const std::string& key )
+auto TimeTracker::getDuration( const std::string& key ) -> TimeTracker::duration
 {
   std::lock_guard lock( m_timeMutex );
   auto it = m_durationMap.find( key );

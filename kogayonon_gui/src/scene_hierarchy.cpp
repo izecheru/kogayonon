@@ -265,6 +265,43 @@ void SceneHierarchyWindow::drawContextMenu()
   }
 }
 
+void SceneHierarchyWindow::duplicateEntity( Entity& ent )
+{
+  auto pScene = SceneManager::getCurrentScene();
+  const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+  if ( auto scene = pScene.lock() )
+  {
+    auto entity = scene->addEntity();
+    if ( ent.hasComponent<MeshComponent>() )
+    {
+      const auto& meshComponent = ent.getComponent<MeshComponent>();
+      const auto& transform = ent.getComponent<TransformComponent>();
+      entity.addComponent<TransformComponent>( TransformComponent{
+        .translation = transform.translation, .rotation = transform.rotation, .scale = transform.scale } );
+      scene->addMeshToEntity( entity.getEntityId(), meshComponent.pMesh );
+    }
+    if ( ent.hasComponent<PointLightComponent>() )
+    {
+      const auto& pointLightComp = ent.getComponent<PointLightComponent>();
+      scene->addPointLight( entity.getEntityId() );
+      const auto& pointLight = entity.getComponent<PointLightComponent>();
+    }
+    pEventDispatcher->emitEvent( SelectEntityEvent{ entity.getEntityId() } );
+  }
+}
+
+void SceneHierarchyWindow::deleteEntity( kogayonon_core::Entity& ent )
+{
+  auto pScene = SceneManager::getCurrentScene();
+  const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+  if ( auto scene = pScene.lock() )
+  {
+    scene->removeEntity( ent.getEntityId() );
+    m_selectedEntity = entt::null;
+    pEventDispatcher->emitEvent( SelectEntityEvent{} );
+  }
+}
+
 void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity& ent )
 {
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
@@ -272,37 +309,12 @@ void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity
   {
     if ( ImGui::MenuItem( "Duplicate entity" ) )
     {
-      auto pScene = SceneManager::getCurrentScene();
-      if ( auto scene = pScene.lock() )
-      {
-        auto entity = scene->addEntity();
-        if ( ent.hasComponent<MeshComponent>() )
-        {
-          const auto& meshComponent = ent.getComponent<MeshComponent>();
-          const auto& transform = ent.getComponent<TransformComponent>();
-          entity.addComponent<TransformComponent>( TransformComponent{
-            .translation = transform.translation, .rotation = transform.rotation, .scale = transform.scale } );
-          scene->addMeshToEntity( entity.getEntityId(), meshComponent.pMesh );
-        }
-        if ( ent.hasComponent<PointLightComponent>() )
-        {
-          const auto& pointLightComp = ent.getComponent<PointLightComponent>();
-          scene->addPointLight( entity.getEntityId() );
-          const auto& pointLight = entity.getComponent<PointLightComponent>();
-        }
-        pEventDispatcher->emitEvent( SelectEntityEvent{ entity.getEntityId() } );
-      }
+      duplicateEntity( ent );
     }
 
     if ( ImGui::MenuItem( "Delete entity" ) )
     {
-      auto pScene = SceneManager::getCurrentScene();
-      if ( auto scene = pScene.lock() )
-      {
-        scene->removeEntity( ent.getEntityId() );
-        m_selectedEntity = entt::null;
-        pEventDispatcher->emitEvent( SelectEntityEvent{} );
-      }
+      deleteEntity( ent );
     }
 
     ImGui::EndPopup();

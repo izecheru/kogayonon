@@ -12,7 +12,7 @@ SelectEntityEvent::SelectEntityEvent( entt::entity ent )
 {
 }
 
-entt::entity SelectEntityEvent::getEntity() const
+auto SelectEntityEvent::getEntity() const -> entt::entity
 {
   return m_entity;
 }
@@ -27,7 +27,7 @@ SelectEntityInViewportEvent::SelectEntityInViewportEvent( entt::entity ent )
 {
 }
 
-entt::entity SelectEntityInViewportEvent::getEntity() const
+auto SelectEntityInViewportEvent::getEntity() const -> entt::entity
 {
   return m_entity;
 }

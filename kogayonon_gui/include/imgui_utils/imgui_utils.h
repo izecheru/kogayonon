@@ -18,6 +18,42 @@ auto addPaddedGui( Func&& func, ImVec2 padding )
 }
 
 /**
+ * @brief Truncate text and add ellipsis if the limit is surpassed
+ * @param text
+ * @param limit
+ * @return The truncated text with ellipsis at the end
+ * https://github.com/ocornut/imgui/issues/5267#issuecomment-2408993109
+ */
+static auto truncateText( const std::string& text, uint32_t limit ) -> std::string
+{
+  auto trucatedText = text;
+
+  const float textWidth = ImGui::CalcTextSize( text.c_str(), nullptr, true ).x;
+
+  if ( textWidth < limit )
+    return text;
+
+  constexpr const char* ELLIPSIS = " ...";
+  const float ellipsisSize = ImGui::CalcTextSize( ELLIPSIS ).x;
+
+  int visibleCharacters = 0;
+  for ( auto i = 0u; i < text.size(); i++ )
+  {
+    const float currentWidth = ImGui::CalcTextSize( text.substr( 0, i ).c_str(), nullptr, true ).x;
+    if ( currentWidth + ellipsisSize > limit )
+    {
+      break;
+    }
+
+    visibleCharacters = i;
+  }
+
+  trucatedText = ( text.substr( 0, visibleCharacters ) + ELLIPSIS ).c_str();
+
+  return trucatedText;
+}
+
+/**
  * @brief Structure for window padding, since this is created on the stack it will get destroyed after ImGui::End() so
  * the next window won't get the padding values
  */

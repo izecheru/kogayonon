@@ -79,17 +79,17 @@ void NvidiaPhysx::releasePhysx()
   PX_RELEASE( m_foundation );
 }
 
-physx::PxPhysics* NvidiaPhysx::getPhysics()
+auto NvidiaPhysx::getPhysics() -> physx::PxPhysics*
 {
   return m_physics;
 }
 
-physx::PxMaterial* NvidiaPhysx::getMaterial()
+auto NvidiaPhysx::getMaterial() -> physx::PxMaterial*
 {
   return m_material;
 }
 
-physx::PxScene* NvidiaPhysx::getScene()
+auto NvidiaPhysx::getScene() -> physx::PxScene*
 {
   return m_scene;
 }

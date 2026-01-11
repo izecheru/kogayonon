@@ -228,7 +228,7 @@ kogayonon_resources::Mesh* AssetManager::addMesh( const std::string& meshName, c
   return getMesh( meshPath );
 }
 
-kogayonon_resources::Mesh* AssetManager::addMesh( const std::string& meshName )
+auto AssetManager::addMesh( const std::string& meshName ) -> kogayonon_resources::Mesh*
 {
   return addMesh( meshName, "resources/models/" + meshName );
 }
@@ -283,14 +283,14 @@ void AssetManager::uploadMeshGeometry( kogayonon_resources::Mesh* mesh ) const
   glVertexArrayAttribBinding( vao, 2, 0 );
 }
 
-std::weak_ptr<kogayonon_resources::Texture> AssetManager::addTextureFromMemory( const std::string& textureName,
-                                                                                const unsigned char* data )
+auto AssetManager::addTextureFromMemory( const std::string& textureName, const unsigned char* data )
+  -> std::weak_ptr<kogayonon_resources::Texture>
 {
   return std::weak_ptr<kogayonon_resources::Texture>();
 }
 
-std::weak_ptr<kogayonon_resources::Texture> AssetManager::getTexture( const std::string& textureName,
-                                                                      const std::string& folder )
+auto AssetManager::getTexture( const std::string& textureName, const std::string& folder )
+  -> std::weak_ptr<kogayonon_resources::Texture>
 {
   std::filesystem::path p{ folder + textureName };
   return m_loadedTextures.at( p.string() );
@@ -309,7 +309,7 @@ void AssetManager::removeTexture( const std::string& path )
   spdlog::info( "file was not loaded so we did not delete anything" );
 }
 
-std::weak_ptr<kogayonon_resources::Texture> AssetManager::getTextureById( uint32_t id )
+auto AssetManager::getTextureById( uint32_t id ) -> std::weak_ptr<kogayonon_resources::Texture>
 {
   for ( const auto& [texturePath, texture] : m_loadedTextures )
   {
@@ -319,7 +319,7 @@ std::weak_ptr<kogayonon_resources::Texture> AssetManager::getTextureById( uint32
   return getTexture( "default" );
 }
 
-kogayonon_resources::Mesh* kogayonon_utilities::AssetManager::getMesh( const std::string& meshPath )
+auto AssetManager::getMesh( const std::string& meshPath ) -> kogayonon_resources::Mesh*
 {
   if ( !m_loadedMeshes.contains( meshPath ) )
     return nullptr;

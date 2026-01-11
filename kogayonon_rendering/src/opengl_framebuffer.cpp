@@ -6,7 +6,7 @@ namespace kogayonon_rendering
 namespace utils
 {
 
-static GLenum textureFormatToOpenglInternal( FramebufferTextureFormat format )
+static auto textureFormatToOpenglInternal( FramebufferTextureFormat format ) -> GLenum
 {
   switch ( format )
   {
@@ -23,7 +23,7 @@ static GLenum textureFormatToOpenglInternal( FramebufferTextureFormat format )
   }
 }
 
-static GLenum textureFormatToBaseFormat( FramebufferTextureFormat format )
+static auto textureFormatToBaseFormat( FramebufferTextureFormat format ) -> GLenum
 {
   switch ( format )
   {
@@ -40,7 +40,7 @@ static GLenum textureFormatToBaseFormat( FramebufferTextureFormat format )
   }
 }
 
-static GLenum textureFormatToType( FramebufferTextureFormat format )
+static auto textureFormatToType( FramebufferTextureFormat format ) -> GLenum
 {
   switch ( format )
   {
@@ -241,12 +241,12 @@ void OpenGLFramebuffer::unbind()
   glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 }
 
-const FramebufferSpecification& OpenGLFramebuffer::getSpecification()
+auto OpenGLFramebuffer::getSpecification() -> const FramebufferSpecification&
 {
   return m_specification;
 }
 
-uint32_t OpenGLFramebuffer::getDepthAttachmentId() const
+auto OpenGLFramebuffer::getDepthAttachmentId() const -> uint32_t
 {
   for ( auto& att : m_specification.attachments )
     if ( att.textureFormat == FramebufferTextureFormat::DEPTH )
@@ -254,12 +254,12 @@ uint32_t OpenGLFramebuffer::getDepthAttachmentId() const
   return 0;
 }
 
-uint32_t OpenGLFramebuffer::getColorAttachmentId( uint32_t index ) const
+auto OpenGLFramebuffer::getColorAttachmentId( uint32_t index ) const -> uint32_t
 {
   return m_specification.attachments.at( index ).id;
 }
 
-int OpenGLFramebuffer::readPixel( uint32_t attachmentIndex, int x, int y )
+auto OpenGLFramebuffer::readPixel( uint32_t attachmentIndex, int x, int y ) -> int
 {
   assert( m_specification.attachments.size() > attachmentIndex && "index out of bounds in read pixel" );
 
@@ -284,7 +284,7 @@ void OpenGLFramebuffer::bindTexture( uint32_t index )
   glBindTexture( m_fbo, index );
 }
 
-uint32_t& OpenGLFramebuffer::getId()
+auto OpenGLFramebuffer::getId() -> uint32_t&
 {
   return m_fbo;
 }

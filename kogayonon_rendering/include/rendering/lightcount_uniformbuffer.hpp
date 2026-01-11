@@ -21,7 +21,7 @@ public:
 
   void incrementLightCount( const kogayonon_resources::LightType& type );
   void decrementLightCount( const kogayonon_resources::LightType& type );
-  uint32_t getLightCount( const kogayonon_resources::LightType& type ) const;
+  auto getLightCount( const kogayonon_resources::LightType& type ) const -> uint32_t;
 
   void initialize( uint32_t bindingIndex ) override;
   void destroy() override;

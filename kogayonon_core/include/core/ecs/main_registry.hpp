@@ -44,43 +44,43 @@ public:
   }
 
   template <typename TContext>
-  TContext& addToContext( TContext context )
+  auto addToContext( TContext context ) -> TContext&
   {
     return m_pRegistry->addToContext<TContext>( context );
   }
 
   template <typename TContext>
-  TContext& getContext()
+  auto getContext() -> TContext&
   {
     return m_pRegistry->getContext<TContext>();
   }
 
-  std::shared_ptr<kogayonon_core::EventDispatcher>& getEventDispatcher()
+  auto getEventDispatcher() -> std::shared_ptr<kogayonon_core::EventDispatcher>&
   {
     return getContext<std::shared_ptr<kogayonon_core::EventDispatcher>>();
   }
 
-  std::shared_ptr<kogayonon_gui::ImGuiManager>& getImGuiManager()
+  auto getImGuiManager() -> std::shared_ptr<kogayonon_gui::ImGuiManager>&
   {
     return getContext<std::shared_ptr<kogayonon_gui::ImGuiManager>>();
   }
 
-  std::shared_ptr<kogayonon_utilities::TaskManager>& getTaskManager()
+  auto getTaskManager() -> std::shared_ptr<kogayonon_utilities::TaskManager>&
   {
     return getContext<std::shared_ptr<kogayonon_utilities::TaskManager>>();
   }
 
-  std::shared_ptr<kogayonon_utilities::TimeTracker>& getTimeTracker()
+  auto getTimeTracker() -> std::shared_ptr<kogayonon_utilities::TimeTracker>&
   {
     return getContext<std::shared_ptr<kogayonon_utilities::TimeTracker>>();
   }
 
-  std::shared_ptr<kogayonon_rendering::Renderer>& getRenderer()
+  auto getRenderer() -> std::shared_ptr<kogayonon_rendering::Renderer>&
   {
     return getContext<std::shared_ptr<kogayonon_rendering::Renderer>>();
   }
 
-  std::shared_ptr<kogayonon_utilities::ShaderManager>& getShaderManager()
+  auto getShaderManager() -> std::shared_ptr<kogayonon_utilities::ShaderManager>&
   {
     return getContext<std::shared_ptr<kogayonon_utilities::ShaderManager>>();
   }

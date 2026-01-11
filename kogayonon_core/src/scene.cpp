@@ -30,17 +30,17 @@ Scene::Scene( const std::string& name )
   m_lightSSBO.initialize();
 }
 
-Registry& Scene::getRegistry()
+auto Scene::getRegistry() -> Registry&
 {
   return *m_pRegistry.get();
 }
 
-entt::registry& Scene::getEnttRegistry()
+auto Scene::getEnttRegistry() -> entt::registry&
 {
   return m_pRegistry->getRegistry();
 }
 
-std::string Scene::getName() const
+auto Scene::getName() const -> std::string
 {
   return m_name;
 }
@@ -95,7 +95,7 @@ void Scene::removeEntity( entt::entity ent )
   --m_entityCount;
 }
 
-Entity Scene::addEntity()
+auto Scene::addEntity() -> Entity
 {
   Entity ent{ *m_pRegistry, "DefaultEntity" };
   ++m_entityCount;
@@ -229,7 +229,7 @@ void Scene::removeMeshFromEntity( entt::entity entity )
   ent.removeComponent<TransformComponent>();
 }
 
-InstanceData* Scene::getData( kogayonon_resources::Mesh* pModel )
+auto Scene::getData( kogayonon_resources::Mesh* pModel ) -> InstanceData*
 {
   if ( m_instances.find( pModel ) == m_instances.end() )
     return nullptr;
@@ -287,31 +287,41 @@ void Scene::setupInstances( InstanceData* data )
 
 void Scene::updateRigidbodyEntities()
 {
-  if ( kogayonon_physics::NvidiaPhysx::getInstance().isRunning() )
+  if ( !kogayonon_physics::NvidiaPhysx::getInstance().isRunning() )
+    return;
+
+  const auto& view =
+    m_pRegistry->getRegistry().view<DynamicRigidbodyComponent, TransformComponent, MeshComponent, IndexComponent>();
+
+  for ( const auto& [entity, dynamicRigidbodyComponent, transformComponent, meshComponent, indexComponent] :
+        view.each() )
   {
-    for ( const auto& [entity, dynamicRigidbodyComponent, transformComponent, meshComponent, indexComponent] :
-          m_pRegistry->getRegistry()
-            .view<DynamicRigidbodyComponent, TransformComponent, MeshComponent, IndexComponent>()
-            .each() )
-    {
-      auto pose = dynamicRigidbodyComponent.pBody->getGlobalPose();
-      glm::vec3 position( pose.p.x, pose.p.y, pose.p.z );
-      glm::quat rotation( pose.q.w, pose.q.x, pose.q.y, pose.q.z );
+    // get the physics pose
+    auto pose = dynamicRigidbodyComponent.pBody->getGlobalPose();
 
-      glm::mat4 model = glm::translate( glm::mat4{ 1.0f }, position ) * glm::mat4{ rotation } *
-                        glm::scale( glm::mat4{ 1.0f }, transformComponent.scale );
+    // construct position and rotation from the global pose
+    glm::vec3 position{ pose.p.x, pose.p.y, pose.p.z };
+    glm::quat rotation{ pose.q.w, pose.q.x, pose.q.y, pose.q.z };
 
-      auto instanceData = getData( meshComponent.pMesh );
-      auto& instanceMatrix = instanceData->instanceMatrices.at( indexComponent.index );
-      instanceMatrix = model;
-      transformComponent.rotation = glm::eulerAngles( rotation );
+    // create the model matrix with those matrices
+    glm::mat4 model = glm::translate( glm::mat4{ 1.0f }, position ) * glm::mat4{ rotation } *
+                      glm::scale( glm::mat4{ 1.0f }, transformComponent.scale );
 
-      updateInstances( instanceData );
-    }
+    // get the instance data
+    auto instanceData = getData( meshComponent.pMesh );
+
+    // update the instance matrix
+    auto& instanceMatrix = instanceData->instanceMatrices.at( indexComponent.index );
+    instanceMatrix = model;
+    // rotation is using euler angles, yaw pitch roll (glm::vec3)
+    transformComponent.rotation = glm::eulerAngles( rotation );
+
+    // finally update the instances
+    updateInstances( instanceData );
   }
 }
 
-uint32_t Scene::getLightCount( const kogayonon_resources::LightType& type )
+auto Scene::getLightCount( const kogayonon_resources::LightType& type ) -> uint32_t
 {
   return m_lightUBO.getLightCount( type );
 }
@@ -319,16 +329,12 @@ uint32_t Scene::getLightCount( const kogayonon_resources::LightType& type )
 void Scene::prepareForRendering()
 {
   // skip this function if we did not add a new entity or something
-  // if ( !m_registryModified )
-  //  return;
+  if ( !m_registryModified )
+    return;
 
-  // m_registryModified = false;
+  m_registryModified = false;
 
-  if ( m_registryModified )
-  {
-    updateLightBuffers();
-    m_registryModified = false;
-  }
+  updateLightBuffers();
 
   auto& assetManager = AssetManager::getInstance();
 
@@ -425,13 +431,13 @@ void Scene::unbindLightBuffers()
   m_lightUBO.unbind();
 }
 
-kogayonon_resources::PointLight& Scene::getPointLight( uint32_t index )
+auto Scene::getPointLight( uint32_t index ) -> kogayonon_resources::PointLight&
 {
   assert( index >= 0 && "index must not be negative" );
   return m_lightSSBO.getPointLights().at( index );
 }
 
-kogayonon_resources::DirectionalLight& Scene::getDirectionalLight( uint32_t index )
+auto Scene::getDirectionalLight( uint32_t index ) -> kogayonon_resources::DirectionalLight&
 {
   assert( index >= 0 && "index must not be negative" );
   return m_lightSSBO.getDirectionalLights().at( index );

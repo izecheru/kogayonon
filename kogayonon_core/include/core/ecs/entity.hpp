@@ -37,21 +37,21 @@ public:
   }
 
   template <typename TComponent>
-  inline entt::view<TComponent>& getView()
+  inline auto getView() -> entt::view<TComponent>&
   {
     auto& registry = m_registry.getRegistry();
     return registry.view<TComponent>();
   }
 
   template <typename TComponent>
-  inline TComponent* tryGetComponent()
+  inline auto tryGetComponent() -> TComponent*
   {
     auto& registry = m_registry.getRegistry();
     return registry.try_get<TComponent>( m_entity );
   }
 
   template <typename TComponent>
-  inline TComponent& getComponent()
+  inline auto getComponent() -> TComponent&
   {
     auto& registry = m_registry.getRegistry();
     return registry.get<TComponent>( m_entity );
@@ -85,7 +85,7 @@ public:
     }
   }
 
-  inline entt::entity getEntityId()
+  inline auto getEntityId() const -> entt::entity
   {
     return m_entity;
   }

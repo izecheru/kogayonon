@@ -43,7 +43,7 @@ void LightCountUniformbuffer::unbind()
   glBindBuffer( GL_UNIFORM_BUFFER, 0 );
 }
 
-uint32_t LightCountUniformbuffer::getLightCount( const kogayonon_resources::LightType& type ) const
+auto LightCountUniformbuffer::getLightCount( const kogayonon_resources::LightType& type ) const -> uint32_t
 {
   switch ( type )
   {

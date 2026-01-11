@@ -296,6 +296,8 @@ bool App::initRegistries() const
   shaderManager->pushShader( "resources/shaders/depth_vert.glsl", "resources/shaders/depth_frag.glsl", "depth" );
   shaderManager->pushShader( "resources/shaders/depth_vert.glsl", "resources/shaders/depth_debug_frag.glsl",
                              "depthDebug" );
+  shaderManager->pushShader( "resources/shaders/outlining_vert.glsl", "resources/shaders/outlining_frag.glsl",
+                             "outlining" );
 
   shaderManager->compileMarkedShaders();
 

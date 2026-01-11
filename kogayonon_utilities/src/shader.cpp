@@ -132,14 +132,14 @@ void Shader::setBool( const char* uniform, bool value ) const
   }
 }
 
-unsigned int Shader::getShaderId() const
+auto Shader::getShaderId() const -> uint32_t
 {
   return m_programId;
 }
 
-unsigned int Shader::compileShader( unsigned int shader_type, std::string& source_data )
+auto Shader::compileShader( uint32_t shader_type, std::string& source_data ) -> uint32_t
 {
-  unsigned int id = glCreateShader( shader_type );
+  auto id = glCreateShader( shader_type );
   const char* m_shaderSource = source_data.c_str();
   glShaderSource( id, 1, &m_shaderSource, nullptr );
   glCompileShader( id );
@@ -177,7 +177,7 @@ void Shader::markForCompilation()
   m_isCompiled = false;
 }
 
-uint32_t Shader::createShader()
+auto Shader::createShader() -> uint32_t
 {
   uint32_t program = glCreateProgram();
   uint32_t vs = compileShader( GL_VERTEX_SHADER, m_shaderSource.vertexSource );

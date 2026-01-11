@@ -89,9 +89,9 @@ public:
   virtual void bind() = 0;
   virtual void unbind() = 0;
 
-  virtual uint32_t getColorAttachmentId( uint32_t index = 0 ) const = 0;
+  virtual auto getColorAttachmentId( uint32_t index = 0 ) const -> uint32_t = 0;
   virtual void resize( uint32_t w, uint32_t h ) = 0;
-  virtual const FramebufferSpecification& getSpecification() = 0;
+  virtual auto getSpecification() -> const FramebufferSpecification& = 0;
 
 private:
   FramebufferSpecification m_specification;

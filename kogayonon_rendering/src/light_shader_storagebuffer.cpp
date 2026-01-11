@@ -165,7 +165,7 @@ void LightShaderStoragebuffer::update( uint32_t index )
   }
 }
 
-int LightShaderStoragebuffer::addLight( const kogayonon_resources::LightType& type )
+auto LightShaderStoragebuffer::addLight( const kogayonon_resources::LightType& type ) -> int
 {
   switch ( type )
   {
@@ -206,17 +206,17 @@ void LightShaderStoragebuffer::removeLight( const kogayonon_resources::LightType
   }
 }
 
-point_lights& LightShaderStoragebuffer::getPointLights()
+auto LightShaderStoragebuffer::getPointLights() -> point_lights&
 {
   return m_pointLights;
 }
 
-directional_lights& LightShaderStoragebuffer::getDirectionalLights()
+auto LightShaderStoragebuffer::getDirectionalLights() -> directional_lights&
 {
   return m_directionalLights;
 }
 
-spot_lights& LightShaderStoragebuffer::getSpotLights()
+auto LightShaderStoragebuffer::getSpotLights() -> spot_lights&
 {
   return m_spotLights;
 }

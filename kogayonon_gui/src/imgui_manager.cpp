@@ -118,7 +118,7 @@ void ImGuiManager::setupDockSpace( ImGuiViewport* viewport )
   if ( ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable )
   {
     const auto dockspaceId = ImGui::GetID( "MyDockspace" );
-    ImGui::DockSpace( dockspaceId, ImVec2( 0, 0 ), dockspaceFlags );
+    ImGui::DockSpace( dockspaceId, ImVec2{ 0, 0 }, dockspaceFlags );
     if ( !std::filesystem::exists( m_io->IniFilename ) )
     {
       // Clear previous layout
@@ -137,7 +137,7 @@ void ImGuiManager::setupDockSpace( ImGuiViewport* viewport )
 
       // Dock windows
       ImGui::DockBuilderDockWindow( "Debug console", bottomCenterNodeId );
-      ImGui::DockBuilderDockWindow( "Assets", bottomCenterNodeId );
+      ImGui::DockBuilderDockWindow( "Assets", lowerLeftNodeId );
       ImGui::DockBuilderDockWindow( "Scene hierarchy", upplerLeftNodeId );
       ImGui::DockBuilderDockWindow( "Object properties", rightNodeId );
       ImGui::DockBuilderDockWindow( "Performance", rightNodeId );

@@ -84,7 +84,6 @@ public:
   void onKeyPressed( const kogayonon_core::KeyPressedEvent& e );
   void onMouseScrolled( const kogayonon_core::MouseScrolledEvent& e );
   void onSaveScene( const kogayonon_core::SaveSceneEvent& e );
-  
 
 private:
   entt::entity m_selectedEntity;
@@ -94,10 +93,15 @@ private:
 
   // drawing framebuffer
   kogayonon_rendering::OpenGLFramebuffer m_frameBuffer;
+
   // picking framebuffer
   kogayonon_rendering::OpenGLFramebuffer m_pickingFrameBuffer;
+
   // depth buffer for shadow mapping
   kogayonon_rendering::OpenGLFramebuffer m_depthBuffer;
+
+  // stencil buffer for outlining
+  kogayonon_rendering::OpenGLFramebuffer m_stencilBuffer;
 
   std::unique_ptr<kogayonon_core::RenderingSystem> m_pRenderingSystem;
   // perspective camera, should make it an entity and add it to registry

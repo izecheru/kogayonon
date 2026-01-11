@@ -13,13 +13,14 @@ public:
   ~ImGuiManager();
 
   bool initImgui( SDL_Window* window, SDL_GLContext context );
-  void pushWindow( std::string name, std::unique_ptr<ImGuiWindow> window );
-  ImGuiWindows_Map& getWindows();
-  void setupDockSpace( ImGuiViewport* viewport );
+  auto getWindows() -> ImGuiWindows_Map&;
 
-  void draw();
+  void pushWindow( std::string name, std::unique_ptr<ImGuiWindow> window );
+  void setupDockSpace( ImGuiViewport* viewport );
   void payloadTooltip();
   void mainMenu();
+  void draw();
+
   void begin();
   void end();
 

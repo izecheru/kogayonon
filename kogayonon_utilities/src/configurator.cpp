@@ -25,7 +25,7 @@ rapidjson::Document& Configurator::getDocument()
   return m_jsonDocument;
 }
 
-Config& Configurator::getConfig()
+auto Configurator::getConfig() -> Config&
 {
   assert( m_loaded && "document was not loaded correctly" );
   return m_config;

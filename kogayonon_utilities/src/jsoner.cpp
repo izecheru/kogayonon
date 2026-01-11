@@ -9,7 +9,7 @@ using namespace rapidjson;
 
 namespace kogayonon_utilities
 {
-Document Jsoner::parseJsonFile( const std::filesystem::path& path )
+auto Jsoner::parseJsonFile( const std::filesystem::path& path ) -> Document
 {
   assert( std::filesystem::exists( path ) && "Json file does not exist!!!" );
 

@@ -128,12 +128,12 @@ public:
 
   void updateLightBuffers();
 
-  kogayonon_resources::PointLight& getPointLight( uint32_t index );
-  kogayonon_resources::DirectionalLight& getDirectionalLight( uint32_t index = 0 );
+  auto getPointLight( uint32_t index ) -> kogayonon_resources::PointLight&;
+  auto getDirectionalLight( uint32_t index = 0 ) -> kogayonon_resources::DirectionalLight&;
 
-  uint32_t getLightCount( const kogayonon_resources::LightType& type );
+  auto getLightCount( const kogayonon_resources::LightType& type ) -> uint32_t;
 
-  inline uint32_t getEntityCount() const
+  inline auto getEntityCount() const -> uint32_t
   {
     return m_entityCount;
   }

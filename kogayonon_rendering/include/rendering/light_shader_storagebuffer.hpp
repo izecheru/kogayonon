@@ -48,12 +48,12 @@ public:
 
   void update() override;
 
-  int addLight( const kogayonon_resources::LightType& type );
+  auto addLight( const kogayonon_resources::LightType& type ) -> int;
   void removeLight( const kogayonon_resources::LightType& type, uint32_t index );
 
-  point_lights& getPointLights();
-  directional_lights& getDirectionalLights();
-  spot_lights& getSpotLights();
+  auto getPointLights() -> point_lights&;
+  auto getDirectionalLights() -> directional_lights&;
+  auto getSpotLights() -> spot_lights&;
 
 private:
   std::vector<SSBO> m_ssbos;

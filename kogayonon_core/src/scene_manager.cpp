@@ -18,7 +18,7 @@ void SceneManager::removeScene( const std::string& name )
   }
 }
 
-std::weak_ptr<Scene> SceneManager::getCurrentScene()
+auto SceneManager::getCurrentScene() -> std::weak_ptr<Scene>
 {
   if ( m_scenes.empty() )
     return {};
@@ -29,7 +29,7 @@ std::weak_ptr<Scene> SceneManager::getCurrentScene()
   return std::weak_ptr<Scene>( m_scenes.at( m_currentScene ) );
 }
 
-std::unordered_map<std::string, std::shared_ptr<Scene>>& SceneManager::getScenes()
+auto SceneManager::getScenes() -> std::unordered_map<std::string, std::shared_ptr<Scene>>&
 {
   return m_scenes;
 }

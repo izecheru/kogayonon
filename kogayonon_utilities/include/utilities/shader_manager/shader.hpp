@@ -43,14 +43,14 @@ public:
 
   void initializeProgram();
 
-  std::string getVertexShaderPath();
-  std::string getFragmentShaderPath();
+  auto getVertexShaderPath() -> std::string;
+  auto getFragmentShaderPath() -> std::string;
 
-  unsigned int getShaderId() const;
+  auto getShaderId() const -> uint32_t;
 
 private:
-  unsigned int compileShader( unsigned int shaderType, std::string& sourceData );
-  uint32_t createShader();
+  auto compileShader( uint32_t shaderType, std::string& sourceData ) -> uint32_t;
+  auto createShader() -> uint32_t;
 
 private:
   uint32_t m_programId = 0;

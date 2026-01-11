@@ -16,8 +16,8 @@ class SceneManager
 public:
   static void addScene( std::shared_ptr<Scene> scene );
   static void removeScene( const std::string& name );
-  static std::weak_ptr<Scene> getCurrentScene();
-  static std::unordered_map<std::string, std::shared_ptr<Scene>>& getScenes();
+  static auto getCurrentScene() -> std::weak_ptr<Scene>;
+  static auto getScenes() -> std::unordered_map<std::string, std::shared_ptr<Scene>>&;
   static void setCurrentScene( const std::string& sceneName );
 
 private:

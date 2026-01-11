@@ -12,9 +12,9 @@ public:
   ShaderManager() = default;
   ~ShaderManager() = default;
 
-  unsigned int getShaderId( const std::string& shaderName );
+  auto getShaderId( const std::string& shaderName ) -> uint32_t;
   void pushShader( const std::string& vertexShader, const std::string& fragmentShader, const std::string& shaderName );
-  Shader& getShader( const std::string& shaderName );
+  auto getShader( const std::string& shaderName ) -> Shader&;
   void bindShader( const std::string& shaderName );
   void unbindShader( const std::string& shaderName );
   void removeShader( const std::string& shaderName );

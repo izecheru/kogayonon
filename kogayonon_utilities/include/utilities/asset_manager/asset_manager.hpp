@@ -28,13 +28,12 @@ public:
    * @param textureName The name and extension of the texture eg. "default.png"
    * @return A weak_ptr to that loaded texture
    */
-  kogayonon_resources::Texture* addTexture( const std::string& textureName );
-  kogayonon_resources::Texture* addTexture( const std::string& textureName, const std::string& texturePath );
-  std::weak_ptr<kogayonon_resources::Texture> addTextureWithoutParams( const std::string& textureName,
-                                                                       const std::string& texturePath );
-
-  std::weak_ptr<kogayonon_resources::Texture> addTextureFromMemory( const std::string& textureName,
-                                                                    const unsigned char* data );
+  auto addTexture( const std::string& textureName ) -> kogayonon_resources::Texture*;
+  auto addTexture( const std::string& textureName, const std::string& texturePath ) -> kogayonon_resources::Texture*;
+  auto addTextureWithoutParams( const std::string& textureName, const std::string& texturePath )
+    -> std::weak_ptr<kogayonon_resources::Texture>;
+  auto addTextureFromMemory( const std::string& textureName, const unsigned char* data )
+    -> std::weak_ptr<kogayonon_resources::Texture>;
 
   /**
    * @brief Finds a texture by name, if no directory is provided it defaults to "resources/textures/"
@@ -42,8 +41,8 @@ public:
    * @param folder Folder we retrieve the texture from, defaults to "resources/textures/" if not specified as param
    * @return A weak ptr to the texture found
    */
-  std::weak_ptr<kogayonon_resources::Texture> getTexture( const std::string& textureName,
-                                                          const std::string& folder = "resources/textures/" );
+  auto getTexture( const std::string& textureName, const std::string& folder = "resources/textures/" )
+    -> std::weak_ptr<kogayonon_resources::Texture>;
 
   /**
    * @brief Deletes a texture from the loaded map, even though we index with texture name which is not actual filename,
@@ -53,12 +52,12 @@ public:
    */
   void removeTexture( const std::string& path );
 
-  std::weak_ptr<kogayonon_resources::Texture> getTextureById( uint32_t id );
+  auto getTextureById( uint32_t id ) -> std::weak_ptr<kogayonon_resources::Texture>;
 
-  // Models
-  kogayonon_resources::Mesh* addMesh( const std::string& meshName, const std::string& meshPath );
-  kogayonon_resources::Mesh* addMesh( const std::string& meshName );
-  kogayonon_resources::Mesh* getMesh( const std::string& meshPath );
+  // meshes
+  auto addMesh( const std::string& meshName, const std::string& meshPath ) -> kogayonon_resources::Mesh*;
+  auto addMesh( const std::string& meshName ) -> kogayonon_resources::Mesh*;
+  auto getMesh( const std::string& meshPath ) -> kogayonon_resources::Mesh*;
 
   /**
    * @brief Uploads each mesh data to the gpu and tells it how to interpret every buffer

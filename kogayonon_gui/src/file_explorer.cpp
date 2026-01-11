@@ -1,5 +1,6 @@
 #include "gui/file_explorer.hpp"
 #include <format>
+#include <imgui_stdlib.h>
 #include <spdlog/spdlog.h>
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
@@ -158,12 +159,13 @@ void FileExplorerWindow::drawFileContextMenu( const File_& file, const std::stri
 
 void FileExplorerWindow::initIcons()
 {
-  static bool first = false;
+  static bool first{ false };
 
   if ( first )
     return;
 
   first = true;
+
   auto& assetManager = AssetManager::getInstance();
   m_icons.emplace( "file_default", assetManager.getTexture( "file.png" ).lock()->getTextureId() );
   m_icons.emplace( ".gltf", assetManager.getTexture( "gltf_icon.png" ).lock()->getTextureId() );
@@ -184,9 +186,9 @@ void FileExplorerWindow::draw()
 
   initIcons();
 
-  static ImVec2 size{ 80.0f, 80.0f };
-  static float padding = 20.0f;
-  static float thumbnailSize = size.x;
+  constexpr ImVec2 size{ 100.0f, 100.0f };
+  constexpr float padding = 10.0f;
+  float thumbnailSize = size.x;
 
   float cellSize = thumbnailSize + padding;
   float width = ImGui::GetContentRegionAvail().x;
@@ -213,6 +215,9 @@ void FileExplorerWindow::draw()
   ImGui::Columns( count, 0, false );
   for ( const auto& file : m_files )
   {
+    if ( !file.renderable )
+      continue;
+
     if ( file.isDir )
     {
       auto filename = file.path.filename();
@@ -223,7 +228,7 @@ void FileExplorerWindow::draw()
       {
         m_currentPath = file.path;
       }
-      ImGui::TextWrapped( "%s", filename.string().c_str() );
+      ImGui::TextWrapped( "%s", ImGui_Utils::truncateText( filename.stem().string(), size.x ).c_str() );
       ImGui::EndGroup();
     }
     else
@@ -246,7 +251,7 @@ void FileExplorerWindow::draw()
         ImGui::SetDragDropPayload( "ASSET_DROP", path.c_str(), path.size() + 1 );
         ImGui::EndDragDropSource();
       }
-      ImGui::TextWrapped( "%s", filename.string().c_str() );
+      ImGui::TextWrapped( "%s", ImGui_Utils::truncateText( filename.stem().string(), size.x ).c_str() );
       ImGui::EndGroup();
     }
     ImGui::NextColumn();
@@ -263,11 +268,36 @@ uint32_t FileExplorerWindow::fileExtensionToTextureId( const std::string& fileEx
   return m_icons.at( fileExtension );
 }
 
+void FileExplorerWindow::searchFor( const std::string& toFind )
+{
+  if ( toFind == "" )
+  {
+    for ( auto& file : m_files )
+    {
+      file.renderable = true;
+    }
+  }
+  else
+  {
+    for ( auto& file : m_files )
+    {
+      if ( file.path.filename().string().find( toFind ) == std::string::npos )
+      {
+        file.renderable = false;
+      }
+      else
+      {
+        file.renderable = true;
+      }
+    }
+  }
+}
+
 void FileExplorerWindow::drawToolbar()
 {
   ImGui::BeginGroup();
-  ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0, 0, 0, 0 ) );
-  ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 10.0f, 0.0f ) );
+  ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4{ 0, 0, 0, 0 } );
+  ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2{ 10.0f, 0.0f } );
 
   if ( static auto path = std::filesystem::current_path() / "resources"; m_currentPath == path )
   {
@@ -288,8 +318,18 @@ void FileExplorerWindow::drawToolbar()
     }
   }
 
+  ImGui::SameLine();
+
+  ImGui::SameLine();
+  static std::string searchStr{ "" };
+  if ( ImGui::InputText( "Search", &searchStr ) )
+  {
+    searchFor( searchStr );
+  }
+
   ImGui::PopStyleVar( 1 );
   ImGui::PopStyleColor( 1 );
   ImGui::EndGroup();
 }
+
 } // namespace kogayonon_gui

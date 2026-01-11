@@ -8,8 +8,8 @@ class ProjectManager
 {
 public:
   static void createProject( const std::string& name, const std::filesystem::path& path );
-  static std::string getTitle();
-  static std::filesystem::path getPath();
+  static auto getTitle() -> std::string;
+  static auto getPath() -> std::filesystem::path;
 
 private:
   ProjectManager() = delete;

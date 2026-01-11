@@ -35,7 +35,8 @@ public:
   void drawContextMenu();
 
 private:
-  void duplicateEntity();
+  void duplicateEntity( kogayonon_core::Entity& ent );
+  void deleteEntity( kogayonon_core::Entity& ent );
 
 private:
   entt::entity m_selectedEntity;
