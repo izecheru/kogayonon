@@ -29,30 +29,26 @@ void RenderingSystem::renderGeometryPass( FrameContext& frame, GeometryPassConte
 {
   beginGeometryPass( frame.canvas );
 
-  frame.scene->bindLightBuffers();
-
   renderWithDepth( frame.scene, frame.view, frame.projection, pass.lightVP, pass.shader, pass.depthMap );
-
-  frame.scene->unbindLightBuffers();
 
   endGeometryPass( frame.canvas );
 }
 
 auto RenderingSystem::renderPickingPass( FrameContext& frame, PickingPassContext& pass ) -> int
 {
-  auto& framebuffer = frame.canvas.framebuffer;
+  auto framebuffer = frame.canvas.framebuffer;
   beginPickingPass( frame.canvas );
 
   render( frame.scene, frame.view, frame.projection, pass.shader );
 
-  auto result = framebuffer.readPixel( 0, pass.x, pass.y );
+  auto result = framebuffer->readPixel( 0, pass.x, pass.y );
 
   endPickingPass( frame.canvas );
 
   return result;
 }
 
-void RenderingSystem::render( Scene* scene, glm::mat4& viewMatrix, glm::mat4& projection,
+void RenderingSystem::render( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection,
                               kogayonon_utilities::Shader& shader )
 {
   begin( shader );
@@ -62,8 +58,8 @@ void RenderingSystem::render( Scene* scene, glm::mat4& viewMatrix, glm::mat4& pr
   std::unordered_map<kogayonon_resources::Mesh*, int> orderedMeshes;
   makeMeshesUnique( scene, orderedMeshes );
 
-  shader.setMat4( "projection", projection );
-  shader.setMat4( "view", viewMatrix );
+  shader.setMat4( "projection", *projection );
+  shader.setMat4( "view", *viewMatrix );
   drawMeshes( scene, orderedMeshes );
   scene->unbindLightBuffers();
   end( shader );
@@ -131,8 +127,8 @@ void RenderingSystem::drawMeshes( Scene* scene,
   }
 }
 
-void RenderingSystem::renderWithDepth( Scene* scene, glm::mat4& viewMatrix, glm::mat4& projection,
-                                       glm::mat4& lightSpaceMatrix, kogayonon_utilities::Shader& shader,
+void RenderingSystem::renderWithDepth( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection,
+                                       glm::mat4* lightSpaceMatrix, kogayonon_utilities::Shader& shader,
                                        uint32_t& depthMap )
 {
   begin( shader );
@@ -142,9 +138,9 @@ void RenderingSystem::renderWithDepth( Scene* scene, glm::mat4& viewMatrix, glm:
   std::unordered_map<kogayonon_resources::Mesh*, int> orderedMeshes;
   makeMeshesUnique( scene, orderedMeshes );
 
-  shader.setMat4( "projection", projection );
-  shader.setMat4( "view", viewMatrix );
-  shader.setMat4( "lightVP", lightSpaceMatrix );
+  shader.setMat4( "projection", *projection );
+  shader.setMat4( "view", *viewMatrix );
+  shader.setMat4( "lightVP", *lightSpaceMatrix );
 
   drawMeshesWithDepth( scene, orderedMeshes, depthMap );
 
@@ -208,9 +204,9 @@ void RenderingSystem::end( const kogayonon_utilities::Shader& shader ) const
 
 void RenderingSystem::beginGeometryPass( Canvas& canvas ) const
 {
-  auto& framebuffer = canvas.framebuffer;
-  framebuffer.resize( canvas.w, canvas.h );
-  framebuffer.bind();
+  auto framebuffer = canvas.framebuffer;
+  framebuffer->resize( canvas.w, canvas.h );
+  framebuffer->bind();
 
   glClearColor( 0.3f, 0.3f, 0.3f, 0.5f );
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
@@ -218,42 +214,42 @@ void RenderingSystem::beginGeometryPass( Canvas& canvas ) const
 
 void RenderingSystem::endGeometryPass( Canvas& canvas ) const
 {
-  auto& framebuffer = canvas.framebuffer;
-  framebuffer.unbind();
+  auto framebuffer = canvas.framebuffer;
+  framebuffer->unbind();
 }
 
 void RenderingSystem::beginDepthPass( Canvas& canvas ) const
 {
-  auto& framebuffer = canvas.framebuffer;
+  auto framebuffer = canvas.framebuffer;
 
   glCullFace( GL_FRONT );
-  framebuffer.resize( canvas.w, canvas.h );
-  framebuffer.bind();
+  framebuffer->resize( canvas.w, canvas.h );
+  framebuffer->bind();
 
   glClear( GL_DEPTH_BUFFER_BIT );
 }
 
 void RenderingSystem::endDepthPass( Canvas& canvas ) const
 {
-  auto& framebuffer = canvas.framebuffer;
-  framebuffer.unbind();
+  auto framebuffer = canvas.framebuffer;
+  framebuffer->unbind();
   glCullFace( GL_BACK );
 }
 
 void RenderingSystem::beginPickingPass( Canvas& canvas ) const
 {
-  auto& framebuffer = canvas.framebuffer;
+  auto framebuffer = canvas.framebuffer;
 
-  framebuffer.resize( canvas.w, canvas.h );
-  framebuffer.bind();
+  framebuffer->resize( canvas.w, canvas.h );
+  framebuffer->bind();
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-  framebuffer.clearColorAttachment( 0, -1 );
+  framebuffer->clearColorAttachment( 0, -1 );
 }
 
 void RenderingSystem::endPickingPass( Canvas& canvas ) const
 {
-  auto& framebuffer = canvas.framebuffer;
-  framebuffer.unbind();
+  auto framebuffer = canvas.framebuffer;
+  framebuffer->unbind();
 }
 
 void RenderingSystem::makeMeshesUnique( Scene* scene,

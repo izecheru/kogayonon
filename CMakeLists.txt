@@ -23,6 +23,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin") # .exe
 # Thirdparty dependencies
 # -------------------------------------------------------------------
 
+
 find_package(SDL2 CONFIG REQUIRED)
 find_package(soil2 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)

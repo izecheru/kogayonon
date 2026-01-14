@@ -28,7 +28,7 @@ namespace kogayonon_core
 {
 struct Canvas
 {
-  kogayonon_rendering::OpenGLFramebuffer& framebuffer;
+  kogayonon_rendering::OpenGLFramebuffer* framebuffer;
   int w;
   int h;
 };
@@ -37,8 +37,8 @@ struct FrameContext
 {
   Canvas canvas;
   Scene* scene;
-  glm::mat4& view;
-  glm::mat4& projection;
+  glm::mat4* view;
+  glm::mat4* projection;
 };
 
 struct DepthPassContext
@@ -50,7 +50,7 @@ struct GeometryPassContext
 {
   kogayonon_utilities::Shader& shader;
   uint32_t& depthMap;
-  glm::mat4& lightVP;
+  glm::mat4* lightVP;
 };
 
 struct PickingPassContext
@@ -70,8 +70,8 @@ public:
   void renderGeometryPass( FrameContext& frame, GeometryPassContext& pass );
   auto renderPickingPass( FrameContext& frame, PickingPassContext& pass ) -> int;
 
-  void render( Scene* scene, glm::mat4& viewMatrix, glm::mat4& projection, kogayonon_utilities::Shader& shader );
-  void renderWithDepth( Scene* scene, glm::mat4& viewMatrix, glm::mat4& projection, glm::mat4& lightSpaceMatrix,
+  void render( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection, kogayonon_utilities::Shader& shader );
+  void renderWithDepth( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection, glm::mat4* lightSpaceMatrix,
                         kogayonon_utilities::Shader& shader, uint32_t& depthMap );
 
   void renderGeometryWithShadows( std::shared_ptr<Scene> scene, const glm::mat4& viewMatrix,

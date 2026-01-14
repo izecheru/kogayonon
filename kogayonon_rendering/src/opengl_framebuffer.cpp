@@ -3,109 +3,10 @@
 
 namespace kogayonon_rendering
 {
-namespace utils
+
+void OpenGLFramebuffer::checkFramebuffer() const
 {
-
-static auto textureFormatToOpenglInternal( FramebufferTextureFormat format ) -> GLenum
-{
-  switch ( format )
-  {
-  case FramebufferTextureFormat::RGBA:
-    return GL_RGBA;
-  case FramebufferTextureFormat::RGBA8:
-    return GL_RGBA8;
-  case FramebufferTextureFormat::RED_INTEGER:
-    return GL_R32UI;
-  case FramebufferTextureFormat::DEPTH24STENCIL8:
-    return GL_DEPTH24_STENCIL8;
-  default:
-    return GL_RGBA8;
-  }
-}
-
-static auto textureFormatToBaseFormat( FramebufferTextureFormat format ) -> GLenum
-{
-  switch ( format )
-  {
-  case FramebufferTextureFormat::RGBA:
-    return GL_RGBA16F;
-  case FramebufferTextureFormat::RGBA8:
-    return GL_RGBA;
-  case FramebufferTextureFormat::RED_INTEGER:
-    return GL_RED_INTEGER;
-  case FramebufferTextureFormat::DEPTH24STENCIL8:
-    return GL_DEPTH_STENCIL;
-  default:
-    return GL_RGBA;
-  }
-}
-
-static auto textureFormatToType( FramebufferTextureFormat format ) -> GLenum
-{
-  switch ( format )
-  {
-  case FramebufferTextureFormat::RGBA:
-    return GL_FLOAT;
-  case FramebufferTextureFormat::RGBA8:
-    return GL_UNSIGNED_BYTE;
-  case FramebufferTextureFormat::RED_INTEGER:
-    return GL_UNSIGNED_INT;
-  case FramebufferTextureFormat::DEPTH24STENCIL8:
-    return GL_UNSIGNED_INT_24_8;
-  default:
-    return GL_UNSIGNED_BYTE;
-  }
-}
-
-static void createTexture( uint32_t* id, uint32_t count )
-{
-  glCreateTextures( GL_TEXTURE_2D, count, id );
-}
-
-static void linkFramebufferColorTexture( uint32_t attachmentIndex, uint32_t id, uint32_t fbo )
-{
-  glNamedFramebufferTexture( fbo, GL_COLOR_ATTACHMENT0 + attachmentIndex, id, 0 );
-}
-
-static void linkFramebufferDepthTexture( GLenum attachmentType, uint32_t id, uint32_t fbo )
-{
-  glNamedFramebufferTexture( fbo, attachmentType, id, 0 );
-}
-
-static void attachColorTexture( uint32_t id, uint32_t w, uint32_t h, GLenum format, uint32_t fbo, int index )
-
-{
-  assert( w != 0 && h != 0 && "width and height CANNOT be 0" );
-  glTextureStorage2D( id, 1, format, w, h );
-
-  glTextureParameteri( id, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-  glTextureParameteri( id, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-  glTextureParameteri( id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-  glTextureParameteri( id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-  glNamedFramebufferTexture( fbo, GL_COLOR_ATTACHMENT0 + index, id, 0 );
-}
-
-static void attachDepthTexture( uint32_t id, uint32_t w, uint32_t h, GLenum format, GLenum attachmentType,
-                                uint32_t fbo )
-
-{
-  assert( w != 0 && h != 0 && "width and height CANNOT be 0" );
-
-  glTextureStorage2D( id, 1, format, w, h );
-
-  glTextureParameteri( id, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-  glTextureParameteri( id, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-  glTextureParameteri( id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
-  glTextureParameteri( id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
-  float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-  glTextureParameterfv( id, GL_TEXTURE_BORDER_COLOR, borderColor );
-
-  glNamedFramebufferTexture( fbo, attachmentType, id, 0 );
-}
-
-static void checkFramebuffer( uint32_t fbo )
-{
-  auto status = glCheckNamedFramebufferStatus( fbo, GL_FRAMEBUFFER );
+  auto status = glCheckNamedFramebufferStatus( m_fbo, GL_FRAMEBUFFER );
   if ( status != GL_FRAMEBUFFER_COMPLETE )
   {
     switch ( status )
@@ -134,10 +35,11 @@ static void checkFramebuffer( uint32_t fbo )
     }
   }
 }
-} // namespace utils
 
-OpenGLFramebuffer::OpenGLFramebuffer( const FramebufferSpecification& spec )
+OpenGLFramebuffer::OpenGLFramebuffer( const FramebufferSpec& spec )
     : m_specification{ spec }
+    , m_fbo{ 0 }
+    , m_rbo{ 0 }
 {
   init();
 }
@@ -145,43 +47,44 @@ OpenGLFramebuffer::OpenGLFramebuffer( const FramebufferSpecification& spec )
 void OpenGLFramebuffer::init()
 {
   glCreateFramebuffers( 1, &m_fbo );
-  for ( int i = 0; i < m_specification.attachments.size(); i++ )
+
+  auto count = 0u;
+  for ( auto& item : m_specification.colorAttachments )
   {
-    auto& attachment = m_specification.attachments.at( i );
-    utils::createTexture( &attachment.id, 1 );
-    switch ( attachment.textureFormat )
+    switch ( item.textureFormat )
     {
-    case FramebufferTextureFormat::RGBA:
-      utils::attachColorTexture( attachment.id, m_specification.width, m_specification.height, GL_RGBA16F, m_fbo, i );
+    case GL_RGBA8:
+    case GL_RGBA:
+      attachColorTexture( item.id, m_specification.width, m_specification.height, GL_RGBA8, m_fbo, count++ );
       break;
-    case FramebufferTextureFormat::RGBA8:
-      utils::attachColorTexture( attachment.id, m_specification.width, m_specification.height, GL_RGBA8, m_fbo, i );
-      break;
-    case FramebufferTextureFormat::RED_INTEGER:
-      utils::attachColorTexture( attachment.id, m_specification.width, m_specification.height, GL_R32I, m_fbo, i );
-      break;
-    case FramebufferTextureFormat::DEPTH:
-      utils::attachDepthTexture( attachment.id, m_specification.width, m_specification.height, GL_DEPTH_COMPONENT32,
-                                 GL_DEPTH_ATTACHMENT, m_fbo );
-      break;
-    case FramebufferTextureFormat::DEPTH24STENCIL8:
-      utils::attachDepthTexture( attachment.id, m_specification.width, m_specification.height, GL_DEPTH24_STENCIL8,
-                                 GL_DEPTH_STENCIL_ATTACHMENT, m_fbo );
-      break;
-    case FramebufferTextureFormat::R32F:
-      utils::attachColorTexture( attachment.id, m_specification.width, m_specification.height, GL_R32F, m_fbo, i );
-      attachRenderbuffer();
+    case GL_RED_INTEGER:
+      attachColorTexture( item.id, m_specification.width, m_specification.height, GL_R32I, m_fbo, count++ );
       break;
     default:
+      spdlog::critical( "Texture format unsupported" );
       break;
     }
   }
-  std::vector<GLenum> drawBuffers;
-  for ( size_t i = 0; i < m_specification.attachments.size(); ++i )
+
+  for ( auto& item : m_specification.depthAttachments )
   {
-    const auto& texFormat = m_specification.attachments.at( i ).textureFormat;
-    if ( texFormat != FramebufferTextureFormat::DEPTH24STENCIL8 && texFormat != FramebufferTextureFormat::DEPTH )
-      drawBuffers.push_back( GL_COLOR_ATTACHMENT0 + static_cast<GLenum>( i ) );
+    switch ( item.textureFormat )
+    {
+    case GL_DEPTH_COMPONENT24:
+      attachDepthTexture( item.id, m_specification.width, m_specification.height, GL_DEPTH_COMPONENT32,
+                          GL_DEPTH_ATTACHMENT, m_fbo );
+      break;
+
+    default:
+      spdlog::critical( "Texture format unsupported" );
+      break;
+    }
+  }
+
+  std::vector<GLenum> drawBuffers;
+  for ( auto i = 0u; i < m_specification.colorAttachments.size(); ++i )
+  {
+    drawBuffers.push_back( GL_COLOR_ATTACHMENT0 + static_cast<GLenum>( i ) );
   }
 
   if ( drawBuffers.empty() )
@@ -193,7 +96,8 @@ void OpenGLFramebuffer::init()
   {
     glNamedFramebufferDrawBuffers( m_fbo, static_cast<GLsizei>( drawBuffers.size() ), drawBuffers.data() );
   }
-  utils::checkFramebuffer( m_fbo );
+
+  checkFramebuffer();
   glViewport( 0, 0, m_specification.width, m_specification.height );
 }
 
@@ -216,14 +120,28 @@ void OpenGLFramebuffer::destroy()
 {
   if ( m_fbo )
   {
-    for ( int i = 0; i < m_specification.attachments.size(); i++ )
+    for ( auto i = 0u; i < m_specification.colorAttachments.size(); i++ )
     {
-      if ( m_specification.attachments.at( i ).id )
+      if ( m_specification.colorAttachments.at( i ).id )
       {
-        glDeleteTextures( 1, &m_specification.attachments.at( i ).id );
-        m_specification.attachments.at( i ).id = 0;
+        glDeleteTextures( 1, &m_specification.colorAttachments.at( i ).id );
+        m_specification.colorAttachments.at( i ).id = 0;
       }
     }
+
+    for ( auto i = 0u; i < m_specification.depthAttachments.size(); i++ )
+    {
+      if ( m_specification.depthAttachments.at( i ).id )
+      {
+        glDeleteTextures( 1, &m_specification.depthAttachments.at( i ).id );
+        m_specification.depthAttachments.at( i ).id = 0;
+      }
+    }
+
+    if ( m_rbo )
+      glDeleteRenderbuffers( 1, &m_rbo );
+
+    m_rbo = 0;
 
     glDeleteFramebuffers( 1, &m_fbo );
     m_fbo = 0;
@@ -241,28 +159,23 @@ void OpenGLFramebuffer::unbind()
   glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 }
 
-auto OpenGLFramebuffer::getSpecification() -> const FramebufferSpecification&
+auto OpenGLFramebuffer::getSpecification() -> const FramebufferSpec&
 {
   return m_specification;
 }
 
 auto OpenGLFramebuffer::getDepthAttachmentId() const -> uint32_t
 {
-  for ( auto& att : m_specification.attachments )
-    if ( att.textureFormat == FramebufferTextureFormat::DEPTH )
-      return att.id;
-  return 0;
+  return m_specification.depthAttachments.at( 0 ).id;
 }
 
 auto OpenGLFramebuffer::getColorAttachmentId( uint32_t index ) const -> uint32_t
 {
-  return m_specification.attachments.at( index ).id;
+  return m_specification.colorAttachments.at( index ).id;
 }
 
 auto OpenGLFramebuffer::readPixel( uint32_t attachmentIndex, int x, int y ) -> int
 {
-  assert( m_specification.attachments.size() > attachmentIndex && "index out of bounds in read pixel" );
-
   glReadBuffer( GL_COLOR_ATTACHMENT0 + attachmentIndex );
   int flippedY = m_specification.height - y - 1;
   int pixelData = -1;
@@ -275,13 +188,8 @@ void OpenGLFramebuffer::attachRenderbuffer()
   glGenRenderbuffers( 1, &m_rbo );
   glNamedRenderbufferStorage( m_rbo, GL_DEPTH_COMPONENT24, m_specification.width, m_specification.height );
   glNamedFramebufferRenderbuffer( m_fbo, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, m_rbo );
-  GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
-  glDrawBuffers( 1, drawBuffers );
-}
-
-void OpenGLFramebuffer::bindTexture( uint32_t index )
-{
-  glBindTexture( m_fbo, index );
+  std::vector<GLenum> drawBuffers = { GL_COLOR_ATTACHMENT0 };
+  glNamedFramebufferDrawBuffers( m_fbo, static_cast<GLsizei>( drawBuffers.size() ), drawBuffers.data() );
 }
 
 auto OpenGLFramebuffer::getId() -> uint32_t&
@@ -291,7 +199,52 @@ auto OpenGLFramebuffer::getId() -> uint32_t&
 
 void OpenGLFramebuffer::clearColorAttachment( uint32_t index, int id ) const
 {
-  auto& attachment = m_specification.attachments.at( index );
-  glClearTexImage( attachment.id, 0, utils::textureFormatToBaseFormat( attachment.textureFormat ), GL_INT, &id );
+  auto& attachment = m_specification.colorAttachments.at( index );
+
+  switch ( attachment.textureFormat )
+  {
+  case GL_RED_INTEGER:
+    glClearTexImage( attachment.id, 0, GL_RED_INTEGER, GL_INT, &id );
+    break;
+  default:
+    float clearColor[4] = { 0.f, 0.f, 0.f, 0.f };
+    glClearTexImage( attachment.id, 0, GL_RGBA, GL_FLOAT, clearColor );
+    break;
+  }
 }
+
+void OpenGLFramebuffer::attachColorTexture( uint32_t& id, uint32_t w, uint32_t h, GLenum format, uint32_t& fbo,
+                                            int index )
+
+{
+  assert( w != 0 && h != 0 && "width and height CANNOT be 0" );
+  glCreateTextures( GL_TEXTURE_2D, 1, &id );
+  glTextureStorage2D( id, 1, format, w, h );
+
+  glTextureParameteri( id, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+  glTextureParameteri( id, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+  glTextureParameteri( id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+  glTextureParameteri( id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+  glNamedFramebufferTexture( fbo, GL_COLOR_ATTACHMENT0 + index, id, 0 );
+}
+
+void OpenGLFramebuffer::attachDepthTexture( uint32_t& id, uint32_t w, uint32_t h, GLenum format, GLenum attachmentType,
+                                            uint32_t& fbo )
+
+{
+  assert( w != 0 && h != 0 && "width and height CANNOT be 0" );
+  glCreateTextures( GL_TEXTURE_2D, 1, &id );
+  glBindTexture( GL_TEXTURE_2D, id );
+   glTextureStorage2D( id, 1, format, w, h ) ;
+  glTextureParameteri( id, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+  glTextureParameteri( id, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+  glTextureParameteri( id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
+  glTextureParameteri( id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER );
+  float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+  glTextureParameterfv( id, GL_TEXTURE_BORDER_COLOR, borderColor );
+  glBindTexture( GL_TEXTURE_2D, 0 );
+
+   glNamedFramebufferTexture( fbo, attachmentType, id, 0 ) ;
+}
+
 } // namespace kogayonon_rendering

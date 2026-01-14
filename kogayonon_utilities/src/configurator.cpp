@@ -11,6 +11,10 @@ namespace kogayonon_utilities
 {
 void Configurator::parseConfigFile()
 {
+  if ( !std::filesystem::exists( m_configPath ) )
+  {
+    initialiseDefaultConfig();
+  }
   Jsoner::parseJsonFile( m_jsonDocument, m_configPath );
   buildConfig();
 }

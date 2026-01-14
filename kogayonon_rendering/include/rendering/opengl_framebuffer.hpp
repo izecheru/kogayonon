@@ -7,7 +7,7 @@ namespace kogayonon_rendering
 class OpenGLFramebuffer : public Framebuffer
 {
 public:
-  explicit OpenGLFramebuffer( const FramebufferSpecification& spec );
+  explicit OpenGLFramebuffer( const FramebufferSpec& spec );
   OpenGLFramebuffer() = default;
 
   void bind() override;
@@ -23,20 +23,22 @@ public:
    */
   void resize( uint32_t w, uint32_t h ) override;
 
-  const FramebufferSpecification& getSpecification() override;
+  void checkFramebuffer() const;
+
+  const FramebufferSpec& getSpecification() override;
 
   /**
    * @brief Get the color attachment id
    * @param index Index of the attachment
    * @return
    */
-  uint32_t getColorAttachmentId( uint32_t index = 0 ) const override;
+  auto getColorAttachmentId( uint32_t index = 0 ) const -> uint32_t override;
 
   /**
    * @brief Get the depth attachment id
    * @return
    */
-  uint32_t getDepthAttachmentId() const;
+  auto getDepthAttachmentId() const -> uint32_t;
 
   /**
    * @brief Clears an attachment from the framebuffer
@@ -52,16 +54,19 @@ public:
    * @param y
    * @return The value read from the fragment shader
    */
-  int readPixel( uint32_t attachmentIndex, int x, int y );
+  auto readPixel( uint32_t attachmentIndex, int x, int y ) -> int;
 
   void attachRenderbuffer();
 
-  void bindTexture( uint32_t index );
-  uint32_t& getId();
+  auto getId() -> uint32_t&;
+
+private:
+  void attachColorTexture( uint32_t& id, uint32_t w, uint32_t h, GLenum format, uint32_t& fbo, int index );
+  void attachDepthTexture( uint32_t& id, uint32_t w, uint32_t h, GLenum format, GLenum attachmentType, uint32_t& fbo );
 
 private:
   uint32_t m_fbo{ 0 };
   uint32_t m_rbo{ 0 };
-  FramebufferSpecification m_specification;
+  FramebufferSpec m_specification;
 };
 } // namespace kogayonon_rendering

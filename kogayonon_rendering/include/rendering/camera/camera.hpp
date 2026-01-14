@@ -29,7 +29,7 @@ public:
 
   void setupCamera();
 
-  glm::mat4& getViewMatrix() const;
+  auto getViewMatrix() const -> glm::mat4&;
   void onMouseMoved( float x, float y, bool constrainPitch );
   void onKeyPressed( float delta );
   void updateCameraVectors();
@@ -60,7 +60,7 @@ public:
     return m_props;
   }
 
-  glm::mat4 getProjectionMatrix( const glm::vec2& contentSize ) const;
+  auto getProjectionMatrix( const glm::vec2& contentSize ) const -> glm::mat4&;
 
 private:
   CameraProps m_props;

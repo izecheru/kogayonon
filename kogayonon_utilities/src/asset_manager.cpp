@@ -156,8 +156,6 @@ kogayonon_resources::Mesh* AssetManager::addMesh( const std::string& meshName, c
   std::vector<uint32_t> indices;
   std::vector<kogayonon_resources::Texture*> textures;
 
-  spdlog::debug( "Mesh has {} nodes", data->nodes_count );
-
   for ( size_t i = 0; i < data->nodes_count; ++i )
   {
     auto& node = data->nodes[i];

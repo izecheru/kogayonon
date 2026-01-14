@@ -23,6 +23,7 @@
 #include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
+#include "utilities/utils/utils.hpp"
 
 using namespace kogayonon_core;
 using namespace kogayonon_rendering;
@@ -76,13 +77,17 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
     , m_pCamera{ std::make_unique<Camera>() }
     , m_gizmoMode{ GizmoMode::TRANSLATE }
 {
-  FramebufferSpecification spec{
-    { FramebufferTextureFormat::RGBA8, FramebufferTextureFormat::DEPTH24STENCIL8 }, 800, 800 };
-  FramebufferSpecification pickingSpec{
-    { FramebufferTextureFormat::RED_INTEGER, FramebufferTextureFormat::DEPTH24STENCIL8 }, 800, 800 };
+  FramebufferSpec spec{
+    { FramebufferAttachment{ .id = 0, .textureFormat = GL_RGBA8, .type = FramebufferAttachmentType::Color },
+      FramebufferAttachment{
+        .id = 0, .textureFormat = GL_DEPTH_COMPONENT24, .type = FramebufferAttachmentType::Depth } } };
+
+  FramebufferSpec pickingSpec{
+    { FramebufferAttachment{ .id = 0, .textureFormat = GL_RED_INTEGER, .type = FramebufferAttachmentType::Color } } };
 
   // we should use this depth spec for the shadow mapping texture
-  FramebufferSpecification depthSpec{ { FramebufferTextureFormat::DEPTH }, 800, 800 };
+  FramebufferSpec depthSpec{ { FramebufferAttachment{
+    .id = 0, .textureFormat = GL_DEPTH_COMPONENT24, .type = FramebufferAttachmentType::Depth } } };
 
   m_frameBuffer = OpenGLFramebuffer{ spec };
   m_pickingFrameBuffer = OpenGLFramebuffer{ pickingSpec };
@@ -191,31 +196,32 @@ void SceneViewportWindow::drawScene()
 
     auto lightSpaceMatrix = lightProjection * lightView;
 
-    Canvas canvas{
-      .framebuffer = m_depthBuffer, .w = static_cast<int>( m_props->width ), .h = static_cast<int>( m_props->height ) };
+    Canvas canvas{ .framebuffer = &m_depthBuffer,
+                   .w = static_cast<int>( m_props->width ),
+                   .h = static_cast<int>( m_props->height ) };
+
     FrameContext frameContext{
-      .canvas = canvas, .scene = scene.get(), .view = lightView, .projection = lightProjection };
+      .canvas = canvas, .scene = scene.get(), .view = &lightView, .projection = &lightProjection };
+
     DepthPassContext depthPass{ .shader = depthShader };
 
     m_pRenderingSystem->renderDepthPass( frameContext, depthPass );
 
-    //  upload the texture to the geometry shader
-    const auto depthMap = m_depthBuffer.getDepthAttachmentId();
-    // render geometry
-    // GeometryPassContext geometryPass{ .shader = geometryShader, .depthMap = depthMap };
+    auto depthMap = m_depthBuffer.getDepthAttachmentId();
+    GeometryPassContext geometryPass{ .shader = geometryShader, .depthMap = depthMap, .lightVP = &lightSpaceMatrix };
 
-    // frameContext.canvas.framebuffer = m_frameBuffer;
-    // frameContext.projection = proj;
-    // frameContext.view = view;
+    frameContext.canvas.framebuffer = &m_frameBuffer;
+    frameContext.projection = &proj;
+    frameContext.view = &view;
 
-    // m_pRenderingSystem->renderGeometryPass( frameContext, geometryPass );
+    m_pRenderingSystem->renderGeometryPass( frameContext, geometryPass );
 
-    m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
-    m_frameBuffer.bind();
-    glClearColor( 0.3f, 0.3f, 0.3f, 0.5f );
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-    m_pRenderingSystem->renderGeometryWithShadows( scene, view, proj, geometryShader, lightSpaceMatrix, depthMap );
-    m_frameBuffer.unbind();
+    // m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
+    // m_frameBuffer.bind();
+    // glClearColor( 0.3f, 0.3f, 0.3f, 0.5f );
+    // glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    // m_pRenderingSystem->renderGeometryWithShadows( scene, view, proj, geometryShader, lightSpaceMatrix, depthMap );
+    // m_frameBuffer.unbind();
   }
 }
 
@@ -239,14 +245,19 @@ void SceneViewportWindow::drawPickingScene()
 
   const auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
   auto& shader = pShaderManager->getShader( "picking" );
-  auto proj = m_pCamera->getProjectionMatrix( { m_props->width, m_props->height } );
+
   const auto& scene = SceneManager::getCurrentScene().lock().get();
 
-  Canvas canvas{ .framebuffer = m_pickingFrameBuffer,
+  Canvas canvas{ .framebuffer = &m_pickingFrameBuffer,
                  .w = static_cast<int>( m_props->width ),
                  .h = static_cast<int>( m_props->height ) };
 
-  FrameContext frameContext{ .canvas = canvas, .scene = scene, .view = m_pCamera->getViewMatrix(), .projection = proj };
+  FrameContext frameContext{ .canvas = canvas,
+                             .scene = scene,
+                             .view = &m_pCamera->getViewMatrix(),
+                             .projection =
+                               &m_pCamera->getProjectionMatrix( glm::vec2{ m_props->width, m_props->height } ) };
+
   PickingPassContext pickingPass{ .shader = shader, .x = static_cast<int>( mx ), .y = static_cast<int>( my ) };
   auto result = m_pRenderingSystem->renderPickingPass( frameContext, pickingPass );
 
@@ -365,27 +376,14 @@ void SceneViewportWindow::draw()
 
   drawScene();
 
-  switch ( m_renderMode )
-  {
-  case RenderMode::GeometryAndLights:
+  ImGui::GetWindowDrawList()->AddImage( m_frameBuffer.getColorAttachmentId( 0 ), win_pos,
+                                        ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y }, ImVec2{ 0, 1 },
+                                        ImVec2{ 1, 0 } );
 
-    ImGui::GetWindowDrawList()->AddImage( m_frameBuffer.getColorAttachmentId( 0 ), win_pos,
-                                          ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y },
-                                          ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
-
-    // Should send this with some kind of event to the object properties window and draw it there
-    // ImGui::GetWindowDrawList()->AddImage(
-    //   m_depthBuffer.getColorAttachmentId( 0 ), ImVec2{ win_pos.x + 50.0f, win_pos.y + 50.0f },
-    //   ImVec2{ win_pos.x + 150.0f, win_pos.y + 150.0f }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
-
-    break;
-
-  case RenderMode::Geometry:
-  default:
-    ImGui::GetWindowDrawList()->AddImage( m_depthBuffer.getColorAttachmentId( 0 ), win_pos,
-                                          ImVec2{ win_pos.x + contentSize.x, 40.0f + contentSize.y }, ImVec2{ 0, 1 },
-                                          ImVec2{ 1, 0 } );
-  }
+  // Should send this with some kind of event to the object properties window and draw it there
+  // ImGui::GetWindowDrawList()->AddImage(
+  //   m_depthBuffer.getColorAttachmentId( 0 ), ImVec2{ win_pos.x + 50.0f, win_pos.y + 50.0f },
+  //   ImVec2{ win_pos.x + 150.0f, win_pos.y + 150.0f }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
 
   ImGuizmo::SetOrthographic( false );
   ImGuizmo::SetDrawlist();

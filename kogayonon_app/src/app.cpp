@@ -34,7 +34,6 @@
 #include "gui/scene_hierarchy.hpp"
 #include "gui/scene_viewport.hpp"
 #include "physics/nvidia_physx.hpp"
-#include "rendering/renderer.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/configurator/configurator.hpp"
 #include "utilities/input/mouse_codes.hpp"
@@ -251,6 +250,7 @@ bool App::initSDL()
 
 #ifdef _DEBUG
   glEnable( GL_DEBUG_OUTPUT );
+  glDebugMessageControl( GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_ERROR, GL_DEBUG_SEVERITY_HIGH, 0, nullptr, GL_TRUE );
   glDebugMessageCallback( glDebugCallback, nullptr );
 #endif
   glEnable( GL_DEPTH_TEST );
@@ -488,12 +488,89 @@ static const char* glSeverityToStr( GLenum severity )
 void App::glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
                            const GLchar* message, const void* userParam )
 {
-  // i care about only medium to high severity for now
-  if ( severity == GL_DEBUG_SEVERITY_HIGH || severity == GL_DEBUG_SEVERITY_MEDIUM )
+  // ignore non-significant error/warning codes
+  if ( id == 131169 || id == 131185 || id == 131218 || id == 131204 )
+    return;
+
+  // -------------------- verbose debug output --------------------
+  spdlog::debug( "---------------" );
+  spdlog::debug( "Debug message ({}): {}", id, message );
+
+  const char* sourceStr = "Unknown";
+  switch ( source )
   {
-    spdlog::error( "[OpenGL Debug] Severity: {} | Type: {} | Source: {} | ID: {} | Message: {}",
-                   glSeverityToStr( severity ), glTypeToStr( type ), glSourceToStr( source ), id, message );
+  case GL_DEBUG_SOURCE_API:
+    sourceStr = "API";
+    break;
+  case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+    sourceStr = "Window System";
+    break;
+  case GL_DEBUG_SOURCE_SHADER_COMPILER:
+    sourceStr = "Shader Compiler";
+    break;
+  case GL_DEBUG_SOURCE_THIRD_PARTY:
+    sourceStr = "Third Party";
+    break;
+  case GL_DEBUG_SOURCE_APPLICATION:
+    sourceStr = "Application";
+    break;
+  case GL_DEBUG_SOURCE_OTHER:
+    sourceStr = "Other";
+    break;
   }
+  spdlog::debug( "Source: {}", sourceStr );
+
+  const char* typeStr = "Unknown";
+  switch ( type )
+  {
+  case GL_DEBUG_TYPE_ERROR:
+    typeStr = "Error";
+    break;
+  case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+    typeStr = "Deprecated Behaviour";
+    break;
+  case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+    typeStr = "Undefined Behaviour";
+    break;
+  case GL_DEBUG_TYPE_PORTABILITY:
+    typeStr = "Portability";
+    break;
+  case GL_DEBUG_TYPE_PERFORMANCE:
+    typeStr = "Performance";
+    break;
+  case GL_DEBUG_TYPE_MARKER:
+    typeStr = "Marker";
+    break;
+  case GL_DEBUG_TYPE_PUSH_GROUP:
+    typeStr = "Push Group";
+    break;
+  case GL_DEBUG_TYPE_POP_GROUP:
+    typeStr = "Pop Group";
+    break;
+  case GL_DEBUG_TYPE_OTHER:
+    typeStr = "Other";
+    break;
+  }
+  spdlog::debug( "Type: {}", typeStr );
+
+  const char* severityStr = "Unknown";
+  switch ( severity )
+  {
+  case GL_DEBUG_SEVERITY_HIGH:
+    severityStr = "high";
+    break;
+  case GL_DEBUG_SEVERITY_MEDIUM:
+    severityStr = "medium";
+    break;
+  case GL_DEBUG_SEVERITY_LOW:
+    severityStr = "low";
+    break;
+  case GL_DEBUG_SEVERITY_NOTIFICATION:
+    severityStr = "notification";
+    break;
+  }
+  spdlog::debug( "Severity: {}", severityStr );
+  spdlog::debug( "-----" );
 }
 
 void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
