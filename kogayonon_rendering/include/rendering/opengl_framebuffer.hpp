@@ -38,7 +38,7 @@ public:
    * @brief Get the depth attachment id
    * @return
    */
-  auto getDepthAttachmentId() const -> uint32_t;
+  auto getDepthAttachmentId( uint32_t index = 0u ) const -> uint32_t;
 
   /**
    * @brief Clears an attachment from the framebuffer
@@ -54,7 +54,7 @@ public:
    * @param y
    * @return The value read from the fragment shader
    */
-  auto readPixel( uint32_t attachmentIndex, int x, int y ) -> int;
+  auto readPixel( uint32_t attachmentIndex, int x, int y ) const -> int;
 
   void attachRenderbuffer();
 

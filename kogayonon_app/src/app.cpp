@@ -253,7 +253,6 @@ bool App::initSDL()
   glDebugMessageControl( GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_ERROR, GL_DEBUG_SEVERITY_HIGH, 0, nullptr, GL_TRUE );
   glDebugMessageCallback( glDebugCallback, nullptr );
 #endif
-  glEnable( GL_DEPTH_TEST );
   glDepthFunc( GL_LESS );
   glEnable( GL_CULL_FACE );
   glCullFace( GL_BACK );
@@ -570,7 +569,7 @@ void App::glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severit
     break;
   }
   spdlog::debug( "Severity: {}", severityStr );
-  spdlog::debug( "-----" );
+  spdlog::debug( "---------------" );
 }
 
 void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )

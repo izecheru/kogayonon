@@ -12,12 +12,40 @@
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "rendering/opengl_framebuffer.hpp"
+#include "rendering/renderer.hpp"
 #include "utilities/math/math.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
 using namespace kogayonon_utilities;
 
 namespace kogayonon_core
 {
+void RenderingSystem::renderOutliningPass( FrameContext& frame, OutliningPassContext& pass )
+{
+  auto& renderer = kogayonon_rendering::Renderer::getInstance();
+  beginOutliningPass( frame.canvas );
+  renderer.enableDepth();
+  // normal render
+  glStencilFunc( GL_ALWAYS, 1, 0xFF );
+  glStencilMask( 0xFF );
+  renderEntity( pass.outlinedEntity, frame.scene, frame.view, frame.projection, pass.normalShader, pass.depthMap );
+
+  // scaled up render
+  glStencilFunc( GL_NOTEQUAL, 1, 0xFF );
+  glStencilMask( 0x00 );
+  renderer.disableDepth();
+
+  Entity entity{ frame.scene->getRegistry(), static_cast<entt::entity>( pass.outlinedEntity ) };
+  auto& transform = entity.getComponent<TransformComponent>();
+
+  renderEntity( pass.outlinedEntity, frame.scene, frame.view, frame.projection, pass.outlineShader, pass.depthMap );
+
+  glStencilMask( 0xff );
+  glStencilFunc( GL_ALWAYS, 0, 0xFF );
+
+  renderEntity( pass.outlinedEntity, frame.scene, frame.view, frame.projection, pass.normalShader, pass.depthMap );
+  endOutliningPass( frame.canvas );
+}
+
 void RenderingSystem::renderDepthPass( FrameContext& frame, DepthPassContext& pass )
 {
   beginDepthPass( frame.canvas );
@@ -48,8 +76,26 @@ auto RenderingSystem::renderPickingPass( FrameContext& frame, PickingPassContext
   return result;
 }
 
+void RenderingSystem::renderEntity( uint32_t entityId, Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection,
+                                    kogayonon_utilities::Shader* shader, uint32_t depthMap )
+{
+  shader->bind();
+  Entity entity{ scene->getRegistry(), static_cast<entt::entity>( entityId ) };
+  auto& meshComponent = entity.getComponent<MeshComponent>();
+  auto& mesh = meshComponent.pMesh;
+  auto& index = entity.getComponent<IndexComponent>().index;
+
+  auto data = scene->getData( mesh );
+  shader->setMat4( "view", *viewMatrix );
+  shader->setMat4( "projection", *projection );
+  glBindVertexArray( data->pMesh->getVao() );
+  glDrawElementsInstancedBaseInstance( GL_TRIANGLES, data->pMesh->getIndices().size(), GL_UNSIGNED_INT, 0, 1, index );
+  glBindVertexArray( 0 );
+  shader->unbind();
+}
+
 void RenderingSystem::render( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection,
-                              kogayonon_utilities::Shader& shader )
+                              kogayonon_utilities::Shader* shader )
 {
   begin( shader );
 
@@ -58,8 +104,8 @@ void RenderingSystem::render( Scene* scene, glm::mat4* viewMatrix, glm::mat4* pr
   std::unordered_map<kogayonon_resources::Mesh*, int> orderedMeshes;
   makeMeshesUnique( scene, orderedMeshes );
 
-  shader.setMat4( "projection", *projection );
-  shader.setMat4( "view", *viewMatrix );
+  shader->setMat4( "projection", *projection );
+  shader->setMat4( "view", *viewMatrix );
   drawMeshes( scene, orderedMeshes );
   scene->unbindLightBuffers();
   end( shader );
@@ -128,7 +174,7 @@ void RenderingSystem::drawMeshes( Scene* scene,
 }
 
 void RenderingSystem::renderWithDepth( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection,
-                                       glm::mat4* lightSpaceMatrix, kogayonon_utilities::Shader& shader,
+                                       glm::mat4* lightSpaceMatrix, kogayonon_utilities::Shader* shader,
                                        uint32_t& depthMap )
 {
   begin( shader );
@@ -138,9 +184,9 @@ void RenderingSystem::renderWithDepth( Scene* scene, glm::mat4* viewMatrix, glm:
   std::unordered_map<kogayonon_resources::Mesh*, int> orderedMeshes;
   makeMeshesUnique( scene, orderedMeshes );
 
-  shader.setMat4( "projection", *projection );
-  shader.setMat4( "view", *viewMatrix );
-  shader.setMat4( "lightVP", *lightSpaceMatrix );
+  shader->setMat4( "projection", *projection );
+  shader->setMat4( "view", *viewMatrix );
+  shader->setMat4( "lightVP", *lightSpaceMatrix );
 
   drawMeshesWithDepth( scene, orderedMeshes, depthMap );
 
@@ -148,63 +194,40 @@ void RenderingSystem::renderWithDepth( Scene* scene, glm::mat4* viewMatrix, glm:
   end( shader );
 }
 
-void RenderingSystem::renderGeometryWithShadows( std::shared_ptr<Scene> scene, const glm::mat4& viewMatrix,
-                                                 const glm::mat4& projection, kogayonon_utilities::Shader& shader,
-                                                 const glm::mat4& lightProjectionView, const uint32_t depthMap )
-{
-  begin( shader );
-  scene->bindLightBuffers();
-
-  std::unordered_map<kogayonon_resources::Mesh*, int> orderedMeshes;
-  makeMeshesUnique( scene.get(), orderedMeshes );
-
-  shader.setMat4( "projection", projection );
-  shader.setMat4( "view", viewMatrix );
-  shader.setMat4( "lightVP", lightProjectionView );
-  for ( auto& mesh : orderedMeshes )
-  {
-    if ( !mesh.first )
-      continue;
-
-    glBindVertexArray( mesh.first->getVao() );
-    const auto& textures = mesh.first->getTextures();
-    for ( int i = 0; i < textures.size(); i++ )
-    {
-      // bind the texture we need (this is bad)
-      glBindTextureUnit( 3, textures.at( i )->getTextureId() );
-    }
-    glBindTextureUnit( 4, depthMap );
-
-    auto instanceData = scene->getData( mesh.first );
-    auto& submeshes = mesh.first->getSubmeshes();
-    for ( int i = 0; i < submeshes.size() && instanceData != nullptr; i++ )
-    {
-
-      glDrawElementsInstancedBaseVertex( GL_TRIANGLES, submeshes.at( i ).indexCount, GL_UNSIGNED_INT,
-                                         (void*)( submeshes.at( i ).indexOffset * sizeof( uint32_t ) ),
-                                         instanceData->count, submeshes.at( i ).vertexOffest );
-    }
-    glBindVertexArray( 0 );
-    glBindTextureUnit( 1, 0 );
-  }
-  scene->unbindLightBuffers();
-  end( shader );
-}
-
-void RenderingSystem::begin( const kogayonon_utilities::Shader& shader ) const
+void RenderingSystem::begin( kogayonon_utilities::Shader* shader ) const
 {
   glUseProgram( 0 );
-  shader.bind();
+  shader->bind();
 }
 
-void RenderingSystem::end( const kogayonon_utilities::Shader& shader ) const
+void RenderingSystem::end( kogayonon_utilities::Shader* shader ) const
 {
-  shader.unbind();
+  shader->unbind();
+}
+
+void RenderingSystem::beginOutliningPass( Canvas& canvas ) const
+{
+  auto& framebuffer = canvas.framebuffer;
+  framebuffer->resize( canvas.w, canvas.h );
+  framebuffer->bind();
+
+  glEnable( GL_STENCIL_TEST );
+  glStencilOp( GL_KEEP, GL_KEEP, GL_REPLACE );
+  glClear( GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+}
+
+void RenderingSystem::endOutliningPass( Canvas& canvas ) const
+{
+  auto& framebuffer = canvas.framebuffer;
+  framebuffer->unbind();
+  glDisable( GL_STENCIL_TEST );
 }
 
 void RenderingSystem::beginGeometryPass( Canvas& canvas ) const
 {
   auto framebuffer = canvas.framebuffer;
+  auto& renderer = kogayonon_rendering::Renderer::getInstance();
+  renderer.enableDepth();
   framebuffer->resize( canvas.w, canvas.h );
   framebuffer->bind();
 
@@ -215,13 +238,18 @@ void RenderingSystem::beginGeometryPass( Canvas& canvas ) const
 void RenderingSystem::endGeometryPass( Canvas& canvas ) const
 {
   auto framebuffer = canvas.framebuffer;
+  auto& renderer = kogayonon_rendering::Renderer::getInstance();
+
   framebuffer->unbind();
+  renderer.disableDepth();
 }
 
 void RenderingSystem::beginDepthPass( Canvas& canvas ) const
 {
   auto framebuffer = canvas.framebuffer;
+  auto& renderer = kogayonon_rendering::Renderer::getInstance();
 
+  renderer.enableDepth();
   glCullFace( GL_FRONT );
   framebuffer->resize( canvas.w, canvas.h );
   framebuffer->bind();
@@ -232,14 +260,19 @@ void RenderingSystem::beginDepthPass( Canvas& canvas ) const
 void RenderingSystem::endDepthPass( Canvas& canvas ) const
 {
   auto framebuffer = canvas.framebuffer;
+  auto& renderer = kogayonon_rendering::Renderer::getInstance();
+
   framebuffer->unbind();
   glCullFace( GL_BACK );
+  renderer.disableDepth();
 }
 
 void RenderingSystem::beginPickingPass( Canvas& canvas ) const
 {
   auto framebuffer = canvas.framebuffer;
+  auto& renderer = kogayonon_rendering::Renderer::getInstance();
 
+  renderer.enableDepth();
   framebuffer->resize( canvas.w, canvas.h );
   framebuffer->bind();
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
@@ -250,6 +283,7 @@ void RenderingSystem::endPickingPass( Canvas& canvas ) const
 {
   auto framebuffer = canvas.framebuffer;
   framebuffer->unbind();
+  glDisable( GL_DEPTH_TEST );
 }
 
 void RenderingSystem::makeMeshesUnique( Scene* scene,

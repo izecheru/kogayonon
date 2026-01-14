@@ -12,13 +12,12 @@ layout(location = 3) in mat4 instanceMatrix;
 uniform mat4 view;
 uniform mat4 projection;
 
-out vec3 Normal;
 out vec3 FragPos;
 
 void main()
 {
-    mat3 normalMatrix = transpose(inverse(mat3(instanceMatrix)));
-    FragPos = vec3(instanceMatrix * vec4(aPos,1.0f));
-    Normal = normalize(normalMatrix * aNormal);
-    gl_Position = projection * view * vec4(FragPos,1.0f);
+  float outlineScale = 0.05;
+  vec3 scaledPos = aPos + aNormal * outlineScale;
+  FragPos = vec3(instanceMatrix * vec4(scaledPos,1.0));
+  gl_Position = projection * view * vec4(FragPos,1.0);
 }

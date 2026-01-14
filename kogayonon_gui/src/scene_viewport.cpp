@@ -78,20 +78,24 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
     , m_gizmoMode{ GizmoMode::TRANSLATE }
 {
   FramebufferSpec spec{
-    { FramebufferAttachment{ .id = 0, .textureFormat = GL_RGBA8, .type = FramebufferAttachmentType::Color },
-      FramebufferAttachment{
-        .id = 0, .textureFormat = GL_DEPTH_COMPONENT24, .type = FramebufferAttachmentType::Depth } } };
+    { FramebufferAttachment{ .textureFormat = GL_RGBA8, .type = FramebufferAttachmentType::Color },
+      FramebufferAttachment{ .textureFormat = GL_DEPTH_COMPONENT24, .type = FramebufferAttachmentType::Depth } } };
 
   FramebufferSpec pickingSpec{
-    { FramebufferAttachment{ .id = 0, .textureFormat = GL_RED_INTEGER, .type = FramebufferAttachmentType::Color } } };
+    { FramebufferAttachment{ .textureFormat = GL_RED_INTEGER, .type = FramebufferAttachmentType::Color } } };
 
   // we should use this depth spec for the shadow mapping texture
-  FramebufferSpec depthSpec{ { FramebufferAttachment{
-    .id = 0, .textureFormat = GL_DEPTH_COMPONENT24, .type = FramebufferAttachmentType::Depth } } };
+  FramebufferSpec depthSpec{
+    { FramebufferAttachment{ .textureFormat = GL_DEPTH_COMPONENT24, .type = FramebufferAttachmentType::Depth } } };
+
+  FramebufferSpec outlineSpec{
+    { FramebufferAttachment{ .textureFormat = GL_RGBA8, .type = FramebufferAttachmentType::Color },
+      FramebufferAttachment{ .textureFormat = GL_DEPTH_COMPONENT24, .type = FramebufferAttachmentType::Depth } } };
 
   m_frameBuffer = OpenGLFramebuffer{ spec };
   m_pickingFrameBuffer = OpenGLFramebuffer{ pickingSpec };
   m_depthBuffer = OpenGLFramebuffer{ depthSpec };
+  m_stencilBuffer = OpenGLFramebuffer{ outlineSpec };
 
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
   pEventDispatcher->addHandler<SelectEntityEvent, &SceneViewportWindow::onSelectedEntity>( *this );
@@ -203,12 +207,15 @@ void SceneViewportWindow::drawScene()
     FrameContext frameContext{
       .canvas = canvas, .scene = scene.get(), .view = &lightView, .projection = &lightProjection };
 
-    DepthPassContext depthPass{ .shader = depthShader };
+    DepthPassContext depthPass{ .shader = &depthShader };
 
     m_pRenderingSystem->renderDepthPass( frameContext, depthPass );
 
     auto depthMap = m_depthBuffer.getDepthAttachmentId();
-    GeometryPassContext geometryPass{ .shader = geometryShader, .depthMap = depthMap, .lightVP = &lightSpaceMatrix };
+    GeometryPassContext geometryPass{ .shader = &geometryShader,
+                                      .depthMap = depthMap,
+                                      .lightVP = &lightSpaceMatrix,
+                                       };
 
     frameContext.canvas.framebuffer = &m_frameBuffer;
     frameContext.projection = &proj;
@@ -216,12 +223,21 @@ void SceneViewportWindow::drawScene()
 
     m_pRenderingSystem->renderGeometryPass( frameContext, geometryPass );
 
-    // m_frameBuffer.resize( static_cast<int>( m_props->width ), static_cast<int>( m_props->height ) );
-    // m_frameBuffer.bind();
-    // glClearColor( 0.3f, 0.3f, 0.3f, 0.5f );
-    // glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-    // m_pRenderingSystem->renderGeometryWithShadows( scene, view, proj, geometryShader, lightSpaceMatrix, depthMap );
-    // m_frameBuffer.unbind();
+    // if we have an entity selected we also go through the outlining pass
+    if ( m_selectedEntity != entt::null )
+    {
+      const auto& mesh = scene->getRegistry().tryGetComponent<MeshComponent>( m_selectedEntity );
+      if ( scene->getRegistry().isValid( m_selectedEntity ) && mesh && mesh->pMesh )
+      {
+        frameContext.canvas.framebuffer = &m_stencilBuffer;
+        OutliningPassContext outlinePass{ .normalShader = &geometryShader,
+                                          .outlineShader = &outliningShader,
+                                          .outlinedEntity = static_cast<uint32_t>( m_selectedEntity ),
+                                          .depthMap = depthMap };
+
+        m_pRenderingSystem->renderOutliningPass( frameContext, outlinePass );
+      }
+    }
   }
 }
 
@@ -258,13 +274,13 @@ void SceneViewportWindow::drawPickingScene()
                              .projection =
                                &m_pCamera->getProjectionMatrix( glm::vec2{ m_props->width, m_props->height } ) };
 
-  PickingPassContext pickingPass{ .shader = shader, .x = static_cast<int>( mx ), .y = static_cast<int>( my ) };
+  PickingPassContext pickingPass{ .shader = &shader, .x = static_cast<int>( mx ), .y = static_cast<int>( my ) };
   auto result = m_pRenderingSystem->renderPickingPass( frameContext, pickingPass );
+  spdlog::debug( "enttId {}", result );
 
   auto ent = static_cast<entt::entity>( result );
   if ( scene->getRegistry().isValid( ent ) )
   {
-    // select
     if ( m_selectedEntity == ent )
       return;
 
@@ -380,10 +396,12 @@ void SceneViewportWindow::draw()
                                         ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y }, ImVec2{ 0, 1 },
                                         ImVec2{ 1, 0 } );
 
-  // Should send this with some kind of event to the object properties window and draw it there
-  // ImGui::GetWindowDrawList()->AddImage(
-  //   m_depthBuffer.getColorAttachmentId( 0 ), ImVec2{ win_pos.x + 50.0f, win_pos.y + 50.0f },
-  //   ImVec2{ win_pos.x + 150.0f, win_pos.y + 150.0f }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
+  if ( m_selectedEntity != entt::null && scene->getRegistry().hasComponent<MeshComponent>( m_selectedEntity ) )
+  {
+    ImGui::GetWindowDrawList()->AddImage( m_stencilBuffer.getColorAttachmentId( 0 ), win_pos,
+                                          ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y },
+                                          ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
+  }
 
   ImGuizmo::SetOrthographic( false );
   ImGuizmo::SetDrawlist();

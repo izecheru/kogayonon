@@ -8,18 +8,25 @@ namespace kogayonon_rendering
 class Renderer
 {
 public:
-  Renderer();
-  ~Renderer();
+  static auto getInstance() -> Renderer&;
 
-  void clearColor( float r, float g, float b );
-  void clearColor( float r, float g, float b, float alpha );
-  void clearDepth();
-  void clearColor();
-  void clearDepthAndColor();
+  static bool isDepthEnabled();
+  static bool isStencilEnabled();
 
-  void bindTexture( uint32_t id );
-  void bindBuffer( uint32_t id );
+  static void enableDepth();
+  static void enableStencil();
 
-  void destroyBuffer( uint32_t id );
+  static void disableDepth();
+  static void disableStencil();
+
+private:
+  // copy is not allowed
+  Renderer( const Renderer& ) = delete;
+  Renderer& operator=( const Renderer& ) = delete;
+  Renderer( Renderer&& ) = delete;
+  Renderer& operator=( Renderer&& ) = delete;
+
+  Renderer() = default;
+  ~Renderer() = default;
 };
 } // namespace kogayonon_rendering

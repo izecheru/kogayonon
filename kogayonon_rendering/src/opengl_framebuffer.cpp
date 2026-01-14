@@ -164,9 +164,9 @@ auto OpenGLFramebuffer::getSpecification() -> const FramebufferSpec&
   return m_specification;
 }
 
-auto OpenGLFramebuffer::getDepthAttachmentId() const -> uint32_t
+auto OpenGLFramebuffer::getDepthAttachmentId( uint32_t index ) const -> uint32_t
 {
-  return m_specification.depthAttachments.at( 0 ).id;
+  return m_specification.depthAttachments.at( index ).id;
 }
 
 auto OpenGLFramebuffer::getColorAttachmentId( uint32_t index ) const -> uint32_t
@@ -174,7 +174,7 @@ auto OpenGLFramebuffer::getColorAttachmentId( uint32_t index ) const -> uint32_t
   return m_specification.colorAttachments.at( index ).id;
 }
 
-auto OpenGLFramebuffer::readPixel( uint32_t attachmentIndex, int x, int y ) -> int
+auto OpenGLFramebuffer::readPixel( uint32_t attachmentIndex, int x, int y ) const -> int
 {
   glReadBuffer( GL_COLOR_ATTACHMENT0 + attachmentIndex );
   int flippedY = m_specification.height - y - 1;
@@ -235,7 +235,7 @@ void OpenGLFramebuffer::attachDepthTexture( uint32_t& id, uint32_t w, uint32_t h
   assert( w != 0 && h != 0 && "width and height CANNOT be 0" );
   glCreateTextures( GL_TEXTURE_2D, 1, &id );
   glBindTexture( GL_TEXTURE_2D, id );
-   glTextureStorage2D( id, 1, format, w, h ) ;
+  glTextureStorage2D( id, 1, format, w, h );
   glTextureParameteri( id, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
   glTextureParameteri( id, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
   glTextureParameteri( id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER );
@@ -244,7 +244,7 @@ void OpenGLFramebuffer::attachDepthTexture( uint32_t& id, uint32_t w, uint32_t h
   glTextureParameterfv( id, GL_TEXTURE_BORDER_COLOR, borderColor );
   glBindTexture( GL_TEXTURE_2D, 0 );
 
-   glNamedFramebufferTexture( fbo, attachmentType, id, 0 ) ;
+  glNamedFramebufferTexture( fbo, attachmentType, id, 0 );
 }
 
 } // namespace kogayonon_rendering

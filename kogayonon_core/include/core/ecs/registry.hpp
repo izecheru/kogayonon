@@ -20,23 +20,29 @@ public:
   }
 
   template <typename TComponent>
-  inline TComponent& getComponent( entt ::entity entityId )
+  inline auto getComponent( entt ::entity entityId ) -> TComponent&
   {
     return m_pRegistry->get<TComponent>( entityId );
   }
 
   template <typename TComponent>
-  inline TComponent* tryGetComponent( entt ::entity entityId )
+  inline auto tryGetComponent( entt ::entity entityId ) -> TComponent*
   {
     return m_pRegistry->try_get<TComponent>( entityId );
   }
 
-  inline entt::entity createEntity()
+  template <typename TComponent>
+  inline bool hasComponent( entt ::entity entityId )
+  {
+    return m_pRegistry->any_of<TComponent>( entityId );
+  }
+
+  inline auto createEntity() -> entt::entity
   {
     return m_pRegistry->create();
   }
 
-  inline entt::registry& getRegistry()
+  inline auto getRegistry() -> entt::registry&
   {
     return *m_pRegistry;
   }
@@ -47,13 +53,13 @@ public:
   }
 
   template <typename TContext>
-  inline TContext& addToContext( TContext context )
+  inline auto addToContext( TContext context ) -> TContext&
   {
     return m_pRegistry->ctx().emplace<TContext>( context );
   }
 
   template <typename TContext>
-  inline TContext& getContext()
+  inline auto getContext() -> TContext&
   {
     return m_pRegistry->ctx().get<TContext>();
   }

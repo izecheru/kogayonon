@@ -15,7 +15,7 @@ enum class FramebufferAttachmentType
 
 struct FramebufferAttachment
 {
-  uint32_t id;
+  uint32_t id{ 0 };
   uint32_t textureFormat;
   FramebufferAttachmentType type;
 };
