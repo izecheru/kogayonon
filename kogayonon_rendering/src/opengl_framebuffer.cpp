@@ -75,6 +75,10 @@ void OpenGLFramebuffer::init()
                           GL_DEPTH_ATTACHMENT, m_fbo );
       break;
 
+    case GL_DEPTH24_STENCIL8:
+      attachDepthTexture( item.id, m_specification.width, m_specification.height, GL_DEPTH24_STENCIL8,
+                          GL_DEPTH_STENCIL_ATTACHMENT, m_fbo );
+      break;
     default:
       spdlog::critical( "Texture format unsupported" );
       break;

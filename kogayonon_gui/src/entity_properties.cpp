@@ -151,6 +151,7 @@ void EntityPropertiesWindow::drawEnttProperties( std::shared_ptr<Scene> scene )
   drawDirectionalLightComponent( entity );
   drawDynamicRigidbodyComponent( entity );
   drawStaticRigidbodyComponent( entity );
+  drawMisc( entity );
 }
 
 void EntityPropertiesWindow::drawRigidbodyMenu( Entity& ent )
@@ -433,6 +434,12 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
   }
 }
 
+void EntityPropertiesWindow::drawMisc( kogayonon_core::Entity& ent )
+{
+  ImGui::SeparatorText( "Miscellaneous" );
+  const auto& scene = SceneManager::getCurrentScene().lock();
+}
+
 void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
 {
   if ( !ent.hasComponent<TransformComponent>() )
@@ -518,9 +525,9 @@ void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
       const auto data = scene->getData( modelComponent->pMesh );
 
       // update the matrix in the instance matrices vector
-      ImGuizmo::RecomposeMatrixFromComponents( glm::value_ptr( translation ), glm::value_ptr( rotation ),
-                                               glm::value_ptr( scale ),
-                                               glm::value_ptr( data->instanceMatrices.at( indexComponent.index ) ) );
+      ImGuizmo::RecomposeMatrixFromComponents(
+        glm::value_ptr( translation ), glm::value_ptr( rotation ), glm::value_ptr( scale ),
+        glm::value_ptr( data->instances.at( indexComponent.index ).instanceMatrix ) );
 
       scene->updateInstances( data );
     }

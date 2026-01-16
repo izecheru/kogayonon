@@ -1,12 +1,15 @@
 #include "gui/scene_viewport.hpp"
 #include <ImGuizmo.h>
+#include <bitset>
 #include <filesystem>
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/directional_light_component.hpp"
+#include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/outline_component.hpp"
 #include "core/ecs/components/rigidbody_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
@@ -90,7 +93,7 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
 
   FramebufferSpec outlineSpec{
     { FramebufferAttachment{ .textureFormat = GL_RGBA8, .type = FramebufferAttachmentType::Color },
-      FramebufferAttachment{ .textureFormat = GL_DEPTH_COMPONENT24, .type = FramebufferAttachmentType::Depth } } };
+      FramebufferAttachment{ .textureFormat = GL_DEPTH24_STENCIL8, .type = FramebufferAttachmentType::Depth } } };
 
   m_frameBuffer = OpenGLFramebuffer{ spec };
   m_pickingFrameBuffer = OpenGLFramebuffer{ pickingSpec };
@@ -159,7 +162,7 @@ void SceneViewportWindow::onMouseClicked( const MouseClickedEvent& e )
 
 void SceneViewportWindow::drawScene()
 {
-  auto scene = SceneManager::getCurrentScene().lock();
+  const auto& scene = SceneManager::getCurrentScene().lock();
   if ( !scene )
     return;
 
@@ -173,6 +176,7 @@ void SceneViewportWindow::drawScene()
   auto& depthDebugShader = pShaderManager->getShader( "depthDebug" );
   auto& geometryShader = pShaderManager->getShader( "3d" );
   auto& outliningShader = pShaderManager->getShader( "outlining" );
+  auto& nolightShader = pShaderManager->getShader( "3d_normal" );
 
   if ( scene->getLightCount( kogayonon_resources::LightType::Directional ) != 0 )
   {
@@ -212,10 +216,11 @@ void SceneViewportWindow::drawScene()
     m_pRenderingSystem->renderDepthPass( frameContext, depthPass );
 
     auto depthMap = m_depthBuffer.getDepthAttachmentId();
-    GeometryPassContext geometryPass{ .shader = &geometryShader,
-                                      .depthMap = depthMap,
-                                      .lightVP = &lightSpaceMatrix,
-                                       };
+    GeometryPassContext geometryPass{
+      .shader = &geometryShader,
+      .depthMap = depthMap,
+      .lightVP = &lightSpaceMatrix,
+    };
 
     frameContext.canvas.framebuffer = &m_frameBuffer;
     frameContext.projection = &proj;
@@ -226,16 +231,53 @@ void SceneViewportWindow::drawScene()
     // if we have an entity selected we also go through the outlining pass
     if ( m_selectedEntity != entt::null )
     {
-      const auto& mesh = scene->getRegistry().tryGetComponent<MeshComponent>( m_selectedEntity );
+      // use the Entity wrapper to acces registry functions easier
+      Entity entity{ scene->getRegistry(), m_selectedEntity };
+      const auto& mesh = entity.tryGetComponent<MeshComponent>();
+
       if ( scene->getRegistry().isValid( m_selectedEntity ) && mesh && mesh->pMesh )
       {
+        // add outline component if entity has none
+        if ( !entity.hasComponent<OutlineComponent>() )
+        {
+          auto data = scene->getData( entity.getComponent<MeshComponent>().pMesh );
+          auto index = entity.getComponent<IndexComponent>().index;
+          auto& instance = data->instances.at( index );
+          instance.selected = 1;
+
+          scene->updateInstances( data );
+          entity.addComponent<OutlineComponent>();
+        }
+
         frameContext.canvas.framebuffer = &m_stencilBuffer;
-        OutliningPassContext outlinePass{ .normalShader = &geometryShader,
-                                          .outlineShader = &outliningShader,
-                                          .outlinedEntity = static_cast<uint32_t>( m_selectedEntity ),
-                                          .depthMap = depthMap };
+        OutliningPassContext outlinePass{
+          .normalShader = &nolightShader, .outlineShader = &outliningShader, .depthMap = depthMap };
 
         m_pRenderingSystem->renderOutliningPass( frameContext, outlinePass );
+      }
+    }
+    else
+    {
+      entt::entity outlinedEntity{ entt::null };
+      auto& registry = scene->getEnttRegistry();
+      auto view = registry.view<OutlineComponent>();
+      for ( auto entity : view )
+      {
+        outlinedEntity = entity;
+      }
+      if ( scene->getRegistry().isValid( outlinedEntity ) )
+      {
+        Entity ent{ scene->getRegistry(), outlinedEntity };
+        if ( ent.hasComponent<MeshComponent>() )
+        {
+          auto data = scene->getData( ent.getComponent<MeshComponent>().pMesh );
+          auto index = ent.getComponent<IndexComponent>().index;
+          auto& instance = data->instances.at( index );
+
+          instance.selected = 0;
+          scene->updateInstances( data );
+        }
+        registry.remove<OutlineComponent>( outlinedEntity );
       }
     }
   }
@@ -276,12 +318,12 @@ void SceneViewportWindow::drawPickingScene()
 
   PickingPassContext pickingPass{ .shader = &shader, .x = static_cast<int>( mx ), .y = static_cast<int>( my ) };
   auto result = m_pRenderingSystem->renderPickingPass( frameContext, pickingPass );
-  spdlog::debug( "enttId {}", result );
 
   auto ent = static_cast<entt::entity>( result );
   if ( scene->getRegistry().isValid( ent ) )
   {
-    if ( m_selectedEntity == ent )
+    // need to deselect first
+    if ( m_selectedEntity != entt::null )
       return;
 
     m_selectedEntity = ent;
@@ -407,7 +449,7 @@ void SceneViewportWindow::draw()
   ImGuizmo::SetDrawlist();
   ImGuizmo::SetRect( win_pos.x, win_pos.y, contentSize.x, contentSize.y );
 
-  if ( m_selectedEntity != entt::null )
+  if ( m_selectedEntity != entt::null && m_gizmoEnabled )
   {
     Entity entity{ scene->getRegistry(), m_selectedEntity };
     const auto& modelComponent = entity.tryGetComponent<MeshComponent>();
@@ -416,9 +458,9 @@ void SceneViewportWindow::draw()
       const auto& instanceData = scene->getData( modelComponent->pMesh );
       const auto& indexComponet = entity.tryGetComponent<IndexComponent>();
       const auto& transform = entity.tryGetComponent<TransformComponent>();
-      auto& instanceMatrix = instanceData->instanceMatrices.at( indexComponet->index );
+      auto& instanceMatrix = instanceData->instances.at( indexComponet->index ).instanceMatrix;
 
-      ImGuizmo::Enable( ( m_props->hovered && m_props->focused && m_gizmoEnabled ) || ImGuizmo::IsUsingAny() );
+      ImGuizmo::Enable( ( m_props->hovered && m_props->focused ) || ImGuizmo::IsUsingAny() );
 
       ImGuizmo::Manipulate( glm::value_ptr( m_pCamera->getViewMatrix() ),
                             glm::value_ptr( m_pCamera->getProjectionMatrix( { contentSize.x, contentSize.y } ) ),

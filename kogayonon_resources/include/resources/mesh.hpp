@@ -20,11 +20,11 @@ public:
   Mesh() = default;
   ~Mesh() = default;
 
-  Mesh( const Mesh& other );            // copy
-  Mesh& operator=( const Mesh& other ); // copy assignment
+  Mesh( const Mesh& other );            
+  Mesh& operator=( const Mesh& other ); 
 
-  Mesh( Mesh&& other ) noexcept = default;            // move constructor
-  Mesh& operator=( Mesh&& other ) noexcept = default; // move assignment
+  Mesh( Mesh&& other ) noexcept = default;           
+  Mesh& operator=( Mesh&& other ) noexcept = default; 
 
   explicit Mesh( const std::string& path, const std::vector<Vertex>&& vertices, const std::vector<uint32_t>&& indices,
                  const std::vector<Texture*>&& textures, const std::vector<Submesh>&& submeshes );

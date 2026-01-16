@@ -8,8 +8,6 @@ namespace kogayonon_rendering
 class Renderer
 {
 public:
-  static auto getInstance() -> Renderer&;
-
   static bool isDepthEnabled();
   static bool isStencilEnabled();
 
@@ -26,7 +24,9 @@ private:
   Renderer( Renderer&& ) = delete;
   Renderer& operator=( Renderer&& ) = delete;
 
-  Renderer() = default;
-  ~Renderer() = default;
+  // since we use this for kind of like a render command setter, getter and so on
+  // we don't need any instances
+  Renderer() = delete;
+  ~Renderer() = delete;
 };
 } // namespace kogayonon_rendering

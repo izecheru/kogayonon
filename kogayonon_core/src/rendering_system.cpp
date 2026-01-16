@@ -1,4 +1,3 @@
-
 #include "core/systems/rendering_system.h"
 #include <assert.h>
 #include <entt/entt.hpp>
@@ -7,6 +6,7 @@
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/index_component.h"
 #include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/outline_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/scene/scene.hpp"
@@ -16,33 +16,30 @@
 #include "utilities/math/math.hpp"
 #include "utilities/shader_manager/shader_manager.hpp"
 using namespace kogayonon_utilities;
+using namespace kogayonon_rendering;
 
 namespace kogayonon_core
 {
 void RenderingSystem::renderOutliningPass( FrameContext& frame, OutliningPassContext& pass )
 {
-  auto& renderer = kogayonon_rendering::Renderer::getInstance();
+  Renderer::enableDepth();
   beginOutliningPass( frame.canvas );
-  renderer.enableDepth();
-  // normal render
   glStencilFunc( GL_ALWAYS, 1, 0xFF );
   glStencilMask( 0xFF );
-  renderEntity( pass.outlinedEntity, frame.scene, frame.view, frame.projection, pass.normalShader, pass.depthMap );
 
-  // scaled up render
+  // normal render
+  renderOutlinedEntity( frame.scene, frame.view, frame.projection, pass.normalShader, pass.depthMap );
+
   glStencilFunc( GL_NOTEQUAL, 1, 0xFF );
   glStencilMask( 0x00 );
-  renderer.disableDepth();
 
-  Entity entity{ frame.scene->getRegistry(), static_cast<entt::entity>( pass.outlinedEntity ) };
-  auto& transform = entity.getComponent<TransformComponent>();
+  Renderer::disableDepth();
+  renderOutlinedEntity( frame.scene, frame.view, frame.projection, pass.outlineShader, pass.depthMap );
 
-  renderEntity( pass.outlinedEntity, frame.scene, frame.view, frame.projection, pass.outlineShader, pass.depthMap );
+  glStencilMask( 0xFF );
+  glStencilFunc( GL_ALWAYS, 1, 0xFF );
 
-  glStencilMask( 0xff );
-  glStencilFunc( GL_ALWAYS, 0, 0xFF );
-
-  renderEntity( pass.outlinedEntity, frame.scene, frame.view, frame.projection, pass.normalShader, pass.depthMap );
+  Renderer::enableDepth();
   endOutliningPass( frame.canvas );
 }
 
@@ -76,11 +73,20 @@ auto RenderingSystem::renderPickingPass( FrameContext& frame, PickingPassContext
   return result;
 }
 
-void RenderingSystem::renderEntity( uint32_t entityId, Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection,
-                                    kogayonon_utilities::Shader* shader, uint32_t depthMap )
+void RenderingSystem::renderOutlinedEntity( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection,
+                                            kogayonon_utilities::Shader* shader, uint32_t depthMap )
 {
   shader->bind();
-  Entity entity{ scene->getRegistry(), static_cast<entt::entity>( entityId ) };
+  const auto& view = scene->getEnttRegistry().view<OutlineComponent>();
+  entt::entity ent{ entt::null };
+  for ( const auto& [entity, outlineComp] : view.each() )
+  {
+    ent = entity;
+    break;
+  }
+
+  Entity entity{ scene->getRegistry(), ent };
+
   auto& meshComponent = entity.getComponent<MeshComponent>();
   auto& mesh = meshComponent.pMesh;
   auto& index = entity.getComponent<IndexComponent>().index;
@@ -88,8 +94,14 @@ void RenderingSystem::renderEntity( uint32_t entityId, Scene* scene, glm::mat4* 
   auto data = scene->getData( mesh );
   shader->setMat4( "view", *viewMatrix );
   shader->setMat4( "projection", *projection );
-  glBindVertexArray( data->pMesh->getVao() );
-  glDrawElementsInstancedBaseInstance( GL_TRIANGLES, data->pMesh->getIndices().size(), GL_UNSIGNED_INT, 0, 1, index );
+  glBindVertexArray( mesh->getVao() );
+
+  for ( const auto& sm : mesh->getSubmeshes() )
+  {
+    glDrawElementsBaseVertex( GL_TRIANGLES, sm.indexCount, GL_UNSIGNED_INT,
+                              (void*)( sm.indexOffset * sizeof( uint32_t ) ), sm.vertexOffest );
+  }
+
   glBindVertexArray( 0 );
   shader->unbind();
 }
@@ -213,69 +225,63 @@ void RenderingSystem::beginOutliningPass( Canvas& canvas ) const
 
   glEnable( GL_STENCIL_TEST );
   glStencilOp( GL_KEEP, GL_KEEP, GL_REPLACE );
-  glClear( GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 }
 
 void RenderingSystem::endOutliningPass( Canvas& canvas ) const
 {
   auto& framebuffer = canvas.framebuffer;
-  framebuffer->unbind();
   glDisable( GL_STENCIL_TEST );
+  framebuffer->unbind();
 }
 
 void RenderingSystem::beginGeometryPass( Canvas& canvas ) const
 {
   auto framebuffer = canvas.framebuffer;
-  auto& renderer = kogayonon_rendering::Renderer::getInstance();
-  renderer.enableDepth();
+  Renderer::enableDepth();
   framebuffer->resize( canvas.w, canvas.h );
   framebuffer->bind();
 
   glClearColor( 0.3f, 0.3f, 0.3f, 0.5f );
-  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 }
 
 void RenderingSystem::endGeometryPass( Canvas& canvas ) const
 {
   auto framebuffer = canvas.framebuffer;
-  auto& renderer = kogayonon_rendering::Renderer::getInstance();
 
   framebuffer->unbind();
-  renderer.disableDepth();
+  Renderer::disableDepth();
 }
 
 void RenderingSystem::beginDepthPass( Canvas& canvas ) const
 {
   auto framebuffer = canvas.framebuffer;
-  auto& renderer = kogayonon_rendering::Renderer::getInstance();
 
-  renderer.enableDepth();
+  Renderer::enableDepth();
   glCullFace( GL_FRONT );
+  glClear( GL_DEPTH_BUFFER_BIT );
   framebuffer->resize( canvas.w, canvas.h );
   framebuffer->bind();
-
-  glClear( GL_DEPTH_BUFFER_BIT );
 }
 
 void RenderingSystem::endDepthPass( Canvas& canvas ) const
 {
   auto framebuffer = canvas.framebuffer;
-  auto& renderer = kogayonon_rendering::Renderer::getInstance();
 
   framebuffer->unbind();
   glCullFace( GL_BACK );
-  renderer.disableDepth();
+  Renderer::disableDepth();
 }
 
 void RenderingSystem::beginPickingPass( Canvas& canvas ) const
 {
   auto framebuffer = canvas.framebuffer;
-  auto& renderer = kogayonon_rendering::Renderer::getInstance();
 
-  renderer.enableDepth();
+  Renderer::enableDepth();
   framebuffer->resize( canvas.w, canvas.h );
   framebuffer->bind();
-  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
   framebuffer->clearColorAttachment( 0, -1 );
 }
 
@@ -289,7 +295,8 @@ void RenderingSystem::endPickingPass( Canvas& canvas ) const
 void RenderingSystem::makeMeshesUnique( Scene* scene,
                                         std::unordered_map<kogayonon_resources::Mesh*, int>& orderedMeshes )
 {
-  auto view = scene->getEnttRegistry().view<TransformComponent, MeshComponent, IndexComponent>();
+  // now excludes the outlined entity
+  const auto& view = scene->getEnttRegistry().view<TransformComponent, MeshComponent, IndexComponent>();
   std::unordered_set<kogayonon_resources::Mesh*> uniqueMeshes;
 
   for ( const auto& [entity, transformComp, meshComponent, indexComp] : view.each() )

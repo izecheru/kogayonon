@@ -121,18 +121,17 @@ bool Scene::addInstanceData( entt::entity entityId )
       // increment the count
       ++instanceData->count;
 
-      // insert in the vector
-      instanceData->instanceMatrices.push_back(
-        math::computeTransform( transform.translation, transform.rotation, transform.scale ) );
+      // insert the gpu instance in the vector
+      instanceData->instances.emplace_back( GPUInstance{
+        .entityId = static_cast<int>( entityId ),
+        .instanceMatrix = math::computeTransform( transform.translation, transform.rotation, transform.scale ),
+      } );
 
       // get the index of the instance matrix
-      uint32_t size = instanceData->instanceMatrices.size();
+      uint32_t size = instanceData->instances.size();
 
       // add the index component and assing the index to size-1 (last added element)
       entity.addComponent<IndexComponent>( IndexComponent{ .index = size - 1 } );
-
-      // insert the entityId
-      instanceData->entityIds.push_back( static_cast<int>( entity.getEntityId() ) );
 
       // we found the model in the instance map so the geometry is also already uploaded to the gpu and we use the
       // instance matrix for per model translation/ rotation/ scale
@@ -143,16 +142,15 @@ bool Scene::addInstanceData( entt::entity entityId )
   {
     auto pMesh = pMeshComponent->pMesh;
     const auto& transform = entity.getComponent<TransformComponent>();
-    auto instanceData = std::make_unique<InstanceData>( InstanceData{
-      .entityIdBuffer = 0,
-      .entityIds = { static_cast<int>( entity.getEntityId() ) },
-      .instanceBuffer = 0,
-      .instanceMatrices = { math::computeTransform( transform.translation, transform.rotation, transform.scale ) },
-      .count = 1,
-      .pMesh = pMesh } );
+    auto instanceData = std::make_unique<InstanceData>(
+      InstanceData{ .instances = { GPUInstance{ .entityId = static_cast<int>( entityId ),
+                                                .instanceMatrix = math::computeTransform(
+                                                  transform.translation, transform.rotation, transform.scale ) } },
+                    .count = 1,
+                    .pMesh = pMesh } );
 
     // first we get the index of the instance matrix
-    uint32_t size = instanceData->instanceMatrices.size();
+    uint32_t size = instanceData->instances.size();
     entity.addComponent<kogayonon_core::IndexComponent>( IndexComponent{ .index = size - 1 } );
 
     m_instances.try_emplace( pMesh, std::move( instanceData ) );
@@ -197,19 +195,21 @@ void Scene::removeInstanceData( entt::entity ent )
 
     // get the index component and then erase that specific instance matrix
     auto toErase = indexComponent.index;
-    instance->instanceMatrices.erase( instance->instanceMatrices.begin() + toErase );
-
-    // erase the entityId too
-    instance->entityIds.erase( instance->entityIds.begin() + toErase );
+    instance->instances.erase( instance->instances.begin() + toErase );
 
     // now we need to update all the index components that are to the right of the deleted index
-    for ( const auto& [entity, indexComp] : m_pRegistry->getRegistry().view<IndexComponent>().each() )
+    for ( const auto& [entity, indexComp, meshComp] :
+          m_pRegistry->getRegistry().view<IndexComponent, MeshComponent>().each() )
     {
       Entity ent{ *m_pRegistry, entity };
 
-      // if the index from the iteration is > to the index component we erased from the instances
-      if ( indexComp.index > toErase )
-        --indexComp.index;
+      // update the index just to those who use the same mesh
+      if ( meshComp.pMesh == pMesh )
+      {
+        // if the index from the iteration is > to the index component we erased from the instances
+        if ( indexComp.index > toErase )
+          --indexComp.index;
+      }
     }
 
     // finally set up instances again to update the instance buffer and entityIds buffer
@@ -240,8 +240,7 @@ auto Scene::getData( kogayonon_resources::Mesh* pModel ) -> InstanceData*
 void Scene::updateInstances( InstanceData* data )
 {
   // upload new data
-  glNamedBufferSubData( data->instanceBuffer, 0, sizeof( glm::mat4 ) * data->count, data->instanceMatrices.data() );
-  glNamedBufferSubData( data->entityIdBuffer, 0, sizeof( int ) * data->count, data->entityIds.data() );
+  glNamedBufferSubData( data->instanceBuffer, 0, sizeof( GPUInstance ) * data->count, data->instances.data() );
 }
 
 void Scene::setupInstances( InstanceData* data )
@@ -249,40 +248,38 @@ void Scene::setupInstances( InstanceData* data )
   if ( data->instanceBuffer == 0 )
     glCreateBuffers( 1, &data->instanceBuffer );
 
-  if ( data->entityIdBuffer == 0 )
-    glCreateBuffers( 1, &data->entityIdBuffer );
-
-  // did not use glNamedBufferStorage cause it is immutable and instances change based on the amount of them
-  glNamedBufferData( data->instanceBuffer, sizeof( glm::mat4 ) * data->count, data->instanceMatrices.data(),
+  glNamedBufferData( data->instanceBuffer, sizeof( GPUInstance ) * data->count, data->instances.data(),
                      GL_DYNAMIC_DRAW );
-
-  glNamedBufferData( data->entityIdBuffer, sizeof( int ) * data->count, data->entityIds.data(), GL_DYNAMIC_DRAW );
 
   const auto& vao = data->pMesh->getVao();
 
-  glVertexArrayVertexBuffer( vao, 1, data->instanceBuffer, 0, sizeof( glm::mat4 ) );
-  glVertexArrayVertexBuffer( vao, 2, data->entityIdBuffer, 0, sizeof( int ) );
+  glVertexArrayVertexBuffer( vao, 1, data->instanceBuffer, 0, sizeof( GPUInstance ) );
 
   glEnableVertexArrayAttrib( vao, 3 );
   glEnableVertexArrayAttrib( vao, 4 );
   glEnableVertexArrayAttrib( vao, 5 );
   glEnableVertexArrayAttrib( vao, 6 );
   glEnableVertexArrayAttrib( vao, 7 );
+  glEnableVertexArrayAttrib( vao, 8 );
 
-  glVertexArrayAttribFormat( vao, 3, 4, GL_FLOAT, GL_FALSE, 0 );
-  glVertexArrayAttribFormat( vao, 4, 4, GL_FLOAT, GL_FALSE, sizeof( glm::vec4 ) );
-  glVertexArrayAttribFormat( vao, 5, 4, GL_FLOAT, GL_FALSE, 2 * sizeof( glm::vec4 ) );
-  glVertexArrayAttribFormat( vao, 6, 4, GL_FLOAT, GL_FALSE, 3 * sizeof( glm::vec4 ) );
-  glVertexArrayAttribIFormat( vao, 7, 1, GL_INT, 0 );
+  glVertexArrayAttribIFormat( vao, 3, 1, GL_UNSIGNED_INT, offsetof( GPUInstance, selected ) );
+  glVertexArrayAttribIFormat( vao, 4, 1, GL_INT, offsetof( GPUInstance, entityId ) );
+
+  std::size_t matrixOffset = offsetof( GPUInstance, instanceMatrix );
+
+  for ( auto i = 0u; i < 4; i++ )
+  {
+    glVertexArrayAttribFormat( vao, 5 + i, 4, GL_FLOAT, GL_FALSE, matrixOffset + i * sizeof( glm::vec4 ) );
+  }
 
   glVertexArrayAttribBinding( vao, 3, 1 );
   glVertexArrayAttribBinding( vao, 4, 1 );
   glVertexArrayAttribBinding( vao, 5, 1 );
   glVertexArrayAttribBinding( vao, 6, 1 );
-  glVertexArrayAttribBinding( vao, 7, 2 );
+  glVertexArrayAttribBinding( vao, 7, 1 );
+  glVertexArrayAttribBinding( vao, 8, 1 );
 
   glVertexArrayBindingDivisor( vao, 1, 1 );
-  glVertexArrayBindingDivisor( vao, 2, 1 );
 }
 
 void Scene::updateRigidbodyEntities()
@@ -311,7 +308,7 @@ void Scene::updateRigidbodyEntities()
     auto instanceData = getData( meshComponent.pMesh );
 
     // update the instance matrix
-    auto& instanceMatrix = instanceData->instanceMatrices.at( indexComponent.index );
+    auto& instanceMatrix = instanceData->instances.at( indexComponent.index ).instanceMatrix;
     instanceMatrix = model;
     // rotation is using euler angles, yaw pitch roll (glm::vec3)
     transformComponent.rotation = glm::eulerAngles( rotation );

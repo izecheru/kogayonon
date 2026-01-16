@@ -225,6 +225,7 @@ bool App::initSDL()
   SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 4 );
   SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 6 );
   SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+  SDL_GL_SetAttribute( SDL_GL_STENCIL_SIZE, 8 );
   auto pWinProps = m_pWindow->getWindowProps();
 
   auto flags = SDL_WINDOW_OPENGL;
@@ -253,6 +254,8 @@ bool App::initSDL()
   glDebugMessageControl( GL_DEBUG_SOURCE_API, GL_DEBUG_TYPE_ERROR, GL_DEBUG_SEVERITY_HIGH, 0, nullptr, GL_TRUE );
   glDebugMessageCallback( glDebugCallback, nullptr );
 #endif
+  glEnable( GL_DEPTH_TEST );
+  glEnable( GL_STENCIL_TEST );
   glDepthFunc( GL_LESS );
   glEnable( GL_CULL_FACE );
   glCullFace( GL_BACK );
@@ -289,7 +292,8 @@ bool App::initRegistries() const
   auto shaderManager = std::make_shared<kogayonon_utilities::ShaderManager>();
   assert( shaderManager && "could not initialise shader manager" );
   shaderManager->pushShader( "resources/shaders/3d_vertex.glsl", "resources/shaders/3d_fragment.glsl", "3d" );
-  shaderManager->pushShader( "resources/shaders/white_vertex.glsl", "resources/shaders/white_fragment.glsl", "white" );
+  shaderManager->pushShader( "resources/shaders/3d_normal_vert.glsl", "resources/shaders/3d_normal_frag.glsl",
+                             "3d_normal" );
   shaderManager->pushShader( "resources/shaders/picking_vertex.glsl", "resources/shaders/picking_fragment.glsl",
                              "picking" );
   shaderManager->pushShader( "resources/shaders/depth_vert.glsl", "resources/shaders/depth_frag.glsl", "depth" );

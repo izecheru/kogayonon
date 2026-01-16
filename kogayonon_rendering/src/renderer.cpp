@@ -1,23 +1,19 @@
 #include "rendering/renderer.hpp"
 #include <glad/glad.h>
 
-auto kogayonon_rendering::Renderer::getInstance() -> Renderer&
+namespace kogayonon_rendering
 {
-  static Renderer renderer{};
-  return renderer;
-}
-
-bool kogayonon_rendering::Renderer::isDepthEnabled()
+bool Renderer::isDepthEnabled()
 {
   return glIsEnabled( GL_DEPTH_TEST );
 }
 
-bool kogayonon_rendering::Renderer::isStencilEnabled()
+bool Renderer::isStencilEnabled()
 {
   return glIsEnabled( GL_STENCIL_TEST );
 }
 
-void kogayonon_rendering::Renderer::enableDepth()
+void Renderer::enableDepth()
 {
   if ( isDepthEnabled() )
     return;
@@ -25,7 +21,7 @@ void kogayonon_rendering::Renderer::enableDepth()
   glEnable( GL_DEPTH_TEST );
 }
 
-void kogayonon_rendering::Renderer::enableStencil()
+void Renderer::enableStencil()
 {
   if ( isStencilEnabled() )
     return;
@@ -33,7 +29,7 @@ void kogayonon_rendering::Renderer::enableStencil()
   glEnable( GL_STENCIL_TEST );
 }
 
-void kogayonon_rendering::Renderer::disableDepth()
+void Renderer::disableDepth()
 {
   if ( !isDepthEnabled() )
     return;
@@ -41,10 +37,11 @@ void kogayonon_rendering::Renderer::disableDepth()
   glDisable( GL_DEPTH_TEST );
 }
 
-void kogayonon_rendering::Renderer::disableStencil()
+void Renderer::disableStencil()
 {
   if ( !isStencilEnabled() )
     return;
 
   glDisable( GL_STENCIL_TEST );
 }
+} // namespace kogayonon_rendering

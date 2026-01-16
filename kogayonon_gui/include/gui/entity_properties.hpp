@@ -42,6 +42,7 @@ private:
   void drawDirectionalLightComponent( kogayonon_core::Entity& ent ) const;
   void drawDynamicRigidbodyComponent( kogayonon_core::Entity& ent ) const;
   void drawStaticRigidbodyComponent( kogayonon_core::Entity& ent ) const;
+  void drawMisc( kogayonon_core::Entity& ent );
 
   void drawRigidbodyMenu( kogayonon_core::Entity& ent );
   void drawLightMenu( kogayonon_core::Entity& ent );

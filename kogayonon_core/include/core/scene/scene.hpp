@@ -17,19 +17,20 @@ class Registry;
 
 namespace kogayonon_core
 {
+struct GPUInstance
+{
+  uint32_t selected{ 0 };
+  int entityId;
+  glm::mat4 instanceMatrix;
+};
+
 struct InstanceData
 {
-  // buffer for entity ids used for picking
-  uint32_t entityIdBuffer{ 0 };
-
-  // entity ids vector
-  std::vector<int> entityIds{};
-
   // the buffer in which we upload the instance matrices
   uint32_t instanceBuffer{ 0 };
 
-  // each instance has its own instance matrix that enables transformations
-  std::vector<glm::mat4> instanceMatrices{ 0 };
+  // instance vector
+  std::vector<GPUInstance> instances;
 
   // the amount of instances that will be drawn for a specific model using glDrawElementsInstanced
   int count{ 1 };
