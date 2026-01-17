@@ -812,10 +812,14 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     const auto& emptyEntityView =
       scene->getRegistry().getRegistry().view<IdentifierComponent>( entt::exclude<MeshComponent, PointLightComponent> );
 
-    // count them accurately, don't think performance drops here
-    size_t meshCount = 0;
-    for ( const auto& ent : meshView.each() )
-      ++meshCount;
+    std::vector<entt::entity> modelEntities;
+    for ( const auto& [ent, modelComp] : meshView.each() )
+    {
+      if ( modelComp.loaded )
+      {
+        modelEntities.emplace_back( ent );
+      }
+    }
 
     // count them accurately, don't think performance drops here
     size_t emptyCount = 0;
@@ -824,7 +828,7 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
 
     sceneObject.AddMember( "name", rapidjson::Value{ name.c_str(), allocator }, allocator );
     sceneObject.AddMember( "directionalLightEntityCount", 1, allocator );
-    sceneObject.AddMember( "meshEntityCount", meshCount, allocator );
+    sceneObject.AddMember( "meshEntityCount", modelEntities.size(), allocator );
     sceneObject.AddMember( "pointLightEntityCount", scene->getLightCount( kogayonon_resources::LightType::Point ),
                            allocator );
 
@@ -840,13 +844,8 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     sceneObject.AddMember( "path", rapidjson::Value{ finalPath.c_str(), allocator }, allocator );
     // use the final path to serialize entities and states
     std::fstream sceneOut{ finalPath, std::ios::out | std::ios::binary };
-    std::vector<entt::entity> modelEntities;
 
-    for ( const auto& [entity, modelComponent] : meshView.each() )
-    {
-      modelEntities.push_back( entity );
-    }
-
+    // lower size loads first then bigger size follows
     std::sort( modelEntities.begin(), modelEntities.end(), [&]( entt::entity a, entt::entity b ) {
       auto& meshA = scene->getRegistry().getComponent<MeshComponent>( a );
       auto& meshB = scene->getRegistry().getComponent<MeshComponent>( b );

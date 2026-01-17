@@ -4,17 +4,15 @@ layout(location = 0) in vec3 aPos;
 layout(location = 1) in vec3 aNormal;
 layout(location = 2) in vec2 aTexCoord;
 layout(location = 3) in uint aSelected;
-layout(location = 4) in int aEntityId;
+// layout(location = 4) in int aEntityId;
 
-layout(location = 5) in mat4 instanceMatrix; // those has 4 rows of vec4s
-// 4 - 2nd row
-// 5 - 3rd row
-// 6 - 4th row
 
 
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 lightVP;
+// this no longer is instanced but i'll leave the variable name the same
+uniform mat4 instanceMatrix;
 
 out vec2 TexCoord;
 out vec3 Normal;

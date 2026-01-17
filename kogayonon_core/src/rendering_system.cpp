@@ -74,7 +74,7 @@ auto RenderingSystem::renderPickingPass( FrameContext& frame, PickingPassContext
 }
 
 void RenderingSystem::renderOutlinedEntity( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection,
-                                            kogayonon_utilities::Shader* shader, uint32_t depthMap )
+                                            kogayonon_utilities::Shader* shader, uint32_t* depthMap )
 {
   shader->bind();
   const auto& view = scene->getEnttRegistry().view<OutlineComponent>();
@@ -94,6 +94,7 @@ void RenderingSystem::renderOutlinedEntity( Scene* scene, glm::mat4* viewMatrix,
   auto data = scene->getData( mesh );
   shader->setMat4( "view", *viewMatrix );
   shader->setMat4( "projection", *projection );
+  shader->setMat4( "instanceMatrix", data->instances.at( index ).instanceMatrix );
   glBindVertexArray( mesh->getVao() );
 
   for ( const auto& sm : mesh->getSubmeshes() )
@@ -125,7 +126,7 @@ void RenderingSystem::render( Scene* scene, glm::mat4* viewMatrix, glm::mat4* pr
 
 void RenderingSystem::drawMeshesWithDepth( Scene* scene,
                                            const std::unordered_map<kogayonon_resources::Mesh*, int>& orderedMeshes,
-                                           const uint32_t& depthMap )
+                                           const uint32_t* depthMap )
 {
   for ( auto& mesh : orderedMeshes )
   {
@@ -139,7 +140,7 @@ void RenderingSystem::drawMeshesWithDepth( Scene* scene,
       // bind the texture we need (this is bad)
       glBindTextureUnit( 3, textures.at( i )->getTextureId() );
     }
-    glBindTextureUnit( 4, depthMap );
+    glBindTextureUnit( 4, *depthMap );
 
     auto instanceData = scene->getData( mesh.first );
     auto& submeshes = mesh.first->getSubmeshes();
@@ -187,7 +188,7 @@ void RenderingSystem::drawMeshes( Scene* scene,
 
 void RenderingSystem::renderWithDepth( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection,
                                        glm::mat4* lightSpaceMatrix, kogayonon_utilities::Shader* shader,
-                                       uint32_t& depthMap )
+                                       uint32_t* depthMap )
 {
   begin( shader );
 
@@ -242,7 +243,7 @@ void RenderingSystem::beginGeometryPass( Canvas& canvas ) const
   framebuffer->resize( canvas.w, canvas.h );
   framebuffer->bind();
 
-  glClearColor( 0.3f, 0.3f, 0.3f, 0.5f );
+  glClearColor( 0.2f, 0.2f, 0.2f, 0.4f );
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 }
 
@@ -257,12 +258,12 @@ void RenderingSystem::endGeometryPass( Canvas& canvas ) const
 void RenderingSystem::beginDepthPass( Canvas& canvas ) const
 {
   auto framebuffer = canvas.framebuffer;
+  framebuffer->resize( canvas.w, canvas.h );
+  framebuffer->bind();
 
   Renderer::enableDepth();
   glCullFace( GL_FRONT );
   glClear( GL_DEPTH_BUFFER_BIT );
-  framebuffer->resize( canvas.w, canvas.h );
-  framebuffer->bind();
 }
 
 void RenderingSystem::endDepthPass( Canvas& canvas ) const
@@ -278,9 +279,9 @@ void RenderingSystem::beginPickingPass( Canvas& canvas ) const
 {
   auto framebuffer = canvas.framebuffer;
 
-  Renderer::enableDepth();
   framebuffer->resize( canvas.w, canvas.h );
   framebuffer->bind();
+  Renderer::enableDepth();
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
   framebuffer->clearColorAttachment( 0, -1 );
 }
@@ -289,7 +290,7 @@ void RenderingSystem::endPickingPass( Canvas& canvas ) const
 {
   auto framebuffer = canvas.framebuffer;
   framebuffer->unbind();
-  glDisable( GL_DEPTH_TEST );
+  Renderer::disableDepth();
 }
 
 void RenderingSystem::makeMeshesUnique( Scene* scene,

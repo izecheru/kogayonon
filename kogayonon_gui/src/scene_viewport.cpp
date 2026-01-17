@@ -85,7 +85,8 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
       FramebufferAttachment{ .textureFormat = GL_DEPTH_COMPONENT24, .type = FramebufferAttachmentType::Depth } } };
 
   FramebufferSpec pickingSpec{
-    { FramebufferAttachment{ .textureFormat = GL_RED_INTEGER, .type = FramebufferAttachmentType::Color } } };
+    { FramebufferAttachment{ .textureFormat = GL_RED_INTEGER, .type = FramebufferAttachmentType::Color },
+      FramebufferAttachment{ .textureFormat = GL_DEPTH_COMPONENT24, .type = FramebufferAttachmentType::Depth } } };
 
   // we should use this depth spec for the shadow mapping texture
   FramebufferSpec depthSpec{
@@ -176,7 +177,7 @@ void SceneViewportWindow::drawScene()
   auto& depthDebugShader = pShaderManager->getShader( "depthDebug" );
   auto& geometryShader = pShaderManager->getShader( "3d" );
   auto& outliningShader = pShaderManager->getShader( "outlining" );
-  auto& nolightShader = pShaderManager->getShader( "3d_normal" );
+  auto& normalShader = pShaderManager->getShader( "3d_normal" );
 
   if ( scene->getLightCount( kogayonon_resources::LightType::Directional ) != 0 )
   {
@@ -218,7 +219,7 @@ void SceneViewportWindow::drawScene()
     auto depthMap = m_depthBuffer.getDepthAttachmentId();
     GeometryPassContext geometryPass{
       .shader = &geometryShader,
-      .depthMap = depthMap,
+      .depthMap = &depthMap,
       .lightVP = &lightSpaceMatrix,
     };
 
@@ -228,56 +229,17 @@ void SceneViewportWindow::drawScene()
 
     m_pRenderingSystem->renderGeometryPass( frameContext, geometryPass );
 
-    // if we have an entity selected we also go through the outlining pass
     if ( m_selectedEntity != entt::null )
     {
-      // use the Entity wrapper to acces registry functions easier
       Entity entity{ scene->getRegistry(), m_selectedEntity };
-      const auto& mesh = entity.tryGetComponent<MeshComponent>();
-
-      if ( scene->getRegistry().isValid( m_selectedEntity ) && mesh && mesh->pMesh )
+      if ( entity.hasComponent<MeshComponent>() && entity.hasComponent<OutlineComponent>() )
       {
-        // add outline component if entity has none
-        if ( !entity.hasComponent<OutlineComponent>() )
-        {
-          auto data = scene->getData( entity.getComponent<MeshComponent>().pMesh );
-          auto index = entity.getComponent<IndexComponent>().index;
-          auto& instance = data->instances.at( index );
-          instance.selected = 1;
-
-          scene->updateInstances( data );
-          entity.addComponent<OutlineComponent>();
-        }
-
         frameContext.canvas.framebuffer = &m_stencilBuffer;
+
         OutliningPassContext outlinePass{
-          .normalShader = &nolightShader, .outlineShader = &outliningShader, .depthMap = depthMap };
+          .normalShader = &normalShader, .outlineShader = &outliningShader, .depthMap = &depthMap };
 
         m_pRenderingSystem->renderOutliningPass( frameContext, outlinePass );
-      }
-    }
-    else
-    {
-      entt::entity outlinedEntity{ entt::null };
-      auto& registry = scene->getEnttRegistry();
-      auto view = registry.view<OutlineComponent>();
-      for ( auto entity : view )
-      {
-        outlinedEntity = entity;
-      }
-      if ( scene->getRegistry().isValid( outlinedEntity ) )
-      {
-        Entity ent{ scene->getRegistry(), outlinedEntity };
-        if ( ent.hasComponent<MeshComponent>() )
-        {
-          auto data = scene->getData( ent.getComponent<MeshComponent>().pMesh );
-          auto index = ent.getComponent<IndexComponent>().index;
-          auto& instance = data->instances.at( index );
-
-          instance.selected = 0;
-          scene->updateInstances( data );
-        }
-        registry.remove<OutlineComponent>( outlinedEntity );
       }
     }
   }
@@ -325,6 +287,20 @@ void SceneViewportWindow::drawPickingScene()
     // need to deselect first
     if ( m_selectedEntity != entt::null )
       return;
+
+    spdlog::info( static_cast<uint32_t>( ent ) );
+
+    Entity entity{ scene->getRegistry(), ent };
+
+    if ( entity.hasComponent<MeshComponent>() && !entity.hasComponent<OutlineComponent>() )
+    {
+      auto& meshComp = entity.getComponent<MeshComponent>();
+      auto data = scene->getData( meshComp.pMesh );
+      auto index = entity.getComponent<IndexComponent>().index;
+      data->instances.at( index ).selected = 1;
+      entity.addComponent<OutlineComponent>();
+      scene->updateInstances( data );
+    }
 
     m_selectedEntity = ent;
     pEventDispatcher->emitEvent( SelectEntityInViewportEvent{ ent } );

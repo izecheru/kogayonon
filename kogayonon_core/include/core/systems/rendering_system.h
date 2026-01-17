@@ -45,7 +45,7 @@ struct OutliningPassContext
 {
   kogayonon_utilities::Shader* normalShader;
   kogayonon_utilities::Shader* outlineShader;
-  uint32_t& depthMap;
+  uint32_t* depthMap;
 };
 
 struct DepthPassContext
@@ -56,7 +56,7 @@ struct DepthPassContext
 struct GeometryPassContext
 {
   kogayonon_utilities::Shader* shader;
-  uint32_t& depthMap;
+  uint32_t* depthMap;
   glm::mat4* lightVP;
 };
 
@@ -80,12 +80,12 @@ public:
 
 private:
   void renderOutlinedEntity( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection,
-                             kogayonon_utilities::Shader* shader, uint32_t depthMap );
+                             kogayonon_utilities::Shader* shader, uint32_t* depthMap );
 
   void render( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection, kogayonon_utilities::Shader* shader );
 
   void renderWithDepth( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection, glm::mat4* lightSpaceMatrix,
-                        kogayonon_utilities::Shader* shader, uint32_t& depthMap );
+                        kogayonon_utilities::Shader* shader, uint32_t* depthMap );
 
   void begin( kogayonon_utilities::Shader* shader ) const;
   void end( kogayonon_utilities::Shader* shader ) const;
@@ -104,6 +104,6 @@ private:
   void drawMeshes( Scene* scene, const std::unordered_map<kogayonon_resources::Mesh*, int>& orderedMeshes );
 
   void drawMeshesWithDepth( Scene* scene, const std::unordered_map<kogayonon_resources::Mesh*, int>& orderedMeshes,
-                            const uint32_t& depthMap );
+                            const uint32_t* depthMap );
 };
 } // namespace kogayonon_core

@@ -2,7 +2,9 @@
 #include <SDL.h>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/identifier_component.hpp"
+#include "core/ecs/components/index_component.h"
 #include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/outline_component.hpp"
 #include "core/ecs/components/pointlight_component.hpp"
 
 #include "core/ecs/components/transform_component.hpp"
@@ -41,15 +43,26 @@ void SceneHierarchyWindow::onEntitySelectInViewport( const SelectEntityInViewpor
 
 void SceneHierarchyWindow::onKeyPressed( const KeyPressedEvent& e )
 {
-  const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
-
   if ( m_selectedEntity == entt::null )
     return;
 
+  const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+  const auto& scene = SceneManager::getCurrentScene().lock();
   // Escape to deselect entity
   if ( e.getKeyScanCode() == KeyScanCode::Escape && e.getKeyModifier() == KeyScanCode::None )
   {
-    const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+
+    Entity entity{ scene->getRegistry(), m_selectedEntity };
+
+    if ( entity.hasComponent<OutlineComponent>() )
+    {
+      auto& meshComp = entity.getComponent<MeshComponent>();
+      auto data = scene->getData( meshComp.pMesh );
+      auto index = entity.getComponent<IndexComponent>().index;
+      data->instances.at( index ).selected = 0;
+      entity.removeComponent<OutlineComponent>();
+      scene->updateInstances( data );
+    }
 
     m_selectedEntity = entt::null;
     pEventDispatcher->emitEvent( SelectEntityEvent{} );
@@ -58,10 +71,18 @@ void SceneHierarchyWindow::onKeyPressed( const KeyPressedEvent& e )
   // Delete to delete entity
   if ( e.getKeyScanCode() == KeyScanCode::Delete && e.getKeyModifier() == KeyScanCode::None )
   {
-    const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
-
-    auto scene = SceneManager::getCurrentScene().lock();
     scene->removeEntity( m_selectedEntity );
+    Entity entity{ scene->getRegistry(), m_selectedEntity };
+
+    if ( entity.hasComponent<MeshComponent>() && entity.hasComponent<OutlineComponent>() )
+    {
+      auto& meshComp = entity.getComponent<MeshComponent>();
+      auto data = scene->getData( meshComp.pMesh );
+      auto index = entity.getComponent<IndexComponent>().index;
+      data->instances.at( index ).selected = 0;
+      entity.removeComponent<OutlineComponent>();
+      scene->updateInstances( data );
+    }
 
     m_selectedEntity = entt::null;
     pEventDispatcher->emitEvent( SelectEntityEvent{} );
@@ -70,27 +91,41 @@ void SceneHierarchyWindow::onKeyPressed( const KeyPressedEvent& e )
   // Shift + D to duplicate entity
   if ( e.getKeyModifier() == KeyScanCode::LeftShift && e.getKeyScanCode() == KeyScanCode::D )
   {
-    auto pScene = SceneManager::getCurrentScene().lock();
-    Entity entity{ pScene->getRegistry(), m_selectedEntity };
-    if ( pScene )
+    Entity entity{ scene->getRegistry(), m_selectedEntity };
+    auto duplicatedEntity = scene->addEntity();
+    if ( entity.hasComponent<MeshComponent>() )
     {
-      auto duplicatedEntity = pScene->addEntity();
-      if ( entity.hasComponent<MeshComponent>() )
-      {
-        const auto& meshComponent = entity.getComponent<MeshComponent>();
-        const auto& transform = entity.getComponent<TransformComponent>();
-        duplicatedEntity.addComponent<TransformComponent>( TransformComponent{
-          .translation = transform.translation, .rotation = transform.rotation, .scale = transform.scale } );
-        pScene->addMeshToEntity( duplicatedEntity.getEntityId(), meshComponent.pMesh );
-      }
-      if ( entity.hasComponent<PointLightComponent>() )
-      {
-        const auto& pointLightComp = entity.getComponent<PointLightComponent>();
-        pScene->addPointLight( duplicatedEntity.getEntityId() );
-      }
-      pEventDispatcher->emitEvent( SelectEntityInViewportEvent{ duplicatedEntity.getEntityId() } );
-      pEventDispatcher->emitEvent( SelectEntityEvent{ duplicatedEntity.getEntityId() } );
+      const auto& meshComponent = entity.getComponent<MeshComponent>();
+      const auto& transform = entity.getComponent<TransformComponent>();
+
+      // remove outline from the old entity
+      const auto data = scene->getData( meshComponent.pMesh );
+      auto index = entity.getComponent<IndexComponent>().index;
+      data->instances.at( index ).selected = 0;
+      entity.removeComponent<OutlineComponent>();
+      scene->updateInstances( data );
+
+      // add outline to the new one
+      duplicatedEntity.addComponent<TransformComponent>( TransformComponent{
+        .translation = transform.translation, .rotation = transform.rotation, .scale = transform.scale } );
+      duplicatedEntity.addComponent<OutlineComponent>();
+
+      scene->addMeshToEntity( duplicatedEntity.getEntityId(), meshComponent.pMesh );
+
+      const auto& meshCompDuplicated = duplicatedEntity.getComponent<MeshComponent>();
+      const auto dataDuplicated = scene->getData( meshCompDuplicated.pMesh );
+      index = duplicatedEntity.getComponent<IndexComponent>().index;
+
+      dataDuplicated->instances.at( index ).selected = 1;
+      scene->updateInstances( dataDuplicated );
     }
+    if ( entity.hasComponent<PointLightComponent>() )
+    {
+      const auto& pointLightComp = entity.getComponent<PointLightComponent>();
+      scene->addPointLight( duplicatedEntity.getEntityId() );
+    }
+    pEventDispatcher->emitEvent( SelectEntityInViewportEvent{ duplicatedEntity.getEntityId() } );
+    pEventDispatcher->emitEvent( SelectEntityEvent{ duplicatedEntity.getEntityId() } );
   }
 }
 
