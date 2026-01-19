@@ -69,12 +69,9 @@ static ImGuizmo::OPERATION gizmoModeToImGuizmo( GizmoMode mode )
   }
 }
 
-SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string name, unsigned int playTextureId,
-                                          unsigned int stopTextureId )
+SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string name )
     : ImGuiWindow{ name }
     , m_selectedEntity{ entt::null }
-    , m_playTextureId{ playTextureId }
-    , m_stopTextureId{ stopTextureId }
     , m_mainWindow{ mainWindow }
     , m_pRenderingSystem{ std::make_unique<RenderingSystem>() }
     , m_pCamera{ std::make_unique<Camera>() }
@@ -110,6 +107,9 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
   pEventDispatcher->addHandler<MouseClickedEvent, &SceneViewportWindow::onMouseClicked>( *this );
   pEventDispatcher->addHandler<KeyPressedEvent, &SceneViewportWindow::onKeyPressed>( *this );
   pEventDispatcher->addHandler<MouseScrolledEvent, &SceneViewportWindow::onMouseScrolled>( *this );
+
+  m_playTextureId = AssetManager::getInstance().getTexture( "play.png" ).lock()->getTextureId();
+  m_stopTextureId = AssetManager::getInstance().getTexture( "stop.png" ).lock()->getTextureId();
 }
 
 void SceneViewportWindow::onMouseScrolled( const MouseScrolledEvent& e )
@@ -182,6 +182,8 @@ void SceneViewportWindow::drawScene()
   {
     // since atm we have only one directional light we get the index 0 light
     const auto& directionalLight = scene->getDirectionalLight();
+
+    // careful when deleting the directional light entity
     static entt::entity ent = entt::null;
     if ( ent == entt::null )
     {

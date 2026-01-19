@@ -24,12 +24,14 @@ void RenderingSystem::renderOutliningPass( FrameContext& frame, OutliningPassCon
 {
   Renderer::enableDepth();
   beginOutliningPass( frame.canvas );
+  Renderer::disableColorMask();
   glStencilFunc( GL_ALWAYS, 1, 0xFF );
   glStencilMask( 0xFF );
 
   // normal render
   renderOutlinedEntity( frame.scene, frame.view, frame.projection, pass.normalShader, pass.depthMap );
 
+  Renderer::enableColorMask();
   glStencilFunc( GL_NOTEQUAL, 1, 0xFF );
   glStencilMask( 0x00 );
 
@@ -39,7 +41,6 @@ void RenderingSystem::renderOutliningPass( FrameContext& frame, OutliningPassCon
   glStencilMask( 0xFF );
   glStencilFunc( GL_ALWAYS, 1, 0xFF );
 
-  Renderer::enableDepth();
   endOutliningPass( frame.canvas );
 }
 
@@ -114,7 +115,7 @@ void RenderingSystem::render( Scene* scene, glm::mat4* viewMatrix, glm::mat4* pr
 
   scene->bindLightBuffers();
 
-  std::unordered_map<kogayonon_resources::Mesh*, int> orderedMeshes;
+  std::vector<kogayonon_resources::Mesh*> orderedMeshes;
   makeMeshesUnique( scene, orderedMeshes );
 
   shader->setMat4( "projection", *projection );
@@ -124,17 +125,16 @@ void RenderingSystem::render( Scene* scene, glm::mat4* viewMatrix, glm::mat4* pr
   end( shader );
 }
 
-void RenderingSystem::drawMeshesWithDepth( Scene* scene,
-                                           const std::unordered_map<kogayonon_resources::Mesh*, int>& orderedMeshes,
+void RenderingSystem::drawMeshesWithDepth( Scene* scene, const std::vector<kogayonon_resources::Mesh*>& orderedMeshes,
                                            const uint32_t* depthMap )
 {
   for ( auto& mesh : orderedMeshes )
   {
-    if ( !mesh.first )
+    if ( !mesh )
       continue;
 
-    glBindVertexArray( mesh.first->getVao() );
-    const auto& textures = mesh.first->getTextures();
+    glBindVertexArray( mesh->getVao() );
+    const auto& textures = mesh->getTextures();
     for ( int i = 0; i < textures.size(); i++ )
     {
       // bind the texture we need (this is bad)
@@ -142,8 +142,8 @@ void RenderingSystem::drawMeshesWithDepth( Scene* scene,
     }
     glBindTextureUnit( 4, *depthMap );
 
-    auto instanceData = scene->getData( mesh.first );
-    auto& submeshes = mesh.first->getSubmeshes();
+    auto instanceData = scene->getData( mesh );
+    auto& submeshes = mesh->getSubmeshes();
     for ( int i = 0; i < submeshes.size() && instanceData != nullptr; i++ )
     {
 
@@ -156,24 +156,23 @@ void RenderingSystem::drawMeshesWithDepth( Scene* scene,
   }
 }
 
-void RenderingSystem::drawMeshes( Scene* scene,
-                                  const std::unordered_map<kogayonon_resources::Mesh*, int>& orderedMeshes )
+void RenderingSystem::drawMeshes( Scene* scene, const std::vector<kogayonon_resources::Mesh*>& orderedMeshes )
 {
   for ( auto& mesh : orderedMeshes )
   {
-    if ( !mesh.first )
+    if ( !mesh )
       continue;
 
-    glBindVertexArray( mesh.first->getVao() );
-    const auto& textures = mesh.first->getTextures();
+    glBindVertexArray( mesh->getVao() );
+    const auto& textures = mesh->getTextures();
     for ( int i = 0; i < textures.size(); i++ )
     {
       // bind the texture we need (this is bad)
       glBindTextureUnit( 3, textures.at( i )->getTextureId() );
     }
 
-    auto instanceData = scene->getData( mesh.first );
-    auto& submeshes = mesh.first->getSubmeshes();
+    auto instanceData = scene->getData( mesh );
+    auto& submeshes = mesh->getSubmeshes();
     for ( int i = 0; i < submeshes.size() && instanceData != nullptr; i++ )
     {
 
@@ -194,7 +193,7 @@ void RenderingSystem::renderWithDepth( Scene* scene, glm::mat4* viewMatrix, glm:
 
   scene->bindLightBuffers();
 
-  std::unordered_map<kogayonon_resources::Mesh*, int> orderedMeshes;
+  std::vector<kogayonon_resources::Mesh*> orderedMeshes;
   makeMeshesUnique( scene, orderedMeshes );
 
   shader->setMat4( "projection", *projection );
@@ -226,6 +225,7 @@ void RenderingSystem::beginOutliningPass( Canvas& canvas ) const
 
   glEnable( GL_STENCIL_TEST );
   glStencilOp( GL_KEEP, GL_KEEP, GL_REPLACE );
+  glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 }
 
@@ -293,26 +293,23 @@ void RenderingSystem::endPickingPass( Canvas& canvas ) const
   Renderer::disableDepth();
 }
 
-void RenderingSystem::makeMeshesUnique( Scene* scene,
-                                        std::unordered_map<kogayonon_resources::Mesh*, int>& orderedMeshes )
+void RenderingSystem::makeMeshesUnique( Scene* scene, std::vector<kogayonon_resources::Mesh*>& orderedMeshes )
 {
-  // now excludes the outlined entity
   const auto& view = scene->getEnttRegistry().view<TransformComponent, MeshComponent, IndexComponent>();
+
   std::unordered_set<kogayonon_resources::Mesh*> uniqueMeshes;
 
-  for ( const auto& [entity, transformComp, meshComponent, indexComp] : view.each() )
-  {
-    if ( !meshComponent.loaded )
-      continue;
+  // we do this because what is different between an instance of a mesh and another is just the
+  // instance matrix ( model matrix so to say ) and we iterate through each available loaded mesh
+  // once and draw EVERY instance with different transforms and so on but using the same loaded model
+  view.each( [&]( const auto entity, auto& transformComp, auto& meshComp, auto& indexComp ) {
+    if ( !meshComp.loaded && !meshComp.pMesh )
+      return;
 
-    auto& mesh = meshComponent.pMesh;
-
-    if ( !mesh )
-      continue;
-
-    // only true if first seen
-    if ( uniqueMeshes.insert( mesh ).second )
-      orderedMeshes.emplace( mesh, indexComp.index );
-  }
+    if ( uniqueMeshes.insert( meshComp.pMesh ).second )
+    {
+      orderedMeshes.emplace_back( meshComp.pMesh );
+    }
+  } );
 }
 } // namespace kogayonon_core

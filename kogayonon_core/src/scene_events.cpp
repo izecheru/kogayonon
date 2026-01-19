@@ -4,6 +4,7 @@ namespace kogayonon_core
 {
 SelectEntityEvent::SelectEntityEvent()
     : m_entity{ entt::null }
+    , m_source{ SelectEntityEventSource::None }
 {
 }
 

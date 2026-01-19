@@ -44,4 +44,15 @@ void Renderer::disableStencil()
 
   glDisable( GL_STENCIL_TEST );
 }
+
+void Renderer::enableColorMask()
+{
+  glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+}
+
+void Renderer::disableColorMask()
+{
+  glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
+}
+
 } // namespace kogayonon_rendering

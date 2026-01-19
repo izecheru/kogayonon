@@ -63,11 +63,8 @@ public:
    * @brief The Viewport where we draw our scene
    * @param mainWindow This is injected for the camera movement (SDL_MouseRelativeMode)
    * @param name The name of the ImGuiWindow
-   * @param playTexture The play button texture ID
-   * @param stopTexture The stop button texture ID
    */
-  explicit SceneViewportWindow( SDL_Window* mainWindow, std::string name, unsigned int playTexture,
-                                unsigned int stopTexture );
+  explicit SceneViewportWindow( SDL_Window* mainWindow, std::string name );
   ~SceneViewportWindow() = default;
 
   void draw() override;

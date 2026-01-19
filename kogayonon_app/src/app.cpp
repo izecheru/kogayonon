@@ -360,14 +360,7 @@ bool App::initGuiForProject()
 
   auto& assetManager = AssetManager::getInstance();
 
-  // textures for imgui buttons or windows and what not
-  auto playTexture = assetManager.getTexture( "play.png" ).lock()->getTextureId();
-  auto stopTexture = assetManager.getTexture( "stop.png" ).lock()->getTextureId();
-  auto fileTexture = assetManager.getTexture( "file.png" ).lock()->getTextureId();
-  auto folderTexture = assetManager.getTexture( "folder.png" ).lock()->getTextureId();
-
-  auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( m_pWindow->getWindow(), "Viewport",
-                                                                             playTexture, stopTexture );
+  auto sceneViewport = std::make_unique<kogayonon_gui::SceneViewportWindow>( m_pWindow->getWindow(), "Viewport" );
   auto fileExplorerWindow = std::make_unique<kogayonon_gui::FileExplorerWindow>( "Assets" );
   auto sceneHierarchy = std::make_unique<kogayonon_gui::SceneHierarchyWindow>( "Scene hierarchy" );
   auto performanceWindow = std::make_unique<kogayonon_gui::PerformanceWindow>( "Performance" );
@@ -815,26 +808,18 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     rapidjson::Value sceneObject{ rapidjson::Type::kObjectType };
 
     const auto& meshView = scene->getEnttRegistry().view<MeshComponent>();
-    const auto& emptyEntityView = scene->getEnttRegistry().view<IdentifierComponent>(
-      entt::exclude<MeshComponent, PointLightComponent, DirectionalLightComponent> );
 
-    std::vector<entt::entity> modelEntities;
-    for ( const auto& [ent, modelComp] : meshView.each() )
-    {
-      if ( !modelComp.loaded )
-        continue;
+    std::vector<entt::entity> meshEntities{};
+    meshView.each( [&]( const auto& entity, auto& meshComp ) {
+      if ( !meshComp.loaded )
+        return;
 
-      modelEntities.emplace_back( ent );
-    }
-
-    // count them accurately, don't think performance drops here
-    size_t emptyCount = 0;
-    for ( const auto& ent : emptyEntityView.each() )
-      ++emptyCount;
+      meshEntities.emplace_back( entity );
+    } );
 
     sceneObject.AddMember( "name", rapidjson::Value{ name.c_str(), allocator }, allocator );
     sceneObject.AddMember( "directionalLightEntityCount", 1, allocator );
-    sceneObject.AddMember( "meshEntityCount", modelEntities.size(), allocator );
+    sceneObject.AddMember( "meshEntityCount", meshEntities.size(), allocator );
     sceneObject.AddMember( "pointLightEntityCount", scene->getLightCount( kogayonon_resources::LightType::Point ),
                            allocator );
 
@@ -852,7 +837,7 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     std::fstream sceneOut{ finalPath, std::ios::out | std::ios::binary };
 
     // lower size loads first then bigger size follows
-    std::sort( modelEntities.begin(), modelEntities.end(), [&]( entt::entity a, entt::entity b ) {
+    std::sort( meshEntities.begin(), meshEntities.end(), [&]( entt::entity a, entt::entity b ) {
       auto& meshA = scene->getRegistry().getComponent<MeshComponent>( a );
       auto& meshB = scene->getRegistry().getComponent<MeshComponent>( b );
       auto sizeA = std::filesystem::file_size( meshA.pMesh->getPath() );
@@ -860,7 +845,7 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
       return sizeA < sizeB;
     } );
 
-    for ( auto& entity : modelEntities )
+    for ( auto& entity : meshEntities )
     {
       Entity ent{ scene->getRegistry(), entity };
       const auto& meshComponent = ent.getComponent<MeshComponent>();
@@ -901,80 +886,77 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     }
 
     // serialize point lights
-    for ( const auto& [entity, identifierComponent, pointLightComponent] :
-          scene->getRegistry().getRegistry().view<IdentifierComponent, PointLightComponent>().each() )
-    {
-      const auto& light = scene->getPointLight( pointLightComponent.pointLightIndex );
-      Serializer::serialize( light.color.x, sceneOut );
-      Serializer::serialize( light.color.y, sceneOut );
-      Serializer::serialize( light.color.z, sceneOut );
-      Serializer::serialize( light.color.w, sceneOut );
+    scene->getRegistry().getRegistry().view<IdentifierComponent, PointLightComponent>().each(
+      [&]( const auto& entity, auto& identifierComponent, auto& pointlightComponent ) {
+        const auto& light = scene->getPointLight( pointlightComponent.pointLightIndex );
+        Serializer::serialize( light.color.x, sceneOut );
+        Serializer::serialize( light.color.y, sceneOut );
+        Serializer::serialize( light.color.z, sceneOut );
+        Serializer::serialize( light.color.w, sceneOut );
 
-      Serializer::serialize( light.params.x, sceneOut );
-      Serializer::serialize( light.params.y, sceneOut );
-      Serializer::serialize( light.params.z, sceneOut );
-      Serializer::serialize( light.params.w, sceneOut );
+        Serializer::serialize( light.params.x, sceneOut );
+        Serializer::serialize( light.params.y, sceneOut );
+        Serializer::serialize( light.params.z, sceneOut );
+        Serializer::serialize( light.params.w, sceneOut );
 
-      Serializer::serialize( light.translation.x, sceneOut );
-      Serializer::serialize( light.translation.y, sceneOut );
-      Serializer::serialize( light.translation.z, sceneOut );
-      Serializer::serialize( light.translation.w, sceneOut );
+        Serializer::serialize( light.translation.x, sceneOut );
+        Serializer::serialize( light.translation.y, sceneOut );
+        Serializer::serialize( light.translation.z, sceneOut );
+        Serializer::serialize( light.translation.w, sceneOut );
 
-      // now the identifier data
-      const auto& group = identifierComponent.group;
-      const size_t groupSize = group.size();
-      Serializer::serialize( groupSize, sceneOut );
-      Serializer::serialize( group.data(), sizeof( char ) * groupSize, sceneOut );
+        // now the identifier data
+        const auto& group = identifierComponent.group;
+        const size_t groupSize = group.size();
+        Serializer::serialize( groupSize, sceneOut );
+        Serializer::serialize( group.data(), sizeof( char ) * groupSize, sceneOut );
 
-      const auto& name = identifierComponent.name;
-      const size_t nameSize = name.size();
-      Serializer::serialize( nameSize, sceneOut );
-      Serializer::serialize( name.data(), sizeof( char ) * nameSize, sceneOut );
+        const auto& name = identifierComponent.name;
+        const size_t nameSize = name.size();
+        Serializer::serialize( nameSize, sceneOut );
+        Serializer::serialize( name.data(), sizeof( char ) * nameSize, sceneOut );
 
-      const auto& type = identifierComponent.type;
-      Serializer::serialize( type, sceneOut );
-    }
+        const auto& type = identifierComponent.type;
+        Serializer::serialize( type, sceneOut );
+      } );
 
-    for ( const auto& [entity, identifierComponent, directionalLightComponent] :
-          scene->getRegistry().getRegistry().view<IdentifierComponent, DirectionalLightComponent>().each() )
-    {
+    scene->getRegistry().getRegistry().view<IdentifierComponent, DirectionalLightComponent>().each(
+      [&]( const auto& entity, auto& identifierComponent, auto& directionalLightComponent ) {
+        auto& light = scene->getDirectionalLight( directionalLightComponent.directionalLightIndex );
 
-      auto& light = scene->getDirectionalLight( directionalLightComponent.directionalLightIndex );
+        Serializer::serialize( light.direction.x, sceneOut );
+        Serializer::serialize( light.direction.y, sceneOut );
+        Serializer::serialize( light.direction.z, sceneOut );
+        Serializer::serialize( light.direction.w, sceneOut );
 
-      Serializer::serialize( light.direction.x, sceneOut );
-      Serializer::serialize( light.direction.y, sceneOut );
-      Serializer::serialize( light.direction.z, sceneOut );
-      Serializer::serialize( light.direction.w, sceneOut );
+        Serializer::serialize( light.diffuse.x, sceneOut );
+        Serializer::serialize( light.diffuse.y, sceneOut );
+        Serializer::serialize( light.diffuse.z, sceneOut );
+        Serializer::serialize( light.diffuse.w, sceneOut );
 
-      Serializer::serialize( light.diffuse.x, sceneOut );
-      Serializer::serialize( light.diffuse.y, sceneOut );
-      Serializer::serialize( light.diffuse.z, sceneOut );
-      Serializer::serialize( light.diffuse.w, sceneOut );
+        Serializer::serialize( light.specular.x, sceneOut );
+        Serializer::serialize( light.specular.y, sceneOut );
+        Serializer::serialize( light.specular.z, sceneOut );
+        Serializer::serialize( light.specular.w, sceneOut );
 
-      Serializer::serialize( light.specular.x, sceneOut );
-      Serializer::serialize( light.specular.y, sceneOut );
-      Serializer::serialize( light.specular.z, sceneOut );
-      Serializer::serialize( light.specular.w, sceneOut );
+        Serializer::serialize( directionalLightComponent.orthoSize, sceneOut );
+        Serializer::serialize( directionalLightComponent.nearPlane, sceneOut );
+        Serializer::serialize( directionalLightComponent.farPlane, sceneOut );
+        Serializer::serialize( directionalLightComponent.positionFactor, sceneOut );
 
-      Serializer::serialize( directionalLightComponent.orthoSize, sceneOut );
-      Serializer::serialize( directionalLightComponent.nearPlane, sceneOut );
-      Serializer::serialize( directionalLightComponent.farPlane, sceneOut );
-      Serializer::serialize( directionalLightComponent.positionFactor, sceneOut );
+        // now the identifier data
+        const auto& group = identifierComponent.group;
+        const size_t groupSize = group.size();
+        Serializer::serialize( groupSize, sceneOut );
+        Serializer::serialize( group.data(), sizeof( char ) * groupSize, sceneOut );
 
-      // now the identifier data
-      const auto& group = identifierComponent.group;
-      const size_t groupSize = group.size();
-      Serializer::serialize( groupSize, sceneOut );
-      Serializer::serialize( group.data(), sizeof( char ) * groupSize, sceneOut );
+        const auto& name = identifierComponent.name;
+        const size_t nameSize = name.size();
+        Serializer::serialize( nameSize, sceneOut );
+        Serializer::serialize( name.data(), sizeof( char ) * nameSize, sceneOut );
 
-      const auto& name = identifierComponent.name;
-      const size_t nameSize = name.size();
-      Serializer::serialize( nameSize, sceneOut );
-      Serializer::serialize( name.data(), sizeof( char ) * nameSize, sceneOut );
-
-      const auto& type = identifierComponent.type;
-      Serializer::serialize( type, sceneOut );
-    }
+        const auto& type = identifierComponent.type;
+        Serializer::serialize( type, sceneOut );
+      } );
 
     if ( sceneOut )
       sceneOut.close();

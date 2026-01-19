@@ -13,9 +13,11 @@ public:
 
   static void enableDepth();
   static void enableStencil();
+  static void enableColorMask();
 
   static void disableDepth();
   static void disableStencil();
+  static void disableColorMask();
 
 private:
   // copy is not allowed

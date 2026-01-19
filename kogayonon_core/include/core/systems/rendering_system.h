@@ -100,10 +100,10 @@ private:
   void endPickingPass( Canvas& canvas ) const;
   void endDepthPass( Canvas& canvas ) const;
 
-  void makeMeshesUnique( Scene* scene, std::unordered_map<kogayonon_resources::Mesh*, int>& orderedMeshes );
-  void drawMeshes( Scene* scene, const std::unordered_map<kogayonon_resources::Mesh*, int>& orderedMeshes );
+  void makeMeshesUnique( Scene* scene, std::vector<kogayonon_resources::Mesh*>& orderedMeshes );
+  void drawMeshes( Scene* scene, const std::vector<kogayonon_resources::Mesh*>& orderedMeshes );
 
-  void drawMeshesWithDepth( Scene* scene, const std::unordered_map<kogayonon_resources::Mesh*, int>& orderedMeshes,
+  void drawMeshesWithDepth( Scene* scene, const std::vector<kogayonon_resources::Mesh*>& orderedMeshes,
                             const uint32_t* depthMap );
 };
 } // namespace kogayonon_core
