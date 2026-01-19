@@ -4,7 +4,7 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
-#include "core/ecs/components/index_component.h"
+#include "core/ecs/components/index_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/outline_component.hpp"
 #include "core/ecs/components/transform_component.hpp"

@@ -252,7 +252,7 @@ void ImGuiManager::mainMenu()
     {
       if ( ImGui::MenuItem( "Close" ) )
       {
-        pEventDispatcher->emitEvent( kogayonon_core::WindowCloseEvent{} );
+        pEventDispatcher->dispatchEvent( kogayonon_core::WindowCloseEvent{} );
       }
       if ( ImGui::MenuItem( "Save scene" ) )
       {

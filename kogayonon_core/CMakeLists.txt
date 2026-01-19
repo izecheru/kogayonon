@@ -18,18 +18,18 @@ add_library(
   "include/core/ecs/components/pointlight_component.hpp"
   "include/core/event/file_events.hpp"
   "include/core/systems/rendering_system.h"
-  "include/core/ecs/components/index_component.h"
+  "include/core/ecs/components/index_component.hpp"
   "include/core/event/project_event.hpp"
   "include/core/project/project.hpp"
   "include/core/project/project_manager.hpp"
   "include/core/ecs/components/rigidbody_component.hpp"
   "include/core/ecs/components/outline_component.hpp"
+  "include/core/event/event_emitter.hpp"
 
   "src/main_registry.cpp"
   "src/entity.cpp"
   "src/scene.cpp"
   "src/scene_manager.cpp"
-  
   "src/scene_events.cpp"
   "src/rendering_system.cpp"
   "src/project_manager.cpp" )

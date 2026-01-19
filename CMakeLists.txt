@@ -1,4 +1,10 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.26)
+
+if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE
+        "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "")
+endif()
 
 project(kogayonon)
 
@@ -13,16 +19,9 @@ if (POLICY CMP0141)
 endif()
 
 
-# -------------------------------------------------------------------
-# Output directories for different artifact types
-# -------------------------------------------------------------------
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib") # .lib, .a
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib") # .dll, .so
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin") # .exe
-# -------------------------------------------------------------------
-# Thirdparty dependencies
-# -------------------------------------------------------------------
-
 
 find_package(SDL2 CONFIG REQUIRED)
 find_package(soil2 CONFIG REQUIRED)
@@ -47,3 +46,4 @@ add_subdirectory(kogayonon_app)
 add_subdirectory(kogayonon_gui)
 add_subdirectory(kogayonon_rendering)
 add_subdirectory(kogayonon_physics)
+

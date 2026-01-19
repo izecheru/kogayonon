@@ -44,10 +44,10 @@ public:
    * @return
    */
   template <typename TEvent>
-  auto emitEvent( TEvent& event );
+  auto dispatchEvent( TEvent& event );
 
   template <typename TEvent>
-  auto emitEvent( TEvent&& event );
+  auto dispatchEvent( TEvent&& event );
 
   /**
    * @brief Removes a specific listener from the list

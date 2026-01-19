@@ -7,7 +7,7 @@
 #include <physx/extensions/PxSimpleFactory.h>
 #include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/identifier_component.hpp"
-#include "core/ecs/components/index_component.h"
+#include "core/ecs/components/index_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/pointlight_component.hpp"
 #include "core/ecs/components/rigidbody_component.hpp"
@@ -16,6 +16,7 @@
 #include "core/ecs/entity.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
+#include "core/event/event_emitter.hpp"
 #include "core/event/scene_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
@@ -36,12 +37,6 @@ EntityPropertiesWindow::EntityPropertiesWindow( std::string name )
 {
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
   pEventDispatcher->addHandler<SelectEntityEvent, &EntityPropertiesWindow::onEntitySelect>( *this );
-  pEventDispatcher->addHandler<SelectEntityInViewportEvent, &EntityPropertiesWindow::onSelectEntityInViewport>( *this );
-}
-
-void EntityPropertiesWindow::onSelectEntityInViewport( const SelectEntityInViewportEvent& e )
-{
-  m_selectedEntity = e.getEntity();
 }
 
 void EntityPropertiesWindow::draw()
@@ -264,10 +259,10 @@ void EntityPropertiesWindow::drawRigidbodyMenu( Entity& ent )
 
 void EntityPropertiesWindow::onEntitySelect( const SelectEntityEvent& e )
 {
-  if ( m_selectedEntity == e.getEntity() )
+  if ( m_selectedEntity == e.getEntityId() || e.getEventSource() == SelectEntityEventSource::PropertiesWindow )
     return;
 
-  m_selectedEntity = e.getEntity();
+  m_selectedEntity = e.getEntityId();
 }
 
 void EntityPropertiesWindow::drawTextureComponent( Entity& ent ) const

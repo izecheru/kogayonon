@@ -7,7 +7,7 @@
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/identifier_component.hpp"
-#include "core/ecs/components/index_component.h"
+#include "core/ecs/components/index_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/outline_component.hpp"
 #include "core/ecs/components/rigidbody_component.hpp"
@@ -80,18 +80,21 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
     , m_pCamera{ std::make_unique<Camera>() }
     , m_gizmoMode{ GizmoMode::TRANSLATE }
 {
+  // buffer where we draw everything, geometry, lights
   FramebufferSpec spec{
     { FramebufferAttachment{ .textureFormat = GL_RGBA8, .type = FramebufferAttachmentType::Color },
       FramebufferAttachment{ .textureFormat = GL_DEPTH_COMPONENT24, .type = FramebufferAttachmentType::Depth } } };
 
+  // entity picking in the viewport
   FramebufferSpec pickingSpec{
     { FramebufferAttachment{ .textureFormat = GL_RED_INTEGER, .type = FramebufferAttachmentType::Color },
       FramebufferAttachment{ .textureFormat = GL_DEPTH_COMPONENT24, .type = FramebufferAttachmentType::Depth } } };
 
-  // we should use this depth spec for the shadow mapping texture
+  // this is for shadow map and all depth related stuff, also used in outline pass
   FramebufferSpec depthSpec{
     { FramebufferAttachment{ .textureFormat = GL_DEPTH_COMPONENT24, .type = FramebufferAttachmentType::Depth } } };
 
+  // outline of the entity selected
   FramebufferSpec outlineSpec{
     { FramebufferAttachment{ .textureFormat = GL_RGBA8, .type = FramebufferAttachmentType::Color },
       FramebufferAttachment{ .textureFormat = GL_DEPTH24_STENCIL8, .type = FramebufferAttachmentType::Depth } } };
@@ -109,10 +112,6 @@ SceneViewportWindow::SceneViewportWindow( SDL_Window* mainWindow, std::string na
   pEventDispatcher->addHandler<MouseScrolledEvent, &SceneViewportWindow::onMouseScrolled>( *this );
 }
 
-void SceneViewportWindow::onSaveScene( const SaveSceneEvent& e )
-{
-}
-
 void SceneViewportWindow::onMouseScrolled( const MouseScrolledEvent& e )
 {
   if ( !m_props->hovered )
@@ -124,10 +123,10 @@ void SceneViewportWindow::onMouseScrolled( const MouseScrolledEvent& e )
 
 void SceneViewportWindow::onSelectedEntity( const SelectEntityEvent& e )
 {
-  if ( m_selectedEntity == e.getEntity() )
+  if ( m_selectedEntity == e.getEntityId() || e.getEventSource() == SelectEntityEventSource::ViewportWindow )
     return;
 
-  m_selectedEntity = e.getEntity();
+  m_selectedEntity = e.getEntityId();
 }
 
 void SceneViewportWindow::onMouseMoved( const MouseMovedEvent& e )
@@ -279,6 +278,7 @@ void SceneViewportWindow::drawPickingScene()
                                &m_pCamera->getProjectionMatrix( glm::vec2{ m_props->width, m_props->height } ) };
 
   PickingPassContext pickingPass{ .shader = &shader, .x = static_cast<int>( mx ), .y = static_cast<int>( my ) };
+
   auto result = m_pRenderingSystem->renderPickingPass( frameContext, pickingPass );
 
   auto ent = static_cast<entt::entity>( result );
@@ -288,22 +288,9 @@ void SceneViewportWindow::drawPickingScene()
     if ( m_selectedEntity != entt::null )
       return;
 
-    spdlog::info( static_cast<uint32_t>( ent ) );
-
-    Entity entity{ scene->getRegistry(), ent };
-
-    if ( entity.hasComponent<MeshComponent>() && !entity.hasComponent<OutlineComponent>() )
-    {
-      auto& meshComp = entity.getComponent<MeshComponent>();
-      auto data = scene->getData( meshComp.pMesh );
-      auto index = entity.getComponent<IndexComponent>().index;
-      data->instances.at( index ).selected = 1;
-      entity.addComponent<OutlineComponent>();
-      scene->updateInstances( data );
-    }
-
+    scene->addOutline( ent );
     m_selectedEntity = ent;
-    pEventDispatcher->emitEvent( SelectEntityInViewportEvent{ ent } );
+    pEventDispatcher->dispatchEvent( SelectEntityEvent{ ent, SelectEntityEventSource::ViewportWindow } );
   }
 }
 

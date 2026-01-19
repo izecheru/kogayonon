@@ -21,7 +21,6 @@ namespace kogayonon_core
 class Scene;
 class RenderingSystem;
 
-class SaveSceneEvent;
 class SelectEntityEvent;
 class KeyPressedEvent;
 class MouseMovedEvent;
@@ -83,7 +82,6 @@ public:
   void onMouseClicked( const kogayonon_core::MouseClickedEvent& e );
   void onKeyPressed( const kogayonon_core::KeyPressedEvent& e );
   void onMouseScrolled( const kogayonon_core::MouseScrolledEvent& e );
-  void onSaveScene( const kogayonon_core::SaveSceneEvent& e );
 
 private:
   entt::entity m_selectedEntity;

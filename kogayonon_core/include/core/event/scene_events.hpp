@@ -4,36 +4,42 @@
 
 namespace kogayonon_core
 {
+
+/**
+ * @brief Enum for ruling out instances where  a window would trigger an entity selection and get the event and process
+ * it itself
+ */
+enum class SelectEntityEventSource
+{
+  None,
+  ViewportWindow,
+  PropertiesWindow,
+  HierarchyWindow
+};
+
 class SelectEntityEvent : public IEvent
 {
 public:
   SelectEntityEvent();
-  explicit SelectEntityEvent( entt::entity ent );
+  ~SelectEntityEvent() = default;
 
-  entt::entity getEntity() const;
+  explicit SelectEntityEvent( entt::entity ent, SelectEntityEventSource source );
+
+  /**
+   * @brief Get selected entity Id
+   * @return
+   */
+  auto getEntityId() const -> entt::entity;
+
+  /**
+   * @brief We get the event source
+   * @return An enum value that can be used for event filtering
+   */
+  auto getEventSource() const -> SelectEntityEventSource;
 
 private:
   entt::entity m_entity;
-};
-
-class SelectEntityInViewportEvent : public IEvent
-{
-public:
-  SelectEntityInViewportEvent();
-  explicit SelectEntityInViewportEvent( entt::entity ent );
-
-  entt::entity getEntity() const;
-
-private:
-  entt::entity m_entity;
-};
-
-class SaveSceneEvent : public IEvent
-{
-public:
-  SaveSceneEvent() = default;
-
-private:
+  SelectEntityEventSource m_source;
 };
 
 } // namespace kogayonon_core

@@ -3,10 +3,12 @@
 
 namespace kogayonon_core
 {
+struct TextureComponent;
+
 class Scene;
 class Entity;
-class SelectEntityInViewportEvent;
-struct TextureComponent;
+
+class SelectEntityEvent;
 class KeyPressedEvent;
 class MouseClickedEvent;
 } // namespace kogayonon_core
@@ -19,7 +21,7 @@ public:
   explicit SceneHierarchyWindow( std::string name );
   ~SceneHierarchyWindow() = default;
 
-  void onEntitySelectInViewport( const kogayonon_core::SelectEntityInViewportEvent& e );
+  void onEntitySelect( const kogayonon_core::SelectEntityEvent& e );
 
   void onKeyPressed( const kogayonon_core::KeyPressedEvent& e );
 

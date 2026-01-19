@@ -2,7 +2,7 @@
 #include <SDL.h>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/identifier_component.hpp"
-#include "core/ecs/components/index_component.h"
+#include "core/ecs/components/index_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/outline_component.hpp"
 #include "core/ecs/components/pointlight_component.hpp"
@@ -30,15 +30,15 @@ SceneHierarchyWindow::SceneHierarchyWindow( std::string name )
 {
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
   pEventDispatcher->addHandler<KeyPressedEvent, &SceneHierarchyWindow::onKeyPressed>( *this );
-  pEventDispatcher->addHandler<SelectEntityInViewportEvent, &SceneHierarchyWindow::onEntitySelectInViewport>( *this );
+  pEventDispatcher->addHandler<SelectEntityEvent, &SceneHierarchyWindow::onEntitySelect>( *this );
 }
 
-void SceneHierarchyWindow::onEntitySelectInViewport( const SelectEntityInViewportEvent& e )
+void SceneHierarchyWindow::onEntitySelect( const SelectEntityEvent& e )
 {
-  if ( m_selectedEntity == e.getEntity() )
+  if ( m_selectedEntity == e.getEntityId() || e.getEventSource() == SelectEntityEventSource::HierarchyWindow )
     return;
 
-  m_selectedEntity = e.getEntity();
+  m_selectedEntity = e.getEntityId();
 }
 
 void SceneHierarchyWindow::onKeyPressed( const KeyPressedEvent& e )
@@ -51,81 +51,18 @@ void SceneHierarchyWindow::onKeyPressed( const KeyPressedEvent& e )
   // Escape to deselect entity
   if ( e.getKeyScanCode() == KeyScanCode::Escape && e.getKeyModifier() == KeyScanCode::None )
   {
-
-    Entity entity{ scene->getRegistry(), m_selectedEntity };
-
-    if ( entity.hasComponent<OutlineComponent>() )
-    {
-      auto& meshComp = entity.getComponent<MeshComponent>();
-      auto data = scene->getData( meshComp.pMesh );
-      auto index = entity.getComponent<IndexComponent>().index;
-      data->instances.at( index ).selected = 0;
-      entity.removeComponent<OutlineComponent>();
-      scene->updateInstances( data );
-    }
-
+    scene->removeOutline();
     m_selectedEntity = entt::null;
-    pEventDispatcher->emitEvent( SelectEntityEvent{} );
+    pEventDispatcher->dispatchEvent( SelectEntityEvent{} );
   }
 
   // Delete to delete entity
   if ( e.getKeyScanCode() == KeyScanCode::Delete && e.getKeyModifier() == KeyScanCode::None )
   {
+    scene->removeOutline();
     scene->removeEntity( m_selectedEntity );
-    Entity entity{ scene->getRegistry(), m_selectedEntity };
-
-    if ( entity.hasComponent<MeshComponent>() && entity.hasComponent<OutlineComponent>() )
-    {
-      auto& meshComp = entity.getComponent<MeshComponent>();
-      auto data = scene->getData( meshComp.pMesh );
-      auto index = entity.getComponent<IndexComponent>().index;
-      data->instances.at( index ).selected = 0;
-      entity.removeComponent<OutlineComponent>();
-      scene->updateInstances( data );
-    }
-
     m_selectedEntity = entt::null;
-    pEventDispatcher->emitEvent( SelectEntityEvent{} );
-  }
-
-  // Shift + D to duplicate entity
-  if ( e.getKeyModifier() == KeyScanCode::LeftShift && e.getKeyScanCode() == KeyScanCode::D )
-  {
-    Entity entity{ scene->getRegistry(), m_selectedEntity };
-    auto duplicatedEntity = scene->addEntity();
-    if ( entity.hasComponent<MeshComponent>() )
-    {
-      const auto& meshComponent = entity.getComponent<MeshComponent>();
-      const auto& transform = entity.getComponent<TransformComponent>();
-
-      // remove outline from the old entity
-      const auto data = scene->getData( meshComponent.pMesh );
-      auto index = entity.getComponent<IndexComponent>().index;
-      data->instances.at( index ).selected = 0;
-      entity.removeComponent<OutlineComponent>();
-      scene->updateInstances( data );
-
-      // add outline to the new one
-      duplicatedEntity.addComponent<TransformComponent>( TransformComponent{
-        .translation = transform.translation, .rotation = transform.rotation, .scale = transform.scale } );
-      duplicatedEntity.addComponent<OutlineComponent>();
-
-      scene->addMeshToEntity( duplicatedEntity.getEntityId(), meshComponent.pMesh );
-
-      const auto& meshCompDuplicated = duplicatedEntity.getComponent<MeshComponent>();
-      const auto dataDuplicated = scene->getData( meshCompDuplicated.pMesh );
-      index = duplicatedEntity.getComponent<IndexComponent>().index;
-
-      dataDuplicated->instances.at( index ).selected = 1;
-      scene->updateInstances( dataDuplicated );
-    }
-    if ( entity.hasComponent<PointLightComponent>() )
-    {
-      const auto& pointLightComp = entity.getComponent<PointLightComponent>();
-      scene->addPointLight( duplicatedEntity.getEntityId() );
-    }
-    pEventDispatcher->emitEvent( SelectEntityInViewportEvent{ duplicatedEntity.getEntityId() } );
-    pEventDispatcher->emitEvent( SelectEntityEvent{ duplicatedEntity.getEntityId() } );
+    pEventDispatcher->dispatchEvent( SelectEntityEvent{} );
   }
 }
 
@@ -162,7 +99,8 @@ void SceneHierarchyWindow::draw()
       // no component entity
       auto entity = scene->addEntity();
       m_selectedEntity = entity.getEntityId();
-      pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
+      pEventDispatcher->dispatchEvent(
+        SelectEntityEvent{ m_selectedEntity, SelectEntityEventSource::HierarchyWindow } );
     }
   }
 
@@ -212,7 +150,8 @@ void SceneHierarchyWindow::draw()
                               ImGuiSelectableFlags_SpanAllColumns ) )
       {
         m_selectedEntity = entity.getEntityId();
-        pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
+        pEventDispatcher->dispatchEvent(
+          SelectEntityEvent{ m_selectedEntity, SelectEntityEventSource::HierarchyWindow } );
       }
       ImGui::PopStyleColor();
       drawItemContexMenu( selectableId, entity );
@@ -270,7 +209,8 @@ void SceneHierarchyWindow::drawContextMenu()
       entity.setType( EntityType::Object );
       entity.addComponent<MeshComponent>();
       m_selectedEntity = entity.getEntityId();
-      pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
+      pEventDispatcher->dispatchEvent(
+        SelectEntityEvent{ m_selectedEntity, SelectEntityEventSource::HierarchyWindow } );
     }
 
     if ( ImGui::MenuItem( "Point light" ) )
@@ -281,7 +221,8 @@ void SceneHierarchyWindow::drawContextMenu()
       spdlog::info( "{} number of point lights", scene->getLightCount( kogayonon_resources::LightType::Point ) );
       m_selectedEntity = entity.getEntityId();
       scene->updateLightBuffers();
-      pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
+      pEventDispatcher->dispatchEvent(
+        SelectEntityEvent{ m_selectedEntity, SelectEntityEventSource::HierarchyWindow } );
     }
 
     if ( ImGui::MenuItem( "Directional light" ) )
@@ -293,7 +234,8 @@ void SceneHierarchyWindow::drawContextMenu()
       scene->updateLightBuffers();
       spdlog::info( "{} number of directional lights",
                     scene->getLightCount( kogayonon_resources::LightType::Directional ) );
-      pEventDispatcher->emitEvent( SelectEntityEvent{ m_selectedEntity } );
+      pEventDispatcher->dispatchEvent(
+        SelectEntityEvent{ m_selectedEntity, SelectEntityEventSource::HierarchyWindow } );
     }
 
     ImGui::EndPopup();
@@ -321,7 +263,8 @@ void SceneHierarchyWindow::duplicateEntity( Entity& ent )
       scene->addPointLight( entity.getEntityId() );
       const auto& pointLight = entity.getComponent<PointLightComponent>();
     }
-    pEventDispatcher->emitEvent( SelectEntityEvent{ entity.getEntityId() } );
+    pEventDispatcher->dispatchEvent(
+      SelectEntityEvent{ entity.getEntityId(), SelectEntityEventSource::HierarchyWindow } );
   }
 }
 
@@ -333,7 +276,7 @@ void SceneHierarchyWindow::deleteEntity( kogayonon_core::Entity& ent )
   {
     scene->removeEntity( ent.getEntityId() );
     m_selectedEntity = entt::null;
-    pEventDispatcher->emitEvent( SelectEntityEvent{} );
+    pEventDispatcher->dispatchEvent( SelectEntityEvent{} );
   }
 }
 

@@ -16,6 +16,7 @@ class ImGuiManager;
 
 namespace kogayonon_core
 {
+class EventEmitter;
 class EventDispatcher;
 } // namespace kogayonon_core
 
@@ -53,6 +54,11 @@ public:
   auto getContext() -> TContext&
   {
     return m_pRegistry->getContext<TContext>();
+  }
+
+  auto getEventEmitter() -> std::shared_ptr<kogayonon_core::EventEmitter>&
+  {
+    return getContext<std::shared_ptr<kogayonon_core::EventEmitter>>();
   }
 
   auto getEventDispatcher() -> std::shared_ptr<kogayonon_core::EventDispatcher>&

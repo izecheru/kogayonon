@@ -4,8 +4,9 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 #include "core/ecs/components/directional_light_component.hpp"
-#include "core/ecs/components/index_component.h"
+#include "core/ecs/components/index_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/outline_component.hpp"
 #include "core/ecs/components/pointlight_component.hpp"
 #include "core/ecs/components/rigidbody_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
@@ -229,6 +230,38 @@ void Scene::removeMeshFromEntity( entt::entity entity )
   ent.removeComponent<TransformComponent>();
 }
 
+void Scene::addOutline( entt::entity ent )
+{
+  Entity entity{ *m_pRegistry, ent };
+
+  if ( entity.hasComponent<MeshComponent>() && !entity.hasComponent<OutlineComponent>() )
+  {
+    auto& meshComp = entity.getComponent<MeshComponent>();
+    auto data = getData( meshComp.pMesh );
+    auto index = entity.getComponent<IndexComponent>().index;
+    data->instances.at( index ).selected = 1;
+    entity.addComponent<OutlineComponent>();
+    updateInstances( data );
+  }
+}
+
+void Scene::removeOutline()
+{
+  for ( auto& ent : m_pRegistry->getRegistry().view<OutlineComponent>() )
+  {
+    Entity entity{ *m_pRegistry, ent };
+    if ( entity.hasComponent<OutlineComponent>() )
+    {
+      auto& meshComp = entity.getComponent<MeshComponent>();
+      auto data = getData( meshComp.pMesh );
+      auto index = entity.getComponent<IndexComponent>().index;
+      data->instances.at( index ).selected = 0;
+      entity.removeComponent<OutlineComponent>();
+      updateInstances( data );
+    }
+  }
+}
+
 auto Scene::getData( kogayonon_resources::Mesh* pModel ) -> InstanceData*
 {
   if ( m_instances.find( pModel ) == m_instances.end() )
@@ -346,7 +379,7 @@ void Scene::prepareForRendering()
     {
       // if we don't have the model in the instance map, we insert it and based on the condition of
       // it being already in the map OR NOT we return the boolean value of that statement and then we upload the
-      // geometry
+      // geometry since if it is not in the map we just created a fresh InstanceData that is not on the gpu
       if ( !addInstanceData( entity ) )
       {
         assetManager.uploadMeshGeometry( meshComponent.pMesh );
@@ -393,7 +426,10 @@ void Scene::addDirectionalLight()
 {
   // maximum amount of directional lights is = 1
   if ( m_lightUBO.getLightCount( kogayonon_resources::LightType::Directional ) == 1 )
+  {
+    spdlog::debug( "Entity discarded, we already have a directional light" );
     return;
+  }
 
   auto entity = addEntity();
   entity.setType( EntityType::Light );

@@ -7,29 +7,20 @@ SelectEntityEvent::SelectEntityEvent()
 {
 }
 
-SelectEntityEvent::SelectEntityEvent( entt::entity ent )
+SelectEntityEvent::SelectEntityEvent( entt::entity ent, SelectEntityEventSource source )
     : m_entity{ ent }
+    , m_source{ source }
 {
 }
 
-auto SelectEntityEvent::getEntity() const -> entt::entity
+auto SelectEntityEvent::getEntityId() const -> entt::entity
 {
   return m_entity;
 }
 
-SelectEntityInViewportEvent::SelectEntityInViewportEvent()
-    : m_entity{ entt::null }
+auto SelectEntityEvent::getEventSource() const -> SelectEntityEventSource
 {
-}
-
-SelectEntityInViewportEvent::SelectEntityInViewportEvent( entt::entity ent )
-    : m_entity{ ent }
-{
-}
-
-auto SelectEntityInViewportEvent::getEntity() const -> entt::entity
-{
-  return m_entity;
+  return m_source;
 }
 
 } // namespace kogayonon_core

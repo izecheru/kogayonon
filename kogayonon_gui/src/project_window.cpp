@@ -46,7 +46,7 @@ void ProjectWindow::draw()
     {
       hide();
       spdlog::info( "Project opened {}", result );
-      pEventDispatcher->emitEvent( kogayonon_core::ProjectLoadEvent{ result } );
+      pEventDispatcher->dispatchEvent( kogayonon_core::ProjectLoadEvent{ result } );
     }
   }
 
@@ -66,7 +66,7 @@ void ProjectWindow::draw()
       {
         hide();
         writeProjFile.close();
-        pEventDispatcher->emitEvent( kogayonon_core::ProjectCreateEvent{ result } );
+        pEventDispatcher->dispatchEvent( kogayonon_core::ProjectCreateEvent{ result } );
       }
       else
       {

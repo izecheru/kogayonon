@@ -50,11 +50,15 @@ public:
   std::string getName() const;
   void changeName( const std::string& name );
 
-  inline std::mutex& getRegistryMutex()
+  inline auto getRegistryMutex() -> std::mutex&
   {
     return m_registryMutex;
   }
 
+  /**
+   * @brief Goes through all the entities that were loaded async on another thread and require OpenGL calls to upload
+   * mesh geometry and textures to the gpu and does that
+   */
   void prepareForRendering();
 
   /**
@@ -73,7 +77,7 @@ public:
    * @brief Creates a default entity with no components and adds it to the registry
    * @return Returns the freshly created entity
    */
-  Entity addEntity();
+  auto addEntity() -> Entity;
 
   /**
    * @brief Initializes the instance data for a particular model pointer
@@ -97,11 +101,22 @@ public:
   void removeMeshFromEntity( entt::entity entity );
 
   /**
+   * @brief Adds OutlineComponent to a signle entity
+   * @param entity Entity we selected
+   */
+  void addOutline( entt::entity entity );
+
+  /**
+   * @brief Removes the outline component from an entity (there can only be one entity ever selected)
+   */
+  void removeOutline();
+
+  /**
    * @brief Get instance data for a specified model since Model* is a key used in the instance map
    * @param pModel The model weak_ptr
    * @return Returns an InstanceData* to the instance data linked to the model
    */
-  InstanceData* getData( kogayonon_resources::Mesh* pModel );
+  auto getData( kogayonon_resources::Mesh* pModel ) -> InstanceData*;
 
   /**
    * @brief Updates the already existing buffers,
@@ -116,6 +131,10 @@ public:
    */
   void setupInstances( InstanceData* data );
 
+  /**
+   * @brief Iterates through the entities that have rigid bodies and
+   * take the transforms from there and apply them to the models
+   */
   void updateRigidbodyEntities();
 
   void addPointLight();

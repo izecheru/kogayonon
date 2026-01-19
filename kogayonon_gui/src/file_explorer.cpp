@@ -43,22 +43,22 @@ void FileExplorerWindow::installCommands()
 {
   m_pDirWatcher->setCommand( "fileCreated", [this]( const std::string& path, const std::string& name ) {
     FileCreatedEvent e( path, name );
-    m_pDispatcher->emitEvent<FileCreatedEvent>( e );
+    m_pDispatcher->dispatchEvent<FileCreatedEvent>( e );
   } );
 
   m_pDirWatcher->setCommand( "fileDeleted", [this]( const std::string& path, const std::string& name ) {
     FileDeletedEvent e( path, name );
-    m_pDispatcher->emitEvent<FileDeletedEvent>( e );
+    m_pDispatcher->dispatchEvent<FileDeletedEvent>( e );
   } );
 
   m_pDirWatcher->setCommand( "fileRenamedNew", [this]( const std::string& path, const std::string& newName ) {
     FileRenamedEvent e( path, "", newName );
-    m_pDispatcher->emitEvent<FileRenamedEvent>( e );
+    m_pDispatcher->dispatchEvent<FileRenamedEvent>( e );
   } );
 
   m_pDirWatcher->setCommand( "fileModified", [this]( const std::string& path, const std::string& name ) {
     FileModifiedEvent e( path, name );
-    m_pDispatcher->emitEvent<FileModifiedEvent>( e );
+    m_pDispatcher->dispatchEvent<FileModifiedEvent>( e );
   } );
 }
 

@@ -121,47 +121,44 @@ void LightShaderStoragebuffer::update( uint32_t index )
 {
   assert( index < m_ssbos.size() && "index out of range" );
   auto& ssbo = m_ssbos.at( index );
-  if ( ssbo.id != 0 )
+  switch ( index )
   {
-    switch ( index )
-    {
-    case 0: {
-      initStorageBuffer( kogayonon_resources::LightType::Point, ssbo );
-      bind( 0 );
+  case 0: {
+    initStorageBuffer( kogayonon_resources::LightType::Point, ssbo );
+    bind( 0 );
 
-      if ( !m_pointLights.empty() )
-        glNamedBufferData( ssbo.id, sizeof( kogayonon_resources::PointLight ) * m_pointLights.size(),
-                           m_pointLights.data(), GL_DYNAMIC_DRAW );
+    if ( !m_pointLights.empty() )
+      glNamedBufferData( ssbo.id, sizeof( kogayonon_resources::PointLight ) * m_pointLights.size(),
+                         m_pointLights.data(), GL_DYNAMIC_DRAW );
 
-      glBindBufferBase( GL_SHADER_STORAGE_BUFFER, ssbo.bindingIndex, ssbo.id );
-      unbind();
-      break;
-    }
-    case 1: {
-      initStorageBuffer( kogayonon_resources::LightType::Directional, ssbo );
-      bind( 1 );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, ssbo.bindingIndex, ssbo.id );
+    unbind();
+    break;
+  }
+  case 1: {
+    initStorageBuffer( kogayonon_resources::LightType::Directional, ssbo );
+    bind( 1 );
 
-      if ( !m_directionalLights.empty() )
-        glNamedBufferData( ssbo.id, sizeof( kogayonon_resources::DirectionalLight ) * m_directionalLights.size(),
-                           m_directionalLights.data(), GL_DYNAMIC_DRAW );
+    if ( !m_directionalLights.empty() )
+      glNamedBufferData( ssbo.id, sizeof( kogayonon_resources::DirectionalLight ) * m_directionalLights.size(),
+                         m_directionalLights.data(), GL_DYNAMIC_DRAW );
 
-      glBindBufferBase( GL_SHADER_STORAGE_BUFFER, ssbo.bindingIndex, ssbo.id );
-      unbind();
-      break;
-    }
-    case 2: {
-      initStorageBuffer( kogayonon_resources::LightType::Spot, ssbo );
-      bind( 2 );
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, ssbo.bindingIndex, ssbo.id );
+    unbind();
+    break;
+  }
+  case 2: {
+    initStorageBuffer( kogayonon_resources::LightType::Spot, ssbo );
+    bind( 2 );
 
-      if ( !m_spotLights.empty() )
-        glNamedBufferData( ssbo.id, sizeof( kogayonon_resources::SpotLight ) * m_spotLights.size(), m_spotLights.data(),
-                           GL_DYNAMIC_DRAW );
+    if ( !m_spotLights.empty() )
+      glNamedBufferData( ssbo.id, sizeof( kogayonon_resources::SpotLight ) * m_spotLights.size(), m_spotLights.data(),
+                         GL_DYNAMIC_DRAW );
 
-      glBindBufferBase( GL_SHADER_STORAGE_BUFFER, ssbo.bindingIndex, ssbo.id );
-      unbind();
-      break;
-    }
-    }
+    glBindBufferBase( GL_SHADER_STORAGE_BUFFER, ssbo.bindingIndex, ssbo.id );
+    unbind();
+    break;
+  }
   }
 }
 

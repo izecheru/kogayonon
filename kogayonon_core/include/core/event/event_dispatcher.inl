@@ -16,13 +16,13 @@ bool EventDispatcher::hasHandlers( TEvent& event )
 }
 
 template <typename TEvent>
-auto EventDispatcher::emitEvent( TEvent& event )
+auto EventDispatcher::dispatchEvent( TEvent& event )
 {
   m_pDispatcher->trigger( event );
 }
 
 template <typename TEvent>
-auto EventDispatcher::emitEvent( TEvent&& event )
+auto EventDispatcher::dispatchEvent( TEvent&& event )
 {
   m_pDispatcher->trigger( event );
 }

@@ -9,7 +9,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/identifier_component.hpp"
-#include "core/ecs/components/index_component.h"
+#include "core/ecs/components/index_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/pointlight_component.hpp"
 #include "core/ecs/components/texture_component.hpp"
@@ -19,6 +19,7 @@
 #include "core/ecs/registry.hpp"
 #include "core/event/app_event.hpp"
 #include "core/event/event_dispatcher.hpp"
+#include "core/event/event_emitter.hpp"
 #include "core/event/project_event.hpp"
 #include "core/input/keyboard_events.hpp"
 #include "core/input/mouse_events.hpp"
@@ -113,12 +114,12 @@ void App::pollEvents()
         int newWidth = e.window.data1;
         int newHeight = e.window.data2;
         WindowResizeEvent windowResizeEvent{ newWidth, newHeight };
-        pEventDispatcher->emitEvent( windowResizeEvent );
+        pEventDispatcher->dispatchEvent( windowResizeEvent );
       }
       break;
     }
     case SDL_QUIT: {
-      pEventDispatcher->emitEvent( WindowCloseEvent{} );
+      pEventDispatcher->dispatchEvent( WindowCloseEvent{} );
       break;
     }
     case SDL_KEYDOWN: {
@@ -136,14 +137,14 @@ void App::pollEvents()
         keyPressEvent.setKeyModifier( KeyScanCode::LeftShift );
       }
 
-      pEventDispatcher->emitEvent( keyPressEvent );
+      pEventDispatcher->dispatchEvent( keyPressEvent );
       break;
     }
     case SDL_KEYUP: {
       KeyboardState::updateState();
       auto scanCode = static_cast<KeyScanCode>( e.key.keysym.scancode );
       KeyReleasedEvent keyReleaseEvent{ scanCode, KeyScanCode::None };
-      pEventDispatcher->emitEvent( keyReleaseEvent );
+      pEventDispatcher->dispatchEvent( keyReleaseEvent );
       break;
     }
     case SDL_MOUSEMOTION: {
@@ -152,14 +153,14 @@ void App::pollEvents()
       double xRel = e.motion.xrel;
       double yRel = e.motion.yrel;
       MouseMovedEvent mouseMovedEvent{ x, y, xRel, yRel };
-      pEventDispatcher->emitEvent( mouseMovedEvent );
+      pEventDispatcher->dispatchEvent( mouseMovedEvent );
       break;
     }
     case SDL_MOUSEWHEEL: {
       double xOff = e.wheel.x;
       double yOff = e.wheel.y;
       MouseScrolledEvent mouseScrolled{ xOff, yOff };
-      pEventDispatcher->emitEvent( mouseScrolled );
+      pEventDispatcher->dispatchEvent( mouseScrolled );
       break;
     }
     case SDL_MOUSEBUTTONDOWN: {
@@ -169,21 +170,21 @@ void App::pollEvents()
         MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_MIDDLE ),
                                         static_cast<int>( MouseAction::Press ),
                                         static_cast<int>( MouseModifier::None ) };
-        pEventDispatcher->emitEvent( mouseClicked );
+        pEventDispatcher->dispatchEvent( mouseClicked );
       }
       if ( buttonState & SDL_BUTTON( SDL_BUTTON_LEFT ) )
       {
         MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_LEFT ),
                                         static_cast<int>( MouseAction::Press ),
                                         static_cast<int>( MouseModifier::None ) };
-        pEventDispatcher->emitEvent( mouseClicked );
+        pEventDispatcher->dispatchEvent( mouseClicked );
       }
       if ( buttonState & SDL_BUTTON( SDL_BUTTON_RIGHT ) )
       {
         MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_RIGHT ),
                                         static_cast<int>( MouseAction::Press ),
                                         static_cast<int>( MouseModifier::None ) };
-        pEventDispatcher->emitEvent( mouseClicked );
+        pEventDispatcher->dispatchEvent( mouseClicked );
       }
       break;
     }
@@ -282,6 +283,10 @@ bool App::initRegistries() const
   auto eventDispatcher = std::make_shared<EventDispatcher>();
   assert( eventDispatcher && "could not initialise event manager" );
   mainRegistry.addToContext<std::shared_ptr<EventDispatcher>>( std::move( eventDispatcher ) );
+
+  auto eventEmitter = std::make_shared<EventEmitter>();
+  assert( eventEmitter && "could not initialise event emitter" );
+  mainRegistry.addToContext<std::shared_ptr<EventEmitter>>( std::move( eventEmitter ) );
 
   // init task manager
   auto taskManager = std::make_shared<kogayonon_utilities::TaskManager>( 10 );
@@ -804,21 +809,22 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     std::filesystem::create_directory( scenesDirPath );
   }
 
+  // serialize every scene
   for ( const auto& [name, scene] : scenes )
   {
     rapidjson::Value sceneObject{ rapidjson::Type::kObjectType };
 
-    const auto& meshView = scene->getRegistry().getRegistry().view<MeshComponent>();
-    const auto& emptyEntityView =
-      scene->getRegistry().getRegistry().view<IdentifierComponent>( entt::exclude<MeshComponent, PointLightComponent> );
+    const auto& meshView = scene->getEnttRegistry().view<MeshComponent>();
+    const auto& emptyEntityView = scene->getEnttRegistry().view<IdentifierComponent>(
+      entt::exclude<MeshComponent, PointLightComponent, DirectionalLightComponent> );
 
     std::vector<entt::entity> modelEntities;
     for ( const auto& [ent, modelComp] : meshView.each() )
     {
-      if ( modelComp.loaded )
-      {
-        modelEntities.emplace_back( ent );
-      }
+      if ( !modelComp.loaded )
+        continue;
+
+      modelEntities.emplace_back( ent );
     }
 
     // count them accurately, don't think performance drops here
