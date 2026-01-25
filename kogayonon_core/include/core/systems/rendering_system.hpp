@@ -22,7 +22,7 @@ class Scene;
 namespace kogayonon_resources
 {
 class Mesh;
-}
+} // namespace kogayonon_resources
 
 namespace kogayonon_core
 {

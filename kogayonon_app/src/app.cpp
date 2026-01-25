@@ -1,5 +1,4 @@
 #include "app/app.hpp"
-#include <core/ecs/components/directional_light_component.hpp>
 #include <fstream>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui_impl_sdl2.h>
@@ -8,6 +7,7 @@
 #include <spdlog/sinks/daily_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
+#include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/index_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
@@ -26,6 +26,7 @@
 #include "core/project/project_manager.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
+#include "core/systems/scripting_system.hpp"
 #include "gui/debug_window.hpp"
 #include "gui/entity_properties.hpp"
 #include "gui/file_explorer.hpp"
@@ -40,7 +41,7 @@
 #include "utilities/input/mouse_codes.hpp"
 #include "utilities/jsoner/jsoner.hpp"
 #include "utilities/serializer/serializer.hpp"
-#include "utilities/shader_manager/shader_manager.hpp"
+#include "utilities/shader/shader_manager.hpp"
 #include "utilities/task_manager/task_manager.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
 #include "window/window.hpp"
@@ -231,8 +232,8 @@ bool App::initSDL()
 
   auto flags = SDL_WINDOW_OPENGL;
 
-  auto win = SDL_CreateWindow( pWinProps->title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, pWinProps->width,
-                               pWinProps->height, flags );
+  auto win = SDL_CreateWindow(
+    pWinProps->title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, pWinProps->width, pWinProps->height, flags );
 
   m_pWindow->setWindow( std::move( win ) );
 
@@ -269,6 +270,11 @@ bool App::initRegistries() const
 {
   auto& mainRegistry = MainRegistry::getInstance();
 
+  // init scripting system
+  auto scriptingSystem = std::make_shared<kogayonon_core::ScriptingSystem>();
+  assert( scriptingSystem && "could not initialise scripting system" );
+  mainRegistry.addToContext<std::shared_ptr<kogayonon_core::ScriptingSystem>>( std::move( scriptingSystem ) );
+
   // init time tracker
   auto timeTracker = std::make_shared<kogayonon_utilities::TimeTracker>();
   assert( timeTracker && "could not initialise time tracker" );
@@ -297,15 +303,15 @@ bool App::initRegistries() const
   auto shaderManager = std::make_shared<kogayonon_utilities::ShaderManager>();
   assert( shaderManager && "could not initialise shader manager" );
   shaderManager->pushShader( "resources/shaders/3d_vertex.glsl", "resources/shaders/3d_fragment.glsl", "3d" );
-  shaderManager->pushShader( "resources/shaders/3d_normal_vert.glsl", "resources/shaders/3d_normal_frag.glsl",
-                             "3d_normal" );
-  shaderManager->pushShader( "resources/shaders/picking_vertex.glsl", "resources/shaders/picking_fragment.glsl",
-                             "picking" );
+  shaderManager->pushShader(
+    "resources/shaders/3d_normal_vert.glsl", "resources/shaders/3d_normal_frag.glsl", "3d_normal" );
+  shaderManager->pushShader(
+    "resources/shaders/picking_vertex.glsl", "resources/shaders/picking_fragment.glsl", "picking" );
   shaderManager->pushShader( "resources/shaders/depth_vert.glsl", "resources/shaders/depth_frag.glsl", "depth" );
-  shaderManager->pushShader( "resources/shaders/depth_vert.glsl", "resources/shaders/depth_debug_frag.glsl",
-                             "depthDebug" );
-  shaderManager->pushShader( "resources/shaders/outlining_vert.glsl", "resources/shaders/outlining_frag.glsl",
-                             "outlining" );
+  shaderManager->pushShader(
+    "resources/shaders/depth_vert.glsl", "resources/shaders/depth_debug_frag.glsl", "depthDebug" );
+  shaderManager->pushShader(
+    "resources/shaders/outlining_vert.glsl", "resources/shaders/outlining_frag.glsl", "outlining" );
 
   shaderManager->compileMarkedShaders();
 
@@ -486,8 +492,8 @@ static const char* glSeverityToStr( GLenum severity )
   }
 }
 
-void App::glDebugCallback( GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
-                           const GLchar* message, const void* userParam )
+void App::glDebugCallback(
+  GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam )
 {
   // ignore non-significant error/warning codes
   if ( id == 131169 || id == 131185 || id == 131218 || id == 131204 )
@@ -624,7 +630,7 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
         Serializer::deserialize( tmp.translation.y, sceneIn );
         Serializer::deserialize( tmp.translation.z, sceneIn );
 
-        auto ent = scene_->addEntity();
+        Entity ent{ scene_->getRegistry(), scene_->addEntity() };
         ent.addComponent<TransformComponent>(
           TransformComponent{ .translation = tmp.translation, .rotation = tmp.rotation, .scale = tmp.scale } );
 
@@ -657,7 +663,7 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
 
       for ( int x = 0; x < scene["pointLightEntityCount"].GetInt(); x++ )
       {
-        auto ent = scene_->addEntity();
+        Entity ent{ scene_->getRegistry(), scene_->addEntity() };
 
         // we add a default point light component to the entity
         scene_->addPointLight( ent.getEntityId() );
@@ -700,7 +706,7 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
 
       // doing this only once since we have only one directional light
       {
-        auto ent = scene_->addEntity();
+        Entity ent{ scene_->getRegistry(), scene_->addEntity() };
 
         scene_->addDirectionalLight( ent.getEntityId() );
 
@@ -820,8 +826,8 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     sceneObject.AddMember( "name", rapidjson::Value{ name.c_str(), allocator }, allocator );
     sceneObject.AddMember( "directionalLightEntityCount", 1, allocator );
     sceneObject.AddMember( "meshEntityCount", meshEntities.size(), allocator );
-    sceneObject.AddMember( "pointLightEntityCount", scene->getLightCount( kogayonon_resources::LightType::Point ),
-                           allocator );
+    sceneObject.AddMember(
+      "pointLightEntityCount", scene->getLightCount( kogayonon_resources::LightType::Point ), allocator );
 
     auto finalPath = std::format( "{}\\{}.kscene", scenesDirPath.string(), scene->getName().c_str() );
 
@@ -838,8 +844,8 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
 
     // lower size loads first then bigger size follows
     std::sort( meshEntities.begin(), meshEntities.end(), [&]( entt::entity a, entt::entity b ) {
-      auto& meshA = scene->getRegistry().getComponent<MeshComponent>( a );
-      auto& meshB = scene->getRegistry().getComponent<MeshComponent>( b );
+      auto& meshA = scene->getRegistry()->getComponent<MeshComponent>( a );
+      auto& meshB = scene->getRegistry()->getComponent<MeshComponent>( b );
       auto sizeA = std::filesystem::file_size( meshA.pMesh->getPath() );
       auto sizeB = std::filesystem::file_size( meshB.pMesh->getPath() );
       return sizeA < sizeB;
@@ -886,7 +892,7 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     }
 
     // serialize point lights
-    scene->getRegistry().getRegistry().view<IdentifierComponent, PointLightComponent>().each(
+    scene->getRegistry()->getRegistry().view<IdentifierComponent, PointLightComponent>().each(
       [&]( const auto& entity, auto& identifierComponent, auto& pointlightComponent ) {
         const auto& light = scene->getPointLight( pointlightComponent.pointLightIndex );
         Serializer::serialize( light.color.x, sceneOut );
@@ -919,7 +925,7 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
         Serializer::serialize( type, sceneOut );
       } );
 
-    scene->getRegistry().getRegistry().view<IdentifierComponent, DirectionalLightComponent>().each(
+    scene->getRegistry()->getRegistry().view<IdentifierComponent, DirectionalLightComponent>().each(
       [&]( const auto& entity, auto& identifierComponent, auto& directionalLightComponent ) {
         auto& light = scene->getDirectionalLight( directionalLightComponent.directionalLightIndex );
 

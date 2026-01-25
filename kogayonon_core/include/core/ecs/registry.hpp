@@ -1,6 +1,8 @@
 #pragma once
 #include <entt/entt.hpp>
 #include <memory>
+#include <sol/sol.hpp>
+using namespace entt::literals;
 
 namespace kogayonon_core
 {
@@ -17,6 +19,30 @@ public:
   inline bool isValid( entt::entity entity ) const
   {
     return m_pRegistry->valid( entity );
+  }
+
+  void removeEntity( entt::entity entity )
+  {
+    if ( isValid( entity ) )
+      m_pRegistry->destroy( entity );
+  }
+
+  template <typename TComponent, typename... Args>
+  inline auto emplaceComponent( entt::entity entity, Args&&... args ) -> TComponent&
+  {
+    return m_pRegistry->emplace_or_replace<TComponent>( entity, std::forward<Args>( args )... );
+  }
+
+  template <typename TComponent>
+  inline auto removeComponent( entt::entity entity )
+  {
+    m_pRegistry->remove<TComponent>( entity );
+  }
+
+  template <typename TComponent, typename... Args>
+  auto addComponent( entt::entity entity, Args&&... args ) -> TComponent&
+  {
+    return m_pRegistry->emplace<TComponent>( entity, std::forward<Args>( args )... );
   }
 
   template <typename TComponent>
@@ -44,7 +70,7 @@ public:
 
   inline auto getRegistry() -> entt::registry&
   {
-    return *m_pRegistry;
+    return *m_pRegistry.get();
   }
 
   inline void clearRegistry()
@@ -70,7 +96,15 @@ public:
     return m_pRegistry->ctx().erase<TContext>();
   }
 
+  auto storage()
+  {
+    return m_pRegistry->storage();
+  }
+
+  static void createLuaBindings( sol::state& lua );
+
 private:
   std::shared_ptr<entt::registry> m_pRegistry;
 };
+
 } // namespace kogayonon_core

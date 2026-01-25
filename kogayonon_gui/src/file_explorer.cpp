@@ -9,7 +9,7 @@
 #include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/configurator/configurator.hpp"
 #include "utilities/directory_watcher/directory_watcher.hpp"
-#include "utilities/shader_manager/shader_manager.hpp"
+#include "utilities/shader/shader_manager.hpp"
 
 using namespace kogayonon_core;
 using namespace kogayonon_utilities;

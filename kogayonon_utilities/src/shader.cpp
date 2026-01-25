@@ -1,4 +1,4 @@
-#include "utilities/shader_manager/shader.hpp"
+#include "utilities/shader/shader.hpp"
 #include <assert.h>
 #include <fstream>
 #include <glad/glad.h>

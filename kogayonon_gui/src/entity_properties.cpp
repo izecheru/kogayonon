@@ -397,19 +397,11 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
 
     auto entTemp = m_selectedEntity;
     Entity ent{ pScene->getRegistry(), m_selectedEntity };
-    if ( ent.hasComponent<MeshComponent>() )
-    {
-      pScene->removeMeshFromEntity( ent.getEntityId() );
-    }
-    else
-    {
-      ent.addComponent<MeshComponent>();
-    }
 
-    const auto model = assetManager.getMesh( p.filename().string() );
-    if ( model != nullptr )
+    const auto mesh = assetManager.getMesh( p.filename().string() );
+    if ( mesh != nullptr )
     {
-      pScene->addMeshToEntity( entTemp, model );
+      pScene->addMeshToEntity( entTemp, mesh );
     }
     else
     {
@@ -417,7 +409,6 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
         auto& assetManager = AssetManager::getInstance();
         Entity ent{ pScene->getRegistry(), entTemp };
 
-        // both protected by their own mutexes
         const auto model = assetManager.addMesh( p.filename().string(), p.string() );
         pScene->addMeshToEntity( entTemp, model );
       } );

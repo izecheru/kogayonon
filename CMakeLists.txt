@@ -18,6 +18,10 @@ if (POLICY CMP0141)
   set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
+if(MSVC)
+  add_compile_options(/bigobj)
+endif()
+
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib") # .lib, .a
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib") # .dll, .so
@@ -25,6 +29,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin") # .exe
 
 find_package(SDL2 CONFIG REQUIRED)
 find_package(soil2 CONFIG REQUIRED)
+find_package(sol2 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
@@ -36,6 +41,8 @@ add_subdirectory(dependencies/imgui)
 add_subdirectory(dependencies/glad)
 add_subdirectory(dependencies/cgltf)
 add_subdirectory(dependencies/imguizmo)
+# using lua 5.4 since sol is not yet compatible with latest 5.5 and vcpkg verison is indeed 5.5
+add_subdirectory(dependencies/lua)
 
 # My own modules
 add_subdirectory(kogayonon_utilities)

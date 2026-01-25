@@ -1,4 +1,4 @@
-#include "core/systems/rendering_system.h"
+#include "core/systems/rendering_system.hpp"
 #include <assert.h>
 #include <entt/entt.hpp>
 #include <glad/glad.h>
@@ -14,7 +14,7 @@
 #include "rendering/opengl_framebuffer.hpp"
 #include "rendering/renderer.hpp"
 #include "utilities/math/math.hpp"
-#include "utilities/shader_manager/shader_manager.hpp"
+#include "utilities/shader/shader_manager.hpp"
 using namespace kogayonon_utilities;
 using namespace kogayonon_rendering;
 
@@ -74,8 +74,8 @@ auto RenderingSystem::renderPickingPass( FrameContext& frame, PickingPassContext
   return result;
 }
 
-void RenderingSystem::renderOutlinedEntity( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection,
-                                            kogayonon_utilities::Shader* shader, uint32_t* depthMap )
+void RenderingSystem::renderOutlinedEntity(
+  Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection, kogayonon_utilities::Shader* shader, uint32_t* depthMap )
 {
   shader->bind();
   const auto& view = scene->getEnttRegistry().view<OutlineComponent>();
@@ -100,15 +100,17 @@ void RenderingSystem::renderOutlinedEntity( Scene* scene, glm::mat4* viewMatrix,
 
   for ( const auto& sm : mesh->getSubmeshes() )
   {
-    glDrawElementsBaseVertex( GL_TRIANGLES, sm.indexCount, GL_UNSIGNED_INT,
-                              (void*)( sm.indexOffset * sizeof( uint32_t ) ), sm.vertexOffest );
+    glDrawElementsBaseVertex(
+      GL_TRIANGLES, sm.indexCount, GL_UNSIGNED_INT, (void*)( sm.indexOffset * sizeof( uint32_t ) ), sm.vertexOffest );
   }
 
   glBindVertexArray( 0 );
   shader->unbind();
 }
 
-void RenderingSystem::render( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection,
+void RenderingSystem::render( Scene* scene,
+                              glm::mat4* viewMatrix,
+                              glm::mat4* projection,
                               kogayonon_utilities::Shader* shader )
 {
   begin( shader );
@@ -125,7 +127,8 @@ void RenderingSystem::render( Scene* scene, glm::mat4* viewMatrix, glm::mat4* pr
   end( shader );
 }
 
-void RenderingSystem::drawMeshesWithDepth( Scene* scene, const std::vector<kogayonon_resources::Mesh*>& orderedMeshes,
+void RenderingSystem::drawMeshesWithDepth( Scene* scene,
+                                           const std::vector<kogayonon_resources::Mesh*>& orderedMeshes,
                                            const uint32_t* depthMap )
 {
   for ( auto& mesh : orderedMeshes )
@@ -147,9 +150,12 @@ void RenderingSystem::drawMeshesWithDepth( Scene* scene, const std::vector<kogay
     for ( int i = 0; i < submeshes.size() && instanceData != nullptr; i++ )
     {
 
-      glDrawElementsInstancedBaseVertex( GL_TRIANGLES, submeshes.at( i ).indexCount, GL_UNSIGNED_INT,
+      glDrawElementsInstancedBaseVertex( GL_TRIANGLES,
+                                         submeshes.at( i ).indexCount,
+                                         GL_UNSIGNED_INT,
                                          (void*)( submeshes.at( i ).indexOffset * sizeof( uint32_t ) ),
-                                         instanceData->count, submeshes.at( i ).vertexOffest );
+                                         instanceData->count,
+                                         submeshes.at( i ).vertexOffest );
     }
     glBindVertexArray( 0 );
     glBindTextureUnit( 1, 0 );
@@ -176,17 +182,23 @@ void RenderingSystem::drawMeshes( Scene* scene, const std::vector<kogayonon_reso
     for ( int i = 0; i < submeshes.size() && instanceData != nullptr; i++ )
     {
 
-      glDrawElementsInstancedBaseVertex( GL_TRIANGLES, submeshes.at( i ).indexCount, GL_UNSIGNED_INT,
+      glDrawElementsInstancedBaseVertex( GL_TRIANGLES,
+                                         submeshes.at( i ).indexCount,
+                                         GL_UNSIGNED_INT,
                                          (void*)( submeshes.at( i ).indexOffset * sizeof( uint32_t ) ),
-                                         instanceData->count, submeshes.at( i ).vertexOffest );
+                                         instanceData->count,
+                                         submeshes.at( i ).vertexOffest );
     }
     glBindVertexArray( 0 );
     glBindTextureUnit( 1, 0 );
   }
 }
 
-void RenderingSystem::renderWithDepth( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection,
-                                       glm::mat4* lightSpaceMatrix, kogayonon_utilities::Shader* shader,
+void RenderingSystem::renderWithDepth( Scene* scene,
+                                       glm::mat4* viewMatrix,
+                                       glm::mat4* projection,
+                                       glm::mat4* lightSpaceMatrix,
+                                       kogayonon_utilities::Shader* shader,
                                        uint32_t* depthMap )
 {
   begin( shader );

@@ -12,7 +12,17 @@ out vec3 FragPos;
 
 void main()
 {
-  float outlineScale = 0.009;
-  FragPos = vec3( instanceMatrix  * vec4(aPos + aNormal * outlineScale,1.0));
-  gl_Position = projection * view * vec4(FragPos,1.0);
+    float outlineWidth = 0.055;
+
+    float scaleX = length(instanceMatrix[0].xyz);
+    float scaleY = length(instanceMatrix[1].xyz);
+    float scaleZ = length(instanceMatrix[2].xyz);
+
+    vec3 scaledOutlineWidth = outlineWidth / vec3(scaleX, scaleY, scaleZ);
+    vec3 outlineOffset = aNormal * scaledOutlineWidth;
+    vec3 newPos = aPos + outlineOffset;
+    vec4 worldPos = instanceMatrix * vec4(newPos, 1.0);
+
+    FragPos = vec4(instanceMatrix * vec4(newPos,1.0)).xyz;
+    gl_Position = projection * view * worldPos;
 }

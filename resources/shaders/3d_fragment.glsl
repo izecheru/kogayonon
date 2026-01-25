@@ -151,7 +151,7 @@ vec3 CalcDirLight(DirectionalLight light, vec3 normal, vec3 viewDir, float shado
 void main()
 {
   // discard if the entity is selected, it goes through a different rendering process
-  if(Selected==1){discard;}
+  // if(Selected==1){discard;}
   vec3 result = vec3(0.0);
   vec3 objectColor = texture(u_Texture, TexCoord).rgb;
   float shadow = 1 - ShadowCalculation(ShadowCoord);

@@ -20,11 +20,11 @@
 #include "core/input/mouse_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
-#include "core/systems/rendering_system.h"
+#include "core/systems/rendering_system.hpp"
 #include "physics/nvidia_physx.hpp"
 #include "rendering/camera/camera.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
-#include "utilities/shader_manager/shader_manager.hpp"
+#include "utilities/shader/shader_manager.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
 #include "utilities/utils/utils.hpp"
 
@@ -143,7 +143,8 @@ void SceneViewportWindow::onMouseMoved( const MouseMovedEvent& e )
     m_pCamera->onMouseMoved( x, y, true );
 
     // move mouse in the center
-    SDL_WarpMouseInWindow( m_mainWindow, static_cast<int>( m_props->x + m_props->width / 2 ),
+    SDL_WarpMouseInWindow( m_mainWindow,
+                           static_cast<int>( m_props->x + m_props->width / 2 ),
                            static_cast<int>( m_props->y + m_props->height / 2 ) );
   }
   else
@@ -193,11 +194,14 @@ void SceneViewportWindow::drawScene()
       }
     }
 
-    const auto& directionalLightComponent = scene->getRegistry().getComponent<DirectionalLightComponent>( ent );
+    const auto& directionalLightComponent = scene->getRegistry()->getComponent<DirectionalLightComponent>( ent );
 
-    auto lightProjection = glm::ortho( -directionalLightComponent.orthoSize, directionalLightComponent.orthoSize,
-                                       -directionalLightComponent.orthoSize, directionalLightComponent.orthoSize,
-                                       directionalLightComponent.nearPlane, directionalLightComponent.farPlane );
+    auto lightProjection = glm::ortho( -directionalLightComponent.orthoSize,
+                                       directionalLightComponent.orthoSize,
+                                       -directionalLightComponent.orthoSize,
+                                       directionalLightComponent.orthoSize,
+                                       directionalLightComponent.nearPlane,
+                                       directionalLightComponent.farPlane );
     auto lightDir = glm::normalize(
       glm::vec3( directionalLight.direction.x, directionalLight.direction.y, directionalLight.direction.z ) );
     auto lightPos = -lightDir * directionalLightComponent.positionFactor;
@@ -242,6 +246,10 @@ void SceneViewportWindow::drawScene()
 
         m_pRenderingSystem->renderOutliningPass( frameContext, outlinePass );
       }
+      else
+      {
+        scene->addOutline( m_selectedEntity );
+      }
     }
   }
 }
@@ -250,6 +258,7 @@ constexpr float topCornerMenu = 10.0f;
 
 void SceneViewportWindow::drawPickingScene()
 {
+  // if we are editing the transform of an entity, don't deselect it to get another one
   if ( m_selectedEntity != entt::null && m_gizmoEnabled )
     return;
 
@@ -284,12 +293,8 @@ void SceneViewportWindow::drawPickingScene()
   auto result = m_pRenderingSystem->renderPickingPass( frameContext, pickingPass );
 
   auto ent = static_cast<entt::entity>( result );
-  if ( scene->getRegistry().isValid( ent ) )
+  if ( scene->getRegistry()->isValid( ent ) )
   {
-    // need to deselect first
-    if ( m_selectedEntity != entt::null )
-      return;
-
     scene->addOutline( ent );
     m_selectedEntity = ent;
     pEventDispatcher->dispatchEvent( SelectEntityEvent{ ent, SelectEntityEventSource::ViewportWindow } );
@@ -399,15 +404,23 @@ void SceneViewportWindow::draw()
 
   drawScene();
 
-  ImGui::GetWindowDrawList()->AddImage( m_frameBuffer.getColorAttachmentId( 0 ), win_pos,
-                                        ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y }, ImVec2{ 0, 1 },
+  ImGui::GetWindowDrawList()->AddImage( m_frameBuffer.getColorAttachmentId( 0 ),
+                                        win_pos,
+                                        ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y },
+                                        ImVec2{ 0, 1 },
                                         ImVec2{ 1, 0 } );
 
-  if ( m_selectedEntity != entt::null && scene->getRegistry().hasComponent<MeshComponent>( m_selectedEntity ) )
+  if ( m_selectedEntity != entt::null && scene->getRegistry()->hasComponent<MeshComponent>( m_selectedEntity ) )
   {
-    ImGui::GetWindowDrawList()->AddImage( m_stencilBuffer.getColorAttachmentId( 0 ), win_pos,
-                                          ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y },
-                                          ImVec2{ 0, 1 }, ImVec2{ 1, 0 } );
+    const auto& meshComp = scene->getRegistry()->getComponent<MeshComponent>( m_selectedEntity );
+    if ( meshComp.loaded && meshComp.pMesh != nullptr )
+    {
+      ImGui::GetWindowDrawList()->AddImage( m_stencilBuffer.getColorAttachmentId( 0 ),
+                                            win_pos,
+                                            ImVec2{ win_pos.x + contentSize.x, win_pos.y + contentSize.y },
+                                            ImVec2{ 0, 1 },
+                                            ImVec2{ 1, 0 } );
+    }
   }
 
   ImGuizmo::SetOrthographic( false );
@@ -429,13 +442,17 @@ void SceneViewportWindow::draw()
 
       ImGuizmo::Manipulate( glm::value_ptr( m_pCamera->getViewMatrix() ),
                             glm::value_ptr( m_pCamera->getProjectionMatrix( { contentSize.x, contentSize.y } ) ),
-                            gizmoModeToImGuizmo( m_gizmoMode ), ImGuizmo::WORLD, glm::value_ptr( instanceMatrix ) );
+                            gizmoModeToImGuizmo( m_gizmoMode ),
+                            ImGuizmo::WORLD,
+                            glm::value_ptr( instanceMatrix ) );
 
       if ( ImGuizmo::IsUsing() )
       {
         glm::vec3 translation, rotation, scale;
-        ImGuizmo::DecomposeMatrixToComponents( glm::value_ptr( instanceMatrix ), glm::value_ptr( translation ),
-                                               glm::value_ptr( rotation ), glm::value_ptr( scale ) );
+        ImGuizmo::DecomposeMatrixToComponents( glm::value_ptr( instanceMatrix ),
+                                               glm::value_ptr( translation ),
+                                               glm::value_ptr( rotation ),
+                                               glm::value_ptr( scale ) );
 
         transform->translation = translation;
         transform->rotation = rotation;
@@ -449,13 +466,16 @@ void SceneViewportWindow::draw()
         {
           auto dynamicRigidBody = entity.getComponent<DynamicRigidbodyComponent>();
           dynamicRigidBody.pBody->setGlobalPose(
-            physx::PxTransform{ transform->translation.x, transform->translation.y, transform->translation.z,
+            physx::PxTransform{ transform->translation.x,
+                                transform->translation.y,
+                                transform->translation.z,
                                 physx::PxQuat{ quat.x, quat.y, quat.z, quat.w } } );
         }
         else if ( entity.hasComponent<StaticRigidbodyComponent>() )
         {
           auto staticRigidBody = entity.getComponent<StaticRigidbodyComponent>();
-          staticRigidBody.pBody->setGlobalPose( physx::PxTransform{ transform->translation.x, transform->translation.y,
+          staticRigidBody.pBody->setGlobalPose( physx::PxTransform{ transform->translation.x,
+                                                                    transform->translation.y,
                                                                     transform->translation.z,
                                                                     physx::PxQuat{ quat.x, quat.y, quat.z, quat.w } } );
         }
@@ -520,7 +540,9 @@ void SceneViewportWindow::drawToolbar()
   static float toolbarWidth = style.WindowPadding.x * 2.0f + ( toolbarButtonSize.x * buttonCount ) +
                               ( style.ItemSpacing.x * buttonCount ) + ( 2.0f * 5.0f );
 
-  if ( ImGui::BeginChild( "Toolbar", ImVec2{ toolbarWidth, 25.0f }, false,
+  if ( ImGui::BeginChild( "Toolbar",
+                          ImVec2{ toolbarWidth, 25.0f },
+                          false,
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse ) )
   {
     ImGui::PushStyleColor( ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f } );

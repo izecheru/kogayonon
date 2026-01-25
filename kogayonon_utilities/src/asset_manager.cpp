@@ -90,7 +90,6 @@ kogayonon_resources::Texture* AssetManager::addTexture( const std::string& textu
     }
   }
 
-  // std::lock_guard lock( m_assetMutex );
   assert( std::filesystem::exists( texturePath ) && "Texture path does not exist" );
 
   int w = 0;

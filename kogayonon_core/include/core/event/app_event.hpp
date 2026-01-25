@@ -1,6 +1,4 @@
 #pragma once
-#include <sstream>
-
 #include "event.hpp"
 
 namespace kogayonon_core

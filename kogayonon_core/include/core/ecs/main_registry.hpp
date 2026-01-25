@@ -18,6 +18,7 @@ namespace kogayonon_core
 {
 class EventEmitter;
 class EventDispatcher;
+class ScriptingSystem;
 } // namespace kogayonon_core
 
 namespace kogayonon_rendering
@@ -81,14 +82,14 @@ public:
     return getContext<std::shared_ptr<kogayonon_utilities::TimeTracker>>();
   }
 
-  auto getRenderer() -> std::shared_ptr<kogayonon_rendering::Renderer>&
-  {
-    return getContext<std::shared_ptr<kogayonon_rendering::Renderer>>();
-  }
-
   auto getShaderManager() -> std::shared_ptr<kogayonon_utilities::ShaderManager>&
   {
     return getContext<std::shared_ptr<kogayonon_utilities::ShaderManager>>();
+  }
+
+  auto getScriptingSystem() -> std::shared_ptr<kogayonon_core::ScriptingSystem>&
+  {
+    return getContext<std::shared_ptr<kogayonon_core::ScriptingSystem>>();
   }
 
 private:

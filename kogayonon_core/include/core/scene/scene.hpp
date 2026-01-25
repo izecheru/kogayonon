@@ -19,8 +19,9 @@ namespace kogayonon_core
 {
 struct GPUInstance
 {
+  // this flag might get tossed out
   uint32_t selected{ 0 };
-  int entityId;
+  int entityId{ -1 };
   glm::mat4 instanceMatrix;
 };
 
@@ -45,9 +46,19 @@ public:
   Scene( const std::string& name );
   ~Scene() = default;
 
-  Registry& getRegistry();
-  entt::registry& getEnttRegistry();
-  std::string getName() const;
+  /**
+   * @brief This returns the wrapper around entt::registry
+   * @return Reference to Registry
+   */
+  auto getRegistry() -> Registry*;
+
+  /**
+   * @brief Used to get the entt::registry
+   * @return Reference to entt::registry
+   */
+  auto getEnttRegistry() -> entt::registry&;
+
+  auto getName() const -> std::string;
   void changeName( const std::string& name );
 
   inline auto getRegistryMutex() -> std::mutex&
@@ -77,7 +88,7 @@ public:
    * @brief Creates a default entity with no components and adds it to the registry
    * @return Returns the freshly created entity
    */
-  auto addEntity() -> Entity;
+  auto addEntity() -> entt::entity;
 
   /**
    * @brief Initializes the instance data for a particular model pointer

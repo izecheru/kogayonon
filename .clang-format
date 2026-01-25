@@ -27,7 +27,11 @@ CompactNamespaces: false
 SpacesInParentheses: true
 FixNamespaceComments: true               
 AllowAllParametersOfDeclarationOnNextLine: true
-BinPackParameters: true
+AllowAllArgumentsOnNextLine: true
+ColumnLimit: 120
+AlignAfterOpenBracket: Align
+BinPackParameters: false
+BinPackArguments: false
 AlwaysBreakAfterReturnType: None
 AlwaysBreakTemplateDeclarations: Yes
 SeparateDefinitionBlocks: Always

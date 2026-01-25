@@ -1,4 +1,4 @@
-#include "utilities/shader_manager/shader_manager.hpp"
+#include "utilities/shader/shader_manager.hpp"
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 

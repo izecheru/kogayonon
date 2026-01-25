@@ -51,8 +51,8 @@ void SceneHierarchyWindow::onKeyPressed( const KeyPressedEvent& e )
   // Escape to deselect entity
   if ( e.getKeyScanCode() == KeyScanCode::Escape && e.getKeyModifier() == KeyScanCode::None )
   {
-    scene->removeOutline();
     m_selectedEntity = entt::null;
+    scene->removeOutline();
     pEventDispatcher->dispatchEvent( SelectEntityEvent{} );
   }
 
@@ -97,7 +97,7 @@ void SceneHierarchyWindow::draw()
     if ( auto scene = SceneManager::getCurrentScene().lock() )
     {
       // no component entity
-      auto entity = scene->addEntity();
+      Entity entity{ scene->getRegistry(), scene->addEntity() };
       m_selectedEntity = entity.getEntityId();
       pEventDispatcher->dispatchEvent(
         SelectEntityEvent{ m_selectedEntity, SelectEntityEventSource::HierarchyWindow } );
@@ -106,12 +106,6 @@ void SceneHierarchyWindow::draw()
 
   auto& enttRegistry = scene->getEnttRegistry();
   auto view = enttRegistry.view<IdentifierComponent>();
-  std::vector<Entity> entities;
-
-  for ( auto [entity, nameComponent] : view.each() )
-  {
-    entities.emplace_back( scene->getRegistry(), entity );
-  }
 
   drawContextMenu();
 
@@ -128,33 +122,29 @@ void SceneHierarchyWindow::draw()
 
     ImGui::TableHeadersRow();
 
-    for ( int i = 0; i < entities.size(); i++ )
-    {
+    view.each( [&]( const auto& entityId, auto& identifierComponent ) {
       // first column
       ImGui::TableNextRow();
       ImGui::TableNextColumn();
-      auto& entity = entities.at( i );
-      const auto& identifierComponent = entity.getComponent<IdentifierComponent>();
 
-      std::string selectableId = std::format( "##{}{}", identifierComponent.name, i );
+      std::string selectableId = std::format( "##{}{}", identifierComponent.name, static_cast<uint32_t>( entityId ) );
 
       ImGui::BeginGroup();
 
-      bool selected = m_selectedEntity == entity.getEntityId();
+      bool selected = m_selectedEntity == entityId;
       auto hoverColor = ImGui::GetStyle().Colors[ImGuiCol_HeaderHovered];
       auto normalColor = ImGui::GetStyle().Colors[ImGuiCol_Header];
 
       ImGui::PushStyleColor( ImGuiCol_Header, selected ? hoverColor : normalColor );
 
-      if ( ImGui::Selectable( selectableId.c_str(), m_selectedEntity == entity.getEntityId(),
-                              ImGuiSelectableFlags_SpanAllColumns ) )
+      if ( ImGui::Selectable( selectableId.c_str(), selected, ImGuiSelectableFlags_SpanAllColumns ) )
       {
-        m_selectedEntity = entity.getEntityId();
-        pEventDispatcher->dispatchEvent(
-          SelectEntityEvent{ m_selectedEntity, SelectEntityEventSource::HierarchyWindow } );
+        m_selectedEntity = entityId;
+        Entity entity{ scene->getRegistry(), entityId };
+        pEventDispatcher->dispatchEvent( SelectEntityEvent{ entityId, SelectEntityEventSource::HierarchyWindow } );
       }
       ImGui::PopStyleColor();
-      drawItemContexMenu( selectableId, entity );
+      drawItemContexMenu( selectableId, entityId );
 
       auto labelSize = ImGui::CalcTextSize( selectableId.c_str() );
       static auto iconSize = ImVec2{ 20.0f, 20.0f };
@@ -186,7 +176,7 @@ void SceneHierarchyWindow::draw()
       ImGui::Text( "%s", identifierComponent.group.c_str() );
 
       ImGui::EndGroup();
-    }
+    } );
     ImGui::EndTable();
   }
 
@@ -205,7 +195,7 @@ void SceneHierarchyWindow::drawContextMenu()
   {
     if ( ImGui::MenuItem( "Mesh" ) )
     {
-      auto entity = scene->addEntity();
+      Entity entity{ scene->getRegistry(), scene->addEntity() };
       entity.setType( EntityType::Object );
       entity.addComponent<MeshComponent>();
       m_selectedEntity = entity.getEntityId();
@@ -215,7 +205,7 @@ void SceneHierarchyWindow::drawContextMenu()
 
     if ( ImGui::MenuItem( "Point light" ) )
     {
-      auto entity = scene->addEntity();
+      Entity entity{ scene->getRegistry(), scene->addEntity() };
       entity.setType( EntityType::Light );
       scene->addPointLight( entity.getEntityId() );
       spdlog::info( "{} number of point lights", scene->getLightCount( kogayonon_resources::LightType::Point ) );
@@ -227,7 +217,7 @@ void SceneHierarchyWindow::drawContextMenu()
 
     if ( ImGui::MenuItem( "Directional light" ) )
     {
-      auto entity = scene->addEntity();
+      Entity entity{ scene->getRegistry(), scene->addEntity() };
       entity.setType( EntityType::Light );
       scene->addDirectionalLight( entity.getEntityId() );
       m_selectedEntity = entity.getEntityId();
@@ -248,7 +238,7 @@ void SceneHierarchyWindow::duplicateEntity( Entity& ent )
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
   if ( auto scene = pScene.lock() )
   {
-    auto entity = scene->addEntity();
+    Entity entity{ scene->getRegistry(), scene->addEntity() };
     if ( ent.hasComponent<MeshComponent>() )
     {
       const auto& meshComponent = ent.getComponent<MeshComponent>();
@@ -280,8 +270,10 @@ void SceneHierarchyWindow::deleteEntity( kogayonon_core::Entity& ent )
   }
 }
 
-void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, Entity& ent )
+void SceneHierarchyWindow::drawItemContexMenu( const std::string& itemId, entt::entity entity )
 {
+  auto scene = SceneManager::getCurrentScene().lock();
+  Entity ent{ scene->getRegistry(), entity };
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
   if ( ImGui::BeginPopupContextItem( itemId.c_str() ) )
   {

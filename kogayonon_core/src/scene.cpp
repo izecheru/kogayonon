@@ -31,9 +31,9 @@ Scene::Scene( const std::string& name )
   m_lightSSBO.initialize();
 }
 
-auto Scene::getRegistry() -> Registry&
+auto Scene::getRegistry() -> Registry*
 {
-  return *m_pRegistry.get();
+  return m_pRegistry.get();
 }
 
 auto Scene::getEnttRegistry() -> entt::registry&
@@ -96,16 +96,16 @@ void Scene::removeEntity( entt::entity ent )
   --m_entityCount;
 }
 
-auto Scene::addEntity() -> Entity
+auto Scene::addEntity() -> entt::entity
 {
-  Entity ent{ *m_pRegistry, "DefaultEntity" };
+  Entity ent{ getRegistry(), "DefaultEntity" };
   ++m_entityCount;
-  return ent;
+  return ent.getEntityId();
 }
 
 bool Scene::addInstanceData( entt::entity entityId )
 {
-  Entity entity{ *m_pRegistry, entityId };
+  Entity entity{ m_pRegistry.get(), entityId };
 
   // now that we created the entity using the scene registry and added a model and transform components to it
   // we must look for model pointer in the map to check for instances
@@ -164,7 +164,7 @@ void Scene::addMeshToEntity( entt::entity entity, kogayonon_resources::Mesh* pMe
 {
   std::lock_guard lock{ m_registryMutex };
   m_registryModified = true;
-  Entity ent{ *m_pRegistry, entity };
+  Entity ent{ m_pRegistry.get(), entity };
   ent.setType( EntityType::Object );
   ent.replaceComponent<MeshComponent>( MeshComponent{ .pMesh = pMesh, .staticMesh = false, .loaded = false } );
 
@@ -176,7 +176,7 @@ void Scene::addMeshToEntity( entt::entity entity, kogayonon_resources::Mesh* pMe
 void Scene::removeInstanceData( entt::entity ent )
 {
   // upon deletion we must remove that specific instance
-  Entity entity{ *m_pRegistry, ent };
+  Entity entity{ m_pRegistry.get(), ent };
 
   const auto& meshComponent = entity.getComponent<MeshComponent>();
 
@@ -202,7 +202,7 @@ void Scene::removeInstanceData( entt::entity ent )
     for ( const auto& [entity, indexComp, meshComp] :
           m_pRegistry->getRegistry().view<IndexComponent, MeshComponent>().each() )
     {
-      Entity ent{ *m_pRegistry, entity };
+      Entity ent{ m_pRegistry.get(), entity };
 
       // update the index just to those who use the same mesh
       if ( meshComp.pMesh == pMesh )
@@ -221,7 +221,7 @@ void Scene::removeInstanceData( entt::entity ent )
 void Scene::removeMeshFromEntity( entt::entity entity )
 {
   m_registryModified = true;
-  Entity ent{ *m_pRegistry, entity };
+  Entity ent{ m_pRegistry.get(), entity };
 
   removeInstanceData( entity );
 
@@ -232,11 +232,17 @@ void Scene::removeMeshFromEntity( entt::entity entity )
 
 void Scene::addOutline( entt::entity ent )
 {
-  Entity entity{ *m_pRegistry, ent };
+  Entity entity{ m_pRegistry.get(), ent };
+
+  removeOutline();
 
   if ( entity.hasComponent<MeshComponent>() && !entity.hasComponent<OutlineComponent>() )
   {
     auto& meshComp = entity.getComponent<MeshComponent>();
+
+    if ( !meshComp.loaded || meshComp.pMesh == nullptr )
+      return;
+
     auto data = getData( meshComp.pMesh );
     auto index = entity.getComponent<IndexComponent>().index;
     data->instances.at( index ).selected = 1;
@@ -247,19 +253,20 @@ void Scene::addOutline( entt::entity ent )
 
 void Scene::removeOutline()
 {
-  for ( auto& ent : m_pRegistry->getRegistry().view<OutlineComponent>() )
-  {
-    Entity entity{ *m_pRegistry, ent };
-    if ( entity.hasComponent<OutlineComponent>() )
-    {
-      auto& meshComp = entity.getComponent<MeshComponent>();
-      auto data = getData( meshComp.pMesh );
-      auto index = entity.getComponent<IndexComponent>().index;
-      data->instances.at( index ).selected = 0;
-      entity.removeComponent<OutlineComponent>();
-      updateInstances( data );
-    }
-  }
+  const auto& view = m_pRegistry->getRegistry().view<OutlineComponent>();
+  if ( view.size() == 0 )
+    return;
+
+  view.each( [&]( const auto& ent, auto& outlineComp ) {
+    Entity entity{ m_pRegistry.get(), ent };
+
+    auto& meshComp = entity.getComponent<MeshComponent>();
+    auto data = getData( meshComp.pMesh );
+    auto index = entity.getComponent<IndexComponent>().index;
+    data->instances.at( index ).selected = 0;
+    entity.removeComponent<OutlineComponent>();
+    updateInstances( data );
+  } );
 }
 
 auto Scene::getData( kogayonon_resources::Mesh* pModel ) -> InstanceData*
@@ -281,8 +288,8 @@ void Scene::setupInstances( InstanceData* data )
   if ( data->instanceBuffer == 0 )
     glCreateBuffers( 1, &data->instanceBuffer );
 
-  glNamedBufferData( data->instanceBuffer, sizeof( GPUInstance ) * data->count, data->instances.data(),
-                     GL_DYNAMIC_DRAW );
+  glNamedBufferData(
+    data->instanceBuffer, sizeof( GPUInstance ) * data->count, data->instances.data(), GL_DYNAMIC_DRAW );
 
   const auto& vao = data->pMesh->getVao();
 
@@ -323,9 +330,11 @@ void Scene::updateRigidbodyEntities()
   const auto& view =
     m_pRegistry->getRegistry().view<DynamicRigidbodyComponent, TransformComponent, MeshComponent, IndexComponent>();
 
-  for ( const auto& [entity, dynamicRigidbodyComponent, transformComponent, meshComponent, indexComponent] :
-        view.each() )
-  {
+  view.each( [&]( const auto& entity,
+                  auto& dynamicRigidbodyComponent,
+                  auto& transformComponent,
+                  auto& meshComponent,
+                  auto& indexComponent ) {
     // get the physics pose
     auto pose = dynamicRigidbodyComponent.pBody->getGlobalPose();
 
@@ -348,7 +357,7 @@ void Scene::updateRigidbodyEntities()
 
     // finally update the instances
     updateInstances( instanceData );
-  }
+  } );
 }
 
 auto Scene::getLightCount( const kogayonon_resources::LightType& type ) -> uint32_t
@@ -368,7 +377,7 @@ void Scene::prepareForRendering()
 
   auto& assetManager = AssetManager::getInstance();
 
-  for ( const auto& [entity, meshComponent] : getRegistry().getRegistry().view<MeshComponent>().each() )
+  for ( const auto& [entity, meshComponent] : getRegistry()->getRegistry().view<MeshComponent>().each() )
   {
     Entity ent{ getRegistry(), entity };
 
@@ -406,19 +415,19 @@ void Scene::prepareForRendering()
 
 void Scene::addPointLight()
 {
-  auto entity = addEntity();
+  Entity entity{ getRegistry(), addEntity() };
   entity.setType( EntityType::Light );
   m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Point );
-  int index = m_lightSSBO.addLight( kogayonon_resources::LightType::Point );
+  auto index = m_lightSSBO.addLight( kogayonon_resources::LightType::Point );
   entity.addComponent<PointLightComponent>( PointLightComponent{ .pointLightIndex = index } );
 }
 
 void Scene::addPointLight( entt::entity entityId )
 {
-  Entity ent{ *m_pRegistry, entityId };
+  Entity ent{ m_pRegistry.get(), entityId };
   ent.setType( EntityType::Light );
   m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Point );
-  int index = m_lightSSBO.addLight( kogayonon_resources::LightType::Point );
+  auto index = m_lightSSBO.addLight( kogayonon_resources::LightType::Point );
   ent.addComponent<PointLightComponent>( PointLightComponent{ .pointLightIndex = index } );
 }
 
@@ -431,7 +440,7 @@ void Scene::addDirectionalLight()
     return;
   }
 
-  auto entity = addEntity();
+  Entity entity{ getRegistry(), addEntity() };
   entity.setType( EntityType::Light );
   m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Directional );
   int index = m_lightSSBO.addLight( kogayonon_resources::LightType::Directional );
@@ -444,7 +453,7 @@ void Scene::addDirectionalLight( entt::entity entityId )
   if ( m_lightUBO.getLightCount( kogayonon_resources::LightType::Directional ) == 1 )
     return;
 
-  Entity entity{ *m_pRegistry, entityId };
+  Entity entity{ m_pRegistry.get(), entityId };
   entity.setType( EntityType::Light );
 
   m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Directional );

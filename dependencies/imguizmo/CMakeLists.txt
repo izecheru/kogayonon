@@ -1,16 +1,16 @@
 add_library(imguizmo
-"src/GraphEditor.cpp"
-"src/ImCurveEdit.cpp"
-"src/ImGradient.cpp"
-"src/ImGuizmo.cpp"
-"src/ImSequencer.cpp"
+  "src/GraphEditor.cpp"
+  "src/ImCurveEdit.cpp"
+  "src/ImGradient.cpp"
+  "src/ImGuizmo.cpp"
+  "src/ImSequencer.cpp"
 
-"include/GraphEditor.h"
-"include/ImCurveEdit.h"
-"include/ImGradient.h"
-"include/ImGuizmo.h"
-"include/ImSequencer.h"
-"include/ImZoomSlider.h"
+  "include/GraphEditor.h"
+  "include/ImCurveEdit.h"
+  "include/ImGradient.h"
+  "include/ImGuizmo.h"
+  "include/ImSequencer.h"
+  "include/ImZoomSlider.h"
 )
 
 target_include_directories(imgui PUBLIC

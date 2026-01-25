@@ -1,6 +1,6 @@
 #pragma once
 #include <unordered_map>
-#include "utilities/shader_manager/shader.hpp"
+#include "utilities/shader/shader.hpp"
 
 namespace kogayonon_utilities
 {
