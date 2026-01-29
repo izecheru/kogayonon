@@ -3,6 +3,13 @@
 
 namespace kogayonon_core
 {
+struct MainScriptFuncs
+{
+  sol::protected_function init;
+  sol::protected_function update;
+  sol::protected_function render;
+};
+
 class ScriptingSystem
 {
 public:
@@ -15,7 +22,7 @@ public:
   static void registerBindings( sol::state& lua );
 
 private:
-  bool m_mainScriptLoaded{ false };
   sol::state m_luaState;
+  bool m_mainScriptLoaded{ false };
 };
 } // namespace kogayonon_core

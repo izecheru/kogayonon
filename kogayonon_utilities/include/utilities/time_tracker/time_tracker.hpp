@@ -1,6 +1,7 @@
 #pragma once
 #include <chrono>
 #include <mutex>
+#include <sol/sol.hpp>
 #include <unordered_map>
 
 namespace kogayonon_utilities
@@ -22,6 +23,8 @@ public:
   void update( const std::string& key );
   void start( const std::string& key );
   auto getDuration( const std::string& key ) -> duration;
+
+  static void createLuaBindings( sol::state& lua );
 
 private:
   std::mutex m_timeMutex;

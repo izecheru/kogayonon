@@ -29,6 +29,7 @@ add_library(
  "src/script_compiler.cpp" "src/script.cpp")
 
 target_include_directories(kogayonon_utilities
-                           PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+                           PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
+                           PRIVATE ${SOL2_INCLUDE_DIRS})
 
-target_link_libraries(kogayonon_utilities PRIVATE cgltf spdlog::spdlog glad glm::glm-header-only kogayonon_resources soil2 rapidjson)
+target_link_libraries(kogayonon_utilities PRIVATE cgltf spdlog::spdlog lua glad glm::glm-header-only kogayonon_resources soil2 rapidjson)

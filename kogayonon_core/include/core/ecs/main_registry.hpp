@@ -16,6 +16,9 @@ class ImGuiManager;
 
 namespace kogayonon_core
 {
+// this struct holds the main lua functions
+struct MainScriptFuncs;
+
 class EventEmitter;
 class EventDispatcher;
 class ScriptingSystem;
@@ -55,6 +58,11 @@ public:
   auto getContext() -> TContext&
   {
     return m_pRegistry->getContext<TContext>();
+  }
+
+  auto getMainScriptFuncs() -> std::shared_ptr<kogayonon_core::MainScriptFuncs>&
+  {
+    return getContext<std::shared_ptr<kogayonon_core::MainScriptFuncs>>();
   }
 
   auto getEventEmitter() -> std::shared_ptr<kogayonon_core::EventEmitter>&

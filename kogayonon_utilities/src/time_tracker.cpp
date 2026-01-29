@@ -31,6 +31,21 @@ auto TimeTracker::getDuration( const std::string& key ) -> TimeTracker::duration
     return it->second.second;
   }
   spdlog::critical( "Duration for {} was not found ", key );
-  return duration( 0 );
+  return duration{ 0 };
+}
+
+void TimeTracker::createLuaBindings( sol::state& lua )
+{
+  lua.new_usertype<TimeTracker>(
+    "TimeTracker",
+    sol::constructors<TimeTracker()>(),
+    "update",
+    []( TimeTracker& self, const std::string& key ) { self.update( key ); },
+    "start",
+    []( TimeTracker& self, const std::string& key ) { self.start( key ); },
+    "getDuration",
+    []( TimeTracker& self, const std::string& key, sol::this_state currentState ) -> sol::object {
+      return sol::make_object( currentState, self.getDuration( key ).count() );
+    } );
 }
 } // namespace kogayonon_utilities

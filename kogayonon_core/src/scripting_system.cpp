@@ -11,8 +11,12 @@
 #include "core/ecs/components/rigidbody_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
+#include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
 #include "core/event/event_dispatcher.hpp"
+#include "utilities/time_tracker/time_tracker.hpp"
+
+using namespace kogayonon_utilities;
 
 namespace kogayonon_core
 {
@@ -23,7 +27,9 @@ ScriptingSystem::ScriptingSystem()
   m_luaState.open_libraries( sol::lib::base, sol::lib::package, sol::lib::string );
 
   absPath = absPath / "resources\\scripts\\main.lua";
-  if ( !loadMainScriptFile( absPath.string(), m_luaState ) )
+  m_mainScriptLoaded = loadMainScriptFile( absPath.string(), m_luaState );
+
+  if ( m_mainScriptLoaded )
   {
     spdlog::error( "could not load the main script file" );
   }
@@ -31,7 +37,9 @@ ScriptingSystem::ScriptingSystem()
 
 ScriptingSystem::ScriptingSystem( sol::state& lua, const std::string& scriptPath )
 {
-  if ( !loadMainScriptFile( scriptPath, lua ) )
+  m_mainScriptLoaded = loadMainScriptFile( scriptPath, lua );
+
+  if ( m_mainScriptLoaded )
   {
     spdlog::error( "could not load the main script file" );
   }
@@ -46,13 +54,44 @@ bool ScriptingSystem::loadMainScriptFile( const std::string& path, sol::state& l
   }
 
   registerBindings( lua );
+
+  // get the main script ptr from the main registry
+  auto mainScript = std::make_shared<MainScriptFuncs>();
+
+  // load the lua script file
   lua.safe_script_file( path );
+
+  // check for update and render funcs
+  sol::optional<sol::table> mainLua = lua["main"];
+  if ( mainLua )
+  {
+    sol::optional<sol::function> update = ( *mainLua )["update"];
+    sol::optional<sol::function> render = ( *mainLua )["render"];
+    if ( update && render )
+    {
+      mainScript->update = *update;
+      mainScript->render = *render;
+
+      // test call
+      ( *render )();
+      ( *update )();
+
+      MainRegistry::getInstance().addToContext<std::shared_ptr<MainScriptFuncs>>( std::move( mainScript ) );
+      return true;
+    }
+    else
+    {
+      spdlog::error( "Main is missing from the script file" );
+    }
+  }
+  return false;
 }
 
 void ScriptingSystem::registerBindings( sol::state& lua )
 {
   Entity::createLuaBindings( lua );
   Registry::createLuaBindings( lua );
+  TimeTracker::createLuaBindings( lua );
   EventDispatcher::createLuaBindings( lua );
 
   registerMetaComponent<DirectionalLightComponent>();
