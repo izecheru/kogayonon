@@ -1,5 +1,4 @@
 #include "window/window.hpp"
-
 #include <assert.h>
 
 namespace kogayonon_window
@@ -93,22 +92,22 @@ void Window::maximize()
   resize();
 }
 
-int Window::getWidth() const
+auto Window::getWidth() const -> int
 {
   return m_pWindowProps->width;
 }
 
-int Window::getHeight() const
+auto Window::getHeight() const -> int
 {
   return m_pWindowProps->height;
 }
 
-SDL_Window* Window::getWindow()
+auto Window::getWindow() -> SDL_Window*
 {
   return m_window;
 }
 
-SDL_GLContext Window::getContext() const
+auto Window::getContext() const -> SDL_GLContext
 {
   return m_glContext;
 }
@@ -125,8 +124,31 @@ void Window::setWindow( SDL_Window* wnd )
   m_window = wnd;
 }
 
-window_props* Window::getWindowProps()
+auto Window::getWindowProps() -> window_props*
 {
   return m_pWindowProps.get();
 }
+
+void Window::createLuaBindings( sol::state& lua )
+{
+  lua.new_usertype<Window>(
+    "Window",
+    "setResizable",
+    []( Window& self, bool value ) { return self.setResizable( value ); },
+    "setBordered",
+    []( Window& self, bool value ) { return self.setBordered( value ); },
+    "setTitle",
+    []( Window& self, const std::string& title ) { return self.setTitle( title.c_str() ); },
+    "resize",
+    []( Window& self, int w, int h ) { return self.resize( w, h ); },
+    "setHeight",
+    []( Window& self, int h ) { return self.setHeight( h ); },
+    "setWidth",
+    []( Window& self, int w ) { return self.setWidth( w ); },
+    "getHeight",
+    []( Window& self ) { return self.getHeight(); },
+    "getWidth",
+    []( Window& self ) { return self.getWidth(); } );
+}
+
 } // namespace kogayonon_window

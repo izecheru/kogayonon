@@ -19,7 +19,7 @@ namespace kogayonon_gui
 FileExplorerWindow::FileExplorerWindow( const std::string& name )
     : ImGuiWindow{ name }
     , m_update{ false }
-    , m_currentPath{ std::filesystem::current_path() / "resources" }
+    , m_currentPath{ std::filesystem::absolute( "." ) / "resources" }
     , m_pDirWatcher{ std::make_unique<DirectoryWatcher>( "resources\\" ) }
     , m_pDispatcher{ std::make_unique<EventDispatcher>() }
 {
@@ -237,8 +237,8 @@ void FileExplorerWindow::draw()
       ImGui::BeginGroup();
       drawFileContextMenu( file, filename.string() );
       // open shaders in the editor
-      ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)fileExtensionToTextureId( file.path.extension().string() ),
-                          size );
+      ImGui::ImageButton(
+        file.imguiId.c_str(), (ImTextureID)fileExtensionToTextureId( file.path.extension().string() ), size );
       if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) &&
            file.path.extension().string() == ".glsl" )
       {

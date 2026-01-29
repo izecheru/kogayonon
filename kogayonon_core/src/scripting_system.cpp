@@ -1,5 +1,6 @@
 #include "core/systems/scripting_system.hpp"
 #include <filesystem>
+#include <fstream>
 #include <sol/sol.hpp>
 #include <spdlog/spdlog.h>
 #include "core/ecs/components/directional_light_component.hpp"
@@ -15,84 +16,55 @@
 #include "core/ecs/registry.hpp"
 #include "core/event/event_dispatcher.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
+#include "window/window.hpp"
 
 using namespace kogayonon_utilities;
+using namespace kogayonon_window;
+namespace fs = std::filesystem;
+
+static void test()
+{
+  std::cout << "c++ called\n";
+}
 
 namespace kogayonon_core
 {
 ScriptingSystem::ScriptingSystem()
     : m_luaState{ sol::state{} }
+    , m_init{ false }
 {
-  auto absPath = std::filesystem::absolute( "." );
-  m_luaState.open_libraries( sol::lib::base, sol::lib::package, sol::lib::string );
-
-  absPath = absPath / "resources\\scripts\\main.lua";
-  m_mainScriptLoaded = loadMainScriptFile( absPath.string(), m_luaState );
-
-  if ( m_mainScriptLoaded )
-  {
-    spdlog::error( "could not load the main script file" );
-  }
-}
-
-ScriptingSystem::ScriptingSystem( sol::state& lua, const std::string& scriptPath )
-{
-  m_mainScriptLoaded = loadMainScriptFile( scriptPath, lua );
-
-  if ( m_mainScriptLoaded )
-  {
-    spdlog::error( "could not load the main script file" );
-  }
-}
-
-bool ScriptingSystem::loadMainScriptFile( const std::string& path, sol::state& lua )
-{
-  if ( !std::filesystem::exists( path ) )
-  {
-    spdlog::error( "File does not exist:{}", path );
-    return false;
-  }
-
-  registerBindings( lua );
-
-  // get the main script ptr from the main registry
+  // make the main script object and add it to the registry
   auto mainScript = std::make_shared<MainScriptFuncs>();
 
-  // load the lua script file
-  lua.safe_script_file( path );
+  // move to main registry
+  MainRegistry::getInstance().addToContext<std::shared_ptr<MainScriptFuncs>>( std::move( mainScript ) );
 
-  // check for update and render funcs
-  sol::optional<sol::table> mainLua = lua["main"];
-  if ( mainLua )
-  {
-    sol::optional<sol::function> update = ( *mainLua )["update"];
-    sol::optional<sol::function> render = ( *mainLua )["render"];
-    if ( update && render )
-    {
-      mainScript->update = *update;
-      mainScript->render = *render;
+  auto currentPath = std::filesystem::absolute( "." ) / "resources\\scripts\\main.lua";
+  spdlog::info( currentPath.string() );
+  assert( fs::exists( currentPath ) == true && "main.lua MUST exist in the resources/scripts folder" );
+  m_luaState.open_libraries( sol::lib::base, sol::lib::package, sol::lib::string );
 
-      // test call
-      ( *render )();
-      ( *update )();
-
-      MainRegistry::getInstance().addToContext<std::shared_ptr<MainScriptFuncs>>( std::move( mainScript ) );
-      return true;
-    }
-    else
-    {
-      spdlog::error( "Main is missing from the script file" );
-    }
-  }
-  return false;
+  // register all usretypes and expose them to lua
+  registerBindings( m_luaState );
+  loadMainScript( currentPath.string() );
 }
 
 void ScriptingSystem::registerBindings( sol::state& lua )
 {
   Entity::createLuaBindings( lua );
+  Window::createLuaBindings( lua );
   Registry::createLuaBindings( lua );
   TimeTracker::createLuaBindings( lua );
   EventDispatcher::createLuaBindings( lua );
+  DynamicRigidbodyComponent::createLuaBindings( lua );
+  DirectionalLightComponent::createLuaBindings( lua );
+  StaticRigidbodyComponent::createLuaBindings( lua );
+  PointLightComponent::createLuaBindings( lua );
+  IdentifierComponent::createLuaBindings( lua );
+  TransformComponent::createLuaBindings( lua );
+  OutlineComponent::createLuaBindings( lua );
+  IndexComponent::createLuaBindings( lua );
+  MeshComponent::createLuaBindings( lua );
 
   registerMetaComponent<DirectionalLightComponent>();
   registerMetaComponent<DynamicRigidbodyComponent>();
@@ -103,19 +75,41 @@ void ScriptingSystem::registerBindings( sol::state& lua )
   registerMetaComponent<OutlineComponent>();
   registerMetaComponent<IndexComponent>();
   registerMetaComponent<MeshComponent>();
-
   registerMetaEvent<LuaEvent>();
   registerMetaEvent<LuaEventHandler<LuaEvent>>();
+}
 
-  DynamicRigidbodyComponent::createLuaBindings( lua );
-  DirectionalLightComponent::createLuaBindings( lua );
-  StaticRigidbodyComponent::createLuaBindings( lua );
-  PointLightComponent::createLuaBindings( lua );
-  IdentifierComponent::createLuaBindings( lua );
-  TransformComponent::createLuaBindings( lua );
-  OutlineComponent::createLuaBindings( lua );
-  IndexComponent::createLuaBindings( lua );
-  MeshComponent::createLuaBindings( lua );
+bool ScriptingSystem::isInit() const
+{
+  return m_init;
+}
+
+void ScriptingSystem::loadMainScript( const std::string& path )
+{
+  // load the script
+  m_luaState.safe_script_file( path );
+  // check for update and render funcs
+  sol::table mainLua = m_luaState["main"];
+
+  sol::function init = mainLua["init"];
+  sol::function update = mainLua["update"];
+  sol::function render = mainLua["render"];
+
+  auto& mainScript = MainRegistry::getInstance().getMainScriptFuncs();
+
+  mainScript->init = init;
+  mainScript->update = update;
+  mainScript->render = render;
+
+  mainLua.set_function( "render", &test );
+  mainScript->render = mainLua["render"];
+  mainScript->render();
+  m_init = true;
+}
+
+auto ScriptingSystem::getLuaState() -> sol::state&
+{
+  return m_luaState;
 }
 
 } // namespace kogayonon_core

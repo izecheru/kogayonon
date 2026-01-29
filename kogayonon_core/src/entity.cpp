@@ -7,7 +7,8 @@ Entity::Entity( Registry* registry, const std::string& name )
     : m_entity{ registry->createEntity() }
     , m_registry{ registry }
 {
-  addComponent<IdentifierComponent>( IdentifierComponent{ .name = name } );
+  addComponent<IdentifierComponent>(
+    IdentifierComponent{ .name = name, .type = EntityType::None, .group = "DeafultGroup" } );
 }
 
 Entity::Entity( Registry* registry )
@@ -19,7 +20,8 @@ Entity::Entity( Registry* registry, entt::entity entity )
     : m_registry{ registry }
     , m_entity{ entity }
 {
-  addComponent<IdentifierComponent>( IdentifierComponent{} );
+  addComponent<IdentifierComponent>(
+    IdentifierComponent{ .name = "DefaultName", .type = EntityType::None, .group = "DeafultGroup" } );
 }
 
 Entity::Entity( Registry* registry, entt::entity entity, const std::string& name )

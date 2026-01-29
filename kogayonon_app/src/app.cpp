@@ -270,6 +270,7 @@ bool App::initRegistries() const
 {
   auto& mainRegistry = MainRegistry::getInstance();
 
+  // TODO move to a initSystems func
   // init scripting system
   auto scriptingSystem = std::make_shared<kogayonon_core::ScriptingSystem>();
   assert( scriptingSystem && "could not initialise scripting system" );

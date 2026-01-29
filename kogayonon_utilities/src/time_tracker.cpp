@@ -38,7 +38,6 @@ void TimeTracker::createLuaBindings( sol::state& lua )
 {
   lua.new_usertype<TimeTracker>(
     "TimeTracker",
-    sol::constructors<TimeTracker()>(),
     "update",
     []( TimeTracker& self, const std::string& key ) { self.update( key ); },
     "start",

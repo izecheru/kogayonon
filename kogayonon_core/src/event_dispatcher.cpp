@@ -26,17 +26,11 @@ void EventDispatcher::createLuaBindings( sol::state& lua )
 
   lua.new_usertype<EventDispatcher>(
     "EventDispatcher",
-    // sol::call_constructor,
-    sol::constructors<EventDispatcher()>(),
-    // sol::factories( [&]( sol::this_state currentState ) -> sol::object {
-    //   // TODO find a nice way to pass a dispatcher that lives on c++ side already
-    //   // if lua == true then the dispatcher is local to lua
-    //   // if ( lua )
-    //   return sol::make_object( currentState, EventDispatcher{} );
-
-    //  // this is a reference
-    //  // return dispatcher;
-    //} ),
+    sol::call_constructor,
+    // sol::constructors<EventDispatcher()>(),
+    sol::factories( [&]( sol::this_state currentState ) -> sol::object {
+      return sol::make_object( currentState, EventDispatcher{} );
+    } ),
     "hasHandler",
     []( EventDispatcher& self, const sol::table& eventTypeOrId ) {
       auto any = invokeMetaFunc( deduceType( eventTypeOrId ), "has_handlers"_hs, self );

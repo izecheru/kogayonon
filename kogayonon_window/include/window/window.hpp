@@ -2,6 +2,7 @@
 #include <SDL2/SDL.h>
 #include <functional>
 #include <memory>
+#include <sol/sol.hpp>
 
 namespace kogayonon_window
 {
@@ -49,13 +50,15 @@ public:
   void setBordered( bool value );
   void setResizable( bool value );
 
-  window_props* getWindowProps();
+  auto getWindowProps() -> window_props*;
 
-  SDL_Window* getWindow();
+  auto getWindow() -> SDL_Window*;
   void setWindow( SDL_Window* wnd );
 
-  SDL_GLContext getContext() const;
+  auto getContext() const -> SDL_GLContext;
   void setContext( SDL_GLContext ctx );
+
+  static void createLuaBindings( sol::state& lua );
 
 private:
   SDL_Window* m_window = nullptr;

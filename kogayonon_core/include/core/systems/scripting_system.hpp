@@ -14,15 +14,22 @@ class ScriptingSystem
 {
 public:
   ScriptingSystem();
-  explicit ScriptingSystem( sol::state& lua, const std::string& scriptPath );
   ~ScriptingSystem() = default;
 
-  bool loadMainScriptFile( const std::string& path, sol::state& lua );
-
+  /**
+   * @brief Registers the lua bindings from all the defined usertypes
+   * @param lua Lua state reference variable
+   */
   static void registerBindings( sol::state& lua );
+
+  bool isInit() const;
+
+  void loadMainScript( const std::string& path );
+
+  auto getLuaState() -> sol::state&;
 
 private:
   sol::state m_luaState;
-  bool m_mainScriptLoaded{ false };
+  bool m_init;
 };
 } // namespace kogayonon_core
