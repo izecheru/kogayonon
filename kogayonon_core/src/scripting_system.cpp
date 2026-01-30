@@ -22,11 +22,6 @@ using namespace kogayonon_utilities;
 using namespace kogayonon_window;
 namespace fs = std::filesystem;
 
-static void test()
-{
-  std::cout << "c++ called\n";
-}
-
 namespace kogayonon_core
 {
 ScriptingSystem::ScriptingSystem()
@@ -46,6 +41,8 @@ ScriptingSystem::ScriptingSystem()
 
   // register all usretypes and expose them to lua
   registerBindings( m_luaState );
+
+  // load the script
   loadMainScript( currentPath.string() );
 }
 
@@ -86,25 +83,7 @@ bool ScriptingSystem::isInit() const
 
 void ScriptingSystem::loadMainScript( const std::string& path )
 {
-  // load the script
   m_luaState.safe_script_file( path );
-  // check for update and render funcs
-  sol::table mainLua = m_luaState["main"];
-
-  sol::function init = mainLua["init"];
-  sol::function update = mainLua["update"];
-  sol::function render = mainLua["render"];
-
-  auto& mainScript = MainRegistry::getInstance().getMainScriptFuncs();
-
-  mainScript->init = init;
-  mainScript->update = update;
-  mainScript->render = render;
-
-  mainLua.set_function( "render", &test );
-  mainScript->render = mainLua["render"];
-  mainScript->render();
-  m_init = true;
 }
 
 auto ScriptingSystem::getLuaState() -> sol::state&

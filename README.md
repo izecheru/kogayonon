@@ -30,7 +30,7 @@ vcpkg integrate powershell
 
 Finally you can install the *current* dependencies using a terminal
 ```
-vcpkg install glm entt sdl2 soil2 spdlog physx rapidjson tinyfiledialogs
+vcpkg install glm entt sdl2 soil2 spdlog physx tinyfiledialogs
 ```
 
 Or if you use Visual Studio IDE hover over the find package error in CmakeLists and install from there
@@ -41,7 +41,6 @@ find_package(soil2 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
-find_package(rapidjson CONFIG REQUIRED)
 find_package(tinyfiledialogs CONFIG REQUIRED)
 find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 ```
@@ -55,7 +54,6 @@ This project would not be possible without those open source projects
 [PhysX](https://github.com/NVIDIA-Omniverse/PhysX) - physics</br>
 [tinyfiledialogs](https://github.com/native-toolkit/libtinyfiledialogs) </br>
 [spdlog](https://github.com/gabime/spdlog) - logging </br>
-[rapidjson](https://github.com/Tencent/rapidjson)</br>
 
 ## Authors
 Only me :grin:

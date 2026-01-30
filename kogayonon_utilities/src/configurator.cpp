@@ -1,11 +1,7 @@
 #include "utilities/configurator/configurator.hpp"
 #include <fstream>
-#include <rapidjson/istreamwrapper.h>
-#include <rapidjson/ostreamwrapper.h>
-#include <rapidjson/prettywriter.h>
-#include <rapidjson/writer.h>
 #include <spdlog/spdlog.h>
-#include "utilities/jsoner/jsoner.hpp"
+#include "utilities/yaml_serializer/yaml_serializer.hpp"
 
 namespace kogayonon_utilities
 {
@@ -15,18 +11,12 @@ void Configurator::parseConfigFile()
   {
     initialiseDefaultConfig();
   }
-  Jsoner::parseJsonFile( m_jsonDocument, m_configPath );
   buildConfig();
 }
 
-void Configurator::writeConfig()
+void Configurator::writeConfig( const std::string& path )
 {
-  Jsoner::writeJsonFile( m_jsonDocument, m_configPath );
-}
-
-rapidjson::Document& Configurator::getDocument()
-{
-  return m_jsonDocument;
+  std::fstream ofs{ m_configPath.string(), std::ios::out };
 }
 
 auto Configurator::getConfig() -> Config&
@@ -37,76 +27,38 @@ auto Configurator::getConfig() -> Config&
 
 void Configurator::initialiseDefaultConfig()
 {
-  m_jsonDocument.SetObject();
-  auto& allocator = m_jsonDocument.GetAllocator();
+  auto yamlSerializer = std::make_unique<YamlSerializer>( m_configPath.string() );
+  // clang-format off
+  yamlSerializer->beginMap()
+      .addKey( "config" )
+          .beginMap()
 
-  rapidjson::Value configObj{ rapidjson::kObjectType };
-  rapidjson::Value filtersObj{ rapidjson::kObjectType };
-  rapidjson::Value windowObj{ rapidjson::kObjectType };
+              .addKey("filters")
+              .beginMap()
+                  .addKey("files")
+                  .beginSeq().addValue(".bin").endSeq()
 
-  rapidjson::Value filesArray{ rapidjson::kArrayType };
-  filesArray.PushBack( rapidjson::Value( ".bin", allocator ), allocator );
+                  .addKey("folders")
+                  .beginSeq().addValue("scenes").endSeq()
+              .endMap()// filters map
 
-  rapidjson::Value foldersArray{ rapidjson::kArrayType };
-  foldersArray.PushBack( rapidjson::Value( "fonts", allocator ), allocator );
+      .addKey("window")
+          .beginMap()
+              .addKeyValuePair("width",1900)
+              .addKeyValuePair("height",800)
+              .addKeyValuePair("maximized",true)
+          .endMap()// window map
 
-  filtersObj.AddMember( "files", filesArray, allocator );
-  filtersObj.AddMember( "folders", foldersArray, allocator );
+      .endMap();//config map
 
-  windowObj.AddMember( "width", 1800, allocator );
-  windowObj.AddMember( "height", 900, allocator );
-  windowObj.AddMember( "maximized", true, allocator );
+  // clang-format on 
+  yamlSerializer.release();
 
-  configObj.AddMember( "filters", filtersObj, allocator );
-  configObj.AddMember( "window", windowObj, allocator );
-
-  m_jsonDocument.AddMember( "config", configObj, allocator );
-
-  writeConfig();
+  YAML::Node doc = YAML::LoadFile(m_configPath.string());
+  // read the config here, must expose the structs and vectors to yaml i think
 }
 
 void Configurator::buildConfig()
 {
-  if ( !Jsoner::checkObject( m_jsonDocument, "config" ) )
-    return;
-
-  const auto& config = m_jsonDocument["config"];
-
-  if ( !Jsoner::checkObject( config, "filters" ) )
-    return;
-
-  const auto& filters = config["filters"];
-
-  if ( !Jsoner::checkArray( filters, "files" ) )
-    return;
-
-  // push back all the file filters entries
-  const auto& fileFilters = filters["files"];
-  for ( rapidjson::SizeType i = 0; i < fileFilters.Size(); i++ )
-  {
-    m_config.fileFilters.push_back( fileFilters[i].GetString() );
-  }
-
-  if ( !Jsoner::checkArray( filters, "folders" ) )
-    return;
-
-  // push back all the file filters entries
-  const auto& folderFilters = filters["folders"];
-  for ( rapidjson::SizeType i = 0; i < folderFilters.Size(); i++ )
-  {
-    m_config.folderFilters.push_back( folderFilters[i].GetString() );
-  }
-
-  if ( !Jsoner::checkObject( config, "window" ) )
-    return;
-
-  const auto& window = config["window"];
-  m_config.height = window["height"].GetInt();
-  m_config.width = window["width"].GetInt();
-  m_config.maximized = window["maximized"].GetBool();
-
-  spdlog::info( "Config file read, w {} h {} max {}", m_config.width, m_config.height, m_config.maximized );
-
-  m_loaded = true;
 }
 } // namespace kogayonon_utilities

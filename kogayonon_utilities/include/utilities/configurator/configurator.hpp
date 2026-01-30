@@ -1,8 +1,7 @@
 #pragma once
 #include <filesystem>
-#include <rapidjson/document.h>
-#include <rapidjson/rapidjson.h>
 #include <string>
+namespace fs = std::filesystem;
 
 namespace kogayonon_utilities
 {
@@ -29,13 +28,7 @@ public:
   /**
    * @brief Writes the current document to the config file
    */
-  static void writeConfig();
-
-  /**
-   * @brief Gets a reference to the current document
-   * @return rapidjson::Document reference
-   */
-  static rapidjson::Document& getDocument();
+  static void writeConfig( const std::string& path );
 
   /**
    * @brief Getter for config
@@ -60,8 +53,7 @@ private:
   Configurator& operator=( Configurator& ) = delete;
   Configurator( Configurator& ) = delete;
 
-  static inline std::filesystem::path m_configPath{ std::filesystem::absolute( "config.json" ) };
-  static inline rapidjson::Document m_jsonDocument;
+  static inline std::filesystem::path m_configPath{ std::filesystem::absolute( "config.yaml" ) };
   static inline Config m_config{};
 
   static inline bool m_loaded{ false };

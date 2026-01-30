@@ -6,6 +6,7 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
         CACHE STRING "")
 endif()
 
+
 project(kogayonon)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -29,7 +30,7 @@ find_package(sol2 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
-find_package(rapidjson CONFIG REQUIRED)
+find_package(yaml-cpp CONFIG REQUIRED)
 find_package(tinyfiledialogs CONFIG REQUIRED)
 find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 

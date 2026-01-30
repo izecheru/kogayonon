@@ -2,8 +2,8 @@ add_library(
   kogayonon_utilities
   "include/utilities/task_manager/task_manager.hpp"
   "include/utilities/shader/shader.hpp"
-  "include/utilities/shader/shader_manager.hpp"
   "include/utilities/directory_watcher/directory_watcher.hpp"
+  "include/utilities/shader/shader_manager.hpp"
   "include/utilities/math/math.hpp"
   "include/utilities/input/keyboard_state.hpp"
   "include/utilities/input/key_codes.hpp"
@@ -14,6 +14,7 @@ add_library(
   "include/utilities/utils/utils.hpp"
   "include/utilities/script/script_compiler.hpp"
   "include/utilities/script/script.hpp"
+  "include/utilities/yaml_serializer/yaml_serializer.hpp"
 
   "src/task_manager.cpp"
   "src/shader_manager.cpp"
@@ -22,14 +23,12 @@ add_library(
   "src/time_tracker.cpp"
   "src/directory_watcher.cpp"
   "src/configurator.cpp"
-  "src/serializer.cpp"
-  "src/jsoner.cpp"
-  "include/utilities/serializer/serializer.hpp"
- "src/jsoner.cpp"  "include/utilities/jsoner/jsoner.hpp"
- "src/script_compiler.cpp" "src/script.cpp")
+ "src/script_compiler.cpp"
+ "src/script.cpp"
+ "src/yaml_serializer.cpp")
 
 target_include_directories(kogayonon_utilities
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
                            PRIVATE ${SOL2_INCLUDE_DIRS})
 
-target_link_libraries(kogayonon_utilities PRIVATE cgltf spdlog::spdlog lua glad glm::glm-header-only kogayonon_resources soil2 rapidjson)
+target_link_libraries(kogayonon_utilities PRIVATE cgltf spdlog::spdlog lua glad glm::glm-header-only kogayonon_resources soil2 yaml-cpp)
