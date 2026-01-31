@@ -8,7 +8,10 @@ class YamlSerializer
 {
 public:
   explicit YamlSerializer( const std::string& path );
+  YamlSerializer();
   ~YamlSerializer();
+
+  void initFstream( const std::string& path );
 
   auto beginMap() -> YamlSerializer&
   {
@@ -54,8 +57,11 @@ public:
     return *this;
   }
 
+  void writeToFile();
+
 private:
   std::fstream m_fileStream;
   YAML::Emitter m_yamlEmitter;
 };
+
 } // namespace kogayonon_utilities

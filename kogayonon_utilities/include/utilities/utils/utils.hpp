@@ -1,5 +1,6 @@
 #pragma once
 #include <glad/glad.h>
+#include <yaml-cpp/yaml.h>
 
 namespace kogayonon_utilities
 {

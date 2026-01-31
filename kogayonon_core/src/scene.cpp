@@ -454,11 +454,27 @@ void Scene::addDirectionalLight( entt::entity entityId )
     return;
 
   Entity entity{ m_pRegistry.get(), entityId };
+
   entity.setType( EntityType::Light );
 
   m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Directional );
   int index = m_lightSSBO.addLight( kogayonon_resources::LightType::Directional );
   entity.addComponent<DirectionalLightComponent>( DirectionalLightComponent{ .directionalLightIndex = index } );
+}
+
+void Scene::addDirectionalLight( entt::entity entityId, const kogayonon_core::DirectionalLightComponent& other )
+{
+  // maximum amount of directional lights is = 1
+  if ( m_lightUBO.getLightCount( kogayonon_resources::LightType::Directional ) == 1 )
+    return;
+
+  Entity entity{ m_pRegistry.get(), entityId };
+
+  entity.setType( EntityType::Light );
+
+  m_lightUBO.incrementLightCount( kogayonon_resources::LightType::Directional );
+  int index = m_lightSSBO.addLight( kogayonon_resources::LightType::Directional );
+  entity.addComponent<DirectionalLightComponent>( other );
 }
 
 void Scene::bindLightBuffers()

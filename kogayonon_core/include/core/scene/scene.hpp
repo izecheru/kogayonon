@@ -13,6 +13,7 @@
 namespace kogayonon_core
 {
 class Registry;
+struct DirectionalLightComponent;
 } // namespace kogayonon_core
 
 namespace kogayonon_core
@@ -153,6 +154,7 @@ public:
 
   void addDirectionalLight();
   void addDirectionalLight( entt::entity entityId );
+  void addDirectionalLight( entt::entity entityId, const kogayonon_core::DirectionalLightComponent& other );
 
   void bindLightBuffers();
   void unbindLightBuffers();

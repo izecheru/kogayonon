@@ -39,6 +39,8 @@
 #include "utilities/asset_manager/asset_manager.hpp"
 #include "utilities/configurator/configurator.hpp"
 #include "utilities/input/mouse_codes.hpp"
+#include "utilities/utils/yaml_utils.hpp"
+#include "utilities/yaml_serializer/yaml_serializer.hpp"
 
 #include "utilities/shader/shader_manager.hpp"
 #include "utilities/task_manager/task_manager.hpp"
@@ -581,6 +583,73 @@ void App::glDebugCallback(
 
 void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
 {
+  initGuiForProject();
+  auto title = e.getPath().stem().string();
+  std::string windowTitle = std::format( "kogayonon - {}", title );
+  m_pWindow->setTitle( windowTitle.c_str() );
+
+  auto& assetManager = AssetManager::getInstance();
+  const auto& pTaskManager = MainRegistry::getInstance().getTaskManager();
+
+  YAML::Node doc = YAML::LoadFile( e.getPath().string() );
+
+  const auto projectName = doc["name"].as<std::string>();
+  // seems that i don't need the path in the kproj file but we'll see
+  ProjectManager::createProject( projectName, e.getPath() );
+
+  for ( auto i = 0u; i < doc["scenes"].size(); i++ )
+  {
+    auto path = doc["scenes"][i]["path"].as<std::string>();
+    fs::path scenePath{ path };
+    const auto& scene_ = std::make_shared<Scene>( scenePath.stem().string() );
+
+    YAML::Node sceneDoc = YAML::LoadFile( scenePath.string() );
+
+    for ( auto j = 0u; j < sceneDoc["meshEntities"].size(); j++ )
+    {
+      const auto& node = sceneDoc["meshEntities"][j];
+      // create entity
+      Entity entity{ scene_->getRegistry(), scene_->addEntity() };
+      entity.addComponent<TransformComponent>( node["transformComponent"].as<TransformComponent>() );
+
+      // create the entity
+      const auto path = std::filesystem::path{ node["meshPath"].as<std::string>() };
+      const auto& enttId = entity.getEntityId();
+
+      pTaskManager->enqueue( [scene_, path, enttId, &assetManager]() {
+        const auto mesh = assetManager.addMesh( path.stem().string(), path.string() );
+        scene_->addMeshToEntity( enttId, mesh );
+      } );
+
+      entity.replaceComponent<IdentifierComponent>( node["identifierComponent"].as<IdentifierComponent>() );
+    }
+    for ( auto j = 0u; j < sceneDoc["directionalLightEntities"].size(); j++ )
+    {
+      const auto& node = sceneDoc["directionalLightEntities"][j];
+      Entity entity{ scene_->getRegistry(), scene_->addEntity() };
+      scene_->addDirectionalLight( entity.getEntityId() );
+      auto& dirLight = scene_->getDirectionalLight();
+      dirLight = node["directionalLight"].as<kogayonon_resources::DirectionalLight>();
+      auto& comp = entity.getComponent<DirectionalLightComponent>();
+      comp = node["directionalLightComponent"].as<DirectionalLightComponent>();
+      comp.directionalLightIndex = 0;
+    }
+
+    for ( auto j = 0u; j < sceneDoc["pointLightEntities"].size(); j++ )
+    {
+      const auto& node = sceneDoc["pointLightEntities"][j];
+      Entity entity{ scene_->getRegistry(), scene_->addEntity() };
+      scene_->addPointLight( entity.getEntityId() );
+      auto& comp = entity.getComponent<PointLightComponent>();
+      auto& light = scene_->getPointLight( comp.pointLightIndex );
+      light = node["pointLight"].as<kogayonon_resources::PointLight>();
+    }
+
+    SceneManager::addScene( scene_ );
+
+    // we do this just for testing purposes since we know that we have only one scene in the kscene file
+    SceneManager::setCurrentScene( scene_->getName() );
+  }
 }
 
 void App::onProjectCreate( const kogayonon_core::ProjectCreateEvent& e )
@@ -609,5 +678,126 @@ void App::onProjectCreate( const kogayonon_core::ProjectCreateEvent& e )
 
 void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
 {
+  // set the close flag
+  m_running = false;
+
+  if ( ProjectManager::getTitle() == "none" )
+    return;
+
+  const auto& scenes = SceneManager::getScenes();
+
+  auto scenesDirPath = std::filesystem::absolute( "resources\\scenes" );
+
+  // create the scenes dir if we don't have it already
+  if ( !std::filesystem::exists( scenesDirPath ) )
+  {
+    std::filesystem::create_directory( scenesDirPath );
+  }
+
+  auto projectYamlSerializer =
+    std::make_unique<kogayonon_utilities::YamlSerializer>( ProjectManager::getPath().string() );
+  auto sceneYamlSerializer = std::make_unique<kogayonon_utilities::YamlSerializer>();
+
+  // clang-format off
+  projectYamlSerializer->
+    beginMap()
+      .addKeyValuePair("name",ProjectManager::getTitle())
+      .addKeyValuePair("path",ProjectManager::getPath().string())
+      .addKey("scenes")
+        .beginSeq();
+  // clang-format on
+
+  // serialize every scene
+  for ( const auto& [name, scene] : scenes )
+  {
+    auto finalPath = std::format( "{}\\{}.yaml", scenesDirPath.string(), scene->getName().c_str() );
+
+    sceneYamlSerializer->initFstream( finalPath );
+
+    const auto& meshView = scene->getEnttRegistry().view<MeshComponent>();
+
+    std::vector<entt::entity> meshEntities{};
+    meshView.each( [&]( const auto& entity, auto& meshComp ) {
+      if ( !meshComp.loaded )
+        return;
+
+      meshEntities.emplace_back( entity );
+    } );
+
+    // write some data to the project.yaml too
+
+    //clang-format off
+    projectYamlSerializer->beginMap()
+      .addKeyValuePair( "name", name )
+      .addKeyValuePair( "directionalLightEntityCount", 1 )
+      .addKeyValuePair( "meshEntityCount", meshEntities.size() )
+      .addKeyValuePair( "pointLightEntityCount", scene->getLightCount( kogayonon_resources::LightType::Point ) )
+      .addKeyValuePair( "path", finalPath )
+      .endMap();
+    //clang-format on
+
+    // lower size loads first then bigger size follows
+    std::sort( meshEntities.begin(), meshEntities.end(), [&]( entt::entity a, entt::entity b ) {
+      auto& meshA = scene->getRegistry()->getComponent<MeshComponent>( a );
+      auto& meshB = scene->getRegistry()->getComponent<MeshComponent>( b );
+      auto sizeA = std::filesystem::file_size( meshA.pMesh->getPath() );
+      auto sizeB = std::filesystem::file_size( meshB.pMesh->getPath() );
+      return sizeA < sizeB;
+    } );
+
+    // go through each entity with mesh component
+    sceneYamlSerializer->beginMap();
+
+    sceneYamlSerializer->addKey( "meshEntities" ).beginSeq();
+    for ( auto& entity : meshEntities )
+    {
+      Entity ent{ scene->getRegistry(), entity };
+      const auto& meshComponent = ent.getComponent<MeshComponent>();
+      const auto& modelPath = meshComponent.pMesh->getPath();
+      const auto& transformComponent = ent.getComponent<TransformComponent>();
+      const auto& identifierComponent = ent.getComponent<IdentifierComponent>();
+
+      // clang-format off
+      sceneYamlSerializer->
+          beginMap()
+            .addKeyValuePair("identifierComponent",identifierComponent)
+            .addKeyValuePair("transformComponent",transformComponent)
+            .addKeyValuePair("meshPath",modelPath)
+          .endMap();
+      // clang-format on
+    }
+    sceneYamlSerializer->endSeq();
+
+    sceneYamlSerializer->addKey( "pointLightEntities" ).beginSeq();
+    scene->getRegistry()->getRegistry().view<IdentifierComponent, PointLightComponent>().each(
+      [&]( const auto& entity, auto& identifierComponent, auto& pointlightComponent ) {
+        const auto& light = scene->getPointLight( pointlightComponent.pointLightIndex );
+        // clang-format off
+        sceneYamlSerializer->
+          beginMap()
+          .addKeyValuePair("pointLight",light)
+          .endMap();
+        // clang-format on
+      } );
+    sceneYamlSerializer->endSeq();
+
+    sceneYamlSerializer->addKey( "directionalLightEntities" ).beginSeq();
+    scene->getRegistry()->getRegistry().view<IdentifierComponent, DirectionalLightComponent>().each(
+      [&]( const auto& entity, auto& identifierComponent, auto& directionalLightComponent ) {
+        auto& light = scene->getDirectionalLight( directionalLightComponent.directionalLightIndex );
+
+        // clang-format off
+        sceneYamlSerializer->
+            beginMap()
+              .addKeyValuePair("directionalLightComponent",directionalLightComponent)
+              .addKeyValuePair("directionalLight",light)
+          .endMap();
+        // clang-format on
+      } );
+    sceneYamlSerializer->endSeq();
+    sceneYamlSerializer->endMap();
+  }
+  sceneYamlSerializer->writeToFile();
+  projectYamlSerializer->endSeq().endMap();
 }
 } // namespace kogayonon_app

@@ -1,6 +1,7 @@
 #pragma once
 #include <filesystem>
 #include <string>
+
 namespace fs = std::filesystem;
 
 namespace kogayonon_utilities
@@ -39,7 +40,7 @@ public:
   /**
    * @brief Writes a deafult config
    */
-  static void initialiseDefaultConfig();
+  static void initDefaultConfig();
 
 private:
   /**
@@ -53,7 +54,7 @@ private:
   Configurator& operator=( Configurator& ) = delete;
   Configurator( Configurator& ) = delete;
 
-  static inline std::filesystem::path m_configPath{ std::filesystem::absolute( "config.yaml" ) };
+  static inline fs::path m_configPath{ fs::absolute( "config.yaml" ) };
   static inline Config m_config{};
 
   static inline bool m_loaded{ false };

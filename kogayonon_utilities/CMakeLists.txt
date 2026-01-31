@@ -15,6 +15,7 @@ add_library(
   "include/utilities/script/script_compiler.hpp"
   "include/utilities/script/script.hpp"
   "include/utilities/yaml_serializer/yaml_serializer.hpp"
+  "include/utilities/utils/yaml_utils.hpp"
 
   "src/task_manager.cpp"
   "src/shader_manager.cpp"
@@ -31,4 +32,4 @@ target_include_directories(kogayonon_utilities
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
                            PRIVATE ${SOL2_INCLUDE_DIRS})
 
-target_link_libraries(kogayonon_utilities PRIVATE cgltf spdlog::spdlog lua glad glm::glm-header-only kogayonon_resources soil2 yaml-cpp)
+target_link_libraries(kogayonon_utilities PRIVATE cgltf spdlog::spdlog lua glad glm::glm-header-only kogayonon_resources soil2 yaml-cpp::yaml-cpp)

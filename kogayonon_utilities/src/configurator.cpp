@@ -1,15 +1,38 @@
 #include "utilities/configurator/configurator.hpp"
 #include <fstream>
 #include <spdlog/spdlog.h>
+#include <yaml-cpp/yaml.h>
 #include "utilities/yaml_serializer/yaml_serializer.hpp"
+
+namespace YAML
+{
+template <>
+struct convert<kogayonon_utilities::Config>
+{
+  static Node encode( const kogayonon_utilities::Config& rhs )
+  {
+    Node node;
+    return node;
+  }
+
+  static bool decode( const Node& node, kogayonon_utilities::Config& rhs )
+  {
+    if ( !node.IsSequence() || node.size() != 3 )
+      return false;
+    return true;
+  }
+};
+} // namespace YAML
 
 namespace kogayonon_utilities
 {
+
 void Configurator::parseConfigFile()
 {
   if ( !std::filesystem::exists( m_configPath ) )
   {
-    initialiseDefaultConfig();
+    spdlog::info( "Creating default config" );
+    initDefaultConfig();
   }
   buildConfig();
 }
@@ -25,7 +48,7 @@ auto Configurator::getConfig() -> Config&
   return m_config;
 }
 
-void Configurator::initialiseDefaultConfig()
+void Configurator::initDefaultConfig()
 {
   auto yamlSerializer = std::make_unique<YamlSerializer>( m_configPath.string() );
   // clang-format off
@@ -52,13 +75,30 @@ void Configurator::initialiseDefaultConfig()
       .endMap();//config map
 
   // clang-format on 
-  yamlSerializer.release();
-
-  YAML::Node doc = YAML::LoadFile(m_configPath.string());
-  // read the config here, must expose the structs and vectors to yaml i think
 }
 
 void Configurator::buildConfig()
 {
+  auto doc = YAML::LoadFile(m_configPath.string());
+
+  m_config.height = doc["config"]["window"]["height"].as<int>();
+  m_config.width= doc["config"]["window"]["width"].as<int>();
+  m_config.maximized= doc["config"]["window"]["maximized"].as<bool>();
+
+  auto files = doc["config"]["filters"]["files"];
+  auto folders = doc["config"]["filters"]["folders"];
+
+  for(uint32_t i = 0u;i<files.size();i++)
+  {
+    m_config.fileFilters.push_back(files[i].as<std::string>());
+  }
+
+  for(uint32_t i = 0u;i<folders.size();i++)
+  {
+    m_config.folderFilters.push_back(folders[i].as<std::string>());
+  }
+
+  spdlog::info("Config file read...\n\tWidth {}\n\tHeight {}\n\tMaximized? {}\n",m_config.width,m_config.height, m_config.maximized);
+  m_loaded=true;
 }
 } // namespace kogayonon_utilities
