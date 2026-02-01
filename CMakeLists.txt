@@ -6,7 +6,6 @@ if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
         CACHE STRING "")
 endif()
 
-
 project(kogayonon)
 
 set(CMAKE_CXX_STANDARD 20)

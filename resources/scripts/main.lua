@@ -23,11 +23,11 @@ function main:assertions()
 	print("IndexComponent removed")
 
 	eventDispatcher:addHandler(LuaEvent, luaEvHandler)
-	assert(eventDispatcher:hasHandlers(LuaEvent) == true, "could not add any handlers")
+	assert(eventDispatcher:hasHandler(LuaEvent) == true, "could not add any handlers")
 	eventDispatcher:dispatchEvent(LuaEvent({ x = 2 }))
 	eventDispatcher:removeHandler(LuaEvent, luaEvHandler)
 	eventDispatcher:dispatchEvent(LuaEvent({ x = 2 }))
-	assert(eventDispatcher:hasHandlers(LuaEvent) == false, "could not remove handlers")
+	assert(eventDispatcher:hasHandler(LuaEvent) == false, "could not remove handlers")
 	print("handler was removed")
 end
 

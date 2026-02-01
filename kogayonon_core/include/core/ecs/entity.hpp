@@ -69,7 +69,10 @@ public:
   inline auto addComponent( Args&&... args ) -> TComponent&
   {
     auto& registry = m_registry->getRegistry();
-    return registry.emplace_or_replace<TComponent>( m_entity, std::forward<Args>( args )... );
+    if ( hasComponent<TComponent>() )
+      return getComponent<TComponent>();
+
+    return registry.emplace<TComponent>( m_entity, std::forward<Args>( args )... );
   }
 
   template <typename TComponent>
