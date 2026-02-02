@@ -5,12 +5,14 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl2.h>
 #include <imgui_internal.h>
+#include <imgui_stdlib.h>
 #include <spdlog/spdlog.h>
 #include "core/ecs/main_registry.hpp"
 #include "core/event/app_event.hpp"
 #include "core/event/event_dispatcher.hpp"
 #include "gui/debug_window.hpp"
 #include "utilities/asset_manager/asset_manager.hpp"
+#include "utilities/configurator/configurator.hpp"
 
 namespace kogayonon_gui
 {
@@ -195,6 +197,7 @@ void ImGuiManager::draw()
 {
   begin();
   mainMenu();
+  configPopup();
   for ( auto& win : m_windows )
   {
     win.second->draw();
@@ -259,6 +262,14 @@ void ImGuiManager::mainMenu()
       }
       ImGui::EndMenu();
     }
+    if ( ImGui::BeginMenu( "Settings" ) )
+    {
+      if ( ImGui::MenuItem( "Edit config" ) )
+      {
+        m_popups.configPopup = true;
+      }
+      ImGui::EndMenu();
+    }
 
     if ( ImGui::BeginMenu( "Windows" ) )
     {
@@ -281,12 +292,83 @@ void ImGuiManager::mainMenu()
       ImGui::EndMenu();
     }
   }
-
   ImGui::EndMainMenuBar();
+
+  if ( m_popups.configPopup )
+    ImGui::OpenPopup( "CONFIG" );
 }
 
 ImGuiManager::ImGuiWindows_Map& ImGuiManager::getWindows()
 {
   return m_windows;
+}
+
+void ImGuiManager::configPopup()
+{
+  ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2{ 20.0f, 20.0f } );
+  if ( ImGui::BeginPopupModal( "CONFIG", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDocking ) )
+  {
+    auto& config = kogayonon_utilities::Configurator::getConfig();
+    ImGui::SeparatorText( "File filters" );
+    for ( auto i = 0u; i < config.fileFilters.size(); i++ )
+    {
+      auto id = std::format( "##fileFilter{}", i );
+      ImGui::InputText( id.c_str(), &config.fileFilters.at( i ) );
+      ImGui::SameLine();
+      auto buttonRemoveId = std::format( "-##folderRemove{}", config.fileFilters.at( i ) );
+      auto buttonAddId = std::format( "+##folderAdd{}", config.fileFilters.at( i ) );
+      // add or remove file filters
+      if ( ImGui::Button( buttonRemoveId.c_str() ) )
+      {
+        config.fileFilters.erase( config.fileFilters.begin() + i );
+      }
+      ImGui::SameLine();
+      if ( ImGui::Button( buttonAddId.c_str() ) )
+      {
+        config.fileFilters.push_back( { "" } );
+      }
+    }
+
+    ImGui::SeparatorText( "Folder filters" );
+    for ( auto i = 0u; i < config.folderFilters.size(); i++ )
+    {
+      auto id = std::format( "##folderFilter{}", i );
+      ImGui::InputText( id.c_str(), &config.folderFilters.at( i ) );
+      ImGui::SameLine();
+      // add or remove folder filters
+      auto buttonRemoveId = std::format( "-##folderRemove{}", config.folderFilters.at( i ) );
+      auto buttonAddId = std::format( "+##folderAdd{}", config.folderFilters.at( i ) );
+      if ( ImGui::Button( buttonRemoveId.c_str() ) )
+      {
+        config.fileFilters.erase( config.fileFilters.begin() + i );
+      }
+      ImGui::SameLine();
+      if ( ImGui::Button( buttonAddId.c_str() ) )
+      {
+        config.fileFilters.push_back( { "" } );
+      }
+    }
+
+    ImGui::SeparatorText( "Window settings" );
+    ImGui::InputInt( "##height", &config.height );
+    ImGui::InputInt( "##width", &config.width );
+    ImGui::Checkbox( "Maximized", &config.maximized );
+
+    if ( ImGui::Button( "Save" ) )
+    {
+      // save config
+      kogayonon_utilities::Configurator::writeConfig();
+      ImGui::CloseCurrentPopup();
+      m_popups.configPopup = false;
+    }
+    ImGui::SameLine( 0.0f, 20.0f );
+    if ( ImGui::Button( "Close" ) )
+    {
+      ImGui::CloseCurrentPopup();
+      m_popups.configPopup = false;
+    }
+    ImGui::EndPopup();
+  }
+  ImGui::PopStyleVar();
 }
 } // namespace kogayonon_gui

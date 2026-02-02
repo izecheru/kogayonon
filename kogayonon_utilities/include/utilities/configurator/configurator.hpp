@@ -25,12 +25,12 @@ public:
   /**
    * @brief Parses the json config file and builds the struct above
    */
-  static void parseConfigFile();
+  static void initConfig();
 
   /**
    * @brief Writes the current document to the config file
    */
-  static void writeConfig( const std::string& path );
+  static void writeConfig();
 
   /**
    * @brief Getter for config
@@ -47,7 +47,7 @@ private:
   /**
    * @brief Populates the Config struct value with values loaded from the loaded json document
    */
-  static void buildConfig();
+  static void parseConfig();
 
   Configurator() = delete;
   ~Configurator() = default;
@@ -71,43 +71,26 @@ struct convert<kogayonon_utilities::Config>
   static Node encode( const kogayonon_utilities::Config& rhs )
   {
     Node node;
-    for ( auto i = 0u; i < rhs.fileFilters.size(); i++ )
-    {
-      node["filters"]["files"].push_back( rhs.fileFilters.at( i ) );
-    }
-    for ( auto i = 0u; i < rhs.folderFilters.size(); i++ )
-    {
-      node["filters"]["folders"].push_back( rhs.folderFilters.at( i ) );
-    }
-
-    node["window"]["width"] = rhs.width;
-    node["window"]["height"] = rhs.height;
-    node["window"]["maximized"] = rhs.maximized;
+    auto config = node["config"];
+    config["window"]["width"] = rhs.width;
+    config["window"]["height"] = rhs.height;
+    config["window"]["maximized"] = rhs.maximized;
+    config["filters"]["files"] = rhs.fileFilters;
+    config["filters"]["folders"] = rhs.folderFilters;
     return node;
   }
 
   static bool decode( const Node& node, kogayonon_utilities::Config& rhs )
   {
-    if ( !node.IsMap() )
+    if ( !node["config"] )
       return false;
 
-    auto config = node["config"];
-    auto filters = node["config"]["filters"];
-
-    for ( auto i = 0u; i < filters["files"].size(); i++ )
-    {
-      rhs.fileFilters.push_back( filters["files"][i].as<std::string>() );
-    }
-
-    for ( auto i = 0u; i < filters["folders"].size(); i++ )
-    {
-      rhs.folderFilters.push_back( filters["folders"][i].as<std::string>() );
-    }
-
-    auto window = config["window"];
-    rhs.height = window["height"].as<int>();
-    rhs.width = window["width"].as<int>();
-    rhs.maximized = window["maximized"].as<bool>();
+    auto& config = node["config"];
+    rhs.width = config["window"]["width"].as<int>();
+    rhs.height = config["window"]["height"].as<int>();
+    rhs.maximized = config["window"]["maximized"].as<bool>();
+    rhs.fileFilters = config["filters"]["files"].as<std::vector<std::string>>();
+    rhs.folderFilters = config["filters"]["folders"].as<std::vector<std::string>>();
     return true;
   }
 };

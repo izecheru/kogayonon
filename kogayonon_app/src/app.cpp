@@ -77,7 +77,7 @@ App::App()
     spdlog::set_default_logger( logger );
 
     // parse the config and fill the json document
-    Configurator::parseConfigFile();
+    Configurator::initConfig();
 
     if ( !init() )
     {
@@ -362,7 +362,13 @@ bool App::initGuiForProject()
   // maximize window
   if ( config.maximized )
   {
+    // we ignore the width and height parameters
     m_pWindow->maximize();
+  }
+  else
+  {
+    m_pWindow->resize( config.width, config.height );
+    m_pWindow->centerWindow();
   }
 
   auto& assetManager = AssetManager::getInstance();

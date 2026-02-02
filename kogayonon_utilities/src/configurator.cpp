@@ -7,19 +7,20 @@
 namespace kogayonon_utilities
 {
 
-void Configurator::parseConfigFile()
+void Configurator::initConfig()
 {
   if ( !std::filesystem::exists( m_configPath ) )
   {
     spdlog::info( "Creating default config" );
     initDefaultConfig();
   }
-  buildConfig();
+  parseConfig();
 }
 
-void Configurator::writeConfig( const std::string& path )
+void Configurator::writeConfig()
 {
-  std::fstream ofs{ m_configPath.string(), std::ios::out };
+  auto yamlSerializer = std::make_unique<YamlSerializer>( m_configPath.string() );
+  yamlSerializer->addValue( m_config );
 }
 
 auto Configurator::getConfig() -> Config&
@@ -39,13 +40,14 @@ void Configurator::initDefaultConfig()
                      .fileFilters = { ".bin" },
                      .folderFilters = { "scenes", "fonts" } };
 
-  yamlSerializer->addKeyValuePair( "config", m_config );
+  yamlSerializer->addValue( m_config );
 }
 
-void Configurator::buildConfig()
+void Configurator::parseConfig()
 {
   auto doc = YAML::LoadFile( m_configPath.string() );
 
+  // since only config lives in here the whole node is config
   m_config = doc.as<Config>();
 
   spdlog::info( "Config file read...\n\tWidth {}\n\tHeight {}\n\tMaximized? {}\n",

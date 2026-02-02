@@ -28,19 +28,6 @@ struct PointLightComponent
 namespace YAML
 {
 
-inline Emitter& operator<<( Emitter& out, const kogayonon_resources::PointLight& point )
-{
-  out << YAML::BeginMap;
-  KEY_VALUE( "color", point.color );
-  KEY_VALUE( "ambient", point.ambient );
-  KEY_VALUE( "params", point.params );
-  KEY_VALUE( "specular", point.specular );
-  KEY_VALUE( "diffuse", point.diffuse );
-  KEY_VALUE( "translation", point.translation );
-  out << YAML::EndMap;
-  return out;
-}
-
 template <>
 struct convert<kogayonon_resources::PointLight>
 {
@@ -67,5 +54,11 @@ struct convert<kogayonon_resources::PointLight>
     return true;
   }
 };
+
+inline Emitter& operator<<( Emitter& out, const kogayonon_resources::PointLight& point )
+{
+  out << convert<kogayonon_resources::PointLight>::encode( point );
+  return out;
+}
 
 } // namespace YAML

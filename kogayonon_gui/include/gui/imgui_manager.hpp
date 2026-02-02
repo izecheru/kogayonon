@@ -4,6 +4,12 @@
 
 namespace kogayonon_gui
 {
+
+struct Popups
+{
+  bool configPopup{ false };
+};
+
 class ImGuiManager
 {
   using ImGuiWindows_Map = std::unordered_map<std::string, std::unique_ptr<ImGuiWindow>>;
@@ -21,11 +27,14 @@ public:
   void mainMenu();
   void draw();
 
+  void configPopup();
+
   void begin();
   void end();
 
 private:
   ImGuiIO* m_io = nullptr;
   ImGuiWindows_Map m_windows{};
+  Popups m_popups;
 };
 } // namespace kogayonon_gui

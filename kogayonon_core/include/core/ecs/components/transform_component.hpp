@@ -52,15 +52,14 @@ struct convert<kogayonon_core::TransformComponent>
     return node;
   }
 
-  static bool decode( const Node& node, kogayonon_core::TransformComponent& rhs )
+  static bool decode( const Node& node, kogayonon_core::TransformComponent& transform )
   {
-    if ( !node.IsMap() )
+    if ( !node["translation"] || !node["rotation"] || !node["scale"] )
       return false;
 
-    // Using the helpers we made for vec3
-    rhs.translation = node["translation"].as<glm::vec3>();
-    rhs.rotation = node["rotation"].as<glm::vec3>();
-    rhs.scale = node["scale"].as<glm::vec3>();
+    transform.translation = node["translation"].as<glm::vec3>();
+    transform.rotation = node["rotation"].as<glm::vec3>();
+    transform.scale = node["scale"].as<glm::vec3>();
     return true;
   }
 };

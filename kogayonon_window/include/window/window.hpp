@@ -36,19 +36,78 @@ public:
 
   void swapWindow();
 
+  /**
+   * @brief Maximize window
+   */
   void maximize();
+
+  /**
+   * @brief Is maximized?
+   * @return
+   */
   bool getMaximized();
 
+  /**
+   * @brief Get window width
+   * @return
+   */
   int getWidth() const;
+
+  /**
+   * @brief Get window height
+   * @return
+   */
   int getHeight() const;
+
+  /**
+   * @brief Set window width
+   * @param w
+   */
   void setWidth( int w );
+
+  /**
+   * @brief Set window height
+   * @param h
+   */
   void setHeight( int h );
   void resize();
+
+  /**
+   * @brief Resize the window
+   * @param w
+   * @param h
+   */
   void resize( int w, int h );
+
+  /**
+   * @brief Moves window at screen coordinates
+   * @param x
+   * @param y
+   */
   void placeAt( int x, int y );
+
+  /**
+   * @brief Set window title
+   * @param title
+   */
   void setTitle( const char* title );
+
+  /**
+   * @brief Flags as bordered
+   * @param value
+   */
   void setBordered( bool value );
+
+  /**
+   * @brief Flags as resizable
+   * @param value
+   */
   void setResizable( bool value );
+
+  /**
+   * @brief Centers window on screen
+   */
+  void centerWindow();
 
   auto getWindowProps() -> window_props*;
 
