@@ -1,6 +1,7 @@
 #pragma once
 #include <filesystem>
 #include <string>
+#include <yaml-cpp/yaml.h>
 
 namespace fs = std::filesystem;
 
@@ -9,9 +10,9 @@ namespace kogayonon_utilities
 struct Config
 {
   // window
-  int width;
-  int height;
-  bool maximized;
+  int width{ 0 };
+  int height{ 0 };
+  bool maximized{ false };
 
   // filters
   std::vector<std::string> fileFilters;
@@ -60,3 +61,61 @@ private:
   static inline bool m_loaded{ false };
 };
 } // namespace kogayonon_utilities
+
+namespace YAML
+{
+
+template <>
+struct convert<kogayonon_utilities::Config>
+{
+  static Node encode( const kogayonon_utilities::Config& rhs )
+  {
+    Node node;
+    for ( auto i = 0u; i < rhs.fileFilters.size(); i++ )
+    {
+      node["filters"]["files"].push_back( rhs.fileFilters.at( i ) );
+    }
+    for ( auto i = 0u; i < rhs.folderFilters.size(); i++ )
+    {
+      node["filters"]["folders"].push_back( rhs.folderFilters.at( i ) );
+    }
+
+    node["window"]["width"] = rhs.width;
+    node["window"]["height"] = rhs.height;
+    node["window"]["maximized"] = rhs.maximized;
+    return node;
+  }
+
+  static bool decode( const Node& node, kogayonon_utilities::Config& rhs )
+  {
+    if ( !node.IsMap() )
+      return false;
+
+    auto config = node["config"];
+    auto filters = node["config"]["filters"];
+
+    for ( auto i = 0u; i < filters["files"].size(); i++ )
+    {
+      rhs.fileFilters.push_back( filters["files"][i].as<std::string>() );
+    }
+
+    for ( auto i = 0u; i < filters["folders"].size(); i++ )
+    {
+      rhs.folderFilters.push_back( filters["folders"][i].as<std::string>() );
+    }
+
+    auto window = config["window"];
+    rhs.height = window["height"].as<int>();
+    rhs.width = window["width"].as<int>();
+    rhs.maximized = window["maximized"].as<bool>();
+    return true;
+  }
+};
+
+inline Emitter& operator<<( Emitter& out, const kogayonon_utilities::Config& rhs )
+{
+  out << convert<kogayonon_utilities::Config>::encode( rhs );
+  return out;
+}
+
+} // namespace YAML

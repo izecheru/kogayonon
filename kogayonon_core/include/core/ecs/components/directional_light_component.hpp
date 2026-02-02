@@ -43,49 +43,25 @@ struct DirectionalLightComponent
 
 namespace YAML
 {
-
-inline Emitter& operator<<( YAML::Emitter& out, const kogayonon_resources::DirectionalLight& t )
-{
-  out << YAML::BeginMap;
-  KEY_VALUE( "diffuse", t.diffuse );
-  KEY_VALUE( "specular", t.specular );
-  KEY_VALUE( "direction", t.direction );
-  out << YAML::EndMap;
-
-  return out;
-}
-
-inline Emitter& operator<<( YAML::Emitter& out, const kogayonon_core::DirectionalLightComponent& t )
-{
-  out << YAML::BeginMap;
-  KEY_VALUE( "orthoSize", t.orthoSize );
-  KEY_VALUE( "nearPlane", t.nearPlane );
-  KEY_VALUE( "farPlane", t.farPlane );
-  KEY_VALUE( "positionFactor", t.positionFactor );
-  out << YAML::EndMap;
-
-  return out;
-}
-
 template <>
 struct convert<kogayonon_core::DirectionalLightComponent>
 {
-  static Node encode( const kogayonon_core::DirectionalLightComponent& rhs )
+  static Node encode( const kogayonon_core::DirectionalLightComponent& directionalLightComp )
   {
     Node node;
-    node["nearPlane"] = rhs.nearPlane;
-    node["farPlane"] = rhs.farPlane;
-    node["orthoSize"] = rhs.orthoSize;
-    node["positionFactor"] = rhs.positionFactor;
+    node["nearPlane"] = directionalLightComp.nearPlane;
+    node["farPlane"] = directionalLightComp.farPlane;
+    node["orthoSize"] = directionalLightComp.orthoSize;
+    node["positionFactor"] = directionalLightComp.positionFactor;
     return node;
   }
 
-  static bool decode( const Node& node, kogayonon_core::DirectionalLightComponent& rhs )
+  static bool decode( const Node& node, kogayonon_core::DirectionalLightComponent& directionalLightComp )
   {
-    rhs.nearPlane = node["nearPlane"].as<float>();
-    rhs.farPlane = node["farPlane"].as<float>();
-    rhs.positionFactor = node["positionFactor"].as<float>();
-    rhs.orthoSize = node["orthoSize"].as<float>();
+    directionalLightComp.nearPlane = node["nearPlane"].as<float>();
+    directionalLightComp.farPlane = node["farPlane"].as<float>();
+    directionalLightComp.positionFactor = node["positionFactor"].as<float>();
+    directionalLightComp.orthoSize = node["orthoSize"].as<float>();
     return true;
   }
 };
@@ -93,22 +69,35 @@ struct convert<kogayonon_core::DirectionalLightComponent>
 template <>
 struct convert<kogayonon_resources::DirectionalLight>
 {
-  static Node encode( const kogayonon_resources::DirectionalLight& rhs )
+  static Node encode( const kogayonon_resources::DirectionalLight& directionalLight )
   {
     Node node;
-    node["diffuse"] = rhs.diffuse;
-    node["specular"] = rhs.specular;
-    node["direction"] = rhs.direction;
+    node["diffuse"] = directionalLight.diffuse;
+    node["specular"] = directionalLight.specular;
+    node["direction"] = directionalLight.direction;
     return node;
   }
 
-  static bool decode( const Node& node, kogayonon_resources::DirectionalLight& rhs )
+  static bool decode( const Node& node, kogayonon_resources::DirectionalLight& direcitonalLight )
   {
-    rhs.diffuse = node["diffuse"].as<glm::vec4>();
-    rhs.specular = node["specular"].as<glm::vec4>();
-    rhs.direction = node["direction"].as<glm::vec4>();
+    direcitonalLight.diffuse = node["diffuse"].as<glm::vec4>();
+    direcitonalLight.specular = node["specular"].as<glm::vec4>();
+    direcitonalLight.direction = node["direction"].as<glm::vec4>();
     return true;
   }
 };
+
+inline Emitter& operator<<( YAML::Emitter& out, const kogayonon_resources::DirectionalLight& directionalLight )
+{
+  out << convert<kogayonon_resources::DirectionalLight>::encode( directionalLight );
+  return out;
+}
+
+inline Emitter& operator<<( YAML::Emitter& out,
+                            const kogayonon_core::DirectionalLightComponent& directionalLightComponent )
+{
+  out << convert<kogayonon_core::DirectionalLightComponent>::encode( directionalLightComponent );
+  return out;
+}
 
 } // namespace YAML

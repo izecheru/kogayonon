@@ -94,23 +94,6 @@ struct IdentifierComponent
 namespace YAML
 {
 
-inline Emitter& operator<<( YAML::Emitter& out, const kogayonon_core::EntityType& type )
-{
-  out << typeToString( type );
-  return out;
-}
-
-// specialise for this struct
-inline Emitter& operator<<( YAML::Emitter& out, const kogayonon_core::IdentifierComponent& id )
-{
-  out << YAML::BeginMap;
-  KEY_VALUE( "name", id.name );
-  KEY_VALUE( "group", id.group );
-  KEY_VALUE( "type", typeToString( id.type ) );
-  out << YAML::EndMap;
-  return out;
-}
-
 template <>
 struct convert<kogayonon_core::IdentifierComponent>
 {
@@ -118,7 +101,7 @@ struct convert<kogayonon_core::IdentifierComponent>
   {
     Node node;
     node["name"] = rhs.name;
-    node["rotation"] = rhs.group;
+    node["group"] = rhs.group;
     node["type"] = kogayonon_core::typeToString( rhs.type );
     return node;
   }
@@ -134,5 +117,18 @@ struct convert<kogayonon_core::IdentifierComponent>
     return true;
   }
 };
+
+inline Emitter& operator<<( YAML::Emitter& out, const kogayonon_core::EntityType& type )
+{
+  out << typeToString( type );
+  return out;
+}
+
+// specialise for this struct
+inline Emitter& operator<<( YAML::Emitter& out, const kogayonon_core::IdentifierComponent& id )
+{
+  out << convert<kogayonon_core::IdentifierComponent>::encode( id );
+  return out;
+}
 
 } // namespace YAML

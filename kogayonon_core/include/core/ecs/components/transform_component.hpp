@@ -40,23 +40,6 @@ struct TransformComponent
 namespace YAML
 {
 
-inline Emitter& operator<<( YAML::Emitter& out, const kogayonon_core::TransformComponent& t )
-{
-  out << YAML::BeginMap;
-  out << YAML::Key << "rotation";
-  out << YAML::Value << t.rotation;
-
-  out << YAML::Key << "scale";
-  out << YAML::Value << t.scale;
-
-  out << YAML::Key << "translation";
-  out << YAML::Value << t.translation;
-
-  out << YAML::EndMap;
-
-  return out;
-}
-
 template <>
 struct convert<kogayonon_core::TransformComponent>
 {
@@ -81,5 +64,11 @@ struct convert<kogayonon_core::TransformComponent>
     return true;
   }
 };
+
+inline Emitter& operator<<( YAML::Emitter& out, const kogayonon_core::TransformComponent& transform )
+{
+  out << convert<kogayonon_core::TransformComponent>::encode( transform );
+  return out;
+}
 
 } // namespace YAML

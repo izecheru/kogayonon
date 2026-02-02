@@ -7,20 +7,6 @@ namespace YAML
 {
 #define KEY_VALUE( key, value ) out << YAML::Key << key << YAML::Value << value
 
-inline Emitter& operator<<( Emitter& out, const glm::vec3& vec )
-{
-  out << Flow;
-  out << BeginSeq << vec.x << vec.y << vec.z << EndSeq;
-  return out;
-}
-
-inline Emitter& operator<<( Emitter& out, const glm::vec4& vec )
-{
-  out << Flow;
-  out << BeginSeq << vec.x << vec.y << vec.z << vec.w << EndSeq;
-  return out;
-}
-
 template <>
 struct convert<glm::vec3>
 {
@@ -72,5 +58,19 @@ struct convert<glm::vec4>
     return true;
   }
 };
+
+inline Emitter& operator<<( Emitter& out, const glm::vec3& vec )
+{
+  Node node;
+  node["vec3"] = convert<glm::vec3>::encode( vec );
+  return out;
+}
+
+inline Emitter& operator<<( Emitter& out, const glm::vec4& vec )
+{
+  Node node;
+  node["vec4"] = convert<glm::vec4>::encode( vec );
+  return out;
+}
 
 } // namespace YAML

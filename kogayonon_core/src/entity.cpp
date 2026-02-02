@@ -128,8 +128,6 @@ bool Entity::isGroup( const std::string& group )
 
 void Entity::createLuaBindings( sol::state& lua )
 {
-  // TODO make more constructors, getters setters for
-  // those are the entity types
   lua.new_enum<EntityType>( "EntityType",
                             { { "None", EntityType::None },
                               { "Camera", EntityType::Camera },
@@ -185,10 +183,13 @@ void Entity::createLuaBindings( sol::state& lua )
 
       return metaAny ? metaAny.cast<sol::reference>() : sol::lua_nil_t{};
     },
+
     // i named this with get instead of just entityId cause i want the func() like syntax in lua to remember what name
-    // i gave to the exposed to lua variable
+    // i gave to the exposed to lua variable and also because this is set from the entt registry, I can't actually set
+    // an entityId myself
     "getEntityId",
     &Entity::getEntityId,
+
     // getters and setters
     "name",
     sol::property( &Entity::getName, &Entity::setName ),

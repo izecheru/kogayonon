@@ -169,9 +169,11 @@ void EntityPropertiesWindow::drawRigidbodyMenu( Entity& ent )
         // TODO change the box size somehow
         auto shape = physics->createShape(
           physx::PxBoxGeometry{ transform.scale.x, transform.scale.y, transform.scale.z }, *nvidia.getMaterial() );
-        box.pBody = physics->createRigidDynamic(
-          physx::PxTransform{ transform.translation.x, transform.translation.y, transform.translation.z,
-                              physx::PxQuat{ quat.x, quat.y, quat.z, quat.w } } );
+        box.pBody =
+          physics->createRigidDynamic( physx::PxTransform{ transform.translation.x,
+                                                           transform.translation.y,
+                                                           transform.translation.z,
+                                                           physx::PxQuat{ quat.x, quat.y, quat.z, quat.w } } );
         box.pBody->attachShape( *shape );
         physx::PxRigidBodyExt::updateMassAndInertia( *box.pBody, 10.0f );
         nvidia.getScene()->addActor( *box.pBody );
@@ -215,7 +217,8 @@ void EntityPropertiesWindow::drawRigidbodyMenu( Entity& ent )
         // TODO change the box size somehow
         auto shape = physics->createShape(
           physx::PxBoxGeometry{ transform.scale.x, transform.scale.y, transform.scale.z }, *nvidia.getMaterial() );
-        box.pBody = physics->createRigidStatic( physx::PxTransform{ transform.translation.x, transform.translation.y,
+        box.pBody = physics->createRigidStatic( physx::PxTransform{ transform.translation.x,
+                                                                    transform.translation.y,
                                                                     transform.translation.z,
                                                                     physx::PxQuat{ quat.x, quat.y, quat.z, quat.w } } );
         box.pBody->attachShape( *shape );
@@ -460,26 +463,37 @@ void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
     ImGui::Text( "Translation" );
 
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Xtranslation", &translation.x, 0.1f, translation.x - 100.0f, translation.x + 100.0f,
-                                 "%.2f" );
+    changed |= ImGui::DragFloat(
+      "##Xtranslation", &translation.x, 0.1f, translation.x - 100.0f, translation.x + 100.0f, "%.2f" );
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Ytranslation", &translation.y, 0.1f, translation.y - 100.0f, translation.y + 100.0f,
-                                 "%.2f" );
+    changed |= ImGui::DragFloat(
+      "##Ytranslation", &translation.y, 0.1f, translation.y - 100.0f, translation.y + 100.0f, "%.2f" );
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Ztranslation", &translation.z, 0.1f, translation.z - 100.0f, translation.z + 100.0f,
-                                 "%.2f" );
+    changed |= ImGui::DragFloat(
+      "##Ztranslation", &translation.z, 0.1f, translation.z - 100.0f, translation.z + 100.0f, "%.2f" );
 
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
 
     ImGui::Text( "Scale" );
-
     ImGui::TableNextColumn();
+    // if ( scaleLink )
+    //{
+    //   changed |= ImGui::DragFloat( "##scale", &scale.x, 1.0f, 0.0f, 100.0f, "%.2f" );
+    //   if ( changed )
+    //   {
+    //     scale.y = scale.x;
+    //     scale.z = scale.x;
+    //   }
+    // }
+    // else
+    //{
     changed |= ImGui::DragFloat( "##Xscale", &scale.x, 1.0f, 0.0f, 100.0f, "%.2f" );
     ImGui::TableNextColumn();
     changed |= ImGui::DragFloat( "##Yscale", &scale.y, 1.0f, 0.0f, 100.0f, "%.2f" );
     ImGui::TableNextColumn();
     changed |= ImGui::DragFloat( "##Zscale", &scale.z, 1.0f, 0.0f, 100.0f, "%.2f" );
+    //}
 
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
@@ -512,7 +526,9 @@ void EntityPropertiesWindow::drawTransformComponent( Entity& ent ) const
 
       // update the matrix in the instance matrices vector
       ImGuizmo::RecomposeMatrixFromComponents(
-        glm::value_ptr( translation ), glm::value_ptr( rotation ), glm::value_ptr( scale ),
+        glm::value_ptr( translation ),
+        glm::value_ptr( rotation ),
+        glm::value_ptr( scale ),
         glm::value_ptr( data->instances.at( indexComponent.index ).instanceMatrix ) );
 
       scene->updateInstances( data );
@@ -550,14 +566,26 @@ void EntityPropertiesWindow::drawPointLightComponent( kogayonon_core::Entity& en
 
     ImGui::Text( "Translation" );
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Xtranslation", &pointLight.translation.x, 0.1f, pointLight.translation.x - 100.0f,
-                                 pointLight.translation.x + 100.0f, "%.2f" );
+    changed |= ImGui::DragFloat( "##Xtranslation",
+                                 &pointLight.translation.x,
+                                 0.1f,
+                                 pointLight.translation.x - 100.0f,
+                                 pointLight.translation.x + 100.0f,
+                                 "%.2f" );
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Ytranslation", &pointLight.translation.y, 0.1f, pointLight.translation.y - 100.0f,
-                                 pointLight.translation.y + 100.0f, "%.2f" );
+    changed |= ImGui::DragFloat( "##Ytranslation",
+                                 &pointLight.translation.y,
+                                 0.1f,
+                                 pointLight.translation.y - 100.0f,
+                                 pointLight.translation.y + 100.0f,
+                                 "%.2f" );
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Ztranslation", &pointLight.translation.z, 0.1f, pointLight.translation.z - 100.0f,
-                                 pointLight.translation.z + 100.0f, "%.2f" );
+    changed |= ImGui::DragFloat( "##Ztranslation",
+                                 &pointLight.translation.z,
+                                 0.1f,
+                                 pointLight.translation.z - 100.0f,
+                                 pointLight.translation.z + 100.0f,
+                                 "%.2f" );
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
 
@@ -663,8 +691,8 @@ void EntityPropertiesWindow::drawPointLightComponent( kogayonon_core::Entity& en
 
     ImGui::Text( "Color" );
     ImGui::TableNextColumn();
-    changed |= ImGui::ColorEdit4( "##color_change", reinterpret_cast<float*>( &pointLight.color ),
-                                  ImGuiColorEditFlags_NoInputs );
+    changed |= ImGui::ColorEdit4(
+      "##color_change", reinterpret_cast<float*>( &pointLight.color ), ImGuiColorEditFlags_NoInputs );
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
     bool visible = pointLight.params.w > 0.5f ? true : false;
@@ -719,14 +747,26 @@ void EntityPropertiesWindow::drawDirectionalLightComponent( kogayonon_core::Enti
 
     ImGui::Text( "Direction" );
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Xdirection", &directionalLight.direction.x, 0.1f,
-                                 directionalLight.direction.x - 100.0f, directionalLight.direction.x + 100.0f, "%.2f" );
+    changed |= ImGui::DragFloat( "##Xdirection",
+                                 &directionalLight.direction.x,
+                                 0.1f,
+                                 directionalLight.direction.x - 100.0f,
+                                 directionalLight.direction.x + 100.0f,
+                                 "%.2f" );
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Ydirection", &directionalLight.direction.y, 0.1f,
-                                 directionalLight.direction.y - 100.0f, directionalLight.direction.y + 100.0f, "%.2f" );
+    changed |= ImGui::DragFloat( "##Ydirection",
+                                 &directionalLight.direction.y,
+                                 0.1f,
+                                 directionalLight.direction.y - 100.0f,
+                                 directionalLight.direction.y + 100.0f,
+                                 "%.2f" );
     ImGui::TableNextColumn();
-    changed |= ImGui::DragFloat( "##Zdirection", &directionalLight.direction.z, 0.1f,
-                                 directionalLight.direction.z - 100.0f, directionalLight.direction.z + 100.0f, "%.2f" );
+    changed |= ImGui::DragFloat( "##Zdirection",
+                                 &directionalLight.direction.z,
+                                 0.1f,
+                                 directionalLight.direction.z - 100.0f,
+                                 directionalLight.direction.z + 100.0f,
+                                 "%.2f" );
 
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
