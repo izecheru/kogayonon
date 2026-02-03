@@ -15,6 +15,7 @@ add_library(
   "include/utilities/script/script_compiler.hpp"
   "include/utilities/script/script.hpp"
   "include/utilities/yaml_serializer/yaml_serializer.hpp"
+  "include/utilities/json_serializer/json_serializer.hpp"
   "include/utilities/utils/yaml_utils.hpp"
 
   "src/task_manager.cpp"
@@ -26,10 +27,21 @@ add_library(
   "src/configurator.cpp"
  "src/script_compiler.cpp"
  "src/script.cpp"
- "src/yaml_serializer.cpp")
+ "src/yaml_serializer.cpp" 
+ "src/json_serializer.cpp")
 
 target_include_directories(kogayonon_utilities
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
                            PRIVATE ${SOL2_INCLUDE_DIRS})
 
-target_link_libraries(kogayonon_utilities PRIVATE cgltf spdlog::spdlog lua glad glm::glm-header-only kogayonon_resources soil2 yaml-cpp::yaml-cpp)
+target_link_libraries(kogayonon_utilities PRIVATE
+glm::glm-header-only 
+kogayonon_resources 
+yaml-cpp::yaml-cpp
+spdlog::spdlog 
+cgltf 
+lua 
+glad 
+rapidjson
+soil2 
+)

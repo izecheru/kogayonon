@@ -14,4 +14,5 @@ add_library(
 target_include_directories(kogayonon_resources
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
+
 target_link_libraries(kogayonon_resources PUBLIC glm::glm-header-only)

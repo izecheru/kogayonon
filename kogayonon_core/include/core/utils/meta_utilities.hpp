@@ -93,7 +93,7 @@ static inline auto invokeMetaFunc( entt::meta_type metaType, entt::id_type funcI
 {
   if ( !metaType )
   {
-    std::cout << "meta type is not registered in entt::meta";
+    spdlog::error( "meta type is not registered in entt::meta" );
   }
   else
   {

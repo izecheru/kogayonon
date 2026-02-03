@@ -2,6 +2,7 @@
 #include <entt/entt.hpp>
 #include <sol/sol.hpp>
 #include <yaml-cpp/yaml.h>
+#include "utilities/json_serializer/json_serializer.hpp"
 #include "utilities/utils/yaml_utils.hpp"
 
 namespace kogayonon_core

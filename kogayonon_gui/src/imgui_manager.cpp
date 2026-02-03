@@ -310,26 +310,29 @@ void ImGuiManager::configPopup()
   {
     auto& config = kogayonon_utilities::Configurator::getConfig();
     ImGui::SeparatorText( "File filters" );
+    if ( ImGui::Button( "Add filter##file" ) )
+    {
+      config.fileFilters.push_back( { "" } );
+    }
     for ( auto i = 0u; i < config.fileFilters.size(); i++ )
     {
       auto id = std::format( "##fileFilter{}", i );
       ImGui::InputText( id.c_str(), &config.fileFilters.at( i ) );
       ImGui::SameLine();
       auto buttonRemoveId = std::format( "-##folderRemove{}", config.fileFilters.at( i ) );
-      auto buttonAddId = std::format( "+##folderAdd{}", config.fileFilters.at( i ) );
       // add or remove file filters
       if ( ImGui::Button( buttonRemoveId.c_str() ) )
       {
         config.fileFilters.erase( config.fileFilters.begin() + i );
       }
-      ImGui::SameLine();
-      if ( ImGui::Button( buttonAddId.c_str() ) )
-      {
-        config.fileFilters.push_back( { "" } );
-      }
     }
 
     ImGui::SeparatorText( "Folder filters" );
+    if ( ImGui::Button( "Add filter##folder" ) )
+    {
+      config.folderFilters.push_back( { "" } );
+    }
+
     for ( auto i = 0u; i < config.folderFilters.size(); i++ )
     {
       auto id = std::format( "##folderFilter{}", i );
@@ -337,15 +340,9 @@ void ImGuiManager::configPopup()
       ImGui::SameLine();
       // add or remove folder filters
       auto buttonRemoveId = std::format( "-##folderRemove{}", config.folderFilters.at( i ) );
-      auto buttonAddId = std::format( "+##folderAdd{}", config.folderFilters.at( i ) );
       if ( ImGui::Button( buttonRemoveId.c_str() ) )
       {
-        config.fileFilters.erase( config.fileFilters.begin() + i );
-      }
-      ImGui::SameLine();
-      if ( ImGui::Button( buttonAddId.c_str() ) )
-      {
-        config.fileFilters.push_back( { "" } );
+        config.folderFilters.erase( config.folderFilters.begin() + i );
       }
     }
 
