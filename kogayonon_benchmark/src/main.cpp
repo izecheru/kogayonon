@@ -113,7 +113,11 @@ BENCHMARK( kogayonon_benchmark::BM_JsonDeserialization )
 // this is very slow, for 100k transforms we would get 40seconds and for a million 436seconds, roughly 7 minutes
 // compared to 34s on json
 // JSON IS 10 TIMES FASTER
-// BENCHMARK( kogayonon_benchmark::BM_Serialization )->Arg( 1000 )->Arg( 100000 )->Unit(
-// benchmark::kSecond );
+
+// BENCHMARK( kogayonon_benchmark::BM_Serialization )
+//   ->Arg( 1000 )
+//   ->Arg( 100000 )
+//   ->Arg( 1000000 )
+//   ->Unit( benchmark::kSecond );
 
 BENCHMARK_MAIN();

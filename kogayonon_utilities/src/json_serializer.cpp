@@ -16,6 +16,7 @@ JsonSerializer::JsonSerializer( const std::string& path )
 
 JsonSerializer::~JsonSerializer()
 {
+  m_fileStream.flush();
   if ( m_fileStream.is_open() )
     m_fileStream.close();
 }
@@ -69,4 +70,29 @@ auto JsonSerializer::endObject() -> JsonSerializer&
   m_writer->EndObject();
   return *this;
 }
+
+auto JsonSerializer::saveVec3( const glm::vec3& vec ) -> JsonSerializer&
+{
+  startArray().addValue( vec.x ).addValue( vec.y ).addValue( vec.z ).endArray();
+  return *this;
+}
+
+auto JsonSerializer::saveVec4( const glm::vec4& vec ) -> JsonSerializer&
+{
+  startArray().addValue( vec.x ).addValue( vec.y ).addValue( vec.z ).addValue( vec.w ).endArray();
+  return *this;
+}
+
+auto JsonSerializer::saveVec3( const std::string& key, const glm::vec3& vec ) -> JsonSerializer&
+{
+  startArray( key ).addValue( vec.x ).addValue( vec.y ).addValue( vec.z ).endArray();
+  return *this;
+}
+
+auto JsonSerializer::saveVec4( const std::string& key, const glm::vec4& vec ) -> JsonSerializer&
+{
+  startArray( key ).addValue( vec.x ).addValue( vec.y ).addValue( vec.z ).addValue( vec.w ).endArray();
+  return *this;
+}
+
 } // namespace kogayonon_utilities

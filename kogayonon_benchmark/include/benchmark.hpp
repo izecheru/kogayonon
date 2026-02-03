@@ -57,6 +57,7 @@ static void BM_JsonDeserialization( benchmark::State& state )
     for ( auto i = 0u; i < entityArray.Size(); i++ )
     {
       kogayonon_core::Entity ent{ &registry, registry.createEntity() };
+
       ent.addComponent<kogayonon_core::TransformComponent>( kogayonon_core::TransformComponent{
         .translation = std::move( getVec3( entityArray[i]["transform"]["translation"] ) ),
         .rotation = std::move( getVec3( entityArray[i]["transform"]["rotation"] ) ),

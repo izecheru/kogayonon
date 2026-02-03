@@ -4,6 +4,7 @@
 #include <imgui_impl_sdl2.h>
 #include <iostream>
 #include <memory>
+#include <rapidjson/istreamwrapper.h>
 #include <spdlog/sinks/daily_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
@@ -597,29 +598,44 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
   auto& assetManager = AssetManager::getInstance();
   const auto& pTaskManager = MainRegistry::getInstance().getTaskManager();
 
-  YAML::Node doc = YAML::LoadFile( e.getPath().string() );
+  std::ifstream ifs( e.getPath().string(), std::ios::in );
+  rapidjson::IStreamWrapper isw( ifs );
 
-  const auto projectName = doc["name"].as<std::string>();
-  // seems that i don't need the path in the kproj file but we'll see
-  ProjectManager::createProject( projectName, e.getPath() );
+  Document projectDoc{};
+  projectDoc.ParseStream( isw );
 
-  for ( auto i = 0u; i < doc["scenes"].size(); i++ )
+  if ( projectDoc.HasParseError() )
   {
-    auto path = doc["scenes"][i]["path"].as<std::string>();
+    spdlog::error( "JSON Parse Error: {}", (int)projectDoc.GetParseError() );
+    return;
+  }
+  // seems that i don't need the path in the kproj file but we'll see
+  ProjectManager::createProject( projectDoc["project"]["name"].GetString(), e.getPath() );
+
+  auto scenes = projectDoc["project"]["scenes"].GetArray();
+  for ( auto i = 0u; i < scenes.Size(); i++ )
+  {
+    auto path = scenes[i]["path"].GetString();
     fs::path scenePath{ path };
     const auto& scene_ = std::make_shared<Scene>( scenePath.stem().string() );
 
-    YAML::Node sceneDoc = YAML::LoadFile( scenePath.string() );
+    std::ifstream sceneIfs( scenePath.string(), std::ios::in );
+    rapidjson::IStreamWrapper sceneIws( sceneIfs );
+    Document sceneDoc{};
+    sceneDoc.ParseStream( sceneIws );
 
-    for ( auto j = 0u; j < sceneDoc["meshEntities"].size(); j++ )
+    for ( auto j = 0u; j < sceneDoc["meshEntities"].Size(); j++ )
     {
-      const auto& node = sceneDoc["meshEntities"][j];
+      auto& ent = sceneDoc["meshEntities"][j];
       // create entity
       Entity entity{ scene_->getRegistry(), scene_->addEntity() };
-      entity.addComponent<TransformComponent>( node["transformComponent"].as<TransformComponent>() );
+      entity.addComponent<TransformComponent>(
+        TransformComponent{ .translation = std::move( getVec3( ent["transformComponent"]["translation"] ) ),
+                            .rotation = std::move( getVec3( ent["transformComponent"]["rotation"] ) ),
+                            .scale = std::move( getVec3( ent["transformComponent"]["scale"] ) ) } );
 
       // create the entity
-      const auto path = std::filesystem::path{ node["meshPath"].as<std::string>() };
+      const auto path = std::filesystem::path{ ent["meshPath"].GetString() };
       const auto& enttId = entity.getEntityId();
 
       pTaskManager->enqueue( [scene_, path, enttId, &assetManager]() {
@@ -627,28 +643,46 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
         scene_->addMeshToEntity( enttId, mesh );
       } );
 
-      entity.replaceComponent<IdentifierComponent>( node["identifierComponent"].as<IdentifierComponent>() );
+      entity.replaceComponent<IdentifierComponent>(
+        IdentifierComponent{ .name = ent["identifierComponent"]["name"].GetString(),
+                             .type = stringToType( ent["identifierComponent"]["type"].GetString() ),
+                             .group = ent["identifierComponent"]["group"].GetString() } );
     }
-    for ( auto j = 0u; j < sceneDoc["directionalLightEntities"].size(); j++ )
+    for ( auto j = 0u; j < sceneDoc["directionalLightEntities"].Size(); j++ )
     {
-      const auto& node = sceneDoc["directionalLightEntities"][j];
+      const auto& light = sceneDoc["directionalLightEntities"][j];
       Entity entity{ scene_->getRegistry(), scene_->addEntity() };
       scene_->addDirectionalLight( entity.getEntityId() );
       auto& dirLight = scene_->getDirectionalLight();
-      dirLight = node["directionalLight"].as<kogayonon_resources::DirectionalLight>();
+      dirLight = kogayonon_resources::DirectionalLight{
+        .direction = std::move( getVec4( light["directionalLight"]["direction"] ) ),
+        .diffuse = std::move( getVec4( light["directionalLight"]["diffuse"] ) ),
+        .specular = std::move( getVec4( light["directionalLight"]["specular"] ) ) };
+
       auto& comp = entity.getComponent<DirectionalLightComponent>();
-      comp = node["directionalLightComponent"].as<DirectionalLightComponent>();
+      comp = DirectionalLightComponent{
+        .nearPlane = light["directionalLightComponent"]["nearPlane"].GetFloat(),
+        .farPlane = light["directionalLightComponent"]["farPlane"].GetFloat(),
+        .orthoSize = light["directionalLightComponent"]["orthoSize"].GetFloat(),
+        .positionFactor = light["directionalLightComponent"]["positionFactor"].GetFloat(),
+
+      };
       comp.directionalLightIndex = 0;
     }
 
-    for ( auto j = 0u; j < sceneDoc["pointLightEntities"].size(); j++ )
+    for ( auto j = 0u; j < sceneDoc["pointLightEntities"].Size(); j++ )
     {
-      const auto& node = sceneDoc["pointLightEntities"][j];
+      const auto& pointLight = sceneDoc["pointLightEntities"][j];
       Entity entity{ scene_->getRegistry(), scene_->addEntity() };
       scene_->addPointLight( entity.getEntityId() );
       auto& comp = entity.getComponent<PointLightComponent>();
       auto& light = scene_->getPointLight( comp.pointLightIndex );
-      light = node["pointLight"].as<kogayonon_resources::PointLight>();
+      light = kogayonon_resources::PointLight{ .translation = std::move( getVec4( pointLight["translation"] ) ),
+                                               .ambient = std::move( getVec4( pointLight["ambient"] ) ),
+                                               .diffuse = std::move( getVec4( pointLight["diffuse"] ) ),
+                                               .specular = std::move( getVec4( pointLight["specular"] ) ),
+                                               .color = std::move( getVec4( pointLight["color"] ) ),
+                                               .params = std::move( getVec4( pointLight["params"] ) ) };
     }
 
     SceneManager::addScene( scene_ );
@@ -700,28 +734,25 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
     std::filesystem::create_directory( scenesDirPath );
   }
 
-  auto projectYamlSerializer =
-    std::make_unique<kogayonon_utilities::YamlSerializer>( ProjectManager::getPath().string() );
-  auto sceneYamlSerializer = std::make_unique<kogayonon_utilities::YamlSerializer>();
+  auto projectJsonSerializer =
+    std::make_unique<kogayonon_utilities::JsonSerializer>( ProjectManager::getPath().string() );
 
   // clang-format off
-  projectYamlSerializer->
-    beginMap()
-      .addKeyValuePair("name",ProjectManager::getTitle())
-      .addKeyValuePair("path",ProjectManager::getPath().string())
-      .addKey("scenes")
-        .beginSeq();
+  projectJsonSerializer->startDocument().startObject("project")
+          .addKeyValuePair("name",ProjectManager::getTitle())
+          .addKeyValuePair("path",ProjectManager::getPath().string())
+          .startArray("scenes");
   // clang-format on
 
   // serialize every scene
   for ( const auto& [name, scene] : scenes )
   {
-    auto finalPath = std::format( "{}\\{}.yaml", scenesDirPath.string(), scene->getName().c_str() );
 
-    sceneYamlSerializer->initFstream( finalPath );
+    auto finalPath = std::format( "{}\\{}.json", scenesDirPath.string(), scene->getName().c_str() );
 
     const auto& meshView = scene->getEnttRegistry().view<MeshComponent>();
-
+    auto sceneJsonSerializer = std::make_unique<kogayonon_utilities::JsonSerializer>( finalPath );
+    sceneJsonSerializer->startDocument();
     std::vector<entt::entity> meshEntities{};
     meshView.each( [&]( const auto& entity, auto& meshComp ) {
       if ( !meshComp.loaded )
@@ -730,16 +761,13 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
       meshEntities.emplace_back( entity );
     } );
 
-    // write some data to the project.yaml too
-
     //clang-format off
-    projectYamlSerializer->beginMap()
-      .addKeyValuePair( "name", name )
+    projectJsonSerializer->startObject()
       .addKeyValuePair( "directionalLightEntityCount", 1 )
-      .addKeyValuePair( "meshEntityCount", meshEntities.size() )
+      .addKeyValuePair( "meshEntityCount", static_cast<uint32_t>( meshEntities.size() ) )
       .addKeyValuePair( "pointLightEntityCount", scene->getLightCount( kogayonon_resources::LightType::Point ) )
       .addKeyValuePair( "path", finalPath )
-      .endMap();
+      .endObject();
     //clang-format on
 
     // lower size loads first then bigger size follows
@@ -751,10 +779,7 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
       return sizeA < sizeB;
     } );
 
-    // go through each entity with mesh component
-    sceneYamlSerializer->beginMap();
-
-    sceneYamlSerializer->addKey( "meshEntities" ).beginSeq();
+    sceneJsonSerializer->startArray( "meshEntities" );
     for ( auto& entity : meshEntities )
     {
       Entity ent{ scene->getRegistry(), entity };
@@ -764,46 +789,69 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
       const auto& identifierComponent = ent.getComponent<IdentifierComponent>();
 
       // clang-format off
-      sceneYamlSerializer->
-          beginMap()
-            .addKeyValuePair("identifierComponent",identifierComponent)
-            .addKeyValuePair("transformComponent",transformComponent)
-            .addKeyValuePair("meshPath",modelPath)
-          .endMap();
+      sceneJsonSerializer->startObject()
+          .startObject("identifierComponent")
+              .addKeyValuePair("name",identifierComponent.name)
+              .addKeyValuePair("group",identifierComponent.group)
+              .addKeyValuePair("type",typeToString(identifierComponent.type))
+          .endObject()
+          .startObject("transformComponent")
+              .addKeyValuePair("rotation",transformComponent.rotation)
+              .addKeyValuePair("scale",transformComponent.scale)
+              .addKeyValuePair("translation",transformComponent.translation)
+          .endObject()
+
+          .addKeyValuePair("meshPath",modelPath)
+          .endObject();
       // clang-format on
     }
-    sceneYamlSerializer->endSeq();
+    // sceneYamlSerializer->endSeq();
+    sceneJsonSerializer->endArray();
 
-    sceneYamlSerializer->addKey( "pointLightEntities" ).beginSeq();
+    // sceneYamlSerializer->addKey( "pointLightEntities" ).beginSeq();
+    sceneJsonSerializer->startArray( "pointLightEntities" );
     scene->getRegistry()->getRegistry().view<IdentifierComponent, PointLightComponent>().each(
       [&]( const auto& entity, auto& identifierComponent, auto& pointlightComponent ) {
         const auto& light = scene->getPointLight( pointlightComponent.pointLightIndex );
         // clang-format off
-        sceneYamlSerializer->
-          beginMap()
-          .addKeyValuePair("pointLight",light)
-          .endMap();
+        sceneJsonSerializer->startObject()
+                .addKeyValuePair("color",light.color)
+                .addKeyValuePair("ambient",light.ambient)
+                .addKeyValuePair("diffuse",light.diffuse)
+                .addKeyValuePair("params",light.params)
+                .addKeyValuePair("specular",light.specular)
+                .addKeyValuePair("translation",light.translation)
+            .endObject();
         // clang-format on
       } );
-    sceneYamlSerializer->endSeq();
+    // sceneYamlSerializer->endSeq();
+    sceneJsonSerializer->endArray();
 
-    sceneYamlSerializer->addKey( "directionalLightEntities" ).beginSeq();
+    // sceneYamlSerializer->addKey( "directionalLightEntities" ).beginSeq();
+    sceneJsonSerializer->startArray( "directionalLightEntities" );
     scene->getRegistry()->getRegistry().view<IdentifierComponent, DirectionalLightComponent>().each(
       [&]( const auto& entity, auto& identifierComponent, auto& directionalLightComponent ) {
         auto& light = scene->getDirectionalLight( directionalLightComponent.directionalLightIndex );
 
         // clang-format off
-        sceneYamlSerializer->
-            beginMap()
-              .addKeyValuePair("directionalLightComponent",directionalLightComponent)
-              .addKeyValuePair("directionalLight",light)
-          .endMap();
+        sceneJsonSerializer->startObject()
+                .startObject("directionalLightComponent")
+                    .addKeyValuePair("orthoSize",directionalLightComponent.orthoSize)
+                    .addKeyValuePair("nearPlane",directionalLightComponent.nearPlane)
+                    .addKeyValuePair("farPlane",directionalLightComponent.farPlane)
+                    .addKeyValuePair("positionFactor",directionalLightComponent.positionFactor)
+                .endObject()
+            .startObject("directionalLight")
+                    .addKeyValuePair("diffuse",light.diffuse)
+                    .addKeyValuePair("specular",light.specular)
+                    .addKeyValuePair("direction",light.direction)
+            .endObject()
+            .endObject();
         // clang-format on
       } );
-    sceneYamlSerializer->endSeq();
-    sceneYamlSerializer->endMap();
+    sceneJsonSerializer->endArray().endDocument();
   }
-  sceneYamlSerializer->writeToFile();
-  projectYamlSerializer->endSeq().endMap();
+  projectJsonSerializer->endArray().endObject();
+  projectJsonSerializer->endDocument();
 }
 } // namespace kogayonon_app
