@@ -4,8 +4,11 @@
 namespace kogayonon_resources
 {
 
-Mesh::Mesh( const std::string& path, const std::vector<Vertex>&& vertices, const std::vector<uint32_t>&& indices,
-            const std::vector<Texture*>&& textures, const std::vector<Submesh>&& submeshes )
+Mesh::Mesh( const std::string& path,
+            const std::vector<Vertex>&& vertices,
+            const std::vector<uint32_t>&& indices,
+            const std::vector<Texture*>&& textures,
+            const std::vector<Submesh>&& submeshes )
     : m_path{ path }
     , m_vertices{ vertices }
     , m_indices{ indices }
@@ -17,7 +20,31 @@ Mesh::Mesh( const std::string& path, const std::vector<Vertex>&& vertices, const
 {
 }
 
-Mesh::Mesh( const std::string& path, const std::vector<Vertex>&& vertices, const std::vector<uint32_t>&& indices,
+Mesh::Mesh( const std::string& path,
+            const std::vector<Vertex>&& vertices,
+            const std::vector<uint32_t>&& indices,
+            const std::vector<Texture*>&& textures,
+            const std::vector<Submesh>&& submeshes,
+            std::optional<kogayonon_resources::Skeleton> skeleton )
+    : m_path{ path }
+    , m_vertices{ vertices }
+    , m_indices{ indices }
+    , m_textures{ textures }
+    , m_submeshes{ submeshes }
+    , m_vao{ 0 }
+    , m_vbo{ 0 }
+    , m_ebo{ 0 }
+{
+  if ( skeleton )
+  {
+    m_skeleton = *skeleton;
+    m_hasSkeleton = true;
+  }
+}
+
+Mesh::Mesh( const std::string& path,
+            const std::vector<Vertex>&& vertices,
+            const std::vector<uint32_t>&& indices,
             const std::vector<Submesh>&& submeshes )
     : m_path{ path }
     , m_vertices{ vertices }

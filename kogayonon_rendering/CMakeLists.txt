@@ -7,6 +7,7 @@ add_library(kogayonon_rendering
 "include/rendering/renderer.hpp"
 "include/rendering/shader_storagebuffer.hpp"
 "include/rendering/uniformbuffer.hpp"
+"include/rendering/skeleton_uniformbuffer.hpp"
 
 "src/camera.cpp" 
 "src/framebuffer.cpp"
@@ -14,6 +15,6 @@ add_library(kogayonon_rendering
 "src/light_shader_storagebuffer.cpp"
 "src/opengl_framebuffer.cpp"
 "src/renderer.cpp"
-)
+ "src/skeleton_uniformbuffer.cpp")
 target_include_directories(kogayonon_rendering PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(kogayonon_rendering PUBLIC glad PRIVATE kogayonon_utilities kogayonon_resources spdlog::spdlog glm::glm-header-only)

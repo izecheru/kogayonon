@@ -79,13 +79,20 @@ public:
   auto renderPickingPass( FrameContext& frame, PickingPassContext& pass ) -> int;
 
 private:
-  void renderOutlinedEntity( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection,
-                             kogayonon_utilities::Shader* shader, uint32_t* depthMap );
+  void renderOutlinedEntity( Scene* scene,
+                             glm::mat4* viewMatrix,
+                             glm::mat4* projection,
+                             kogayonon_utilities::Shader* shader,
+                             uint32_t* depthMap );
 
   void render( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection, kogayonon_utilities::Shader* shader );
 
-  void renderWithDepth( Scene* scene, glm::mat4* viewMatrix, glm::mat4* projection, glm::mat4* lightSpaceMatrix,
-                        kogayonon_utilities::Shader* shader, uint32_t* depthMap );
+  void renderWithDepth( Scene* scene,
+                        glm::mat4* viewMatrix,
+                        glm::mat4* projection,
+                        glm::mat4* lightSpaceMatrix,
+                        kogayonon_utilities::Shader* shader,
+                        uint32_t* depthMap );
 
   void begin( kogayonon_utilities::Shader* shader ) const;
   void end( kogayonon_utilities::Shader* shader ) const;
@@ -103,7 +110,8 @@ private:
   void makeMeshesUnique( Scene* scene, std::vector<kogayonon_resources::Mesh*>& orderedMeshes );
   void drawMeshes( Scene* scene, const std::vector<kogayonon_resources::Mesh*>& orderedMeshes );
 
-  void drawMeshesWithDepth( Scene* scene, const std::vector<kogayonon_resources::Mesh*>& orderedMeshes,
+  void drawMeshesWithDepth( Scene* scene,
+                            const std::vector<kogayonon_resources::Mesh*>& orderedMeshes,
                             const uint32_t* depthMap );
 };
 } // namespace kogayonon_core

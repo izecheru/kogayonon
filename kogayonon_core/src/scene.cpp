@@ -295,29 +295,29 @@ void Scene::setupInstances( InstanceData* data )
 
   glVertexArrayVertexBuffer( vao, 1, data->instanceBuffer, 0, sizeof( GPUInstance ) );
 
-  glEnableVertexArrayAttrib( vao, 3 );
-  glEnableVertexArrayAttrib( vao, 4 );
   glEnableVertexArrayAttrib( vao, 5 );
   glEnableVertexArrayAttrib( vao, 6 );
   glEnableVertexArrayAttrib( vao, 7 );
   glEnableVertexArrayAttrib( vao, 8 );
+  glEnableVertexArrayAttrib( vao, 9 );
+  glEnableVertexArrayAttrib( vao, 10 );
 
-  glVertexArrayAttribIFormat( vao, 3, 1, GL_UNSIGNED_INT, offsetof( GPUInstance, selected ) );
-  glVertexArrayAttribIFormat( vao, 4, 1, GL_INT, offsetof( GPUInstance, entityId ) );
+  glVertexArrayAttribIFormat( vao, 5, 1, GL_UNSIGNED_INT, offsetof( GPUInstance, selected ) );
+  glVertexArrayAttribIFormat( vao, 6, 1, GL_INT, offsetof( GPUInstance, entityId ) );
 
   std::size_t matrixOffset = offsetof( GPUInstance, instanceMatrix );
 
   for ( auto i = 0u; i < 4; i++ )
   {
-    glVertexArrayAttribFormat( vao, 5 + i, 4, GL_FLOAT, GL_FALSE, matrixOffset + i * sizeof( glm::vec4 ) );
+    glVertexArrayAttribFormat( vao, 7 + i, 4, GL_FLOAT, GL_FALSE, matrixOffset + i * sizeof( glm::vec4 ) );
   }
 
-  glVertexArrayAttribBinding( vao, 3, 1 );
-  glVertexArrayAttribBinding( vao, 4, 1 );
   glVertexArrayAttribBinding( vao, 5, 1 );
   glVertexArrayAttribBinding( vao, 6, 1 );
   glVertexArrayAttribBinding( vao, 7, 1 );
   glVertexArrayAttribBinding( vao, 8, 1 );
+  glVertexArrayAttribBinding( vao, 9, 1 );
+  glVertexArrayAttribBinding( vao, 10, 1 );
 
   glVertexArrayBindingDivisor( vao, 1, 1 );
 }

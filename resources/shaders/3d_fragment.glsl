@@ -1,5 +1,11 @@
 #version 460 core
 
+struct Bone
+{
+
+};
+
+
 struct PointLight {
     vec4 translation;
     vec4 ambient;

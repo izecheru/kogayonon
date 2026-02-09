@@ -686,8 +686,6 @@ void App::onProjectLoad( const kogayonon_core::ProjectLoadEvent& e )
     }
 
     SceneManager::addScene( scene_ );
-
-    // we do this just for testing purposes since we know that we have only one scene in the kscene file
     SceneManager::setCurrentScene( scene_->getName() );
   }
 }
@@ -747,7 +745,6 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
   // serialize every scene
   for ( const auto& [name, scene] : scenes )
   {
-
     auto finalPath = std::format( "{}\\{}.json", scenesDirPath.string(), scene->getName().c_str() );
 
     const auto& meshView = scene->getEnttRegistry().view<MeshComponent>();
@@ -805,10 +802,8 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
           .endObject();
       // clang-format on
     }
-    // sceneYamlSerializer->endSeq();
     sceneJsonSerializer->endArray();
 
-    // sceneYamlSerializer->addKey( "pointLightEntities" ).beginSeq();
     sceneJsonSerializer->startArray( "pointLightEntities" );
     scene->getRegistry()->getRegistry().view<IdentifierComponent, PointLightComponent>().each(
       [&]( const auto& entity, auto& identifierComponent, auto& pointlightComponent ) {
@@ -824,10 +819,8 @@ void App::onWindowClose( const kogayonon_core::WindowCloseEvent& e )
             .endObject();
         // clang-format on
       } );
-    // sceneYamlSerializer->endSeq();
     sceneJsonSerializer->endArray();
 
-    // sceneYamlSerializer->addKey( "directionalLightEntities" ).beginSeq();
     sceneJsonSerializer->startArray( "directionalLightEntities" );
     scene->getRegistry()->getRegistry().view<IdentifierComponent, DirectionalLightComponent>().each(
       [&]( const auto& entity, auto& identifierComponent, auto& directionalLightComponent ) {

@@ -8,9 +8,18 @@
 #include "resources/mesh.hpp"
 #include "resources/texture.hpp"
 
+namespace kogayonon_resources
+{
+struct Skeleton;
+struct Joint;
+} // namespace kogayonon_resources
+// forward declarations of cgltf types
 struct cgltf_primitive;
 struct cgltf_accessor;
 struct cgltf_material;
+struct cgltf_skin;
+struct cgltf_node;
+struct cgltf_data;
 
 namespace kogayonon_utilities
 {
@@ -45,9 +54,9 @@ public:
     -> std::weak_ptr<kogayonon_resources::Texture>;
 
   /**
-   * @brief Deletes a texture from the loaded map, even though we index with texture name which is not actual filename,
-   * we will loop through the map with an iterator it and look if the path == it->second->getPath() since we store the
-   * path in the texture object
+   * @brief Deletes a texture from the loaded map, even though we index with texture name which is not actual
+   * filename, we will loop through the map with an iterator it and look if the path == it->second->getPath() since we
+   * store the path in the texture object
    * @param path Path of the texture file
    */
   void removeTexture( const std::string& path );
@@ -78,8 +87,30 @@ private:
   AssetManager( AssetManager&& ) = delete;
   AssetManager& operator=( AssetManager&& ) = delete;
 
-  void parseVertices( cgltf_primitive& primitive, std::vector<glm::vec3>& positions, std::vector<glm::vec3>& normals,
-                      std::vector<glm::vec2>& tex_coords, const glm::mat4& transformation ) const;
+  void parseVertices( cgltf_primitive& primitive,
+                      std::vector<glm::vec3>& positions,
+                      std::vector<glm::vec3>& normals,
+                      std::vector<glm::vec2>& tex_coords,
+                      std::vector<glm::ivec4>& jointIndices,
+                      std::vector<glm::vec4>& weights,
+                      const glm::mat4& transformation ) const;
+
+  auto getSkeleton( cgltf_data* data, cgltf_skin& skin, const glm::mat4& globalTransform )
+    -> kogayonon_resources::Skeleton;
+  auto isJointInSkin( const cgltf_skin& skin, const cgltf_node* node ) -> bool;
+  auto getJointTransform( const cgltf_node* node ) -> kogayonon_resources::JointTransform;
+  auto getJointId( const cgltf_data* data, const cgltf_node* node ) -> uint32_t;
+  auto getInverseBindMatrices( const cgltf_data*, const cgltf_skin& skin ) -> std::vector<glm::mat4>;
+
+  /**
+   * @brief Traverse entire tree from the bone to the root node and calculate the global pose matrix recursively
+   * @param bone
+   * @return
+   */
+  auto getGlobalPose( kogayonon_resources::Joint& bone ) -> glm::mat4;
+  auto calculateGlobalPoses( kogayonon_resources::Skeleton& skeleton );
+
+  void parseAnimations( cgltf_primitive& primitive );
 
   void parseIndices( cgltf_accessor* accessor, std::vector<uint32_t>& indices ) const;
 

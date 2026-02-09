@@ -1,11 +1,11 @@
 #pragma once
 #include <condition_variable>
-
 #include <atomic>
 #include <functional>
 #include <future>
 #include <mutex>
 #include <queue>
+#include <spdlog/spdlog.h>
 #include <thread>
 #include <type_traits>
 #include <vector>
@@ -31,7 +31,16 @@ public:
       {
         throw std::runtime_error( "Thread pool is stopped" );
       }
-      m_tasks.emplace( [p_task]() { ( *p_task )(); } );
+      m_tasks.emplace( [p_task]() {
+        try
+        {
+          ( *p_task )();
+        }
+        catch ( std::exception& e )
+        {
+          spdlog::error( "Exception happened {}", e.what() );
+        }
+      } );
     }
     m_cvar.notify_one();
     return p_task->get_future();

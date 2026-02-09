@@ -135,7 +135,6 @@ void RenderingSystem::drawMeshesWithDepth( Scene* scene,
   {
     if ( !mesh )
       continue;
-
     glBindVertexArray( mesh->getVao() );
     const auto& textures = mesh->getTextures();
     for ( int i = 0; i < textures.size(); i++ )
@@ -211,6 +210,20 @@ void RenderingSystem::renderWithDepth( Scene* scene,
   shader->setMat4( "projection", *projection );
   shader->setMat4( "view", *viewMatrix );
   shader->setMat4( "lightVP", *lightSpaceMatrix );
+
+  if ( orderedMeshes.size() > 0 )
+  {
+    auto bones = orderedMeshes.at( 0 )->getBones();
+    if ( bones )
+    {
+
+      for ( int i = 0; i < bones->size(); i++ )
+      {
+        std::string name = "uBones[" + std::to_string( i ) + "]";
+        shader->setMat4( name.c_str(), bones->at( i ) );
+      }
+    }
+  }
 
   drawMeshesWithDepth( scene, orderedMeshes, depthMap );
 

@@ -295,7 +295,7 @@ void ImGuiManager::mainMenu()
   ImGui::EndMainMenuBar();
 
   if ( m_popups.configPopup )
-    ImGui::OpenPopup( "CONFIG" );
+    ImGui::OpenPopup( "Config" );
 }
 
 ImGuiManager::ImGuiWindows_Map& ImGuiManager::getWindows()
@@ -306,7 +306,7 @@ ImGuiManager::ImGuiWindows_Map& ImGuiManager::getWindows()
 void ImGuiManager::configPopup()
 {
   ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2{ 20.0f, 20.0f } );
-  if ( ImGui::BeginPopupModal( "CONFIG", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDocking ) )
+  if ( ImGui::BeginPopupModal( "Config", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDocking ) )
   {
     auto& config = kogayonon_utilities::Configurator::getConfig();
     ImGui::SeparatorText( "File filters" );

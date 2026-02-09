@@ -46,7 +46,7 @@ public:
   auto saveVec3( const glm::vec3& vec ) -> JsonSerializer&;
   auto saveVec4( const glm::vec4& vec ) -> JsonSerializer&;
 
-  auto saveVec3( const std::string& key, const glm::vec4& vec ) -> JsonSerializer&;
+  auto saveVec3( const std::string& key, const glm::vec3& vec ) -> JsonSerializer&;
   auto saveVec4( const std::string& key, const glm::vec4& vec ) -> JsonSerializer&;
 
   template <typename T>
