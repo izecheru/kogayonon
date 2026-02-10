@@ -50,24 +50,25 @@ public:
   auto getIndices() -> std::vector<uint32_t>&;
   auto getTextures() -> std::vector<Texture*>&;
   auto getSubmeshes() -> std::vector<Submesh>&;
+  auto getSkeleton() -> Skeleton&;
 
   auto getPath() -> std::string&
   {
     return m_path;
   }
 
-  auto getBones() -> std::optional<std::vector<glm::mat4>>
-  {
-    if ( !m_hasSkeleton )
-      return {};
+  //auto getBones() -> std::optional<std::vector<glm::mat4>>
+  //{
+  //  // if ( !m_hasSkeleton )
+  //  //   return {};
 
-    std::vector<glm::mat4> bonesMatrices;
-    for ( auto& bone : m_skeleton.joints )
-    {
-      bonesMatrices.emplace_back( bone.offsetMatrix );
-    }
-    return bonesMatrices;
-  }
+  //  // std::vector<glm::mat4> bonesMatrices;
+  //  // for ( auto& bone : m_skeleton.joints )
+  //  //{
+  //  //   bonesMatrices.emplace_back( bone.offsetMatrix );
+  //  // }
+  //  // return bonesMatrices;
+  //}
 
   auto getVao() -> uint32_t&;
   auto getVbo() -> uint32_t&;

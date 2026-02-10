@@ -394,7 +394,7 @@ void EntityPropertiesWindow::manageModelPayload( const ImGuiPayload* payload )
     return;
 
   const auto& extension = p.extension().string();
-  if ( extension.find( ".gltf" ) != std::string::npos )
+  if ( extension.find( ".gltf" ) != std::string::npos || extension.find( ".fbx" ) != std::string::npos )
   {
     const auto& pTaskManager = MainRegistry::getInstance().getTaskManager();
 

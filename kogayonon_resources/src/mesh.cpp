@@ -91,4 +91,9 @@ auto Mesh::getSubmeshes() -> std::vector<Submesh>&
   return m_submeshes;
 }
 
+auto Mesh::getSkeleton() -> Skeleton&
+{
+  return m_skeleton;
+}
+
 } // namespace kogayonon_resources

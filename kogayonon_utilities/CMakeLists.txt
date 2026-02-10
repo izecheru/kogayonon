@@ -10,6 +10,8 @@ add_library(
   "include/utilities/input/mouse_codes.hpp"
   "include/utilities/configurator/configurator.hpp"
   "include/utilities/asset_manager/asset_manager.hpp"
+  "include/utilities/asset_manager/cgltf_loader.hpp"
+  "include/utilities/asset_manager/assimp_loader.hpp"
   "include/utilities/time_tracker/time_tracker.hpp"
   "include/utilities/utils/utils.hpp"
   "include/utilities/script/script_compiler.hpp"
@@ -28,20 +30,21 @@ add_library(
  "src/script_compiler.cpp"
  "src/script.cpp"
  "src/yaml_serializer.cpp" 
- "src/json_serializer.cpp")
+ "src/json_serializer.cpp" "src/assimp_loader.cpp" "src/cgltf_loader.cpp")
 
 target_include_directories(kogayonon_utilities
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
                            PRIVATE ${SOL2_INCLUDE_DIRS})
 
-target_link_libraries(kogayonon_utilities PRIVATE
+target_link_libraries(kogayonon_utilities PUBLIC cgltf 
+ PRIVATE
 glm::glm-header-only 
 kogayonon_resources 
 yaml-cpp::yaml-cpp
 spdlog::spdlog 
-cgltf 
 lua 
 glad 
 rapidjson
 soil2 
+assimp::assimp
 )

@@ -140,9 +140,9 @@ void RenderingSystem::drawMeshesWithDepth( Scene* scene,
     for ( int i = 0; i < textures.size(); i++ )
     {
       // bind the texture we need (this is bad)
-      glBindTextureUnit( 3, textures.at( i )->getTextureId() );
+      glBindTextureUnit( 4, textures.at( i )->getTextureId() );
     }
-    glBindTextureUnit( 4, *depthMap );
+    glBindTextureUnit( 5, *depthMap );
 
     auto instanceData = scene->getData( mesh );
     auto& submeshes = mesh->getSubmeshes();
@@ -173,7 +173,7 @@ void RenderingSystem::drawMeshes( Scene* scene, const std::vector<kogayonon_reso
     for ( int i = 0; i < textures.size(); i++ )
     {
       // bind the texture we need (this is bad)
-      glBindTextureUnit( 3, textures.at( i )->getTextureId() );
+      glBindTextureUnit( 4, textures.at( i )->getTextureId() );
     }
 
     auto instanceData = scene->getData( mesh );
@@ -211,19 +211,19 @@ void RenderingSystem::renderWithDepth( Scene* scene,
   shader->setMat4( "view", *viewMatrix );
   shader->setMat4( "lightVP", *lightSpaceMatrix );
 
-  if ( orderedMeshes.size() > 0 )
-  {
-    auto bones = orderedMeshes.at( 0 )->getBones();
-    if ( bones )
-    {
+  // if ( orderedMeshes.size() > 0 )
+  //{
+  //   auto bones = orderedMeshes.at( 0 )->getBones();
+  //   if ( bones )
+  //   {
 
-      for ( int i = 0; i < bones->size(); i++ )
-      {
-        std::string name = "uBones[" + std::to_string( i ) + "]";
-        shader->setMat4( name.c_str(), bones->at( i ) );
-      }
-    }
-  }
+  //    for ( int i = 0; i < bones->size(); i++ )
+  //    {
+  //      std::string name = "uBones[" + std::to_string( i ) + "]";
+  //      shader->setMat4( name.c_str(), bones->at( i ) );
+  //    }
+  //  }
+  //}
 
   drawMeshesWithDepth( scene, orderedMeshes, depthMap );
 

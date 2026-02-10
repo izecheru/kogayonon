@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include "resources/mesh.hpp"
 #include "resources/texture.hpp"
+#include "utilities/asset_manager/cgltf_loader.hpp"
 
 namespace kogayonon_resources
 {
@@ -23,6 +24,8 @@ struct cgltf_data;
 
 namespace kogayonon_utilities
 {
+class AssimpLoader;
+
 class AssetManager
 {
 public:
@@ -87,39 +90,23 @@ private:
   AssetManager( AssetManager&& ) = delete;
   AssetManager& operator=( AssetManager&& ) = delete;
 
-  void parseVertices( cgltf_primitive& primitive,
-                      std::vector<glm::vec3>& positions,
-                      std::vector<glm::vec3>& normals,
-                      std::vector<glm::vec2>& tex_coords,
-                      std::vector<glm::ivec4>& jointIndices,
-                      std::vector<glm::vec4>& weights,
-                      const glm::mat4& transformation ) const;
+  auto loadCgltfFile( const std::string& path ) -> cgltf_data*;
+  void freeCgltf( cgltf_data* data );
 
   auto getSkeleton( cgltf_data* data, cgltf_skin& skin, const glm::mat4& globalTransform )
     -> kogayonon_resources::Skeleton;
   auto isJointInSkin( const cgltf_skin& skin, const cgltf_node* node ) -> bool;
-  auto getJointTransform( const cgltf_node* node ) -> kogayonon_resources::JointTransform;
-  auto getJointId( const cgltf_data* data, const cgltf_node* node ) -> uint32_t;
+  auto getJointTransform( const cgltf_node* node ) -> glm::mat4;
+  auto getJointId( cgltf_node* target, cgltf_node* allNodes, unsigned int numNodes ) -> int;
   auto getInverseBindMatrices( const cgltf_data*, const cgltf_skin& skin ) -> std::vector<glm::mat4>;
-
-  /**
-   * @brief Traverse entire tree from the bone to the root node and calculate the global pose matrix recursively
-   * @param bone
-   * @return
-   */
-  auto getGlobalPose( kogayonon_resources::Joint& bone ) -> glm::mat4;
-  auto calculateGlobalPoses( kogayonon_resources::Skeleton& skeleton );
-
-  void parseAnimations( cgltf_primitive& primitive );
-
-  void parseIndices( cgltf_accessor* accessor, std::vector<uint32_t>& indices ) const;
-
-  void parseTextures( const cgltf_material* material, std::vector<kogayonon_resources::Texture*>& textures );
 
   std::thread m_watchThread{};
   std::mutex m_assetMutex{};
 
   std::unordered_map<std::string, std::shared_ptr<kogayonon_resources::Texture>> m_loadedTextures;
   std::unordered_map<std::string, std::shared_ptr<kogayonon_resources::Mesh>> m_loadedMeshes;
+
+  std::shared_ptr<AssimpLoader> m_assimpLoader;
+  std::shared_ptr<CgltfLoader> m_cgltfLoader;
 };
 } // namespace kogayonon_utilities

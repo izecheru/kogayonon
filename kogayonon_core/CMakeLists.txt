@@ -43,6 +43,6 @@ target_include_directories(kogayonon_core
 
 target_link_libraries(
   kogayonon_core
-  PUBLIC EnTT::EnTT glm::glm-header-only kogayonon_physics lua
+  PUBLIC EnTT::EnTT glm::glm-header-only kogayonon_physics lua 
   PRIVATE  soil2 kogayonon_utilities kogayonon_rendering spdlog::spdlog kogayonon_resources glad kogayonon_window yaml-cpp::yaml-cpp
 )

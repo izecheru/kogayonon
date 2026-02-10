@@ -11,6 +11,7 @@ layout(location = 5) in uint aSelected;
 uniform mat4 view;
 uniform mat4 projection;
 uniform mat4 lightVP;
+
 // this no longer is instanced but i'll leave the variable name the same
 uniform mat4 instanceMatrix;
 

@@ -7,12 +7,15 @@
 #include <spdlog/spdlog.h>
 #include "resources/texture.hpp"
 #include "resources/vertex.hpp"
+#include "utilities/asset_manager/assimp_loader.hpp"
+
 using namespace kogayonon_resources;
 
 namespace kogayonon_utilities
 {
 
 AssetManager::AssetManager()
+    : m_assimpLoader{ std::make_shared<AssimpLoader>() }
 {
 }
 
@@ -115,6 +118,59 @@ auto AssetManager::addTexture( const std::string& textureName, const std::string
   return m_loadedTextures.at( texturePath ).get();
 }
 
+auto AssetManager::loadCgltfFile( const std::string& path ) -> cgltf_data*
+{
+  cgltf_options options{};
+  cgltf_data* data = nullptr;
+
+  // Parse GLTF
+  if ( cgltf_parse_file( &options, path.c_str(), &data ) != cgltf_result_success )
+  {
+    spdlog::error( "Failed to parse GLTF {} ", path );
+    cgltf_free( data );
+    return nullptr;
+  }
+
+  if ( cgltf_load_buffers( &options, data, path.c_str() ) != cgltf_result_success )
+  {
+    spdlog::error( "Failed to load GLTF buffers {} ", path );
+    cgltf_free( data );
+    return nullptr;
+  }
+
+  if ( cgltf_validate( data ) != cgltf_result_success )
+  {
+    spdlog::error( "GLTF validation failed {} ", path );
+    cgltf_free( data );
+    return nullptr;
+  }
+  return data;
+}
+
+void AssetManager::freeCgltf( cgltf_data* data )
+{
+  if ( data )
+  {
+    cgltf_free( data );
+  }
+}
+
+int getNodeId( cgltf_node* target, cgltf_node* allNodes, unsigned int numNodes )
+{
+  if ( target == 0 )
+  {
+    return -1;
+  }
+  for ( unsigned int i = 0; i < numNodes; ++i )
+  {
+    if ( target == &allNodes[i] )
+    {
+      return (int)i;
+    }
+  }
+  return -1;
+}
+
 auto AssetManager::addMesh( const std::string& meshName, const std::string& meshPath ) -> Mesh*
 {
   std::lock_guard lock{ m_assetMutex };
@@ -126,122 +182,12 @@ auto AssetManager::addMesh( const std::string& meshName, const std::string& mesh
   }
 
   assert( std::filesystem::exists( meshPath ) && "mesh file does not exist" );
+  auto mesh = std::make_shared<Mesh>();
+  mesh->getPath() = meshPath;
 
-  cgltf_options options{};
-  cgltf_data* data = nullptr;
-
-  // Parse GLTF
-  if ( cgltf_parse_file( &options, meshPath.c_str(), &data ) != cgltf_result_success )
-  {
-    spdlog::error( "Failed to parse GLTF {} ", meshPath );
-    cgltf_free( data );
-    return {};
-  }
-
-  if ( cgltf_load_buffers( &options, data, meshPath.c_str() ) != cgltf_result_success )
-  {
-    spdlog::error( "Failed to load GLTF buffers {} ", meshPath );
-    cgltf_free( data );
-    return {};
-  }
-
-  if ( cgltf_validate( data ) != cgltf_result_success )
-  {
-    spdlog::error( "GLTF validation failed {} ", meshPath );
-    cgltf_free( data );
-    return {};
-  }
-
-  std::vector<Submesh> submeshes;
-  std::vector<Vertex> vertices;
-  std::vector<Texture*> textures;
-  std::vector<uint32_t> indices;
-  std::optional<Skeleton> skeleton;
-
-  for ( size_t i = 0; i < data->nodes_count; ++i )
-  {
-    auto& node = data->nodes[i];
-    if ( !node.mesh )
-      continue;
-
-    cgltf_mesh& mesh = *node.mesh;
-    auto transform = glm::mat4{ 1.0f };
-    if ( node.has_matrix )
-    {
-      transform = glm::make_mat4( node.matrix );
-    }
-    else
-    {
-      auto translation =
-        glm::translate( glm::mat4{ 1.0f }, glm::vec3{ node.translation[0], node.translation[1], node.translation[2] } );
-      auto rotation =
-        glm::mat4_cast( glm::quat{ node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2] } );
-      auto scale = glm::scale( glm::mat4{ 1.0f }, glm::vec3{ node.scale[0], node.scale[1], node.scale[2] } );
-      transform = translation * rotation * scale;
-    }
-
-    if ( node.skin )
-    {
-      cgltf_skin& cgltfSkin = *node.skin;
-      skeleton = getSkeleton( data, cgltfSkin, transform );
-    }
-
-    for ( size_t j = 0; j < mesh.primitives_count; ++j )
-    {
-      cgltf_primitive& primitive = mesh.primitives[j];
-
-      std::vector<glm::vec3> localPositions;
-      std::vector<glm::vec3> localNormals;
-      std::vector<glm::vec2> localTextureCoords;
-      std::vector<uint32_t> localIndices;
-      std::vector<glm::ivec4> localJointIndices;
-      std::vector<glm::vec4> localWeights;
-      std::vector<Vertex> localVertices;
-
-      parseVertices(
-        primitive, localPositions, localNormals, localTextureCoords, localJointIndices, localWeights, transform );
-
-      if ( primitive.indices )
-        parseIndices( primitive.indices, localIndices );
-
-      if ( primitive.material )
-        parseTextures( primitive.material, textures );
-
-      for ( size_t x = 0; x < localPositions.size(); ++x )
-      {
-        localVertices.emplace_back(
-          Vertex{ .translation = localPositions[x],
-                  .normal = ( x < localNormals.size() ) ? localNormals[x] : glm::vec3{ 0.0f },
-                  .textureCoords = ( x < localTextureCoords.size() ) ? localTextureCoords[x] : glm::vec2{ 0.0f },
-                  .jointIndices = localJointIndices.empty() ? glm::ivec4{ 1 } : localJointIndices[x],
-                  .weights = localWeights.empty() ? glm::vec4{ 1.0f } : localWeights[x] } );
-      }
-
-      uint32_t vertexOffset = static_cast<uint32_t>( vertices.size() );
-      uint32_t indexOffset = static_cast<uint32_t>( indices.size() );
-
-      vertices.insert( vertices.end(), localVertices.begin(), localVertices.end() );
-      indices.insert( indices.end(), localIndices.begin(), localIndices.end() );
-
-      submeshes.emplace_back( Submesh{ .vertexOffest = vertexOffset,
-                                       .indexOffset = indexOffset,
-                                       .indexCount = static_cast<uint32_t>( localIndices.size() ) } );
-    }
-  }
-
-  auto mesh_ =
-    !skeleton ? std::make_shared<Mesh>(
-                  meshPath, std::move( vertices ), std::move( indices ), std::move( textures ), std::move( submeshes ) )
-              : std::make_shared<Mesh>( meshPath,
-                                        std::move( vertices ),
-                                        std::move( indices ),
-                                        std::move( textures ),
-                                        std::move( submeshes ),
-                                        std::move( skeleton ) );
-
-  m_loadedMeshes.try_emplace( meshPath, mesh_ );
-
-  cgltf_free( data );
+  // m_assimpLoader->createMesh( meshPath, mesh.get() );
+  m_cgltfLoader->loadMesh( meshPath, mesh.get(), m_loadedTextures );
+  m_loadedMeshes.try_emplace( meshPath, mesh );
 
   spdlog::info( "Loaded mesh {} ", meshName );
   return getMesh( meshPath );
@@ -261,9 +207,20 @@ auto AssetManager::isJointInSkin( const cgltf_skin& skin, const cgltf_node* node
   return false;
 };
 
-auto AssetManager::getJointId( const cgltf_data* data, const cgltf_node* node ) -> uint32_t
+auto AssetManager::getJointId( cgltf_node* target, cgltf_node* allNodes, unsigned int numNodes ) -> int
 {
-  return static_cast<uint32_t>( node - data->nodes );
+  if ( target == 0 )
+  {
+    return -1;
+  }
+  for ( unsigned int i = 0; i < numNodes; ++i )
+  {
+    if ( target == &allNodes[i] )
+    {
+      return (int)i;
+    }
+  }
+  return -1;
 }
 
 auto AssetManager::getInverseBindMatrices( const cgltf_data*, const cgltf_skin& skin ) -> std::vector<glm::mat4>
@@ -286,44 +243,36 @@ auto AssetManager::getInverseBindMatrices( const cgltf_data*, const cgltf_skin& 
   return matrices;
 }
 
-auto AssetManager::getGlobalPose( kogayonon_resources::Joint& bone ) -> glm::mat4
-{
-  auto matrix = bone.localBindPose.getMatrix();
+// auto AssetManager::getGlobalPose( kogayonon_resources::Joint& bone ) -> glm::mat4
+//{
+//   auto matrix = bone.localBindPose.getMatrix();
+//
+//   // if bone is root return its matrix
+//   if ( !bone.parent )
+//     return matrix;
+//
+//   // recursive calculation
+//   // TODO serialize those matrices since they are the same unless you edit the model file
+//   return getGlobalPose( *bone.parent ) * matrix;
+// }
 
-  // if bone is root return its matrix
-  if ( !bone.parent )
-    return matrix;
-
-  // recursive calculation
-  // TODO serialize those matrices since they are the same unless you edit the model file
-  return getGlobalPose( *bone.parent ) * matrix;
-}
-
-auto AssetManager::calculateGlobalPoses( kogayonon_resources::Skeleton& skeleton )
-{
-  // iterate bones
-  for ( auto i = 0u; i < skeleton.joints.size(); i++ )
-  {
-    auto& joint = skeleton.joints.at( i );
-    if ( !joint.parent )
-    {
-      joint.worldMatrix = joint.localBindPose.getMatrix();
-    }
-    else
-    {
-      joint.worldMatrix = joint.parent->worldMatrix * joint.localBindPose.getMatrix();
-    }
-    joint.offsetMatrix = joint.worldMatrix * joint.inverseBindPose;
-  }
-}
-
-auto AssetManager::getJointTransform( const cgltf_node* node ) -> JointTransform
-{
-  auto translation = node->translation ? glm::make_vec3( node->translation ) : glm::vec3( 0.0f );
-  auto rotation = node->rotation ? glm::make_quat( node->rotation ) : glm::quat( 1.0f, 0.0f, 0.0f, 0.0f );
-  auto scale = node->scale ? glm::make_vec3( node->scale ) : glm::vec3( 1.0f );
-  return JointTransform{ .rotation = rotation, .translation = translation, .scale = 1.0f };
-}
+// auto AssetManager::calculateGlobalPoses( kogayonon_resources::Skeleton& skeleton )
+//{
+//   // iterate bones
+//   for ( auto i = 0u; i < skeleton.joints.size(); i++ )
+//   {
+//     auto& joint = skeleton.joints.at( i );
+//     if ( !joint.parent )
+//     {
+//       joint.worldMatrix = joint.localBindPose.getMatrix();
+//     }
+//     else
+//     {
+//       joint.worldMatrix = joint.parent->worldMatrix * joint.localBindPose.getMatrix();
+//     }
+//     joint.offsetMatrix = joint.worldMatrix * joint.inverseBindPose;
+//   }
+// }
 
 auto AssetManager::getSkeleton( cgltf_data* data, cgltf_skin& skin, const glm::mat4& globalTransform ) -> Skeleton
 {
@@ -336,18 +285,38 @@ auto AssetManager::getSkeleton( cgltf_data* data, cgltf_skin& skin, const glm::m
   //
   // jointMatrix is the final product of the two matrices above, global*inverse
   Skeleton skeleton;
-  skeleton.joints.resize( skin.joints_count );
   auto matrices = getInverseBindMatrices( data, skin );
-
-  std::unordered_map<std::string, std::vector<std::string>> r;
 
   for ( uint32_t i = 0; i < skin.joints_count; ++i )
   {
     auto& joint = skin.joints[i];
-    auto& skeletonJoint = skeleton.joints.at( i );
-    skeletonJoint.id = i;
-    skeletonJoint.localBindPose = getJointTransform( joint );
-    skeletonJoint.inverseBindPose = matrices.at( i );
+    auto jointId = getJointId( joint, data->nodes, data->nodes_count );
+    glm::vec3 translation( 0.0f );
+    glm::vec3 scale( 1.0f );
+    glm::quat rotation = glm::quat( 1.0f, 0.0f, 0.0f, 0.0f );
+    if ( joint->has_translation )
+    {
+      translation = glm::vec3( joint->translation[0], joint->translation[1], joint->translation[2] );
+    }
+
+    if ( joint->has_scale )
+    {
+
+      scale = glm::vec3( joint->scale[0], joint->scale[1], joint->scale[2] );
+    }
+
+    if ( joint->has_rotation )
+    {
+
+      rotation = glm::vec3( joint->rotation[0], joint->rotation[1], joint->rotation[2] );
+    }
+
+    skeleton.joints.push_back( Joint{ .id = jointId,
+                                      .name = joint->name,
+                                      .localMatrix = glm::translate( glm::mat4( 1.0f ), translation ) *
+                                                     glm::mat4_cast( rotation ) * glm::scale( glm::mat4( 1.0f ), scale )
+
+    } );
   }
 
   std::unordered_map<cgltf_node*, uint32_t> nodeToBone;
@@ -355,10 +324,7 @@ auto AssetManager::getSkeleton( cgltf_data* data, cgltf_skin& skin, const glm::m
   // map nodes to joint ids
   for ( uint32_t i = 0; i < skin.joints_count; ++i )
   {
-    if ( isJointInSkin( skin, skin.joints[i] ) )
-    {
-      nodeToBone[skin.joints[i]] = i;
-    }
+    nodeToBone[skin.joints[i]] = i;
   }
 
   for ( auto i = 0u; i < skin.joints_count; ++i )
@@ -386,7 +352,7 @@ auto AssetManager::getSkeleton( cgltf_data* data, cgltf_skin& skin, const glm::m
   // A global pose can be calculated by walking the hierarchy from the joint in question
   // towards the root and model-space origin, concatenating the child-to-parent (local) transforms
   // of each joint as we go.
-  calculateGlobalPoses( skeleton );
+  // calculateGlobalPoses( skeleton );
 
   return skeleton;
 }
@@ -499,150 +465,4 @@ auto AssetManager::getMesh( const std::string& meshPath ) -> Mesh*
   return m_loadedMeshes.at( meshPath ).get();
 }
 
-void AssetManager::parseVertices( cgltf_primitive& primitive,
-                                  std::vector<glm::vec3>& positions,
-                                  std::vector<glm::vec3>& normals,
-                                  std::vector<glm::vec2>& tex_coords,
-                                  std::vector<glm::ivec4>& jointIndices,
-                                  std::vector<glm::vec4>& weights,
-                                  const glm::mat4& transformation ) const
-{
-  for ( size_t index = 0; index < primitive.attributes_count; index++ )
-  {
-    cgltf_attribute& attribute = primitive.attributes[index];
-    cgltf_accessor* accessor = attribute.data;
-    cgltf_buffer_view* bufferView = accessor->buffer_view;
-    uint8_t* bufferData = (uint8_t*)bufferView->buffer->data + bufferView->offset;
-
-    size_t vertex_count = accessor->count;
-    size_t stride =
-      bufferView->stride ? bufferView->stride : cgltf_calc_size( accessor->type, accessor->component_type );
-    for ( size_t v = 0; v < vertex_count; v++ )
-    {
-      auto t_data = (float*)( bufferData + accessor->offset + v * stride );
-
-      switch ( attribute.type )
-      {
-      case cgltf_attribute_type_position:
-        glm::vec3 translation( t_data[0], t_data[1], t_data[2] );
-        // mesh local space, comment next line
-        // translation = glm::vec3( transformation * glm::vec4( translation, 1.0f ) );
-        positions.push_back( translation );
-        break;
-      case cgltf_attribute_type_normal:
-        glm::vec3 normal( t_data[0], t_data[1], t_data[2] );
-        // normal = glm::normalize( glm::mat3( transformation ) * normal );
-        normals.push_back( normal );
-        break;
-      case cgltf_attribute_type_texcoord:
-        tex_coords.push_back( glm::vec2( t_data[0], t_data[1] ) );
-        break;
-      case cgltf_attribute_type_joints:
-        uint32_t joints_[4];
-        if ( cgltf_accessor_read_uint( accessor, v, joints_, 4 ) )
-        {
-          jointIndices.push_back( { static_cast<int>( joints_[0] ),
-                                    static_cast<int>( joints_[1] ),
-                                    static_cast<int>( joints_[2] ),
-                                    static_cast<int>( joints_[3] ) } );
-        }
-        break;
-      case cgltf_attribute_type_weights:
-        float weights_[4];
-        if ( cgltf_accessor_read_float( accessor, v, weights_, 4 ) )
-        {
-          weights.push_back( { weights_[0], weights_[1], weights_[2], weights_[3] } );
-        }
-        break;
-      default:
-        break;
-      }
-    }
-  }
-}
-
-void AssetManager::parseIndices( cgltf_accessor* accessor, std::vector<uint32_t>& indices ) const
-{
-  cgltf_buffer_view* bufferView = accessor->buffer_view;
-  uint8_t* bufferData = (uint8_t*)bufferView->buffer->data + bufferView->offset;
-
-  for ( size_t i = 0; i < accessor->count; i++ )
-  {
-    uint32_t index = 0;
-    if ( accessor->component_type == cgltf_component_type_r_16u )
-    {
-      index = *( (uint16_t*)( bufferData + accessor->offset + i * sizeof( uint16_t ) ) );
-    }
-    else if ( accessor->component_type == cgltf_component_type_r_32u )
-    {
-      index = *( (uint32_t*)( bufferData + accessor->offset + i * sizeof( uint32_t ) ) );
-    }
-    else if ( accessor->component_type == cgltf_component_type_r_8u )
-    {
-      index = *( (uint8_t*)( bufferData + accessor->offset + i * sizeof( uint8_t ) ) );
-    }
-    indices.push_back( index );
-  }
-}
-
-void AssetManager::parseTextures( const cgltf_material* material, std::vector<Texture*>& textures )
-{
-  if ( !material )
-    return;
-
-  if ( material->normal_texture.texture && material->normal_texture.texture->image )
-  {
-    std::string uri = material->normal_texture.texture->image->uri;
-    std::filesystem::path texturePath = std::filesystem::absolute( "resources" ) / uri;
-    std::string textureName = texturePath.filename().string();
-
-    std::shared_ptr<Texture> texture;
-
-    if ( m_loadedTextures.contains( texturePath.string() ) )
-    {
-      texture = m_loadedTextures.at( texturePath.string() );
-    }
-    else
-    {
-      texture = std::make_shared<Texture>( texturePath.string(), textureName );
-
-      if ( !m_loadedTextures.contains( texturePath.string() ) )
-        m_loadedTextures.emplace( texturePath.string(), texture );
-    }
-
-    textures.push_back( texture.get() );
-  }
-
-  if ( material->has_pbr_metallic_roughness && material->pbr_metallic_roughness.base_color_texture.texture &&
-       material->pbr_metallic_roughness.base_color_texture.texture->image )
-  {
-    std::string uri = material->pbr_metallic_roughness.base_color_texture.texture->image->uri;
-    std::filesystem::path texturePath = std::filesystem::absolute( "resources" ) / uri;
-    std::string textureName = texturePath.filename().string();
-
-    std::shared_ptr<Texture> texture;
-
-    if ( m_loadedTextures.contains( texturePath.string() ) )
-    {
-      texture = m_loadedTextures.at( texturePath.string() );
-    }
-    else
-    {
-      texture = std::make_shared<Texture>( texturePath.string(), textureName );
-
-      if ( !m_loadedTextures.contains( texturePath.string() ) )
-        m_loadedTextures.emplace( texturePath.string(), texture );
-    }
-
-    textures.push_back( texture.get() );
-  }
-}
-
-void AssetManager::parseAnimations( cgltf_primitive& primitive )
-{
-  if ( primitive.attributes )
-  {
-    spdlog::debug( "name prim.attr :{}", primitive.attributes[0].name );
-  }
-}
 } // namespace kogayonon_utilities

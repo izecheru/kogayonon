@@ -34,6 +34,7 @@ find_package(tinyfiledialogs CONFIG REQUIRED)
 find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 find_package(benchmark CONFIG REQUIRED)
 find_package(rapidjson CONFIG REQUIRED)
+find_package(assimp CONFIG REQUIRED)
 
 add_subdirectory(dependencies/imgui)
 add_subdirectory(dependencies/glad)

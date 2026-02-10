@@ -1,11 +1,5 @@
 #version 460 core
 
-struct Bone
-{
-
-};
-
-
 struct PointLight {
     vec4 translation;
     vec4 ambient;
@@ -58,8 +52,8 @@ in vec3 FragPos;
 in vec3 ViewPos;
 flat in uint Selected;
 
-layout(binding = 3) uniform sampler2D u_Texture;
-layout(binding = 4) uniform sampler2D u_ShadowMap;
+layout(binding = 4) uniform sampler2D u_Texture;
+layout(binding = 5) uniform sampler2D u_ShadowMap;
 
 out vec4 FragColor;
 
