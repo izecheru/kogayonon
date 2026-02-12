@@ -281,9 +281,53 @@ void CgltfLoader::parseAnimations( cgltf_data* data )
   {
     auto& animation = data->animations[i];
     spdlog::info( "animation name {}", animation.name );
-    for ( auto j = 0u; j < animation.samplers_count; j++ )
+    for ( auto j = 0u; j < animation.channels_count; j++ )
     {
-      auto& sampler = animation.samplers[j];
+      auto& channel = animation.channels[j];
+      auto& sampler = channel.sampler;
+
+      // refers to a scalar floating-point accessor with keyframe times
+      auto* input = sampler->input;
+
+      for ( auto y = 0; y < input->count; ++y )
+      {
+        float result[1];
+        if ( cgltf_accessor_read_float( input, y, result, 1 ) )
+        {
+          // times are increasing so i got this right
+          spdlog::info( "{}", result[0] );
+        }
+      }
+      spdlog::info( "--------" );
+
+      // output is translation, rotation, scale
+      auto* output = sampler->output;
+
+      // target node that above property animated
+      auto& target = channel.target_node;
+
+      // type of target property animated
+      switch ( channel.target_path )
+      {
+      case cgltf_animation_path_type_translation:
+        float t[3];
+        cgltf_accessor_read_float( output, 0, t, 3 );
+        break;
+      case cgltf_animation_path_type_rotation:
+        // quaternion
+        float r[4];
+        cgltf_accessor_read_float( output, 0, r, 4 );
+        break;
+      case cgltf_animation_path_type_scale:
+        float s[3];
+        cgltf_accessor_read_float( output, 0, s, 3 );
+        break;
+      case cgltf_animation_path_type_weights:
+        spdlog::error( "weights are not implemented" );
+        break;
+      default:
+        spdlog::error( "something went wrong" );
+      }
     }
   }
 }
@@ -319,6 +363,22 @@ auto CgltfLoader::getNodeId( cgltf_node* target, cgltf_node* allNodes, unsigned 
   return -1;
 }
 
+auto CgltfLoader::getGlobalTransform( kogayonon_resources::Joint& joint ) -> glm::mat4
+{
+  if ( !joint.parent )
+    return joint.localMatrix;
+
+  return getGlobalTransform( *joint.parent ) * joint.localMatrix;
+}
+
+auto CgltfLoader::calculateGlobalMatrix( Skeleton& s )
+{
+  for ( auto& joint : s.joints )
+  {
+    joint.globalMatrix = getGlobalTransform( joint );
+  }
+}
+
 /**
  * @brief Recursively print the children of nodes to see if the hierachy coincides with the one from blender
  * @param joint The actual joint we are currently at
@@ -327,7 +387,7 @@ auto CgltfLoader::getNodeId( cgltf_node* target, cgltf_node* allNodes, unsigned 
 void CgltfLoader::printChildren( Joint* joint, uint32_t level )
 {
   std::string indent( level * 2, ' ' );
-  spdlog::info( "{} joint name {}", indent, joint->name );
+  spdlog::info( "{}{}", indent, joint->name );
 
   for ( auto& child : joint->children )
   {
@@ -357,6 +417,7 @@ auto CgltfLoader::loadSkeleton( cgltf_data* data, cgltf_skin* skin ) -> kogayono
     skeleton.gltfNodeIndex.push_back( getNodeId( joint, data->nodes, data->nodes_count ) );
   }
 
+  // setup hierarchy
   for ( auto i = 0u; i < skin->joints_count; i++ )
   {
     auto& joint = skin->joints[i];
@@ -387,10 +448,6 @@ auto CgltfLoader::loadSkeleton( cgltf_data* data, cgltf_skin* skin ) -> kogayono
 #endif
 
   return skeleton;
-}
-
-auto CgltfLoader::calculateMatrices( kogayonon_resources::Skeleton& skeleton )
-{
 }
 
 auto CgltfLoader::getInverseBindMatrices( cgltf_skin* skin ) -> std::vector<glm::mat4>

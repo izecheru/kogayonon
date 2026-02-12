@@ -50,10 +50,7 @@ void Configurator::parseConfig()
   // since only config lives in here the whole node is config
   m_config = doc.as<Config>();
 
-  spdlog::info( "Config file read...\n\tWidth {}\n\tHeight {}\n\tMaximized? {}\n",
-                m_config.width,
-                m_config.height,
-                m_config.maximized );
+  spdlog::info( "config loaded" );
   m_loaded = true;
 }
 } // namespace kogayonon_utilities
