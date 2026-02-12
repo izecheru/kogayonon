@@ -6,27 +6,38 @@
 #include <string>
 #include <thread>
 
+namespace kogayonon_core
+{
+enum FileEventType;
+}
+
 namespace kogayonon_utilities
 {
 class DirectoryWatcher
 {
-  using Callback = std::function<void( std::string, std::string )>;
+  using FileEventCallback = std::function<void( std::string, std::string, kogayonon_core::FileEventType type )>;
 
 public:
   DirectoryWatcher( std::filesystem::path root );
   ~DirectoryWatcher();
 
+  /**
+   * @brief Starts the directory watcher in the path pointed by the root param
+   * @param root
+   */
   void run( std::filesystem::path root );
 
-  void setCommand( const std::string& commandName, Callback callback )
+  /**
+   * @brief Sets the callback func
+   * @param callback
+   */
+  void setCallback( FileEventCallback callback )
   {
-    m_commands.emplace( commandName, callback );
+    m_eventCallbackFunc = callback;
   }
 
 private:
-
-  // string for name of command and callback for the emit event from event dispatcher
-  std::unordered_map<std::string, Callback> m_commands;
+  FileEventCallback m_eventCallbackFunc;
   std::thread m_watcherThread;
   std::mutex m_mutex;
   std::filesystem::path m_root;

@@ -39,7 +39,7 @@ void AssimpLoader::releaseScene()
   m_importer.FreeScene();
 }
 
-void AssimpLoader::createMesh( const std::string& path, kogayonon_resources::Mesh* m )
+void AssimpLoader::loadMesh( const std::string& path, kogayonon_resources::Mesh* m )
 {
   auto& vertices = m->getVertices();
   auto& indices = m->getIndices();

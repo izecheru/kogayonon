@@ -15,7 +15,7 @@ public:
   AssimpLoader();
   ~AssimpLoader();
 
-  void createMesh( const std::string& path, kogayonon_resources::Mesh* m );
+  void loadMesh( const std::string& path, kogayonon_resources::Mesh* m );
 
 private:
   auto readFile( const std::string& path ) -> const aiScene*;

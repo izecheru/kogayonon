@@ -28,37 +28,18 @@ FileExplorerWindow::FileExplorerWindow( const std::string& name )
 
   // installs the callback for the directory watcher
   // hotreloading textures or scripts and so on
-  installCommands();
+  setCallback();
 }
 
 void FileExplorerWindow::installHandlers()
 {
-  m_pDispatcher->addHandler<FileCreatedEvent, &FileExplorerWindow::onFileCreated>( *this );
-  m_pDispatcher->addHandler<FileRenamedEvent, &FileExplorerWindow::onFileRenamed>( *this );
-  m_pDispatcher->addHandler<FileDeletedEvent, &FileExplorerWindow::onFileDeleted>( *this );
-  m_pDispatcher->addHandler<FileModifiedEvent, &FileExplorerWindow::onFileModified>( *this );
+  m_pDispatcher->addHandler<FileEvent, &FileExplorerWindow::onFileEvent>( *this );
 }
 
-void FileExplorerWindow::installCommands()
+void FileExplorerWindow::setCallback()
 {
-  m_pDirWatcher->setCommand( "fileCreated", [this]( const std::string& path, const std::string& name ) {
-    FileCreatedEvent e( path, name );
-    m_pDispatcher->dispatchEvent<FileCreatedEvent>( e );
-  } );
-
-  m_pDirWatcher->setCommand( "fileDeleted", [this]( const std::string& path, const std::string& name ) {
-    FileDeletedEvent e( path, name );
-    m_pDispatcher->dispatchEvent<FileDeletedEvent>( e );
-  } );
-
-  m_pDirWatcher->setCommand( "fileRenamedNew", [this]( const std::string& path, const std::string& newName ) {
-    FileRenamedEvent e( path, "", newName );
-    m_pDispatcher->dispatchEvent<FileRenamedEvent>( e );
-  } );
-
-  m_pDirWatcher->setCommand( "fileModified", [this]( const std::string& path, const std::string& name ) {
-    FileModifiedEvent e( path, name );
-    m_pDispatcher->dispatchEvent<FileModifiedEvent>( e );
+  m_pDirWatcher->setCallback( [this]( const std::string& path, const std::string& name, const FileEventType& type ) {
+    m_pDispatcher->dispatchEvent<FileEvent>( FileEvent{ path, name, type } );
   } );
 }
 
@@ -69,35 +50,36 @@ bool FileExplorerWindow::isTexture( const std::string& path )
   return ext == ".jpg" || ext == ".png";
 }
 
-void FileExplorerWindow::onFileModified( FileModifiedEvent& e )
-{
-  if ( m_update == true )
-    return;
-  auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
-  pShaderManager->markForRecompilation( e.getPath() );
-  m_update.store( true );
-}
-
-void FileExplorerWindow::onFileCreated( FileCreatedEvent& e )
+void FileExplorerWindow::onFileEvent( FileEvent& e )
 {
   if ( m_update == true )
     return;
 
-  m_update.store( true );
-}
-
-void FileExplorerWindow::onFileDeleted( FileDeletedEvent& e )
-{
-  if ( m_update == true )
-    return;
-
-  m_update.store( true );
-}
-
-void FileExplorerWindow::onFileRenamed( FileRenamedEvent& e )
-{
-  if ( m_update == true )
-    return;
+  // handle all modify cases, currently we just do hot-load for shaders
+  switch ( e.getType() )
+  {
+    // handle all the modify functionality
+  case FileEventType::Modify: {
+    auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
+    pShaderManager->markForRecompilation( e.getPath() );
+  }
+  break;
+  case FileEventType::Create: {
+    spdlog::error( "not yet implemented" );
+  }
+  break;
+  case FileEventType::Rename: {
+    spdlog::error( "not yet implemented" );
+  }
+  break;
+  case FileEventType::Delete: {
+    spdlog::error( "not yet implemented" );
+  }
+  break;
+  default:
+    spdlog::error( "something went wrong, enum FileEventType does not support this value" );
+    break;
+  }
 
   m_update.store( true );
 }

@@ -3,7 +3,7 @@
 #include <optional>
 #include <string>
 #include <vector>
-#include "resources/skin.hpp"
+#include "resources/skeleton.hpp"
 #include "resources/texture.hpp"
 #include "resources/vertex.hpp"
 

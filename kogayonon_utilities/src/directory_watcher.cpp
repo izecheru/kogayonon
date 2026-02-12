@@ -14,9 +14,13 @@ DirectoryWatcher::DirectoryWatcher( std::filesystem::path root )
   m_overlapped.hEvent = CreateEvent( nullptr, FALSE, FALSE, nullptr );
 
   // Open handle to directory
-  m_dirHandle =
-    CreateFileW( m_root.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
-                 OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, nullptr );
+  m_dirHandle = CreateFileW( m_root.c_str(),
+                             FILE_LIST_DIRECTORY,
+                             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                             nullptr,
+                             OPEN_EXISTING,
+                             FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
+                             nullptr );
 
   if ( m_dirHandle == INVALID_HANDLE_VALUE )
   {
@@ -58,10 +62,14 @@ void DirectoryWatcher::run( std::filesystem::path root )
   while ( !m_stop )
   {
     BOOL success =
-      ReadDirectoryChangesW( m_dirHandle, buffer, sizeof( buffer ),
+      ReadDirectoryChangesW( m_dirHandle,
+                             buffer,
+                             sizeof( buffer ),
                              TRUE, // recursive to check all the underlying dirs
                              FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE,
-                             nullptr, &m_overlapped, nullptr );
+                             nullptr,
+                             &m_overlapped,
+                             nullptr );
 
     if ( !success )
     {
@@ -94,24 +102,23 @@ void DirectoryWatcher::run( std::filesystem::path root )
         // Get name without extension
         std::string nameOnly = relativePath.stem().string();
 
+        /// @file kogayonon\kogayonon_core\include\core\event\file_events.hpp
+        /// See this file for file event type definition
+
         switch ( event->Action )
         {
         case FILE_ACTION_ADDED:
-          m_commands.at( "fileCreated" )( relativePath.string(), nameOnly );
+          m_eventCallbackFunc( relativePath.string(), nameOnly, kogayonon_core::FileEventType( 1 << 0 ) );
           break;
         case FILE_ACTION_REMOVED:
-          m_commands.at( "fileDeleted" )( relativePath.string(), nameOnly );
+          m_eventCallbackFunc( relativePath.string(), nameOnly, kogayonon_core::FileEventType( 1 << 1 ) );
           break;
         case FILE_ACTION_MODIFIED:
-
-          m_commands.at( "fileModified" )( relativePath.string(), nameOnly );
+          m_eventCallbackFunc( relativePath.string(), nameOnly, kogayonon_core::FileEventType( 1 << 2 ) );
           break;
         case FILE_ACTION_RENAMED_OLD_NAME:
-
-          // m_commands.at( "fileRenamedOld" )( m_root, filename );
-          break;
         case FILE_ACTION_RENAMED_NEW_NAME:
-          m_commands.at( "fileRenamedNew" )( relativePath.string(), nameOnly );
+          m_eventCallbackFunc( relativePath.string(), nameOnly, kogayonon_core::FileEventType( 1 << 3 ) );
           break;
         default:
           spdlog::info( "Unknown action!" );

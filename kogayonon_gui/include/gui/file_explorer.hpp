@@ -8,10 +8,7 @@
 
 namespace kogayonon_core
 {
-class FileCreatedEvent;
-class FileModifiedEvent;
-class FileRenamedEvent;
-class FileDeletedEvent;
+class FileEvent;
 } // namespace kogayonon_core
 
 namespace kogayonon_gui
@@ -41,11 +38,7 @@ public:
 
   void draw() override;
 
-  // Event
-  void onFileModified( kogayonon_core::FileModifiedEvent& e );
-  void onFileCreated( kogayonon_core::FileCreatedEvent& e );
-  void onFileRenamed( kogayonon_core::FileRenamedEvent& e );
-  void onFileDeleted( kogayonon_core::FileDeletedEvent& e );
+  void onFileEvent( kogayonon_core::FileEvent& e );
 
 private:
   /**
@@ -58,7 +51,7 @@ private:
   /**
    * @brief Initializes a map of callbacks for the DirectoryWatcher to use and call when a file event is triggered
    */
-  void installCommands();
+  void setCallback();
 
   /**
    * @brief Adds event handlers and links them to onEvent functions from FilExplorerWindow

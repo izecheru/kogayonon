@@ -2319,7 +2319,7 @@ struct ImGuiContextHook
     ImGuiID                     HookId;     // A unique ID assigned by AddContextHook()
     ImGuiContextHookType        Type;
     ImGuiID                     Owner;
-    ImGuiContextHookCallback    Callback;
+    ImGuiContextHookCallback    FileEventCallback;
     void*                       UserData;
 
     ImGuiContextHook()          { memset(this, 0, sizeof(*this)); }

@@ -7,7 +7,7 @@ add_library(
   "include/resources/spotlight.hpp"
   "include/resources/directional_light.hpp"
   "include/resources/light_types.hpp"
-  "include/resources/skin.hpp"
+  "include/resources/skeleton.hpp"
 
   "src/mesh.cpp"
   "src/texture.cpp")

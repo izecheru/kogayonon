@@ -93,13 +93,6 @@ private:
   auto loadCgltfFile( const std::string& path ) -> cgltf_data*;
   void freeCgltf( cgltf_data* data );
 
-  auto getSkeleton( cgltf_data* data, cgltf_skin& skin, const glm::mat4& globalTransform )
-    -> kogayonon_resources::Skeleton;
-  auto isJointInSkin( const cgltf_skin& skin, const cgltf_node* node ) -> bool;
-  auto getJointTransform( const cgltf_node* node ) -> glm::mat4;
-  auto getJointId( cgltf_node* target, cgltf_node* allNodes, unsigned int numNodes ) -> int;
-  auto getInverseBindMatrices( const cgltf_data*, const cgltf_skin& skin ) -> std::vector<glm::mat4>;
-
   std::thread m_watchThread{};
   std::mutex m_assetMutex{};
 

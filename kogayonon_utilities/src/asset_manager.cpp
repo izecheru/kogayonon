@@ -155,206 +155,32 @@ void AssetManager::freeCgltf( cgltf_data* data )
   }
 }
 
-int getNodeId( cgltf_node* target, cgltf_node* allNodes, unsigned int numNodes )
-{
-  if ( target == 0 )
-  {
-    return -1;
-  }
-  for ( unsigned int i = 0; i < numNodes; ++i )
-  {
-    if ( target == &allNodes[i] )
-    {
-      return (int)i;
-    }
-  }
-  return -1;
-}
-
 auto AssetManager::addMesh( const std::string& meshName, const std::string& meshPath ) -> Mesh*
 {
   std::lock_guard lock{ m_assetMutex };
 
   if ( m_loadedMeshes.contains( meshPath ) )
-  {
-    spdlog::info( "Mesh already loaded {} ", meshName );
     return m_loadedMeshes.at( meshPath ).get();
-  }
 
   assert( std::filesystem::exists( meshPath ) && "mesh file does not exist" );
   auto mesh = std::make_shared<Mesh>();
-  mesh->getPath() = meshPath;
 
-  // m_assimpLoader->createMesh( meshPath, mesh.get() );
-  m_cgltfLoader->loadMesh( meshPath, mesh.get(), m_loadedTextures );
+  mesh->getPath() = meshPath;
+  std::filesystem::path p{ meshPath };
+  // if we dont have gltf use assimp
+  if ( p.extension().string().find( "gltf" ) == std::string::npos )
+  {
+    m_assimpLoader->loadMesh( meshPath, mesh.get() );
+  }
+  else // otherwise use cgltf
+  {
+    m_cgltfLoader->loadMesh( meshPath, mesh.get(), m_loadedTextures );
+  }
+
   m_loadedMeshes.try_emplace( meshPath, mesh );
 
   spdlog::info( "Loaded mesh {} ", meshName );
   return getMesh( meshPath );
-}
-
-auto AssetManager::isJointInSkin( const cgltf_skin& skin, const cgltf_node* node ) -> bool
-{
-  if ( !node )
-    return false;
-
-  for ( auto i = 0u; i < skin.joints_count; i++ )
-  {
-    if ( skin.joints[i] == node )
-      return true;
-  }
-
-  return false;
-};
-
-auto AssetManager::getJointId( cgltf_node* target, cgltf_node* allNodes, unsigned int numNodes ) -> int
-{
-  if ( target == 0 )
-  {
-    return -1;
-  }
-  for ( unsigned int i = 0; i < numNodes; ++i )
-  {
-    if ( target == &allNodes[i] )
-    {
-      return (int)i;
-    }
-  }
-  return -1;
-}
-
-auto AssetManager::getInverseBindMatrices( const cgltf_data*, const cgltf_skin& skin ) -> std::vector<glm::mat4>
-{
-  std::vector<glm::mat4> matrices;
-  if ( !skin.inverse_bind_matrices )
-  {
-    matrices.resize( skin.joints_count, glm::mat4{ 1.0f } );
-    return matrices;
-  }
-
-  auto accessor = skin.inverse_bind_matrices;
-  matrices.reserve( skin.joints_count );
-  for ( auto i = 0u; i < accessor->count; i++ )
-  {
-    float m[16];
-    cgltf_accessor_read_float( accessor, i, m, 16 );
-    matrices.emplace_back( glm::make_mat4( m ) );
-  }
-  return matrices;
-}
-
-// auto AssetManager::getGlobalPose( kogayonon_resources::Joint& bone ) -> glm::mat4
-//{
-//   auto matrix = bone.localBindPose.getMatrix();
-//
-//   // if bone is root return its matrix
-//   if ( !bone.parent )
-//     return matrix;
-//
-//   // recursive calculation
-//   // TODO serialize those matrices since they are the same unless you edit the model file
-//   return getGlobalPose( *bone.parent ) * matrix;
-// }
-
-// auto AssetManager::calculateGlobalPoses( kogayonon_resources::Skeleton& skeleton )
-//{
-//   // iterate bones
-//   for ( auto i = 0u; i < skeleton.joints.size(); i++ )
-//   {
-//     auto& joint = skeleton.joints.at( i );
-//     if ( !joint.parent )
-//     {
-//       joint.worldMatrix = joint.localBindPose.getMatrix();
-//     }
-//     else
-//     {
-//       joint.worldMatrix = joint.parent->worldMatrix * joint.localBindPose.getMatrix();
-//     }
-//     joint.offsetMatrix = joint.worldMatrix * joint.inverseBindPose;
-//   }
-// }
-
-auto AssetManager::getSkeleton( cgltf_data* data, cgltf_skin& skin, const glm::mat4& globalTransform ) -> Skeleton
-{
-  // const inverseBindMatrix resets the transforms to bind pose (t pose)
-  //
-  // localJoinMatrix is the matrix we build from joint rotation, translation, scale
-  //
-  // globalJointTransform is the matrix that we get by multiplying child localJointMatrix with parent's
-  // localJointMatrix untill we reach root
-  //
-  // jointMatrix is the final product of the two matrices above, global*inverse
-  Skeleton skeleton;
-  auto matrices = getInverseBindMatrices( data, skin );
-
-  for ( uint32_t i = 0; i < skin.joints_count; ++i )
-  {
-    auto& joint = skin.joints[i];
-    auto jointId = getJointId( joint, data->nodes, data->nodes_count );
-    glm::vec3 translation( 0.0f );
-    glm::vec3 scale( 1.0f );
-    glm::quat rotation = glm::quat( 1.0f, 0.0f, 0.0f, 0.0f );
-    if ( joint->has_translation )
-    {
-      translation = glm::vec3( joint->translation[0], joint->translation[1], joint->translation[2] );
-    }
-
-    if ( joint->has_scale )
-    {
-
-      scale = glm::vec3( joint->scale[0], joint->scale[1], joint->scale[2] );
-    }
-
-    if ( joint->has_rotation )
-    {
-
-      rotation = glm::vec3( joint->rotation[0], joint->rotation[1], joint->rotation[2] );
-    }
-
-    skeleton.joints.push_back( Joint{ .id = jointId,
-                                      .name = joint->name,
-                                      .localMatrix = glm::translate( glm::mat4( 1.0f ), translation ) *
-                                                     glm::mat4_cast( rotation ) * glm::scale( glm::mat4( 1.0f ), scale )
-
-    } );
-  }
-
-  std::unordered_map<cgltf_node*, uint32_t> nodeToBone;
-
-  // map nodes to joint ids
-  for ( uint32_t i = 0; i < skin.joints_count; ++i )
-  {
-    nodeToBone[skin.joints[i]] = i;
-  }
-
-  for ( auto i = 0u; i < skin.joints_count; ++i )
-  {
-    auto* joint = skin.joints[i];
-
-    if ( joint->parent )
-    {
-      auto it = nodeToBone.find( joint->parent );
-      if ( it != nodeToBone.end() )
-        skeleton.joints.at( i ).parent = &skeleton.joints.at( it->second );
-    }
-
-    for ( auto j = 0u; j < joint->children_count; ++j )
-    {
-      auto* childNode = joint->children[j];
-
-      auto it = nodeToBone.find( childNode );
-      if ( it != nodeToBone.end() )
-        skeleton.joints.at( i ).children.push_back( &skeleton.joints.at( it->second ) );
-    }
-  }
-
-  // page 734 of game engine architecture
-  // A global pose can be calculated by walking the hierarchy from the joint in question
-  // towards the root and model-space origin, concatenating the child-to-parent (local) transforms
-  // of each joint as we go.
-  // calculateGlobalPoses( skeleton );
-
-  return skeleton;
 }
 
 auto AssetManager::addMesh( const std::string& meshName ) -> Mesh*
