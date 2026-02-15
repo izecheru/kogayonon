@@ -54,13 +54,13 @@ bool ImGuiManager::initImgui( SDL_Window* window, SDL_GLContext context )
 
   m_io->ConfigWindowsMoveFromTitleBarOnly = true;
 
-  std::string font = "resources/fonts/SGr-IosevkaTermSS18-Medium.ttc";
+  // std::string font = "resources/fonts/SGr-IosevkaTermSS18-Medium.ttc";
+  std::string font = "resources/fonts/Inter_18pt-Medium.ttf";
   ImFontConfig cfg;
-  cfg.OversampleH = 3;   // horizontal oversampling
-  cfg.OversampleV = 1;   // vertical oversampling
-  cfg.PixelSnapH = true; // snaps glyphs to pixels (sharper)
+  cfg.OversampleH = 3;
+  cfg.OversampleV = 1;
+  cfg.PixelSnapH = true;
 
-  // make iosevka the deafult font
   ImFont* pFont = m_io->Fonts->AddFontFromFileTTF( font.c_str(), 18.0f, &cfg );
   m_io->FontDefault = pFont;
 

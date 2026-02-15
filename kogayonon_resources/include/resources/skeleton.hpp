@@ -1,5 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <string>
 #include <unordered_map>
 
@@ -15,20 +16,24 @@ struct Keyframe
 
 struct NodeAnim
 {
-  int gltfTargetNode;
-  std::vector<Keyframe<glm::vec3>> translations;
+  std::vector<Keyframe<glm::vec3>> translation;
   std::vector<Keyframe<glm::quat>> rotation;
   std::vector<Keyframe<glm::vec3>> scale;
 };
 
 struct Joint
 {
+  Joint* parent;
+  std::vector<Joint*> children;
+
   // the id might not be needed, idk what i can use it for
   // it is the index in the joint vector
-  uint32_t id;
-  Joint* parent;
   std::string name;
-  std::vector<Joint*> children;
+  uint32_t id;
+  int gltfJointIndex;
+
+  NodeAnim animationData;
+
   glm::mat4 inverseBind;
   glm::mat4 localMatrix;
   glm::mat4 globalMatrix;
@@ -36,11 +41,6 @@ struct Joint
 
 struct Skeleton
 {
-  // each joint has a node index in the gltf file
-  // so gltfNodeIndex.at(joints.at(0)) returns the gltf node index
-  std::vector<int> gltfNodeIndex;
   std::vector<Joint> joints;
-
-  std::vector<NodeAnim> nodeAnimations;
 };
 } // namespace kogayonon_resources

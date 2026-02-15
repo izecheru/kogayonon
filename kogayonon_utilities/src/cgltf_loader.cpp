@@ -30,18 +30,17 @@ void CgltfLoader::loadMesh( const std::string& path,
 
   auto data = readFile( path );
 
-  parseAnimations( data );
-
   for ( size_t i = 0; i < data->nodes_count; ++i )
   {
     auto& node = data->nodes[i];
     if ( !node.mesh )
       continue;
 
-    Skeleton s;
     if ( node.skin )
     {
+      Skeleton s;
       s = loadSkeleton( data, node.skin );
+      parseAnimations( data, s );
     }
 
     cgltf_mesh& mesh = *node.mesh;
@@ -197,25 +196,10 @@ void CgltfLoader::parseVertices( cgltf_primitive& primitive,
 
 void CgltfLoader::parseIndices( cgltf_accessor* accessor, std::vector<uint32_t>& indices ) const
 {
-  cgltf_buffer_view* bufferView = accessor->buffer_view;
-  uint8_t* bufferData = (uint8_t*)bufferView->buffer->data + bufferView->offset;
-
-  for ( size_t i = 0; i < accessor->count; i++ )
+  indices.resize( accessor->count );
+  for ( auto i = 0u; i < accessor->count; i++ )
   {
-    uint32_t index = 0;
-    if ( accessor->component_type == cgltf_component_type_r_16u )
-    {
-      index = *( (uint16_t*)( bufferData + accessor->offset + i * sizeof( uint16_t ) ) );
-    }
-    else if ( accessor->component_type == cgltf_component_type_r_32u )
-    {
-      index = *( (uint32_t*)( bufferData + accessor->offset + i * sizeof( uint32_t ) ) );
-    }
-    else if ( accessor->component_type == cgltf_component_type_r_8u )
-    {
-      index = *( (uint8_t*)( bufferData + accessor->offset + i * sizeof( uint8_t ) ) );
-    }
-    indices.push_back( index );
+    cgltf_accessor_read_uint( accessor, i, &indices.at( i ), 1 );
   }
 }
 
@@ -275,30 +259,33 @@ void CgltfLoader::parseTextures(
   }
 }
 
-void CgltfLoader::parseAnimations( cgltf_data* data )
+void CgltfLoader::parseAnimations( cgltf_data* data, Skeleton& s )
 {
+  std::vector<NodeAnim> anims;
   for ( auto i = 0u; i < data->animations_count; i++ )
   {
     auto& animation = data->animations[i];
     spdlog::info( "animation name {}", animation.name );
     for ( auto j = 0u; j < animation.channels_count; j++ )
     {
+
       auto& channel = animation.channels[j];
       auto& sampler = channel.sampler;
 
+      int jointIndex = getNodeId( channel.target_node, data->nodes, data->nodes_count );
+      if ( jointIndex < 0 )
+        continue;
+
+      auto& jointAnim = s.joints[jointIndex].animationData;
       // refers to a scalar floating-point accessor with keyframe times
       auto* input = sampler->input;
 
+      // here we store the entire timeline
+      std::vector<float> timeline( input->count );
       for ( auto y = 0; y < input->count; ++y )
       {
-        float result[1];
-        if ( cgltf_accessor_read_float( input, y, result, 1 ) )
-        {
-          // times are increasing so i got this right
-          spdlog::info( "{}", result[0] );
-        }
+        cgltf_accessor_read_float( input, y, &timeline.at( y ), 1 );
       }
-      spdlog::info( "--------" );
 
       // output is translation, rotation, scale
       auto* output = sampler->output;
@@ -310,17 +297,32 @@ void CgltfLoader::parseAnimations( cgltf_data* data )
       switch ( channel.target_path )
       {
       case cgltf_animation_path_type_translation:
-        float t[3];
-        cgltf_accessor_read_float( output, 0, t, 3 );
+        jointAnim.translation.reserve( output->count );
+        for ( auto y = 0u; y < output->count; y++ )
+        {
+          float t[3];
+          cgltf_accessor_read_float( output, y, t, 3 );
+          jointAnim.translation.emplace_back( Keyframe{ timeline.at( y ), glm::vec3{ t[0], t[1], t[2] } } );
+        }
         break;
       case cgltf_animation_path_type_rotation:
         // quaternion
-        float r[4];
-        cgltf_accessor_read_float( output, 0, r, 4 );
+        jointAnim.rotation.reserve( output->count );
+        for ( auto y = 0u; y < output->count; y++ )
+        {
+          float r[4];
+          cgltf_accessor_read_float( output, y, r, 4 );
+          jointAnim.rotation.emplace_back( Keyframe{ timeline.at( y ), glm::quat{ r[3], r[0], r[1], r[2] } } );
+        }
         break;
       case cgltf_animation_path_type_scale:
-        float s[3];
-        cgltf_accessor_read_float( output, 0, s, 3 );
+        jointAnim.scale.reserve( output->count );
+        for ( auto y = 0u; y < output->count; y++ )
+        {
+          float s[3];
+          cgltf_accessor_read_float( output, y, s, 3 );
+          jointAnim.scale.emplace_back( Keyframe{ timeline.at( y ), glm::vec3{ s[0], s[1], s[2] } } );
+        }
         break;
       case cgltf_animation_path_type_weights:
         spdlog::error( "weights are not implemented" );
@@ -330,6 +332,29 @@ void CgltfLoader::parseAnimations( cgltf_data* data )
       }
     }
   }
+
+#ifdef _DEBUG
+  // printing the data
+  spdlog::info( "Printing animation data--- size {}", anims.size() );
+  for ( auto& joint : s.joints )
+  {
+    spdlog::info( "Data for node {}", joint.name );
+    for ( auto& a : joint.animationData.translation )
+    {
+      spdlog::info( "[t]time {} value {} {} {}", a.time, a.data.x, a.data.y, a.data.z );
+    }
+
+    for ( auto& a : joint.animationData.rotation )
+    {
+      spdlog::info( "[r]time {} value {} {} {}", a.time, a.data.x, a.data.y, a.data.z, a.data.w );
+    }
+
+    for ( auto& a : joint.animationData.scale )
+    {
+      spdlog::info( "[s]time {} value {} {} {}", a.time, a.data.x, a.data.y, a.data.z );
+    }
+  }
+#endif
 }
 
 auto CgltfLoader::getLocalMatrix( const cgltf_node* node ) -> glm::mat4
@@ -404,17 +429,22 @@ auto CgltfLoader::loadSkeleton( cgltf_data* data, cgltf_skin* skin ) -> kogayono
   // the root is the first joint
   Joint root{ .parent = nullptr, .name = skin->joints[0]->name, .localMatrix = getLocalMatrix( skin->joints[0] ) };
   skeleton.joints.reserve( skin->joints_count );
-  skeleton.gltfNodeIndex.resize( skin->joints_count );
   skeleton.joints.push_back( root );
 
+  // this is used to map children and parent hierarchy
   std::unordered_map<cgltf_node*, uint32_t> nodeToIndex;
+
   for ( auto i = 1u; i < skin->joints_count; i++ )
   {
     auto& joint = skin->joints[i];
-    Joint j{ .id = i, .name = joint->name, .inverseBind = inverseBindMatrices.at( i ) };
+
+    Joint j{ .name = joint->name,
+             .id = i,
+             .gltfJointIndex = getNodeId( joint, data->nodes, data->nodes_count ),
+             .inverseBind = inverseBindMatrices.at( i ) };
+
     skeleton.joints.push_back( j );
     nodeToIndex.emplace( joint, i );
-    skeleton.gltfNodeIndex.push_back( getNodeId( joint, data->nodes, data->nodes_count ) );
   }
 
   // setup hierarchy

@@ -2,10 +2,14 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include "utilities/input/keyboard_state.hpp"
+
 using namespace kogayonon_utilities;
 
 namespace kogayonon_rendering
 {
+#define FOV_MAX 90.0f
+#define FOV_MIN 1.0f
+
 Camera::Camera()
 {
   setupCamera();
@@ -13,7 +17,7 @@ Camera::Camera()
 
 void Camera::setupCamera()
 {
-  m_props.translation = glm::vec3{ 16.0f, 6.0f, 18.0f };
+  m_props.translation = glm::vec3{ 0.0f, 10.0f, 20.0f };
   m_props.direction = glm::vec3{ 0.0f, 0.0f, -1.0f };
   m_props.cameraUp = glm::vec3{ 0.0f, 1.0f, 0.0f };
   m_props.worldUp = glm::vec3{ 0.0f, 1.0f, 0.0f };
@@ -22,7 +26,10 @@ void Camera::setupCamera()
   m_props.mouseSensitivity = 0.2f;
   m_props.movementSpeed = 46.0f;
   m_props.mouseZoomSpeed = 1.0f;
-  m_props.fov = 60.0f;
+
+  // TODO move this to some kind of config file, since if fov >= max it gets set to fov_max macro so here if we set
+  // something else it gets overwritten
+  m_props.fov = FOV_MAX;
 }
 
 glm::mat4& Camera::getViewMatrix() const
@@ -101,14 +108,14 @@ void Camera::updateCameraVectors()
 
 void Camera::zoom( float amount )
 {
-  if ( m_props.fov >= 1.0f && m_props.fov <= 45.0f )
+  if ( m_props.fov >= FOV_MIN && m_props.fov <= FOV_MAX )
     m_props.fov -= amount;
 
-  if ( m_props.fov <= 1.0f )
-    m_props.fov = 1.0f;
+  if ( m_props.fov <= FOV_MIN )
+    m_props.fov = FOV_MIN;
 
-  if ( m_props.fov >= 45.0f )
-    m_props.fov = 45.0f;
+  if ( m_props.fov >= FOV_MAX )
+    m_props.fov = FOV_MAX;
 }
 
 auto Camera::getProjectionMatrix( const glm::vec2& contentSize ) const -> glm::mat4&

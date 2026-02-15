@@ -38,7 +38,7 @@ private:
    * @brief Iterate through all animations and store them
    * @param data
    */
-  void parseAnimations( cgltf_data* data );
+  void parseAnimations( cgltf_data* data, kogayonon_resources::Skeleton& s );
 
   /**
    * @brief Parse all the textures and build "notyet-loaded" textures, they will be loaded right before scene rendering

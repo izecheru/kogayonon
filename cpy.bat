@@ -2,8 +2,8 @@
 setlocal
 
 :: First arg = source dir, second arg = destination dir
-set SRC=D:\Github\kogayonon\resources
-set DST=D:\Github\kogayonon\out\build\x64-debug\bin\resources
+set SRC=F:\github\kogayonon\resources
+set DST=F:\github\kogayonon\out\build\x64-debug\bin\resources
 
 echo Copying resources from %SRC% to %DST%
 :: Create destination if missing

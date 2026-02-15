@@ -20,7 +20,7 @@ FileExplorerWindow::FileExplorerWindow( const std::string& name )
     : ImGuiWindow{ name }
     , m_update{ false }
     , m_currentPath{ std::filesystem::absolute( "." ) / "resources" }
-    , m_pDirWatcher{ std::make_unique<DirectoryWatcher>( "resources\\" ) }
+    , m_pDirWatcher{ std::make_unique<DirectoryWatcher>( std::filesystem::absolute( "." ) ) }
     , m_pDispatcher{ std::make_unique<EventDispatcher>() }
 {
   // installs the event listeners for file event types
@@ -60,8 +60,16 @@ void FileExplorerWindow::onFileEvent( FileEvent& e )
   {
     // handle all the modify functionality
   case FileEventType::Modify: {
-    auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
-    pShaderManager->markForRecompilation( e.getPath() );
+    if ( e.getPath().find( "glsl" ) != std::string::npos )
+    {
+      auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
+      pShaderManager->markForRecompilation( e.getPath() );
+    }
+    if ( e.getPath().find( "config" ) != std::string::npos )
+    {
+      // rebuild the file vector, filters might have changed in config file
+      buildFileVector();
+    }
   }
   break;
   case FileEventType::Create: {
