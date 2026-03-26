@@ -1,0 +1,73 @@
+#pragma once
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vulkan/vulkan.h>
+
+struct SDL_Window;
+struct ImGuiViewport;
+struct ImFont;
+
+namespace graphics
+{
+class VulkanDevice;
+class VulkanSwapchain;
+} // namespace graphics
+
+namespace gui
+{
+class ImGuiWindow;
+
+struct Popups
+{
+  bool colorChangerPopup{ false };
+  bool imguiVariables{ false };
+  bool configPopup{ false };
+};
+} // namespace gui
+
+namespace gui
+{
+class VulkanImguiRenderer
+{
+public:
+  explicit VulkanImguiRenderer( SDL_Window* wnd, graphics::VulkanDevice* device, graphics::VulkanSwapchain* swapchain );
+  ~VulkanImguiRenderer();
+
+  void render();
+  void present( VkCommandBuffer& buffer );
+
+private:
+  void initImgui( SDL_Window* wnd, graphics::VulkanDevice* device, graphics::VulkanSwapchain* swapchain );
+  void initWindows();
+  void createIconSampler( graphics::VulkanDevice* device );
+  void mainMenu();
+
+  // MODALS
+  void configChanger();
+  void configModal();
+
+  void colorChanger();
+  void colorModal();
+
+  void imguiChanger();
+  void imguiModal();
+  // ------------
+
+  void setupDockspace( ImGuiViewport* viewport );
+
+  void begin();
+  void end();
+
+private:
+  VkDescriptorPool m_descriptorPool;
+  graphics::VulkanDevice* m_device;
+  std::unordered_map<std::string, std::unique_ptr<ImGuiWindow>> m_windows;
+  VkSampler m_iconSampler;
+  Popups m_popups;
+
+  SDL_Window* m_wnd;
+
+  std::unordered_map<std::string, ImFont*> m_fonts;
+};
+} // namespace gui

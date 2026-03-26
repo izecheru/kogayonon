@@ -22,10 +22,11 @@ if (POLICY CMP0141)
   set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
-
 if(MSVC)
   add_compile_options(/bigobj)
 endif()
+
+add_compile_options(/utf-8)
 
 find_package(SDL2 CONFIG REQUIRED)
 find_package(soil2 CONFIG REQUIRED)
@@ -39,24 +40,22 @@ find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 find_package(benchmark CONFIG REQUIRED)
 find_package(rapidjson CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
+find_package(Vulkan REQUIRED)
 
-add_subdirectory(dependencies/imgui)
-add_subdirectory(dependencies/glad)
-add_subdirectory(dependencies/cgltf)
-add_subdirectory(dependencies/imguizmo)
+add_subdirectory("dependencies/imgui")
+add_subdirectory("dependencies/glad")
+add_subdirectory("dependencies/cgltf")
+add_subdirectory("dependencies/imguizmo")
 # using lua 5.4 since sol is not yet compatible with latest 5.5 and vcpkg verison is indeed 5.5
-add_subdirectory(dependencies/lua)
+add_subdirectory("dependencies/lua")
 
 # My own modules
-add_subdirectory(kogayonon_utilities)
-add_subdirectory(kogayonon_window)
-add_subdirectory(kogayonon_core)
-add_subdirectory(kogayonon_resources)
-add_subdirectory(kogayonon_app)
-add_subdirectory(kogayonon_gui)
-add_subdirectory(kogayonon_rendering)
-add_subdirectory(kogayonon_physics)
-add_subdirectory(kogayonon_benchmark)
-
-#add_subdirectory(kogayonon_game)
+add_subdirectory("window")
+add_subdirectory("editor")
+add_subdirectory("graphics")
+add_subdirectory("gui")
+add_subdirectory("core")
+add_subdirectory("utilities")
+add_subdirectory("resources")
+add_subdirectory("physics")
 

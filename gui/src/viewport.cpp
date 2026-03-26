@@ -1,0 +1,66 @@
+#include "gui/imgui_windows/viewport.hpp"
+#include <SDL2/SDL.h>
+
+gui::Viewport::Viewport( SDL_Window* mainWindow, const std::string& name, const ViewportSpec& spec )
+    : ImGuiWindow{ name }
+    , m_spec{ spec }
+    , m_mainWindow{ mainWindow }
+{
+}
+
+void gui::Viewport::render()
+{
+  if ( !begin() )
+    return;
+
+  ImGui::Text( "This is the viewport window" );
+
+  ImGui::End();
+}
+
+void gui::Viewport::drawToolbar()
+{
+  auto& style = ImGui::GetStyle();
+
+  // WARNING thake this into account when mouse picking
+  ImGui::SetCursorPos( ImVec2{ 10.0f, 10.0f } );
+
+  ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 8 ) );
+  ImGui::PushStyleVar( ImGuiStyleVar_ChildRounding, 10.0f );
+  ImGui::PushStyleColor( ImGuiCol_ChildBg, ImVec4{ 0.15f, 0.15f, 0.15f, 0.75f } );
+
+  constexpr int buttonCount = 3;
+  static float toolbarWidth =
+    style.WindowPadding.x * 2.0f + ( 14.0f * buttonCount ) + ( style.ItemSpacing.x * buttonCount ) + ( 2.0f * 5.0f );
+
+  if ( ImGui::BeginChild( "Toolbar",
+                          ImVec2{ toolbarWidth, 25.0f },
+                          false,
+                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse ) )
+  {
+    ImGui::PushStyleColor( ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f } );
+
+    ImGui::SetCursorPos( ImVec2{ 5.0f, 2.5f } );
+    if ( ImGui::ImageButton( "#RenderMode", m_spec.renderModeIcon, ImVec2{ 14.0f, 14.0f } ) )
+    {
+    }
+    ImGui::SameLine();
+
+    if ( ImGui::ImageButton( "#StopButton", m_spec.stopIcon, ImVec2{ 14.0f, 14.0f } ) )
+    {
+      // kogayonon_physics::NvidiaPhysx::getInstance().switchState( false );
+    }
+    ImGui::SameLine();
+
+    if ( ImGui::ImageButton( "#StartButton", m_spec.playIcon, ImVec2{ 14.0f, 14.0f } ) )
+    {
+      // kogayonon_physics::NvidiaPhysx::getInstance().switchState( true );
+    }
+
+    ImGui::PopStyleColor();
+    ImGui::EndChild();
+  }
+
+  ImGui::PopStyleColor();
+  ImGui::PopStyleVar( 2 );
+}
