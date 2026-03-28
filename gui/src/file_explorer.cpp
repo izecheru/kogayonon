@@ -173,6 +173,7 @@ void FileExplorerWindow::render()
     m_update.store( false );
   }
 
+  ImGui::BeginChild( "##fileExplorerScrollabeRegion" );
   ImGui::BeginTable( "##fileTable", count, ImGuiTableFlags_NoPadOuterX );
   for ( const auto& file : m_files )
   {
@@ -185,14 +186,18 @@ void FileExplorerWindow::render()
     {
       auto filename = file.path.filename();
       ImGui::BeginGroup();
-
       ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_spec.folderIcon, size );
+
       //   navigate into folder like you do in windows explorer with double click
       if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) )
       {
         m_currentPath = file.path;
       }
-      ImGui::TextWrapped( "%s", gui_utils::truncateText( filename.stem().string(), size.x ).c_str() );
+      RenderWithSizedFont(
+        m_spec.fonts->at( "inter" ),
+        18.0f,
+        ImGui::TextWrapped( "%s", gui_utils::truncateText( filename.stem().string(), size.x ).c_str() ) );
+
       ImGui::EndGroup();
     }
     else
@@ -214,11 +219,15 @@ void FileExplorerWindow::render()
         ImGui::SetDragDropPayload( "ASSET_DROP", path.c_str(), path.size() + 1 );
         ImGui::EndDragDropSource();
       }
-      ImGui::TextWrapped( "%s", gui_utils::truncateText( filename.stem().string(), size.x ).c_str() );
+      RenderWithSizedFont(
+        m_spec.fonts->at( "inter" ),
+        18.0f,
+        ImGui::TextWrapped( "%s", gui_utils::truncateText( filename.stem().string(), size.x ).c_str() ) );
       ImGui::EndGroup();
     }
   }
   ImGui::EndTable();
+  ImGui::EndChild();
   ImGui::End();
 }
 
@@ -287,7 +296,7 @@ void FileExplorerWindow::drawToolbar()
           buildFileVector();
         }
       }
-      ImGui::SameLine( 0.0f, 4.0f );
+      ImGui::SameLine( 0.0f, 8.0f );
     }
   }
   else
