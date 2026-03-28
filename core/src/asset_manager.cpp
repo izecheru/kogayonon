@@ -103,7 +103,7 @@ void core::AssetManager::createImage( const CreateImageInfo& info )
   imageInfo.extent.width = info.width;
   imageInfo.extent.height = info.height;
   imageInfo.extent.depth = 1;
-  imageInfo.mipLevels = 1;
+  imageInfo.mipLevels = 5;
   imageInfo.arrayLayers = 1;
   imageInfo.format = info.format;
   imageInfo.tiling = info.tiling;

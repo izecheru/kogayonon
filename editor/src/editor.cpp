@@ -16,7 +16,7 @@
 #include "graphics/vulkan_device.hpp"
 #include "graphics/vulkan_swapchain.hpp"
 #include "gui/vulkan_imgui_renderer.hpp"
-#include "utilities/configurator/configurator.hpp"
+#include "utilities/config_manager/config_manager.hpp"
 #include "window/window.hpp"
 
 namespace editor
@@ -42,7 +42,7 @@ Editor::Editor()
 
   spdlog::set_default_logger( logger );
 
-  utilities::Configurator::initConfig();
+  utilities::EditorConfigManager::initConfig();
 
   init();
 }
@@ -204,7 +204,7 @@ bool Editor::initImgui()
 
 bool Editor::initMainWindow()
 {
-  auto& cfg = utilities::Configurator::getConfig();
+  auto& cfg = utilities::EditorConfigManager::getConfig();
 
   m_pWindow = std::make_shared<window::Window>( "kogayonon engine", cfg.width, cfg.height, false, cfg.maximized );
   m_pWindow->setBordered( true );

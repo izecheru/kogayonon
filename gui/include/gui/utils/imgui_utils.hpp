@@ -9,6 +9,11 @@ namespace gui_utils
   ImGui::BeginDisabled();                                                                                              \
   content ImGui::EndDisabled();
 
+#define RenderWithSizedFont( font, size, func )                                                                        \
+  ImGui::PushFont( font, size );                                                                                       \
+  func;                                                                                                                \
+  ImGui::PopFont();
+
 #define RenderWithFont( font, func )                                                                                   \
   ImGui::PushFont( font );                                                                                             \
   func;                                                                                                                \

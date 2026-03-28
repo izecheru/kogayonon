@@ -25,10 +25,10 @@ public:
   explicit SceneHierarchy( const std::string& name, const SceneHierarchySpec& spec );
   ~SceneHierarchy() = default;
 
-  void onEntitySelect( const core::SelectEntityEvent& e );
-  void onKeyPressed( const core::KeyPressedEvent& e );
-
   void render() override;
+
+private:
+  void drawContextMenu();
 
   /**
    * @brief Draws a context menu for the item we provide, we need the item id
@@ -37,9 +37,9 @@ public:
    */
   void drawItemContexMenu( const std::string& itemId, entt::entity ent );
 
-  void drawContextMenu();
+  void onEntitySelect( const core::SelectEntityEvent& e );
+  void onKeyPressed( const core::KeyPressedEvent& e );
 
-private:
   void duplicateEntity( core::Entity& ent );
   void deleteEntity( core::Entity& ent );
 

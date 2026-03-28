@@ -93,7 +93,7 @@ bool gui::ImGuiWindow::begin()
   if ( !m_props->visible )
     return false;
 
-  if ( !ImGui::Begin( m_props->name.c_str(), &m_props->visible, m_props->flags ) )
+  if ( !ImGui::Begin( m_props->name.c_str(), nullptr, m_props->flags ) )
   {
     end();
     return false;

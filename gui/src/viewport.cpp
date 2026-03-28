@@ -1,5 +1,7 @@
 #include "gui/imgui_windows/viewport.hpp"
 #include <SDL2/SDL.h>
+#include "gui/utils/imgui_utils.hpp"
+#include "utilities/fonts/materialdesign.hpp"
 
 gui::Viewport::Viewport( SDL_Window* mainWindow, const std::string& name, const ViewportSpec& spec )
     : ImGuiWindow{ name }
@@ -13,7 +15,7 @@ void gui::Viewport::render()
   if ( !begin() )
     return;
 
-  ImGui::Text( "This is the viewport window" );
+  RenderWithSizedFont( m_spec.fonts->at( "materialdesign" ), 54, ImGui::Text( ICON_MDI_GAMEPAD_CIRCLE " " ) );
 
   ImGui::End();
 }
@@ -41,18 +43,18 @@ void gui::Viewport::drawToolbar()
     ImGui::PushStyleColor( ImGuiCol_Button, ImVec4{ 0.0f, 0.0f, 0.0f, 0.0f } );
 
     ImGui::SetCursorPos( ImVec2{ 5.0f, 2.5f } );
-    if ( ImGui::ImageButton( "#RenderMode", m_spec.renderModeIcon, ImVec2{ 14.0f, 14.0f } ) )
+    if ( ImGui::ImageButton( "##renderMode", m_spec.renderModeIcon, ImVec2{ 14.0f, 14.0f } ) )
     {
     }
     ImGui::SameLine();
 
-    if ( ImGui::ImageButton( "#StopButton", m_spec.stopIcon, ImVec2{ 14.0f, 14.0f } ) )
+    if ( ImGui::ImageButton( "##stopButton", m_spec.stopIcon, ImVec2{ 14.0f, 14.0f } ) )
     {
       // kogayonon_physics::NvidiaPhysx::getInstance().switchState( false );
     }
     ImGui::SameLine();
 
-    if ( ImGui::ImageButton( "#StartButton", m_spec.playIcon, ImVec2{ 14.0f, 14.0f } ) )
+    if ( ImGui::ImageButton( "##startButton", m_spec.playIcon, ImVec2{ 14.0f, 14.0f } ) )
     {
       // kogayonon_physics::NvidiaPhysx::getInstance().switchState( true );
     }

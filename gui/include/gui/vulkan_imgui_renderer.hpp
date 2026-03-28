@@ -14,6 +14,11 @@ class VulkanDevice;
 class VulkanSwapchain;
 } // namespace graphics
 
+namespace utilities
+{
+struct ColorConfig;
+}
+
 namespace gui
 {
 class ImGuiWindow;
@@ -21,7 +26,7 @@ class ImGuiWindow;
 struct Popups
 {
   bool colorChangerPopup{ false };
-  bool imguiVariables{ false };
+  bool imguiVariablesPopup{ false };
   bool configPopup{ false };
 };
 } // namespace gui
@@ -48,11 +53,14 @@ private:
   void configModal();
 
   void colorChanger();
+  void changeColorConfig();
   void colorModal();
 
   void imguiChanger();
   void imguiModal();
   // ------------
+
+  void setColorPallete( const utilities::ColorConfig& cfg );
 
   void setupDockspace( ImGuiViewport* viewport );
 

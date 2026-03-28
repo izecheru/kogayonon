@@ -83,7 +83,7 @@ private:
 
   /**
    * @brief Search for files that contain the string
-   * @param toFind The string we search with and compare
+   * @param toFind The string we search for
    */
   void searchFor( const std::string& toFind );
 

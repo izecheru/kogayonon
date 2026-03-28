@@ -7,9 +7,11 @@
 #include "core/event/event_dispatcher.hpp"
 #include "core/event/file_events.hpp"
 #include "gui/utils/imgui_utils.hpp"
-#include "utilities/configurator/configurator.hpp"
+#include "utilities/config_manager/config_manager.hpp"
 #include "utilities/directory_watcher/directory_watcher.hpp"
-#include "utilities/fonts/fontawesome7.hpp"
+#include "utilities/fonts/fontawesome5.hpp"
+#include "utilities/fonts/fontawesome6Pro.hpp"
+#include "utilities/fonts/materialdesign.hpp"
 
 using namespace core;
 using namespace utilities;
@@ -93,7 +95,7 @@ void FileExplorerWindow::buildFileVector()
 {
   m_files.clear();
   int dirId = 0;
-  const auto& config = Configurator::getConfig();
+  const auto& config = EditorConfigManager::getConfig();
   for ( auto const& dirEntry : std::filesystem::directory_iterator( m_currentPath ) )
   {
     bool found = false;
@@ -183,8 +185,9 @@ void FileExplorerWindow::render()
     {
       auto filename = file.path.filename();
       ImGui::BeginGroup();
+
       ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_spec.folderIcon, size );
-      //  navigate into folder like you do in windows explorer with double click
+      //   navigate into folder like you do in windows explorer with double click
       if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) )
       {
         m_currentPath = file.path;
@@ -251,12 +254,14 @@ void FileExplorerWindow::drawToolbar()
   ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4{ 0, 0, 0, 0 } );
 
   static std::string searchStr{ "" };
-  ImGui::Text( ICON_FA_SEARCH " " );
+  ImGui::Text( ICON_FA_SEARCH "" );
   ImGui::SameLine();
+  ImGui::PushItemWidth( 200.0f );
   if ( ImGui::InputText( "##searchId", &searchStr ) )
   {
     searchFor( searchStr );
   }
+  ImGui::PopItemWidth();
 
   if ( m_currentPath != std::filesystem::current_path() / "engine_resources" )
   {
