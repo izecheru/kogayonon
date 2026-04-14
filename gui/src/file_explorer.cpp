@@ -9,8 +9,6 @@
 #include "gui/utils/imgui_utils.hpp"
 #include "utilities/config_manager/config_manager.hpp"
 #include "utilities/directory_watcher/directory_watcher.hpp"
-#include "utilities/fonts/fontawesome5.hpp"
-#include "utilities/fonts/fontawesome6Pro.hpp"
 #include "utilities/fonts/materialdesign.hpp"
 
 using namespace core;
@@ -25,6 +23,7 @@ FileExplorerWindow::FileExplorerWindow( const std::string& name, const FileExplo
     , m_pDirWatcher{ std::make_unique<DirectoryWatcher>( std::filesystem::absolute( "." ) ) }
     , m_pDispatcher{ std::make_unique<EventDispatcher>() }
     , m_spec{ spec }
+    , m_searchStr{ "" }
 {
   // installs the event listeners for file event types
   installHandlers();
@@ -151,14 +150,14 @@ void FileExplorerWindow::render()
   if ( !begin() )
     return;
 
-  static ImVec2 size{ 100.0f, 100.0f };
-  static float padding = 12.0f;
-  static float thumbnailSize = size.x;
-  static float cellSize = thumbnailSize + ( 2 * padding );
+  constexpr ImVec2 size{ 110.0f, 110.0f };
+  constexpr ImVec2 childSize{ 120.0f, 120.0f };
+  constexpr float padding = 10.0f;
+  float thumbnailSize = size.x;
 
+  float cellSize = thumbnailSize + ( 2 * padding );
   float width = ImGui::GetContentRegionAvail().x;
   int count = width / cellSize;
-
   if ( count < 1 )
     count = 1;
 
@@ -173,58 +172,73 @@ void FileExplorerWindow::render()
     m_update.store( false );
   }
 
-  ImGui::BeginChild( "##fileExplorerScrollabeRegion" );
-  ImGui::BeginTable( "##fileTable", count, ImGuiTableFlags_NoPadOuterX );
+  ImGui::BeginChild( "##fileExplorerScrollRegion" );
+  ImGui::BeginTable( "##fileExplorerTable", count );
   for ( const auto& file : m_files )
   {
     if ( !file.renderable )
       continue;
 
+    ImGui::PushStyleVar( ImGuiStyleVar_CellPadding, ImVec2{ 0.0f, 10.0f } );
+    ImGui::PushItemWidth( childSize.x );
     ImGui::TableNextColumn();
-
     if ( file.isDir )
     {
-      auto filename = file.path.filename();
-      ImGui::BeginGroup();
-      ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_spec.folderIcon, size );
+      auto pos = ImGui::GetCursorScreenPos();
+      auto textHeight = ImGui::CalcTextSize( file.path.filename().stem().string().c_str() );
+      ImGui::GetWindowDrawList()->AddRectFilled(
+        pos, ImVec2{ pos.x + childSize.x, pos.y + childSize.y + textHeight.y }, IM_COL32( 87, 91, 180, 70 ) );
 
-      //   navigate into folder like you do in windows explorer with double click
+      ImGui::BeginGroup();
+      auto filename = file.path.filename();
+      ImGui::SetCursorPosX( ImGui::GetCursorPosX() + 5.0f );
+      ImGui::Image( m_spec.iconGenericFolder, size );
+
+      auto truncatedText = gui_utils::truncateText( filename.stem().string(), size.x );
+      gui_utils::moveTextToCenter( size, truncatedText );
+      RenderWithSizedFont( m_spec.fonts->at( "inter" ), 20.0f, ImGui::TextWrapped( "%s", truncatedText.c_str() ) );
+      // navigate into folder like you do in windows explorer with double click
+      ImGui::EndGroup();
       if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) )
       {
         m_currentPath = file.path;
+        m_searchStr = "";
       }
-      RenderWithSizedFont(
-        m_spec.fonts->at( "inter" ),
-        18.0f,
-        ImGui::TextWrapped( "%s", gui_utils::truncateText( filename.stem().string(), size.x ).c_str() ) );
-
-      ImGui::EndGroup();
     }
     else
     {
       auto filename = file.path.filename();
+      auto pos = ImGui::GetCursorScreenPos();
+      auto textHeight = ImGui::CalcTextSize( file.path.filename().stem().string().c_str() );
+      ImGui::GetWindowDrawList()->AddRectFilled(
+        pos, ImVec2{ pos.x + childSize.x, pos.y + childSize.y + textHeight.y }, IM_COL32( 87, 91, 180, 70 ) );
+
       ImGui::BeginGroup();
+      ImGui::SetCursorPosX( ImGui::GetCursorPosX() + 5.0f );
+      ImGui::Image( fileTexture( file ), size );
+      auto truncatedText = gui_utils::truncateText( filename.stem().string(), size.x );
+      gui_utils::moveTextToCenter( size, truncatedText );
+      RenderWithSizedFont( m_spec.fonts->at( "inter" ), 20.0f, ImGui::TextWrapped( "%s", truncatedText.c_str() ) );
+      ImGui::EndGroup();
+
       drawFileContextMenu( file, filename.string() );
-      // open shaders in the editor
-      ImGui::ImageButton( file.imguiId.c_str(), (ImTextureID)m_spec.fileIcon, size );
+      if ( ImGui::BeginDragDropSource( ImGuiDragDropFlags_SourceNoPreviewTooltip |
+                                       ImGuiDragDropFlags_SourceAllowNullID ) )
+      {
+        std::string path = file.path.string();
+        ImGui::SetDragDropPayload( "ASSET_DROP", path.c_str(), path.size() + 1 );
+        ImGui::EndDragDropSource();
+      }
+
       if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) &&
            file.path.extension().string() == ".glsl" )
       {
         // TODO(kogayonon) add a setting for the user to choose his own editor
         ShellExecute( NULL, "open", "code", file.path.string().c_str(), NULL, SW_HIDE );
       }
-      if ( ImGui::BeginDragDropSource( ImGuiDragDropFlags_SourceNoPreviewTooltip ) )
-      {
-        std::string path = file.path.string();
-        ImGui::SetDragDropPayload( "ASSET_DROP", path.c_str(), path.size() + 1 );
-        ImGui::EndDragDropSource();
-      }
-      RenderWithSizedFont(
-        m_spec.fonts->at( "inter" ),
-        18.0f,
-        ImGui::TextWrapped( "%s", gui_utils::truncateText( filename.stem().string(), size.x ).c_str() ) );
-      ImGui::EndGroup();
     }
+    ImGui::PopItemWidth();
+    ImGui::PopStyleVar();
   }
   ImGui::EndTable();
   ImGui::EndChild();
@@ -262,13 +276,12 @@ void FileExplorerWindow::drawToolbar()
   ImGui::BeginGroup();
   ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4{ 0, 0, 0, 0 } );
 
-  static std::string searchStr{ "" };
-  ImGui::Text( ICON_FA_SEARCH "" );
+  ImGui::Text( ICON_MDI_FILE_SEARCH "" );
   ImGui::SameLine();
   ImGui::PushItemWidth( 200.0f );
-  if ( ImGui::InputText( "##searchId", &searchStr ) )
+  if ( ImGui::InputText( "##searchId", &m_searchStr ) )
   {
-    searchFor( searchStr );
+    searchFor( m_searchStr );
   }
   ImGui::PopItemWidth();
 
@@ -293,6 +306,7 @@ void FileExplorerWindow::drawToolbar()
         if ( ImGui::Button( it->filename().string().c_str() ) )
         {
           m_currentPath = *it;
+          m_searchStr = "";
           buildFileVector();
         }
       }
@@ -306,6 +320,15 @@ void FileExplorerWindow::drawToolbar()
 
   ImGui::PopStyleColor();
   ImGui::EndGroup();
+}
+
+auto FileExplorerWindow::fileTexture( const File_& file ) -> VkDescriptorSet&
+{
+  auto extension = file.path.extension().string();
+  if ( !m_spec.fileIcons.contains( extension ) )
+    return m_spec.genericFileIcon;
+
+  return m_spec.fileIcons.at( extension );
 }
 
 } // namespace gui

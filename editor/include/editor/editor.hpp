@@ -11,12 +11,6 @@ namespace gui
 class VulkanImguiRenderer;
 }
 
-namespace graphics
-{
-class VulkanDevice;
-class VulkanSwapchain;
-} // namespace graphics
-
 namespace editor
 {
 class Editor
@@ -29,15 +23,20 @@ public:
   void run();
 
   bool init();
+  bool initMainRegistry();
   bool initSDL();
+
+  /**
+   * @brief This just sends the device and swapchain to the asset manager
+   * @return
+   */
   bool initVulkan();
+
   bool initImgui();
   bool initMainWindow();
 
 private:
   std::shared_ptr<window::Window> m_pWindow;
-  std::shared_ptr<graphics::VulkanDevice> m_pDevice;
-  std::shared_ptr<graphics::VulkanSwapchain> m_pSwapchain;
   std::shared_ptr<gui::VulkanImguiRenderer> m_pImguiRenderer;
 
   bool m_running{ false };

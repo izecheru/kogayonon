@@ -25,6 +25,7 @@ set(targetSources
   "include/core/event/event_emitter.hpp"
   "include/core/utils/meta_utilities.hpp"
   "include/core/systems/scripting_system.hpp"
+  "include/core/systems/scene_rendering_system.hpp"
   "include/core/asset_manager/asset_manager.hpp"
 
   "src/main_registry.cpp"
@@ -38,12 +39,13 @@ set(targetSources
   "src/scripting_system.cpp"
   "src/registry.cpp"
   "src/event_dispatcher.cpp"
+  "src/scene_rendering_system.cpp"
 )
+
 add_library(
   core
   ${targetSources}
 )
-
 
 find_path(SOL2_INCLUDE_DIRS "sol/abort.hpp")
 target_include_directories(core

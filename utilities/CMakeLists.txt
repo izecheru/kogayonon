@@ -19,7 +19,11 @@ add_library(
   "include/utilities/fonts/fontawesome5.hpp"
   "include/utilities/fonts/fontawesome5Brands.hpp"
   "include/utilities/fonts/materialdesign.hpp"
+  "include/utilities/fonts/google_materialdesign.hpp"
+  "include/utilities/fonts/google_materialsymbols.hpp"
   "include/utilities/fonts/forkawesome.hpp"
+  "include/utilities/fonts/codicon.hpp"
+  "include/utilities/fonts/lucide.hpp"
 
   "src/task_manager.cpp"
   "src/time_tracker.cpp"

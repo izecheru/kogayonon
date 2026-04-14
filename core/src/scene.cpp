@@ -124,6 +124,8 @@ bool Scene::addInstanceData( entt::entity entityId )
     // we did not find the model in the instance map so we must also upload geometry to the GPU
     return false;
   }
+
+  return false;
 }
 
 void Scene::addMeshToEntity( entt::entity entity, resources::Mesh* pMesh )

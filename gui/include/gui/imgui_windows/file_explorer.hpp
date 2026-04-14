@@ -15,8 +15,9 @@ struct FileExplorerSpec
 {
   std::unordered_map<std::string, ImFont*>* fonts;
   // icons for the ui
-  VkDescriptorSet folderIcon;
-  VkDescriptorSet fileIcon;
+  VkDescriptorSet iconGenericFolder;
+  VkDescriptorSet genericFileIcon;
+  std::unordered_map<std::string, VkDescriptorSet> fileIcons;
 };
 
 struct File_
@@ -37,6 +38,7 @@ struct File_
 
 namespace gui
 {
+
 class FileExplorerWindow : public ImGuiWindow
 {
 
@@ -55,7 +57,7 @@ private:
    */
   void drawToolbar();
 
-  auto fileExtensionToTextureId( const std::string& fileExtension ) -> uint32_t;
+  auto fileTexture( const File_& file ) -> VkDescriptorSet&;
 
   /**
    * @brief Initializes a map of callbacks for the DirectoryWatcher to use and call when a file event is triggered
@@ -93,6 +95,7 @@ private:
   std::filesystem::path m_currentPath;
   std::unique_ptr<utilities::DirectoryWatcher> m_pDirWatcher;
   std::unique_ptr<core::EventDispatcher> m_pDispatcher;
+  std::string m_searchStr;
 
   FileExplorerSpec m_spec;
 };

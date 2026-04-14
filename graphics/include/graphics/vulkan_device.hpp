@@ -54,7 +54,7 @@ public:
   void createWindowSurface();
   void pickPhysicalDevice();
   void createLogicalDevice();
-  void shutdown();
+  void shutdown() const;
 
   auto getGraphicsQueue() -> GPUQueue&;
   auto getPresentQueue() -> GPUQueue&;

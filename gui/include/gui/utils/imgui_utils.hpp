@@ -28,7 +28,7 @@ static auto truncateText( const std::string& text, uint32_t limit ) -> std::stri
   if ( textWidth < limit )
     return text;
 
-  constexpr const char* ELLIPSIS = " ...";
+  constexpr const char* ELLIPSIS = "...";
   const float ellipsisSize = ImGui::CalcTextSize( ELLIPSIS ).x;
 
   int visibleCharacters = 0;
@@ -48,15 +48,26 @@ static auto truncateText( const std::string& text, uint32_t limit ) -> std::stri
   return trucatedText;
 }
 
+/**
+ * @brief Moves the cursor to the center of the available space based on text length and frame padding
+ * @param text
+ */
 static void moveTextToCenter( const std::string& text )
 {
-  ImGuiStyle& style = ImGui::GetStyle();
-  float size = ImGui::CalcTextSize( text.c_str() ).x + ( style.FramePadding.x * 2.0f );
-  float avail = ImGui::GetContentRegionAvail().x;
-
-  float off = ( avail - size ) * 0.5f;
-
-  if ( off > 0.0f )
-    ImGui::SetCursorPosX( ImGui::GetCursorPosX() + off );
+  ImGui::SetCursorPosX( ImGui::GetCursorPosX() +
+                        ( ( ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize( text.c_str() ).x ) * 0.5f ) +
+                        2.0f * ImGui::GetStyle().FramePadding.x );
 }
+
+/**
+ * @brief Moves the cursor to the center of the provided space based on text length and frame padding
+ * @param size
+ * @param text
+ */
+static void moveTextToCenter( ImVec2 size, const std::string& text )
+{
+  ImGui::SetCursorPosX( ImGui::GetCursorPosX() + ( ( size.x - ImGui::CalcTextSize( text.c_str() ).x ) * 0.5f ) +
+                        2.0f * ImGui::GetStyle().FramePadding.x );
+}
+
 } // namespace gui_utils

@@ -54,6 +54,9 @@ struct ViewportSpec
   VkDescriptorSet renderModeIcon;
   VkDescriptorSet playIcon;
   VkDescriptorSet stopIcon;
+
+  VkImageView* pViewportTexture;
+  VkSampler* pSampler;
 };
 
 class Viewport : public ImGuiWindow

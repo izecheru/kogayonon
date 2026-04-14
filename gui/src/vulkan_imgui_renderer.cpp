@@ -3,11 +3,13 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <stdexcept>
 #include "core/asset_manager/asset_manager.hpp"
+#include "graphics/utils.hpp"
 #include "graphics/vulkan_device.hpp"
 #include "graphics/vulkan_swapchain.hpp"
 #include "gui/imgui_windows/file_explorer.hpp"
 #include "gui/imgui_windows/scene_hierarchy.hpp"
 #include "gui/imgui_windows/viewport.hpp"
+#include "gui/utils/imgui_utils.hpp"
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_vulkan.h"
@@ -15,9 +17,6 @@
 #include "imgui_stdlib.h"
 #include "resources/texture.hpp"
 #include "utilities/config_manager/config_manager.hpp"
-#include "utilities/fonts/fontawesome5.hpp"
-#include "utilities/fonts/fontawesome6Pro.hpp"
-#include "utilities/fonts/forkawesome.hpp"
 #include "utilities/fonts/materialdesign.hpp"
 
 gui::VulkanImguiRenderer::VulkanImguiRenderer( SDL_Window* wnd,
@@ -33,28 +32,7 @@ gui::VulkanImguiRenderer::VulkanImguiRenderer( SDL_Window* wnd,
 
 void gui::VulkanImguiRenderer::createIconSampler( graphics::VulkanDevice* device )
 {
-  VkPhysicalDeviceProperties properties{};
-  vkGetPhysicalDeviceProperties( device->getPhysicalDevice(), &properties );
-
-  VkSamplerCreateInfo samplerInfo{};
-  samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-  samplerInfo.magFilter = VK_FILTER_LINEAR;
-  samplerInfo.minFilter = VK_FILTER_LINEAR;
-  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.anisotropyEnable = VK_FALSE;
-  samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-  samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-  samplerInfo.unnormalizedCoordinates = VK_FALSE;
-  samplerInfo.compareEnable = VK_TRUE;
-  samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-  samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-  if ( vkCreateSampler( device->getLogicalDevice(), &samplerInfo, nullptr, &m_iconSampler ) != VK_SUCCESS )
-  {
-    throw std::runtime_error( "failed to create texture sampler!" );
-  }
+  createSampler( device->getLogicalDevice(), device->getPhysicalDevice(), m_iconSampler );
 }
 
 gui::VulkanImguiRenderer::~VulkanImguiRenderer()
@@ -98,9 +76,9 @@ void gui::VulkanImguiRenderer::setupDockspace( ImGuiViewport* viewport )
     const auto leftNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Left, 0.20f, nullptr, &centerNodeId );
     auto rightNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Right, 0.30f, nullptr, &centerNodeId );
 
-    ImGui::DockBuilderDockWindow( ICON_FA_FILE " File explorer", bottomNodeId );
-    ImGui::DockBuilderDockWindow( ICON_FK_ARROWS " Viewport", rightNodeId );
-    ImGui::DockBuilderDockWindow( ICON_FA_LIST " Hierarchy", leftNodeId );
+    ImGui::DockBuilderDockWindow( ICON_MDI_FOLDER_SEARCH "File explorer", bottomNodeId );
+    ImGui::DockBuilderDockWindow( ICON_MDI_AXIS "Viewport", rightNodeId );
+    ImGui::DockBuilderDockWindow( ICON_MDI_LIST_BOX "Hierarchy", leftNodeId );
 
     ImGui::DockBuilderFinish( dockSpaceId );
   }
@@ -182,66 +160,94 @@ void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
     baseFontSize * 2.0f /
     3.0f; // FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly
 
-  static const ImWchar fontawesome6Ranges[] = { ICON_MIN_FA6, ICON_MAX_16_FA6, 0 };
-  static const ImWchar fontawesome5Ranges[] = { ICON_MIN_FA5, ICON_MAX_16_FA5, 0 };
+  // static const ImWchar fontawesome6Ranges[] = { ICON_MIN_FA6, ICON_MAX_16_FA6, 0 };
+  // static const ImWchar fontawesome5Ranges[] = { ICON_MIN_FA5, ICON_MAX_16_FA5, 0 };
   static const ImWchar materialdesignRanges[] = { ICON_MIN_MDI, ICON_MAX_MDI, 0 };
-  static const ImWchar forkAwesomeRanges[] = { ICON_MIN_FK, ICON_MAX_16_FK, 0 };
+  // static const ImWchar googleMaterialdesignRanges[] = { ICON_MIN_MD, ICON_MAX_MD, 0 };
+  // static const ImWchar googleMaterialsymbolsRanges[] = { ICON_MIN_MS, ICON_MAX_MS, 0 };
+  // static const ImWchar forkAwesomeRanges[] = { ICON_MIN_FK, ICON_MAX_16_FK, 0 };
+  // static const ImWchar codiconRanges[] = { ICON_MIN_CI, ICON_MAX_CI, 0 };
+  // static const ImWchar lucideRanges[] = { ICON_MIN_LC, ICON_MAX_16_LC, 0 };
 
   ImFontConfig iconsConfig;
   iconsConfig.PixelSnapH = true;
   iconsConfig.GlyphMinAdvanceX = iconFontSize;
   iconsConfig.MergeMode = true;
+  iconsConfig.PixelSnapH = true;
 
   ImFontConfig materialdesignConfig;
   materialdesignConfig.PixelSnapH = true;
   materialdesignConfig.GlyphMinAdvanceX = baseFontSize;
   materialdesignConfig.MergeMode = true;
+  materialdesignConfig.PixelSnapH = true;
 
   m_fonts.emplace( "inter",
                    io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-Medium.ttf", baseFontSize, &cfg ) );
 
   io.FontDefault = m_fonts.at( "inter" );
 
-  m_fonts.emplace(
-    "forkawesome",
-    io.Fonts->AddFontFromFileTTF(
-      "engine_resources/fonts/forkawesome-webfont.ttf", iconFontSize, &iconsConfig, forkAwesomeRanges ) );
+  // m_fonts.emplace( "codicon",
+  //                  io.Fonts->AddFontFromFileTTF(
+  //                    "engine_resources/fonts/codicon.ttf", baseFontSize - 5.0f, &iconsConfig, codiconRanges ) );
+
+  // m_fonts.emplace( "lucide",
+  //                  io.Fonts->AddFontFromFileTTF(
+  //                    "engine_resources/fonts/lucide.ttf", baseFontSize - 5.0f, &iconsConfig, lucideRanges ) );
+
+  // m_fonts.emplace(
+  //   "forkawesome",
+  //   io.Fonts->AddFontFromFileTTF(
+  //     "engine_resources/fonts/forkawesome-webfont.ttf", iconFontSize, &iconsConfig, forkAwesomeRanges ) );
+
+  // m_fonts.emplace( "google-materialdesign",
+  //                  io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/MaterialIcons-Regular.ttf",
+  //                                                baseFontSize,
+  //                                                &materialdesignConfig,
+  //                                                googleMaterialdesignRanges ) );
+
+  // m_fonts.emplace(
+  //   "google-materialsymbols",
+  //   io.Fonts->AddFontFromFileTTF(
+  //   "engine_resources/fonts/MaterialSymbolsOutlined-VariableFont_FILL,GRAD,opsz,wght.ttf",
+  //                                 baseFontSize,
+  //                                 &materialdesignConfig,
+  //                                 googleMaterialsymbolsRanges ) );
 
   m_fonts.emplace( "materialdesign",
                    io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/materialdesignicons-webfont.ttf",
-                                                 iconFontSize,
+                                                 baseFontSize - 5.0f,
                                                  &materialdesignConfig,
                                                  materialdesignRanges ) );
 
-  m_fonts.emplace(
-    "fa6-brands-400",
-    io.Fonts->AddFontFromFileTTF(
-      "engine_resources/fonts/fontawesome/fa6-brands-400.otf", iconFontSize, &iconsConfig, fontawesome6Ranges ) );
+  // m_fonts.emplace(
+  //   "fa6-brands-400",
+  //   io.Fonts->AddFontFromFileTTF(
+  //     "engine_resources/fonts/fontawesome/fa6-brands-400.otf", iconFontSize, &iconsConfig, fontawesome6Ranges ) );
 
-  m_fonts.emplace(
-    "fa6-regular-400",
-    io.Fonts->AddFontFromFileTTF(
-      "engine_resources/fonts/fontawesome/fa6-regular-400.otf", iconFontSize, &iconsConfig, fontawesome6Ranges ) );
+  // m_fonts.emplace(
+  //   "fa6-regular-400",
+  //   io.Fonts->AddFontFromFileTTF(
+  //     "engine_resources/fonts/fontawesome/fa6-regular-400.otf", iconFontSize, &iconsConfig, fontawesome6Ranges ) );
 
-  m_fonts.emplace(
-    "fa6-solid-900",
-    io.Fonts->AddFontFromFileTTF(
-      "engine_resources/fonts/fontawesome/fa6-solid-900.otf", iconFontSize, &iconsConfig, fontawesome6Ranges ) );
+  // m_fonts.emplace(
+  //   "fa6-solid-900",
+  //   io.Fonts->AddFontFromFileTTF(
+  //     "engine_resources/fonts/fontawesome/fa6-solid-900.otf", iconFontSize, &iconsConfig, fontawesome6Ranges ) );
 
-  m_fonts.emplace(
-    "fa5-regular-400",
-    io.Fonts->AddFontFromFileTTF(
-      "engine_resources/fonts/fontawesome/fa5-regular-400.ttf", iconFontSize, &iconsConfig, fontawesome5Ranges ) );
+  // m_fonts.emplace(
+  //   "fa5-regular-400",
+  //   io.Fonts->AddFontFromFileTTF(
+  //     "engine_resources/fonts/fontawesome/fa5-regular-400.ttf", iconFontSize, &iconsConfig, fontawesome5Ranges ) );
 
-  m_fonts.emplace(
-    "fa5-solid-900",
-    io.Fonts->AddFontFromFileTTF(
-      "engine_resources/fonts/fontawesome/fa5-solid-900.ttf", iconFontSize, &iconsConfig, fontawesome5Ranges ) );
+  // m_fonts.emplace(
+  //   "fa5-solid-900",
+  //   io.Fonts->AddFontFromFileTTF(
+  //     "engine_resources/fonts/fontawesome/fa5-solid-900.ttf", iconFontSize, &iconsConfig, fontawesome5Ranges ) );
 
-  m_fonts.emplace(
-    "fa5-brands-400",
-    io.Fonts->AddFontFromFileTTF(
-      "engine_resources/fonts/fontawesome/fa5-brands-400.ttf", iconFontSize, &iconsConfig, fontawesome5Ranges ) );
+  // m_fonts.emplace(
+  //   "fa5-brands-400",
+  //   io.Fonts->AddFontFromFileTTF(
+  //     "engine_resources/fonts/fontawesome/fa5-brands-400.ttf", iconFontSize, &iconsConfig, fontawesome5Ranges ) );
 
   m_fonts.emplace( "inter-bold",
                    io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-Bold.ttf", 18.0f, &cfg ) );
@@ -288,7 +294,7 @@ void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
   initInfo.PipelineInfoMain.PipelineRenderingCreateInfo = { .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
 
   initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
-  initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &swapchain->getSwapchainFormat();
+  initInfo.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &swapchain->getSwapchainImageFormat();
 
   ImGui_ImplVulkan_Init( &initInfo );
 }
@@ -303,15 +309,26 @@ void gui::VulkanImguiRenderer::initWindows()
   auto filePath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\file.png";
   auto fileTexture = assetManager.addTexture( "logo.png", filePath.string() );
 
+  auto gltfIconPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\gltf_file.png";
+  auto gltfTexture = assetManager.addTexture( "gltf_file.png", gltfIconPath.string() );
+
   auto folder =
     ImGui_ImplVulkan_AddTexture( m_iconSampler, folderTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
   auto file =
     ImGui_ImplVulkan_AddTexture( m_iconSampler, fileTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
-  FileExplorerSpec fileExp{ .fonts = &m_fonts, .folderIcon = std::move( folder ), .fileIcon = std::move( file ) };
+  auto gltfFile =
+    ImGui_ImplVulkan_AddTexture( m_iconSampler, gltfTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
-  m_windows.emplace( "File explorer", std::make_unique<FileExplorerWindow>( ICON_FA_FILE " File explorer", fileExp ) );
+  FileExplorerSpec fileExp{ .fonts = &m_fonts,
+                            .iconGenericFolder = std::move( folder ),
+                            .genericFileIcon = std::move( file ),
+                            // this is an unordered map
+                            .fileIcons = { { ".gltf", gltfFile } } };
+
+  m_windows.emplace( "File explorer",
+                     std::make_unique<FileExplorerWindow>( ICON_MDI_FOLDER_SEARCH "File explorer", fileExp ) );
 
   auto playPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\play.png";
   auto playTexture = assetManager.addTexture( "play.png", playPath.string() );
@@ -334,11 +351,14 @@ void gui::VulkanImguiRenderer::initWindows()
   ViewportSpec viewportSpec{ .fonts = &m_fonts,
                              .renderModeIcon = std::move( renderMode ),
                              .playIcon = std::move( play ),
-                             .stopIcon = std::move( stop ) };
+                             .stopIcon = std::move( stop ),
+                             .pViewportTexture = &m_viewportView,
+                             .pSampler = &m_iconSampler };
 
-  m_windows.emplace( "Viewport", std::make_unique<Viewport>( m_wnd, ICON_FK_ARROWS " Viewport", viewportSpec ) );
+  m_windows.emplace( "Viewport", std::make_unique<Viewport>( m_wnd, ICON_MDI_AXIS "Viewport", viewportSpec ) );
 
-  m_windows.emplace( "Hierarchy", std::make_unique<SceneHierarchy>( ICON_FA_LIST " Hierarchy", SceneHierarchySpec{} ) );
+  m_windows.emplace( "Hierarchy",
+                     std::make_unique<SceneHierarchy>( ICON_MDI_LIST_BOX "Hierarchy", SceneHierarchySpec{} ) );
 }
 
 void gui::VulkanImguiRenderer::mainMenu()
@@ -347,7 +367,7 @@ void gui::VulkanImguiRenderer::mainMenu()
   {
     if ( ImGui::BeginMenu( "File" ) )
     {
-      if ( ImGui::MenuItem( "Close" ) )
+      if ( ImGui::MenuItem( ICON_MDI_CLOSE "Close" ) )
       {
       }
       ImGui::EndMenu();
@@ -472,16 +492,19 @@ void gui::VulkanImguiRenderer::colorChanger()
 
 void gui::VulkanImguiRenderer::colorModal()
 {
-  if ( ImGui::BeginPopupModal( "Color settings", &m_popups.colorChangerPopup, ImGuiWindowFlags_NoDocking ) )
+  if ( ImGui::BeginPopupModal( "Color settings", nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoDecoration ) )
   {
-    colorChanger();
-    if ( ImGui::Button( ICON_MDI_CLOSE "Close" ) )
+    ImGui::BeginGroup();
+    gui_utils::moveTextToCenter( "Are you sure you want to save the color theme?" );
+    ImGui::Text( "Are you sure you want to save the color theme?" );
+    if ( ImGui::Button( "Cancel" ) )
     {
       m_popups.colorChangerPopup = false;
       ImGui::CloseCurrentPopup();
     }
-    ImGui::SameLine( 0.0f, 10.0f );
-    if ( ImGui::Button( ICON_FA_SAVE "Save config" ) )
+    ImGui::SameLine( ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize( "Save" ).x -
+                     2.0f * ImGui::GetStyle().FramePadding.x );
+    if ( ImGui::Button( "Save" ) )
     {
       // save config
       changeColorConfig();
@@ -489,6 +512,11 @@ void gui::VulkanImguiRenderer::colorModal()
       m_popups.colorChangerPopup = false;
       ImGui::CloseCurrentPopup();
     }
+    ImGui::EndGroup();
+
+    ImGui::BeginChild( "##colorModal" );
+    colorChanger();
+    ImGui::EndChild();
 
     ImGui::EndPopup();
   }
@@ -570,11 +598,12 @@ void gui::VulkanImguiRenderer::imguiChanger()
 
 void gui::VulkanImguiRenderer::imguiModal()
 {
-  if ( ImGui::BeginPopupModal( "Edit imgui", &m_popups.imguiVariablesPopup, ImGuiWindowFlags_NoDocking ) )
+  if ( ImGui::BeginPopupModal(
+         "Edit imgui", nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize ) )
   {
     imguiChanger();
 
-    if ( ImGui::Button( ICON_FA_SAVE " Close" ) )
+    if ( ImGui::Button( "Close" ) )
     {
       m_popups.imguiVariablesPopup = false;
       ImGui::CloseCurrentPopup();
@@ -585,7 +614,6 @@ void gui::VulkanImguiRenderer::imguiModal()
 
 void gui::VulkanImguiRenderer::configChanger()
 {
-  // TODO(kogayonon) get the config here and edit it
   auto& cfg = utilities::EditorConfigManager::getConfig();
 
   ImGui::SeparatorText( "File filters" );
@@ -633,16 +661,18 @@ void gui::VulkanImguiRenderer::configChanger()
 
 void gui::VulkanImguiRenderer::configModal()
 {
-  if ( ImGui::BeginPopupModal( "Engine config", &m_popups.configPopup, ImGuiWindowFlags_NoDocking ) )
+
+  if ( ImGui::BeginPopupModal(
+         "Engine config", nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize ) )
   {
     configChanger();
-    if ( ImGui::Button( " Close" ) )
+    if ( ImGui::Button( ICON_MDI_CLOSE "Close" ) )
     {
       m_popups.configPopup = false;
       ImGui::CloseCurrentPopup();
     }
     ImGui::SameLine();
-    if ( ImGui::Button( ICON_FA_SAVE "Save" ) )
+    if ( ImGui::Button( ICON_MDI_CLOSE "Save" ) )
     {
       // save config
       utilities::EditorConfigManager::writeConfig();
@@ -1024,8 +1054,14 @@ void gui::VulkanImguiRenderer::changeColorConfig()
                                                         style.Colors[ImGuiCol_ResizeGripActive].z,
                                                         style.Colors[ImGuiCol_ResizeGripActive].w };
 
-  //.ImGuiCol_PlotLinesHovered = { 1.00f, 0.43f, 0.35f, 1.00f }, .ImGuiCol_PlotHistogram = { 0.90f, 0.70f, 0.00f, 1.00f
+  //.ImGuiCol_PlotLinesHovered = { 1.00f, 0.43f, 0.35f, 1.00f }, .ImGuiCol_PlotHistogram = { 0.90f, 0.70f,
+  // 0.00f, 1.00f
   //}; .ImGuiCol_PlotHistogramHovered = { 1.00f, 0.60f, 0.00f, 1.00f }; .ImGuiCol_TextSelectedBg = { 0.18431373f,
   // 0.39607847f, 0.79215693f, 0.90f };
   utilities::EditorConfigManager::writeColorConfig();
+}
+
+void gui::VulkanImguiRenderer::setViewport( VkImageView& viewportView )
+{
+  m_viewportView = viewportView;
 }

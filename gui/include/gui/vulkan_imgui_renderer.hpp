@@ -42,10 +42,12 @@ public:
   void render();
   void present( VkCommandBuffer& buffer );
 
+  void setViewport( VkImageView& viewportView );
+
 private:
   void initImgui( SDL_Window* wnd, graphics::VulkanDevice* device, graphics::VulkanSwapchain* swapchain );
-  void initWindows();
   void createIconSampler( graphics::VulkanDevice* device );
+  void initWindows();
   void mainMenu();
 
   // MODALS
@@ -68,6 +70,9 @@ private:
   void end();
 
 private:
+  // this gets passed to the viewport
+  VkImageView m_viewportView;
+
   VkDescriptorPool m_descriptorPool;
   graphics::VulkanDevice* m_device;
   std::unordered_map<std::string, std::unique_ptr<ImGuiWindow>> m_windows;

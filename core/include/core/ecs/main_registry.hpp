@@ -9,10 +9,10 @@ class ShaderManager;
 class TimeTracker;
 } // namespace utilities
 
-namespace kogayonon_gui
+namespace graphics
 {
-class ImGuiManager;
-} // namespace kogayonon_gui
+class VulkanContext;
+}
 
 namespace core
 {
@@ -23,11 +23,6 @@ class EventEmitter;
 class EventDispatcher;
 class ScriptingSystem;
 } // namespace core
-
-namespace kogayonon_rendering
-{
-class Renderer;
-}
 
 namespace core
 {
@@ -60,6 +55,11 @@ public:
     return m_pRegistry->getContext<TContext>();
   }
 
+  auto getVulkanContext() -> std::shared_ptr<graphics::VulkanContext>&
+  {
+    return getContext<std::shared_ptr<graphics::VulkanContext>>();
+  }
+
   auto getMainScriptFuncs() -> std::shared_ptr<core::MainScriptFuncs>&
   {
     return getContext<std::shared_ptr<core::MainScriptFuncs>>();
@@ -73,11 +73,6 @@ public:
   auto getEventDispatcher() -> std::shared_ptr<core::EventDispatcher>&
   {
     return getContext<std::shared_ptr<core::EventDispatcher>>();
-  }
-
-  auto getImGuiManager() -> std::shared_ptr<kogayonon_gui::ImGuiManager>&
-  {
-    return getContext<std::shared_ptr<kogayonon_gui::ImGuiManager>>();
   }
 
   auto getTaskManager() -> std::shared_ptr<utilities::TaskManager>&

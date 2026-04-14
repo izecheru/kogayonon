@@ -10,8 +10,6 @@
 
 struct CreateImageInfo
 {
-  VkDevice* device;
-  VkPhysicalDevice* physicalDevice;
   uint32_t width;
   uint32_t height;
   VkFormat format;
@@ -21,6 +19,11 @@ struct CreateImageInfo
   VkImage* image;
   VkDeviceMemory* imageMemory;
 };
+
+namespace graphics
+{
+struct VulkanContext;
+}
 
 namespace resources
 {
@@ -49,26 +52,13 @@ public:
     return instance;
   }
 
-  void setSwapchain( graphics::VulkanSwapchain* swapchain );
-  void setDevice( graphics::VulkanDevice* device );
-
+  void setContext( graphics::VulkanContext* ctx );
   auto getTextureSampler() -> VkSampler&;
-
+  auto getTexture( const std::string& texturePath ) -> resources::Texture*;
   auto addTexture( const std::string& textureName, const std::string& texturePath ) -> resources::Texture*;
+  void initSampler();
 
-  void createImage( const CreateImageInfo& info );
-  void transitionImageLayout( VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout );
-  void copyBufferToImage( VkBuffer buffer, VkImage image, uint32_t width, uint32_t height );
-  auto createImageView( VkDevice device, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags )
-    -> VkImageView;
-  void createBuffer( VkDeviceSize size,
-                     VkBufferUsageFlags usage,
-                     VkMemoryPropertyFlags properties,
-                     VkBuffer& buffer,
-                     VkDeviceMemory& bufferMemory );
-  void createTextureSamplers();
-
-protected:
+private:
   AssetManager() = default;
   ~AssetManager() = default;
 
@@ -85,8 +75,7 @@ private:
   std::unordered_map<std::string, std::shared_ptr<resources::Texture>> m_loadedTextures;
   std::unordered_map<std::string, std::shared_ptr<resources::Mesh>> m_loadedMeshes;
 
-  graphics::VulkanDevice* m_pDevice;
-  graphics::VulkanSwapchain* m_pSwapchain;
+  graphics::VulkanContext* m_pVkContext;
 
   VkSampler m_textureSampler;
 };

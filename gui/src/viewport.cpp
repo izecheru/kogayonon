@@ -1,5 +1,7 @@
 #include "gui/imgui_windows/viewport.hpp"
 #include <SDL2/SDL.h>
+#include <imgui.h>
+#include <imgui_impl_vulkan.h>
 #include "gui/utils/imgui_utils.hpp"
 #include "utilities/fonts/materialdesign.hpp"
 
@@ -7,6 +9,8 @@ gui::Viewport::Viewport( SDL_Window* mainWindow, const std::string& name, const 
     : ImGuiWindow{ name }
     , m_spec{ spec }
     , m_mainWindow{ mainWindow }
+    , m_gizmoMode{ gui::GizmoMode::ROTATE }
+    , m_gizmoEnabled{ false }
 {
 }
 
@@ -15,7 +19,11 @@ void gui::Viewport::render()
   if ( !begin() )
     return;
 
-  RenderWithSizedFont( m_spec.fonts->at( "materialdesign" ), 54, ImGui::Text( ICON_MDI_GAMEPAD_CIRCLE " " ) );
+  // TODO(kogayonon) draw the scene here
+  static auto viewportDescriptorSet =
+    ImGui_ImplVulkan_AddTexture( *m_spec.pSampler, *m_spec.pViewportTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+  ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+  ImGui::Image( viewportDescriptorSet, ImVec2{ viewportPanelSize.x, viewportPanelSize.y } );
 
   ImGui::End();
 }

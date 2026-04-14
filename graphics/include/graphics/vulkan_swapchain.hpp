@@ -43,6 +43,8 @@ public:
    * @return A VkCommandBuffer to record commands to
    */
   auto getCurrentCommandBuffer() -> VkCommandBuffer&;
+  void beginCommandBuffer();
+  void endCommandBuffer();
 
   void onUpdate();
 
@@ -56,16 +58,22 @@ public:
    */
   void presentFrame();
 
-  bool beginRendering();
+  bool beginRendering( const VkRenderingInfo& info );
   void endRendering();
+  bool aquireNextImage();
+  void resetFences();
+  void waitForFences();
 
-  auto getSwapchainFormat() -> VkFormat&;
+  auto getSwapchainImageFormat() -> VkFormat&;
   auto getCommandPool() -> VkCommandPool&;
+  auto getSwapchainExtent() -> VkExtent2D&;
+  auto getCurrentFrameIndex() const -> uint32_t;
+  auto getCurrentFrame() -> SwapchainImage&;
 
-private:
   void setupViewport( VkCommandBuffer& cmd );
   void setupScissors( VkCommandBuffer& cmd );
 
+private:
   void destroy();
 
   /**

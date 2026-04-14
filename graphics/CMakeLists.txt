@@ -1,6 +1,8 @@
 ﻿set(TargetSources 
 	"include/graphics/vulkan_device.hpp"
 	"include/graphics/vulkan_swapchain.hpp"
+	"include/graphics/vulkan_pipeline.hpp"
+	"include/graphics/vulkan_context.hpp"
 	"include/graphics/utils.hpp"
 
 	"src/vulkan_device.cpp"

@@ -4,10 +4,11 @@
 #include <set>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
+#include "graphics/utils.hpp"
 
-void DestroyDebugUtilsMessengerEXT( VkInstance instance,
-                                    VkDebugUtilsMessengerEXT debugMessenger,
-                                    const VkAllocationCallbacks* pAllocator )
+static void DestroyDebugUtilsMessengerEXT( VkInstance instance,
+                                           VkDebugUtilsMessengerEXT debugMessenger,
+                                           const VkAllocationCallbacks* pAllocator )
 {
   auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr( instance, "vkDestroyDebugUtilsMessengerEXT" );
   if ( func != nullptr )
@@ -16,10 +17,10 @@ void DestroyDebugUtilsMessengerEXT( VkInstance instance,
   }
 }
 
-VkResult CreateDebugUtilsMessengerEXT( VkInstance instance,
-                                       const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-                                       const VkAllocationCallbacks* pAllocator,
-                                       VkDebugUtilsMessengerEXT* pDebugMessenger )
+static auto CreateDebugUtilsMessengerEXT( VkInstance instance,
+                                          const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+                                          const VkAllocationCallbacks* pAllocator,
+                                          VkDebugUtilsMessengerEXT* pDebugMessenger ) -> VkResult
 {
   auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr( instance, "vkCreateDebugUtilsMessengerEXT" );
   if ( func != nullptr )
@@ -32,7 +33,7 @@ VkResult CreateDebugUtilsMessengerEXT( VkInstance instance,
   }
 }
 
-bool checkDeviceExtensionSupport( VkPhysicalDevice& device )
+static bool checkDeviceExtensionSupport( VkPhysicalDevice& device )
 {
   // get all the extensions of the device
   uint32_t extensionCount{ 0u };
@@ -153,7 +154,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback( VkDebugUtilsMessageSeverity
   return VK_FALSE;
 }
 
-bool checkValidationLayerSupport()
+static bool checkValidationLayerSupport()
 {
   uint32_t layerCount;
   vkEnumerateInstanceLayerProperties( &layerCount, nullptr );
@@ -183,7 +184,7 @@ bool checkValidationLayerSupport()
   return true;
 }
 
-void populateDebugMessengerCreateInfo( VkDebugUtilsMessengerCreateInfoEXT& info )
+static void populateDebugMessengerCreateInfo( VkDebugUtilsMessengerCreateInfoEXT& info )
 {
   info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
   info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
@@ -195,7 +196,7 @@ void populateDebugMessengerCreateInfo( VkDebugUtilsMessengerCreateInfoEXT& info 
   info.pNext = nullptr;
 }
 
-void graphics::VulkanDevice::shutdown()
+void graphics::VulkanDevice::shutdown() const
 {
   vkDestroyDevice( m_platform.device, nullptr );
   vkDestroySurfaceKHR( m_platform.instance, m_platform.surface, nullptr );

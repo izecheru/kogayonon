@@ -3,6 +3,7 @@
 gui::SceneHierarchy::SceneHierarchy( const std::string& name, const SceneHierarchySpec& spec )
     : ImGuiWindow{ name }
     , m_spec{ spec }
+    , m_selectedEntity{ entt::null }
 {
 }
 
