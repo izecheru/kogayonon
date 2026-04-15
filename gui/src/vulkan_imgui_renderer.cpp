@@ -69,7 +69,8 @@ void gui::VulkanImguiRenderer::setupDockspace( ImGuiViewport* viewport )
     ImGui::DockBuilderAddNode( dockSpaceId );
 
     ImGuiDockNode* node = ImGui::DockBuilderGetNode( dockSpaceId );
-    node->LocalFlags |= ImGuiDockNodeFlags_NoWindowMenuButton | ImGuiDockNodeFlags_NoCloseButton;
+    node->LocalFlags |= ImGuiDockNodeFlags_NoWindowMenuButton | ImGuiDockNodeFlags_NoCloseButton |
+                        ImGuiDockNodeFlags_AutoHideTabBar | ImGuiDockNodeFlags_NoTabBar;
 
     auto centerNodeId = dockSpaceId;
     const auto bottomNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Down, 0.35f, nullptr, &centerNodeId );

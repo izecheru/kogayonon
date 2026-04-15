@@ -45,7 +45,11 @@ static VkDeviceMemory indicesBufferMemory;
 static VkBuffer stageBuffer;
 static VkDeviceMemory stageBufferMemory;
 
-struct Viewport
+static VkImage depthImage;
+static VkImageView depthView;
+static VkDeviceMemory depthMemory;
+
+struct VulkanViewport
 {
   VkImage image;
   VkImageView imageView;
@@ -68,11 +72,10 @@ static void createDescriptorPool( graphics::VulkanContext* ctx )
   VK_CALL( vkCreateDescriptorPool( ctx->device->getLogicalDevice(), &poolInfo, nullptr, &descriptorPool ) );
 }
 
-static Viewport viewport;
+static VulkanViewport viewport;
 
 void createViewport( graphics::VulkanContext* ctx )
 {
-
   CreateImageInfo info{ .width = static_cast<uint32_t>( ctx->swapchain->getSwapchainExtent().width ),
                         .height = static_cast<uint32_t>( ctx->swapchain->getSwapchainExtent().height ),
                         .format = ctx->swapchain->getSwapchainImageFormat(),
@@ -86,6 +89,21 @@ void createViewport( graphics::VulkanContext* ctx )
 
   viewport.imageView =
     createImageView( ctx, viewport.image, ctx->swapchain->getSwapchainImageFormat(), VK_IMAGE_ASPECT_COLOR_BIT );
+
+  auto depthFormat = findDepthFormat( &ctx->device->getPhysicalDevice() );
+
+  CreateImageInfo depthInfo{ .width = static_cast<uint32_t>( ctx->swapchain->getSwapchainExtent().width ),
+                             .height = static_cast<uint32_t>( ctx->swapchain->getSwapchainExtent().height ),
+                             .format = depthFormat,
+                             .tiling = VK_IMAGE_TILING_OPTIMAL,
+                             .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                             .properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                             .image = &depthImage,
+                             .imageMemory = &depthMemory };
+
+  createImage( ctx, depthInfo );
+
+  depthView = createImageView( ctx, depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT );
 }
 
 struct UniformBufferObject
@@ -134,17 +152,52 @@ struct Vertex
   }
 };
 
-const std::vector<Vertex> vertices = { { { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-                                       { { 0.5f, -0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
-                                       { { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
-                                       { { -0.5f, 0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } },
+const std::vector<Vertex> vertices = {
+  // Front face
+  { { -0.5f, -0.5f, 0.5f }, { 1, 0, 0 }, { 0, 0 } },
+  { { 0.5f, -0.5f, 0.5f }, { 0, 1, 0 }, { 1, 0 } },
+  { { 0.5f, 0.5f, 0.5f }, { 0, 0, 1 }, { 1, 1 } },
+  { { -0.5f, 0.5f, 0.5f }, { 1, 1, 1 }, { 0, 1 } },
 
-                                       { { -0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-                                       { { 0.5f, -0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
-                                       { { 0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
-                                       { { -0.5f, 0.5f, -0.5f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f } } };
+  // Back face
+  { { -0.5f, -0.5f, -0.5f }, { 1, 0, 0 }, { 1, 0 } },
+  { { 0.5f, -0.5f, -0.5f }, { 0, 1, 0 }, { 0, 0 } },
+  { { 0.5f, 0.5f, -0.5f }, { 0, 0, 1 }, { 0, 1 } },
+  { { -0.5f, 0.5f, -0.5f }, { 1, 1, 1 }, { 1, 1 } },
 
-const std::vector<uint16_t> indices = { 0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4 };
+  // Left face
+  { { -0.5f, -0.5f, -0.5f }, { 1, 0, 0 }, { 0, 0 } },
+  { { -0.5f, -0.5f, 0.5f }, { 0, 1, 0 }, { 1, 0 } },
+  { { -0.5f, 0.5f, 0.5f }, { 0, 0, 1 }, { 1, 1 } },
+  { { -0.5f, 0.5f, -0.5f }, { 1, 1, 1 }, { 0, 1 } },
+
+  // Right face
+  { { 0.5f, -0.5f, -0.5f }, { 1, 0, 0 }, { 1, 0 } },
+  { { 0.5f, -0.5f, 0.5f }, { 0, 1, 0 }, { 0, 0 } },
+  { { 0.5f, 0.5f, 0.5f }, { 0, 0, 1 }, { 0, 1 } },
+  { { 0.5f, 0.5f, -0.5f }, { 1, 1, 1 }, { 1, 1 } },
+
+  // Top face
+  { { -0.5f, 0.5f, -0.5f }, { 1, 0, 0 }, { 0, 1 } },
+  { { 0.5f, 0.5f, -0.5f }, { 0, 1, 0 }, { 1, 1 } },
+  { { 0.5f, 0.5f, 0.5f }, { 0, 0, 1 }, { 1, 0 } },
+  { { -0.5f, 0.5f, 0.5f }, { 1, 1, 1 }, { 0, 0 } },
+
+  // Bottom face
+  { { -0.5f, -0.5f, -0.5f }, { 1, 0, 0 }, { 1, 1 } },
+  { { 0.5f, -0.5f, -0.5f }, { 0, 1, 0 }, { 0, 1 } },
+  { { 0.5f, -0.5f, 0.5f }, { 0, 0, 1 }, { 0, 0 } },
+  { { -0.5f, -0.5f, 0.5f }, { 1, 1, 1 }, { 1, 0 } },
+};
+
+const std::vector<uint16_t> indices = {
+  0,  1,  2,  2,  3,  0,  // front
+  4,  5,  6,  6,  7,  4,  // back
+  8,  9,  10, 10, 11, 8,  // left
+  12, 13, 14, 14, 15, 12, // right
+  16, 17, 18, 18, 19, 16, // top
+  20, 21, 22, 22, 23, 20  // bottom
+};
 
 void createUniformBuffers( graphics::VulkanContext* ctx )
 {
@@ -215,15 +268,16 @@ static void createGraphicsPipeline( graphics::VulkanContext* ctx )
   viewportState.viewportCount = 1;
   viewportState.scissorCount = 1;
 
-  VkPipelineRasterizationStateCreateInfo rasterizer{};
-  rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-  rasterizer.depthClampEnable = VK_FALSE;
-  rasterizer.rasterizerDiscardEnable = VK_FALSE;
-  rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-  rasterizer.lineWidth = 1.0f;
-  rasterizer.cullMode = VK_CULL_MODE_NONE;
-  rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-  rasterizer.depthBiasEnable = VK_FALSE;
+  VkPipelineRasterizationStateCreateInfo rasterizer{
+    .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+    .depthClampEnable = VK_FALSE,
+    .rasterizerDiscardEnable = VK_FALSE,
+    .polygonMode = VK_POLYGON_MODE_FILL,
+    .cullMode = VK_CULL_MODE_NONE /*VK_CULL_MODE_BACK_BIT*/,
+    .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+    .depthBiasEnable = VK_FALSE,
+    .lineWidth = 1.0f,
+  };
 
   VkPipelineMultisampleStateCreateInfo multisampling{};
   multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -608,25 +662,6 @@ void Editor::run()
   createVertexBuffer( vkContext.get() );
   createIndexBuffer( vkContext.get() );
 
-  // VkImageMemoryBarrier depthBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-  //                                    .srcAccessMask = 0,
-  //                                    .dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-  //                                    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-  //                                    .newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-  //                                    .image = m_depthImage,
-  //                                    .subresourceRange = {
-  //                                      .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
-  //                                      .levelCount = 1,
-  //                                      .layerCount = 1,
-  //                                    } };
-
-  // VkRenderingAttachmentInfo depthAttachment{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-  //                                            .imageView = m_depthView,
-  //                                            .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-  //                                            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-  //                                            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-  //                                            .clearValue = { .depthStencil = { 1.f, 0 } } };
-
   while ( m_running )
   {
     pollEvents();
@@ -662,16 +697,35 @@ void Editor::run()
                           1,
                           &textureToColor );
 
-    // vkCmdPipelineBarrier( cmd,
-    //                       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-    //                       VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-    //                       0,
-    //                       0,
-    //                       nullptr,
-    //                       0,
-    //                       nullptr,
-    //                       1,
-    //                       &depthBarrier );
+    VkImageMemoryBarrier depthBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                       .srcAccessMask = 0,
+                                       .dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                       .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                       .newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                                       .image = depthImage,
+                                       .subresourceRange = {
+                                         .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+                                         .levelCount = 1,
+                                         .layerCount = 1,
+                                       } };
+
+    VkRenderingAttachmentInfo depthAttachment{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                                               .imageView = depthView,
+                                               .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                                               .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                               .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                                               .clearValue = { .depthStencil = { 1.f, 0 } } };
+
+    vkCmdPipelineBarrier( cmd,
+                          VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                          VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                          0,
+                          0,
+                          nullptr,
+                          0,
+                          nullptr,
+                          1,
+                          &depthBarrier );
 
     // this should include the viewport cause this is the whole engine UI
     VkRenderingAttachmentInfo colorAttachment{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -679,7 +733,7 @@ void Editor::run()
                                                .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                                                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                                                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                                               .clearValue = { { 0.0f, 0.0f, 0.0f, 0.8f } } };
+                                               .clearValue = { { 0.350f, 0.350f, 0.350f, 0.8f } } };
 
     VkRenderingInfo renderingInfo{
       .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
@@ -687,7 +741,7 @@ void Editor::run()
       .layerCount = 1,
       .colorAttachmentCount = 1,
       .pColorAttachments = &colorAttachment,
-      .pDepthAttachment = nullptr,
+      .pDepthAttachment = &depthAttachment,
     };
 
     swapchain->beginRendering( renderingInfo );
@@ -883,6 +937,7 @@ bool Editor::initMainRegistry()
   auto swapchain = std::make_shared<graphics::VulkanSwapchain>( device.get(), m_pWindow->getWindow() );
   auto vkCtx = std::make_shared<graphics::VulkanContext>( device, swapchain );
   auto& mainRegistry = core::MainRegistry::getInstance();
+
   assert( vkCtx.get() && "could not create vulkan context" );
   mainRegistry.addToContext<std::shared_ptr<graphics::VulkanContext>>( std::move( vkCtx ) );
   return true;
