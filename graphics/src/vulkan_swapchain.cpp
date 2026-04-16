@@ -1,11 +1,10 @@
 #include "graphics/vulkan_swapchain.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
-#include <algorithm>
 #include <spdlog/spdlog.h>
-#include <stdexcept>
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_device.hpp"
+#include "precompiled/pch.hpp"
 
 auto graphics::VulkanSwapchain::querySwapchainSupport() -> SwapchainSupportDetails
 {
@@ -342,7 +341,7 @@ void graphics::VulkanSwapchain::createSyncObjects()
 
 auto graphics::VulkanSwapchain::chooseSwapExtent( const VkSurfaceCapabilitiesKHR& capabilities ) -> VkExtent2D
 {
-  if ( capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max() )
+  if ( capabilities.currentExtent.width != UINT32_MAX )
   {
     return capabilities.currentExtent;
   }

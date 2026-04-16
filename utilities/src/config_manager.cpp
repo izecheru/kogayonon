@@ -1,5 +1,4 @@
 #include "utilities/config_manager/config_manager.hpp"
-#include <fstream>
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 #include "utilities/yaml_serializer/yaml_serializer.hpp"

@@ -1,5 +1,5 @@
 #pragma once
-#include <memory>
+#include "precompiled/pch.hpp"
 #include "registry.hpp"
 
 namespace utilities

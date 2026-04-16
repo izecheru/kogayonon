@@ -1,9 +1,9 @@
 #pragma once
-#include <memory>
 #include <vulkan/vulkan.h>
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_device.hpp"
 #include "graphics/vulkan_swapchain.hpp"
+#include "precompiled/pch.hpp"
 
 namespace graphics
 {

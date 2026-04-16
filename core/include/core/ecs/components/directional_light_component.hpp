@@ -23,9 +23,9 @@ struct DirectionalLightComponent
       entt::type_hash<DirectionalLightComponent>::value,
       sol::call_constructor,
       sol::factories( []() { return DirectionalLightComponent{}; },
-                      []( float near, float far, float orthoSize, float posFactor ) {
+                      []( float _near, float _far, float orthoSize, float posFactor ) {
                         return DirectionalLightComponent{
-                          .nearPlane = near, .farPlane = far, .orthoSize = orthoSize, .positionFactor = posFactor };
+                          .nearPlane = _near, .farPlane = _far, .orthoSize = orthoSize, .positionFactor = posFactor };
                       } ),
       "directionalLightIndex",
       &DirectionalLightComponent::directionalLightIndex,

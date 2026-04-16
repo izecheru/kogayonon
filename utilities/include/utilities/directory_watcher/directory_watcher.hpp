@@ -1,10 +1,5 @@
 #pragma once
-#include <Windows.h>
-#include <filesystem>
-#include <functional>
-#include <mutex>
-#include <string>
-#include <thread>
+#include "precompiled/pch.hpp"
 
 namespace core
 {

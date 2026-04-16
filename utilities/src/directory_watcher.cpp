@@ -1,8 +1,4 @@
 #include "utilities/directory_watcher/directory_watcher.hpp"
-#include <codecvt>
-#include <Windows.h>
-#include <assert.h>
-#include <locale>
 #include <spdlog/spdlog.h>
 
 namespace utilities

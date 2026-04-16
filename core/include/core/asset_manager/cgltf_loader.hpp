@@ -1,8 +1,7 @@
 #pragma once
 #include <cgltf.h>
 #include <glm/glm.hpp>
-#include <memory>
-#include <string>
+#include "precompiled/pch.hpp"
 
 namespace kogayonon_resources
 {

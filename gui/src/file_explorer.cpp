@@ -1,5 +1,4 @@
 #include "gui/imgui_windows/file_explorer.hpp"
-#include <format>
 #include <imgui_impl_vulkan.h>
 #include <imgui_stdlib.h>
 #include <spdlog/spdlog.h>
@@ -7,10 +6,10 @@
 #include "core/event/event_dispatcher.hpp"
 #include "core/event/file_events.hpp"
 #include "gui/utils/imgui_utils.hpp"
+#include "precompiled/pch.hpp"
 #include "utilities/config_manager/config_manager.hpp"
 #include "utilities/directory_watcher/directory_watcher.hpp"
 #include "utilities/fonts/materialdesign.hpp"
-
 using namespace core;
 using namespace utilities;
 

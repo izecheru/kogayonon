@@ -1,5 +1,4 @@
 #include "utilities/json_serializer/json_serializer.hpp"
-#include <filesystem>
 
 namespace fs = std::filesystem;
 

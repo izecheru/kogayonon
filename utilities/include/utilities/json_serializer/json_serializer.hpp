@@ -1,12 +1,11 @@
 #pragma once
-#include <fstream>
 #include <glm/glm.hpp>
 #include <rapidjson/document.h>
 #include <rapidjson/filewritestream.h>
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/stringbuffer.h>
-#include <string>
+#include "precompiled/pch.hpp"
 
 using namespace rapidjson;
 

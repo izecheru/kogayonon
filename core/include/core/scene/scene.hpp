@@ -1,10 +1,8 @@
 #pragma once
 #include <entt/entt.hpp>
-#include <memory>
 #include <spdlog/spdlog.h>
-#include <string>
-#include <unordered_map>
 #include "core/ecs/entity.hpp"
+#include "precompiled/pch.hpp"
 #include "resources/directional_light.hpp"
 #include "resources/mesh.hpp"
 

@@ -1,7 +1,5 @@
 #include "gui/vulkan_imgui_renderer.hpp"
-#include <filesystem>
 #include <glm/gtc/type_ptr.hpp>
-#include <stdexcept>
 #include "core/asset_manager/asset_manager.hpp"
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_device.hpp"
@@ -15,6 +13,7 @@
 #include "imgui_impl_vulkan.h"
 #include "imgui_internal.h"
 #include "imgui_stdlib.h"
+#include "precompiled/pch.hpp"
 #include "resources/texture.hpp"
 #include "utilities/config_manager/config_manager.hpp"
 #include "utilities/fonts/materialdesign.hpp"
@@ -302,7 +301,7 @@ void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
 
 void gui::VulkanImguiRenderer::initWindows()
 {
-  auto& assetManager = core::AssetManager::get();
+  auto& assetManager = core::AssetManager::getInstance();
 
   auto folderPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\folder.png";
   auto folderTexture = assetManager.addTexture( "logo.png", folderPath.string() );

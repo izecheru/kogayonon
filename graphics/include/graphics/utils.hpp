@@ -1,10 +1,7 @@
 #pragma once
-#include <fstream>
 #include <spdlog/spdlog.h>
-#include <stdexcept>
-#include <string>
-#include <vector>
 #include <vulkan/vulkan.h>
+#include "precompiled/pch.hpp"
 
 /**
  * @brief Got this from here https://gist.github.com/Pikachuxxxx/1bfb4a5eca2593fbf0dc409953ad9bde

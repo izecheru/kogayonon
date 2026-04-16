@@ -1,9 +1,8 @@
 #include "core/systems/scene_rendering_system.hpp"
-#include <array>
-#include <filesystem>
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_device.hpp"
 #include "graphics/vulkan_swapchain.hpp"
+#include "precompiled/pch.hpp"
 
 core::SceneRenderingSystem::SceneRenderingSystem( graphics::VulkanDevice* pDevice,
                                                   graphics::VulkanSwapchain* pSwapchain )

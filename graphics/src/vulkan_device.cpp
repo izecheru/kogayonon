@@ -1,10 +1,9 @@
 #include "graphics/vulkan_device.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
-#include <set>
 #include <spdlog/spdlog.h>
-#include <stdexcept>
 #include "graphics/utils.hpp"
+#include "precompiled/pch.hpp"
 
 static void DestroyDebugUtilsMessengerEXT( VkInstance instance,
                                            VkDebugUtilsMessengerEXT debugMessenger,
@@ -135,19 +134,13 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback( VkDebugUtilsMessageSeverity
   {
   case 1 << 0:
   case 1 << 4:
-    spdlog::info( "---VK_INFO---" );
-    spdlog::info( pCallbackData->pMessage );
-    spdlog::info( "------\n" );
+    spdlog::info( "{}", pCallbackData->pMessage );
     break;
   case 1 << 8:
-    spdlog::warn( "---VK_WARN---" );
-    spdlog::warn( pCallbackData->pMessage );
-    spdlog::warn( "------\n" );
+    spdlog::warn( "{}", pCallbackData->pMessage );
     break;
   case 1 << 12:
-    spdlog::error( "---VK_ERR---" );
-    spdlog::error( pCallbackData->pMessage );
-    spdlog::error( "------\n" );
+    spdlog::error( "{}", pCallbackData->pMessage );
     break;
   }
 

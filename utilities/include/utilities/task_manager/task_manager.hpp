@@ -1,14 +1,6 @@
 #pragma once
-#include <condition_variable>
-#include <atomic>
-#include <functional>
-#include <future>
-#include <mutex>
-#include <queue>
 #include <spdlog/spdlog.h>
-#include <thread>
-#include <type_traits>
-#include <vector>
+#include "precompiled/pch.hpp"
 
 namespace utilities
 {

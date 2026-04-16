@@ -1,7 +1,5 @@
 #pragma once
-#include <future>
-#include <memory>
-#include <string>
+#include "precompiled/pch.hpp"
 #include "resources/texture.hpp"
 
 namespace core
@@ -14,11 +12,6 @@ struct TextureComponent
   }
 
   ~TextureComponent() = default;
-
-  inline unsigned int getTextureId() const
-  {
-    return pTexture.lock()->getTextureId();
-  }
 
   std::weak_ptr<resources::Texture> pTexture;
 };

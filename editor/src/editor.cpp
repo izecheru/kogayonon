@@ -1,13 +1,10 @@
 #include "editor/editor.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
-#include <fstream>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 #include <imgui_impl_sdl2.h>
 #include <imgui_impl_vulkan.h>
-#include <iostream>
-#include <memory>
 #include <rapidjson/istreamwrapper.h>
 #include <spdlog/sinks/daily_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -227,6 +224,7 @@ static void createGraphicsPipeline( graphics::VulkanContext* ctx )
 {
   auto vert = std::filesystem::absolute( "." ) / "engine_resources\\shaders\\vert.spv";
   auto frag = std::filesystem::absolute( "." ) / "engine_resources\\shaders\\frag.spv";
+
   auto vertShaderCode = readFile( vert.string() );
   auto fragShaderCode = readFile( frag.string() );
 
@@ -364,7 +362,7 @@ void createDescriptorSets( graphics::VulkanContext* ctx )
   descriptorSets.resize( MAX_FRAMES_IN_FLIGHT );
   VK_CALL( vkAllocateDescriptorSets( ctx->device->getLogicalDevice(), &allocInfo, descriptorSets.data() ) );
   auto stopPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\logo.png";
-  auto tex = core::AssetManager::get().addTexture( "logo.png", stopPath.string() );
+  auto tex = core::AssetManager::getInstance().addTexture( "logo.png", stopPath.string() );
 
   for ( size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++ )
   {
@@ -376,7 +374,7 @@ void createDescriptorSets( graphics::VulkanContext* ctx )
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     imageInfo.imageView = tex->getView();
-    imageInfo.sampler = core::AssetManager::get().getTextureSampler();
+    imageInfo.sampler = core::AssetManager::getInstance().getTextureSampler();
 
     auto uniformBufferDescriptor = VkWriteDescriptorSet{
       .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -650,7 +648,7 @@ void Editor::run()
   auto& vkContext = core::MainRegistry::getInstance().getVulkanContext();
   auto& swapchain = vkContext->swapchain;
 
-  auto& assetManager = core::AssetManager::get();
+  auto& assetManager = core::AssetManager::getInstance();
   assetManager.initSampler();
 
   createViewport( vkContext.get() );
@@ -747,6 +745,7 @@ void Editor::run()
     swapchain->beginRendering( renderingInfo );
     swapchain->setupScissors( cmd );
     swapchain->setupViewport( cmd );
+
     // render the scene
     VkBuffer vertexBuffers[] = { vertexBuffer };
     VkDeviceSize offsets[] = { 0 };
@@ -755,6 +754,7 @@ void Editor::run()
     vkCmdBindVertexBuffers( cmd, 0, 1, vertexBuffers, offsets );
     vkCmdBindIndexBuffer( cmd, indicesBuffer, 0, VK_INDEX_TYPE_UINT16 );
 
+    // bind descriptor sets
     vkCmdBindDescriptorSets( cmd,
                              VK_PIPELINE_BIND_POINT_GRAPHICS,
                              pipelineLayout,
@@ -873,7 +873,7 @@ bool Editor::initVulkan()
 {
   auto vkCtx = core::MainRegistry::getInstance().getVulkanContext();
   // TODO(kogayonon) this does not look clean, make the asset manager ctor better or smth
-  auto& assetManager = core::AssetManager::get();
+  auto& assetManager = core::AssetManager::getInstance();
   assetManager.setContext( vkCtx.get() );
 
   return true;

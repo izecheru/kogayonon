@@ -1,8 +1,6 @@
 #pragma once
 #include <entt/entt.hpp>
-#include <memory>
-#include <string>
-#include <unordered_map>
+#include "precompiled/pch.hpp"
 
 namespace core
 {

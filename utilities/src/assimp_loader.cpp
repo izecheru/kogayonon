@@ -1,5 +1,4 @@
 #include "utilities/asset_manager/assimp_loader.hpp"
-#include <assert.h>
 #include <assimp/postprocess.h>
 #include <spdlog/spdlog.h>
 #include "resources/mesh.hpp"

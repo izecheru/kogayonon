@@ -58,4 +58,5 @@ add_subdirectory("core")
 add_subdirectory("utilities")
 add_subdirectory("resources")
 add_subdirectory("physics")
+add_subdirectory("precompiled")
 

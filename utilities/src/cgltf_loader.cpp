@@ -1,5 +1,4 @@
 #include "utilities/asset_manager/cgltf_loader.hpp"
-#include <filesystem>
 #include <glm/gtc/type_ptr.hpp>
 #include <spdlog/spdlog.h>
 #include "resources/mesh.hpp"

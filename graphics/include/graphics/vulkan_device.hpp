@@ -1,7 +1,6 @@
 #pragma once
-#include <optional>
-#include <vector>
 #include <vulkan/vulkan.h>
+#include "precompiled/pch.hpp"
 
 struct SDL_Window;
 

@@ -49,4 +49,5 @@ target_link_libraries(utilities PUBLIC cgltf
 	rapidjson
 	assimp::assimp
 	resources
+	precompiled
 )

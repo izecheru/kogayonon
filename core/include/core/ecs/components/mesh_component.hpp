@@ -2,7 +2,7 @@
 #include <cinttypes>
 #include <entt/entt.hpp>
 #include <sol/sol.hpp>
-#include <vector>
+#include "precompiled/pch.hpp"
 #include "resources/mesh.hpp"
 #include "resources/texture.hpp"
 #include "resources/vertex.hpp"

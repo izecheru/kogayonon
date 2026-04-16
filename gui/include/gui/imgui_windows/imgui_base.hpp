@@ -1,8 +1,6 @@
 #pragma once
-#include <functional>
 #include <imgui.h>
-#include <memory>
-#include <string>
+#include "precompiled/pch.hpp"
 
 namespace gui
 {

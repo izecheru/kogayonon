@@ -1,9 +1,9 @@
 #pragma once
 #include <entt/entt.hpp>
 #include <sol/sol.hpp>
-#include <string>
 #include <yaml-cpp/yaml.h>
 #include "core/ecs/entity_types.hpp"
+#include "precompiled/pch.hpp"
 #include "utilities/utils/yaml_utils.hpp"
 
 namespace core

@@ -1,10 +1,7 @@
 #pragma once
-#include <array>
 #include <glm/glm.hpp>
-#include <string>
-#include <unordered_map>
-#include <vector>
 #include <vulkan/vulkan.h>
+#include "precompiled/pch.hpp"
 
 namespace graphics
 {

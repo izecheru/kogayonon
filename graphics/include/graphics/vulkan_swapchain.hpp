@@ -1,6 +1,6 @@
 #pragma once
-#include <vector>
 #include <vulkan/vulkan.h>
+#include "precompiled/pch.hpp"
 
 #define MAX_FRAMES_IN_FLIGHT 3
 

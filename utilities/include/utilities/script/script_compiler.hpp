@@ -1,7 +1,5 @@
 #pragma once
-#include <optional>
-#include <string>
-#include <vector>
+#include "precompiled/pch.hpp"
 #include "utilities/script/script.hpp"
 
 namespace utilities
@@ -9,30 +7,30 @@ namespace utilities
 
 struct CompileCommand
 {
-	std::string outputFile;
-	std::vector<std::string> scriptPaths;
+  std::string outputFile;
+  std::vector<std::string> scriptPaths;
 };
 
 class ScriptCompiler
 {
-  public:
-	ScriptCompiler();
-	~ScriptCompiler() = delete;
+public:
+  ScriptCompiler();
+  ~ScriptCompiler() = delete;
 
-	void compileScript( Script& script );
-	void pushFile( const std::string& path );
+  void compileScript( Script& script );
+  void pushFile( const std::string& path );
 
-  private:
-	// funcs
+private:
+  // funcs
 
-	/**
-	 * @brief Finds the lua compiler using "where luac55"
-	 */
-	void findLua55Compiler();
+  /**
+   * @brief Finds the lua compiler using "where luac55"
+   */
+  void findLua55Compiler();
 
-  private:
-	// m_vars
-	std::vector<std::string> m_files;
-	std::optional<std::string> m_luaCompilerPath{ std::nullopt };
+private:
+  // m_vars
+  std::vector<std::string> m_files;
+  std::optional<std::string> m_luaCompilerPath{ std::nullopt };
 };
 } // namespace utilities

@@ -1,12 +1,7 @@
 #pragma once
-#include <filesystem>
 #include <glm/glm.hpp>
-#include <memory>
-#include <mutex>
-#include <string>
-#include <thread>
-#include <unordered_map>
 #include <vulkan/vulkan.h>
+#include "precompiled/pch.hpp"
 
 struct CreateImageInfo
 {
@@ -46,7 +41,7 @@ namespace core
 class AssetManager
 {
 public:
-  static auto get() -> AssetManager&
+  static auto getInstance() -> AssetManager&
   {
     static auto instance = AssetManager{};
     return instance;
