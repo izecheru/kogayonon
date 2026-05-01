@@ -5,6 +5,8 @@
 
 .vscode/
 .idea/
+html/
+latex/
 
 # User-specific files
 *.rsuser

@@ -1,9 +1,6 @@
 #include "resources/texture.hpp"
 
-namespace resources
-{
-
-Texture::Texture( const std::string& p, const std::string& name )
+resources::Texture::Texture( const std::string& p, const std::string& name )
     : m_path{ p }
     , m_width{ 0 }
     , m_height{ 0 }
@@ -13,7 +10,7 @@ Texture::Texture( const std::string& p, const std::string& name )
 {
 }
 
-Texture::Texture( const std::string& p, int w, int h, int n )
+resources::Texture::Texture( const std::string& p, int w, int h, int n )
     : m_path{ p }
     , m_width{ w }
     , m_height{ h }
@@ -21,64 +18,92 @@ Texture::Texture( const std::string& p, int w, int h, int n )
 {
 }
 
-auto Texture::getPath() const -> std::string
+resources::Texture::Texture( const std::string& p, const std::string& name, uint32_t textureIndex )
+    : m_path{ p }
+    , m_width{ 0 }
+    , m_height{ 0 }
+    , m_name{ name }
+    , m_numComponents{ 0 }
+    , m_loaded{ false }
+    , m_textureIndex{ textureIndex }
+{
+}
+
+resources::Texture::Texture( const std::string& p, int w, int h, int n, uint32_t textureIndex )
+    : m_path{ p }
+    , m_width{ w }
+    , m_height{ h }
+    , m_numComponents{ n }
+    , m_textureIndex{ textureIndex }
+{
+}
+
+auto resources::Texture::getPath() const -> std::string
 {
   return m_path;
 }
 
-auto Texture::getName() const -> std::string
+auto resources::Texture::getName() const -> std::string
 {
   return m_name;
 }
 
-auto Texture::getWidth() const -> int
+auto resources::Texture::getWidth() const -> int
 {
   return m_width;
 }
 
-auto Texture::getHeight() const -> int
+auto resources::Texture::getHeight() const -> int
 {
   return m_height;
 }
 
-void Texture::setPath( const std::string& path )
+void resources::Texture::setPath( const std::string& path )
 {
   m_path = path;
 }
 
-void Texture::setHeight( int height )
+void resources::Texture::setHeight( int height )
 {
   m_height = height;
 }
 
-void Texture::setWidth( int width )
+void resources::Texture::setWidth( int width )
 {
   m_width = width;
 }
 
-bool Texture::getLoaded() const
+bool resources::Texture::getLoaded() const
 {
   return m_loaded;
 }
 
-void Texture::setLoaded( bool value )
+void resources::Texture::setLoaded( bool value )
 {
   m_loaded = value;
 }
 
-auto Texture::getImage() -> VkImage&
+auto resources::Texture::getImage() -> VkImage&
 {
   return m_image;
 }
 
-auto Texture::getView() -> VkImageView&
+auto resources::Texture::getView() -> VkImageView&
 {
   return m_imageView;
 }
 
-auto Texture::getMemory() -> VkDeviceMemory&
+auto resources::Texture::getAllocation() -> VmaAllocation&
 {
-  return m_imageMemory;
+  return m_imageAllocation;
 }
 
-} // namespace resources
+auto resources::Texture::getIndex() const -> uint32_t
+{
+  return m_textureIndex;
+}
+
+void resources::Texture::setIndex( uint32_t index )
+{
+  m_textureIndex = index;
+}

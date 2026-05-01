@@ -17,7 +17,7 @@ public:
   explicit Entity( Registry* registry, const std::string& name );
   explicit Entity( Registry* registry );
   explicit Entity( Registry* registry, entt::entity entity );
-  explicit Entity( Registry* registry, entt::entity entity, const std::string& name );
+  // explicit Entity( Registry* registry, entt::entity entity, const std::string& name );
 
   Entity( const Entity& other );
   Entity( Entity&& other ) noexcept;
@@ -104,8 +104,8 @@ public:
   static void createLuaBindings( sol::state& lua );
 
 private:
-  entt::entity m_entity;
   Registry* m_registry;
+  entt::entity m_entity;
 };
 
 template <typename TComponent>

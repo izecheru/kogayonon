@@ -8,9 +8,16 @@ SelectEntityEvent::SelectEntityEvent()
 {
 }
 
-SelectEntityEvent::SelectEntityEvent( entt::entity ent, SelectEntityEventSource source )
+SelectEntityEvent::SelectEntityEvent( const entt::entity& ent, const SelectEntityEventSource& source )
     : m_entity{ ent }
     , m_source{ source }
+{
+}
+
+SelectEntityEvent::SelectEntityEvent( const SelectEntityEventSource& source )
+    : m_entity{ entt::null }
+    , m_source{ source }
+
 {
 }
 

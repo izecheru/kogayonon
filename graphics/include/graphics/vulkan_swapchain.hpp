@@ -45,6 +45,7 @@ public:
   auto getCurrentCommandBuffer() -> VkCommandBuffer&;
   void beginCommandBuffer();
   void endCommandBuffer();
+  bool isRendering() const;
 
   void onUpdate();
 
@@ -117,6 +118,6 @@ private:
    */
   VkCommandBuffer* m_currentCmdBuffer;
 
-  bool m_rendering{ true };
+  bool m_rendering;
 };
 } // namespace graphics

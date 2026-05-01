@@ -5,11 +5,13 @@
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
 #include "core/event/file_events.hpp"
+#include "gui/utils/font_keys.hpp"
 #include "gui/utils/imgui_utils.hpp"
 #include "precompiled/pch.hpp"
 #include "utilities/config_manager/config_manager.hpp"
 #include "utilities/directory_watcher/directory_watcher.hpp"
 #include "utilities/fonts/materialdesign.hpp"
+
 using namespace core;
 using namespace utilities;
 
@@ -195,7 +197,8 @@ void FileExplorerWindow::render()
 
       auto truncatedText = gui_utils::truncateText( filename.stem().string(), size.x );
       gui_utils::moveTextToCenter( size, truncatedText );
-      RenderWithSizedFont( m_spec.fonts->at( "inter" ), 20.0f, ImGui::TextWrapped( "%s", truncatedText.c_str() ) );
+      gui_utils::renderWithSizedFont(
+        m_spec.fonts->at( "inter" ), 20.0f, [=]() { ImGui::TextWrapped( "%s", truncatedText.c_str() ); } );
       // navigate into folder like you do in windows explorer with double click
       ImGui::EndGroup();
       if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) )
@@ -217,7 +220,8 @@ void FileExplorerWindow::render()
       ImGui::Image( fileTexture( file ), size );
       auto truncatedText = gui_utils::truncateText( filename.stem().string(), size.x );
       gui_utils::moveTextToCenter( size, truncatedText );
-      RenderWithSizedFont( m_spec.fonts->at( "inter" ), 20.0f, ImGui::TextWrapped( "%s", truncatedText.c_str() ) );
+      gui_utils::renderWithSizedFont(
+        m_spec.fonts->at( "inter" ), 20.0f, [=]() { ImGui::TextWrapped( "%s", truncatedText.c_str() ); } );
       ImGui::EndGroup();
 
       drawFileContextMenu( file, filename.string() );
@@ -276,6 +280,7 @@ void FileExplorerWindow::drawToolbar()
   ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4{ 0, 0, 0, 0 } );
 
   ImGui::Text( ICON_MDI_FILE_SEARCH "" );
+  ImGui::PushFont( m_spec.fonts->at( INTER_I ) );
   ImGui::SameLine();
   ImGui::PushItemWidth( 200.0f );
   if ( ImGui::InputText( "##searchId", &m_searchStr ) )
@@ -283,7 +288,10 @@ void FileExplorerWindow::drawToolbar()
     searchFor( m_searchStr );
   }
   ImGui::PopItemWidth();
+  ImGui::PopFont();
 
+  ImGui::Text( ICON_MDI_FILE_TREE );
+  ImGui::SameLine();
   if ( m_currentPath != std::filesystem::current_path() / "engine_resources" )
   {
     std::filesystem::path p = m_currentPath;
@@ -296,25 +304,41 @@ void FileExplorerWindow::drawToolbar()
 
     for ( auto it = folders.rbegin(); it != folders.rend(); it++ )
     {
-      if ( *it == folders.at( 0 ) )
+      ImGui::PushFont( m_spec.fonts->at( INTER ), 18.0f );
+      if ( it != folders.rbegin() )
       {
-        RenderDisabled( ImGui::Button( it->filename().string().c_str() ); )
+        ImGui::Text( ICON_MDI_ARROW_LEFT_BOLD );
+        ImGui::SameLine();
       }
-      else
+
+      ImGui::PushStyleColor( ImGuiCol_ButtonHovered, COL_LIGHT_GRAY_LA );
+      ImGui::PushStyleColor( ImGuiCol_Button, COL_TRANSPARENT );
+      ImGui::PushStyleColor( ImGuiCol_Border, COL_TRANSPARENT );
+
+      if ( ImGui::Button( it->filename().string().c_str() ) )
       {
-        if ( ImGui::Button( it->filename().string().c_str() ) )
-        {
-          m_currentPath = *it;
-          m_searchStr = "";
-          buildFileVector();
-        }
+        m_currentPath = *it;
+        m_searchStr = "";
+        buildFileVector();
       }
-      ImGui::SameLine( 0.0f, 8.0f );
+
+      ImGui::PopFont();
+      ImGui::PopStyleColor( 3 );
+      ImGui::SameLine( 0.0f, 5.0f );
     }
   }
   else
   {
-    RenderDisabled( ImGui::Button( m_currentPath.filename().string().c_str() ); )
+    ImGui::PushStyleColor( ImGuiCol_ButtonHovered, COL_LIGHT_GRAY_LA );
+    ImGui::PushStyleColor( ImGuiCol_Button, COL_TRANSPARENT );
+    ImGui::PushStyleColor( ImGuiCol_Border, COL_TRANSPARENT );
+
+    ImGui::PushFont( m_spec.fonts->at( INTER ), 18.0f );
+
+    ImGui::Button( m_currentPath.stem().string().c_str() );
+
+    ImGui::PopFont();
+    ImGui::PopStyleColor( 3 );
   }
 
   ImGui::PopStyleColor();

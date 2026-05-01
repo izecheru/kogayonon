@@ -2,53 +2,32 @@
 #include <vulkan/vulkan.h>
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_device.hpp"
+#include "graphics/vulkan_memory_allocator.hpp"
 #include "graphics/vulkan_swapchain.hpp"
 #include "precompiled/pch.hpp"
 
 namespace graphics
 {
+struct CreateImageInfo
+{
+  uint32_t width;
+  uint32_t height;
+  VkFormat format;
+  VkImageTiling tiling;
+  VkImageUsageFlags usage;
+  VkMemoryPropertyFlags properties;
+  VkImage* image;
+  VkDeviceMemory* imageMemory;
+};
+
 struct VulkanContext
 {
   std::shared_ptr<VulkanDevice> device;
   std::shared_ptr<VulkanSwapchain> swapchain;
+  std::shared_ptr<VulkanMemoryAllocator> memoryAllocator;
 };
 
-static void createBuffer( VulkanContext* ctx,
-                          VkDeviceSize size,
-                          VkBufferUsageFlags usage,
-                          VkMemoryPropertyFlags properties,
-                          VkBuffer& buffer,
-                          VkDeviceMemory& bufferMemory )
-{
-  VkBufferCreateInfo bufferInfo{};
-  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  bufferInfo.size = size;
-  bufferInfo.usage = usage;
-  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-  if ( vkCreateBuffer( ctx->device->getLogicalDevice(), &bufferInfo, nullptr, &buffer ) != VK_SUCCESS )
-  {
-    throw std::runtime_error( "failed to create buffer!" );
-  }
-
-  VkMemoryRequirements memRequirements;
-  vkGetBufferMemoryRequirements( ctx->device->getLogicalDevice(), buffer, &memRequirements );
-
-  VkMemoryAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex =
-    findMemoryType( ctx->device->getPhysicalDevice(), memRequirements.memoryTypeBits, properties );
-
-  if ( vkAllocateMemory( ctx->device->getLogicalDevice(), &allocInfo, nullptr, &bufferMemory ) != VK_SUCCESS )
-  {
-    throw std::runtime_error( "failed to allocate buffer memory!" );
-  }
-
-  vkBindBufferMemory( ctx->device->getLogicalDevice(), buffer, bufferMemory, 0 );
-}
-
-static auto createImageView( VulkanContext* ctx, VkImage image, VkFormat format, VkImageAspectFlags aspectFlags )
+inline auto createImageView( VulkanContext* ctx, VkImage& image, VkFormat format, VkImageAspectFlags aspectFlags )
   -> VkImageView
 {
   VkImageViewCreateInfo viewInfo{};
@@ -67,39 +46,7 @@ static auto createImageView( VulkanContext* ctx, VkImage image, VkFormat format,
   return imageView;
 }
 
-static void createImage( VulkanContext* ctx, const CreateImageInfo& info )
-{
-  VkImageCreateInfo imageInfo{};
-  imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-  imageInfo.imageType = VK_IMAGE_TYPE_2D;
-  imageInfo.extent.width = info.width;
-  imageInfo.extent.height = info.height;
-  imageInfo.extent.depth = 1;
-  imageInfo.mipLevels = 5;
-  imageInfo.arrayLayers = 1;
-  imageInfo.format = info.format;
-  imageInfo.tiling = info.tiling;
-  imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  imageInfo.usage = info.usage;
-  imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-  imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-  VK_CALL( vkCreateImage( ctx->device->getLogicalDevice(), &imageInfo, nullptr, info.image ) );
-
-  VkMemoryRequirements memRequirements;
-  vkGetImageMemoryRequirements( ctx->device->getLogicalDevice(), *info.image, &memRequirements );
-
-  VkMemoryAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = findMemoryType(
-    ctx->device->getPhysicalDevice(), memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT );
-
-  VK_CALL( vkAllocateMemory( ctx->device->getLogicalDevice(), &allocInfo, nullptr, info.imageMemory ) );
-  VK_CALL( vkBindImageMemory( ctx->device->getLogicalDevice(), *info.image, *info.imageMemory, 0 ) );
-}
-
-static void transitionImageLayout(
+inline void transitionImageLayout(
   VulkanContext* ctx, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout )
 {
   VkCommandBuffer commandBuffer =
@@ -150,7 +97,7 @@ static void transitionImageLayout(
                          ctx->swapchain->getCommandPool() );
 }
 
-static void copyBufferToImage( VulkanContext* ctx, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height )
+inline void copyBufferToImage( VulkanContext* ctx, VkBuffer buffer, VkImage image, uint32_t width, uint32_t height )
 {
   VkCommandBuffer commandBuffer =
     beginSingleTimeCommands( ctx->swapchain->getCommandPool(), ctx->device->getLogicalDevice() );
@@ -174,7 +121,7 @@ static void copyBufferToImage( VulkanContext* ctx, VkBuffer buffer, VkImage imag
                          ctx->swapchain->getCommandPool() );
 }
 
-static void createTextureSampler( VulkanContext* ctx, VkSampler& textureSampler )
+inline void createTextureSampler( VulkanContext* ctx, VkSampler& textureSampler )
 {
   VkPhysicalDeviceProperties properties{};
   vkGetPhysicalDeviceProperties( ctx->device->getPhysicalDevice(), &properties );
@@ -194,9 +141,6 @@ static void createTextureSampler( VulkanContext* ctx, VkSampler& textureSampler 
   samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
   samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-  if ( vkCreateSampler( ctx->device->getLogicalDevice(), &samplerInfo, nullptr, &textureSampler ) != VK_SUCCESS )
-  {
-    throw std::runtime_error( "failed to create texture sampler!" );
-  }
+  VK_CALL( vkCreateSampler( ctx->device->getLogicalDevice(), &samplerInfo, nullptr, &textureSampler ) );
 }
 } // namespace graphics

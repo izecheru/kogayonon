@@ -23,7 +23,8 @@ public:
   SelectEntityEvent();
   ~SelectEntityEvent() = default;
 
-  explicit SelectEntityEvent( entt::entity ent, SelectEntityEventSource source );
+  explicit SelectEntityEvent( const entt::entity& ent, const SelectEntityEventSource& source );
+  explicit SelectEntityEvent( const SelectEntityEventSource& source );
 
   /**
    * @brief Get selected entity Id

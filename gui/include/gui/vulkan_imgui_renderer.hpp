@@ -6,6 +6,8 @@ struct SDL_Window;
 struct ImGuiViewport;
 struct ImFont;
 
+#define IMGUI_VULKAN_MAX_DESCRIPTORS 200
+
 namespace graphics
 {
 class VulkanDevice;
@@ -31,6 +33,7 @@ struct Popups
 
 namespace gui
 {
+
 class VulkanImguiRenderer
 {
 public:

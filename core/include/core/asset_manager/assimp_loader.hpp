@@ -2,12 +2,12 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 
-namespace kogayonon_resources
+namespace resources
 {
 class Mesh;
 }
 
-namespace utilities
+namespace core
 {
 class AssimpLoader
 {
@@ -15,7 +15,7 @@ public:
   AssimpLoader();
   ~AssimpLoader();
 
-  void loadMesh( const std::string& path, kogayonon_resources::Mesh* m );
+  void loadMesh( const std::string& path, resources::Mesh* m, std::vector<aiMaterial*>& materials );
 
 private:
   auto readFile( const std::string& path ) -> const aiScene*;
@@ -24,4 +24,4 @@ private:
 private:
   Assimp::Importer m_importer;
 };
-} // namespace utilities
+} // namespace core

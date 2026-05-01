@@ -11,6 +11,11 @@ namespace gui
 class VulkanImguiRenderer;
 }
 
+namespace core
+{
+class WindowCloseEvent;
+}
+
 namespace editor
 {
 class Editor
@@ -22,18 +27,16 @@ public:
   void pollEvents();
   void run();
 
-  bool init();
   bool initMainRegistry();
-  bool initSDL();
-
-  /**
-   * @brief This just sends the device and swapchain to the asset manager
-   * @return
-   */
-  bool initVulkan();
-
-  bool initImgui();
   bool initMainWindow();
+  bool initVulkan();
+  bool initImgui();
+  bool initSDL();
+  bool init();
+
+private:
+  // EVENTS
+  void onWindowClose( const core::WindowCloseEvent& e );
 
 private:
   std::shared_ptr<window::Window> m_pWindow;

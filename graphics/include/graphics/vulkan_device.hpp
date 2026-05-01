@@ -6,7 +6,9 @@ struct SDL_Window;
 
 inline const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 inline const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-                                                           VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME };
+                                                           VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
+                                                           VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+                                                           VK_KHR_SHADER_ATOMIC_INT64_EXTENSION_NAME };
 
 #ifdef NDEBUG
 const bool enableValidationLayers = false;

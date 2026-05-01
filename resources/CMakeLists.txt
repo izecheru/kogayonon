@@ -1,5 +1,5 @@
-add_library(
-  resources
+set(
+ targetSources 
   "include/resources/mesh.hpp"
   "include/resources/vertex.hpp"
   "include/resources/texture.hpp"
@@ -8,12 +8,16 @@ add_library(
   "include/resources/directional_light.hpp"
   "include/resources/light_types.hpp"
   "include/resources/skeleton.hpp"
+  "include/resources/mesh_push_constant.hpp"
+  "include/resources/material.hpp"
 
   "src/mesh.cpp"
   "src/texture.cpp")
+
+  add_library(resources ${targetSources})
 
 target_include_directories(resources
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 
-target_link_libraries(resources PUBLIC glm::glm-header-only Vulkan::Vulkan)
+target_link_libraries(resources PUBLIC glm::glm-header-only Vulkan::Vulkan precompiled graphics)

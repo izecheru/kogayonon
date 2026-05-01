@@ -10,23 +10,16 @@ project(kogayonon)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "Export compile commands")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib") # .lib, .a
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib") # .dll, .so
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin") # .exe
 
-# Enable Hot Reload for MSVC compilers if supported.
-if (POLICY CMP0141)
-  cmake_policy(SET CMP0141 NEW)
-  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
-endif()
-
 if(MSVC)
-  add_compile_options(/bigobj)
+	add_compile_options(/bigobj)
+	add_compile_options(/utf-8)
 endif()
-
-add_compile_options(/utf-8)
 
 find_package(SDL2 CONFIG REQUIRED)
 find_package(soil2 CONFIG REQUIRED)
@@ -40,7 +33,9 @@ find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 find_package(benchmark CONFIG REQUIRED)
 find_package(rapidjson CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
-find_package(Vulkan REQUIRED)
+find_package(tinyobjloader CONFIG REQUIRED)
+find_package(Vulkan)
+find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 
 add_subdirectory("dependencies/imgui")
 add_subdirectory("dependencies/glad")
@@ -58,5 +53,5 @@ add_subdirectory("core")
 add_subdirectory("utilities")
 add_subdirectory("resources")
 add_subdirectory("physics")
+add_subdirectory("renderer")
 add_subdirectory("precompiled")
-

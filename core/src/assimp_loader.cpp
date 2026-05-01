@@ -1,21 +1,20 @@
-#include "utilities/asset_manager/assimp_loader.hpp"
+#include "core/asset_manager/assimp_loader.hpp"
 #include <assimp/postprocess.h>
 #include <spdlog/spdlog.h>
 #include "resources/mesh.hpp"
+#include "utilities/utils/utils.hpp"
 
-namespace utilities
-{
-AssimpLoader::AssimpLoader()
+core::AssimpLoader::AssimpLoader()
     : m_importer{}
 {
 }
 
-AssimpLoader::~AssimpLoader()
+core::AssimpLoader::~AssimpLoader()
 {
   m_importer.FreeScene();
 }
 
-auto AssimpLoader::readFile( const std::string& path ) -> const aiScene*
+auto core::AssimpLoader::readFile( const std::string& path ) -> const aiScene*
 {
   if ( m_importer.GetScene() )
     releaseScene();
@@ -23,7 +22,7 @@ auto AssimpLoader::readFile( const std::string& path ) -> const aiScene*
   const aiScene* scene = m_importer.ReadFile(
     path.c_str(),
     aiProcess_CalcTangentSpace | aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_SortByPType |
-      aiProcess_GenNormals | aiProcess_GenUVCoords | aiProcess_ValidateDataStructure );
+      aiProcess_GenNormals | aiProcess_GenUVCoords | aiProcess_ValidateDataStructure | aiProcess_FlipUVs );
 
   if ( !scene )
   {
@@ -33,19 +32,32 @@ auto AssimpLoader::readFile( const std::string& path ) -> const aiScene*
   return scene;
 }
 
-void AssimpLoader::releaseScene()
+void core::AssimpLoader::releaseScene()
 {
   m_importer.FreeScene();
 }
 
-void AssimpLoader::loadMesh( const std::string& path, kogayonon_resources::Mesh* m )
+void core::AssimpLoader::loadMesh( const std::string& path, resources::Mesh* m, std::vector<aiMaterial*>& materials )
 {
   auto& vertices = m->getVertices();
   auto& indices = m->getIndices();
   auto& submeshes = m->getSubmeshes();
   auto scene = readFile( path );
+
   if ( scene->HasMeshes() )
   {
+    for ( auto i = 0u; i < scene->mNumMeshes; i++ )
+    {
+      auto& mesh = scene->mMeshes[i];
+
+      // check for textures
+      if ( mesh->mMaterialIndex >= 0 )
+      {
+        auto material = scene->mMaterials[mesh->mMaterialIndex];
+        materials.push_back( material );
+      }
+    }
+
     for ( auto i = 0u; i < scene->mNumMeshes; i++ )
     {
       auto& mesh = scene->mMeshes[i];
@@ -54,9 +66,10 @@ void AssimpLoader::loadMesh( const std::string& path, kogayonon_resources::Mesh*
       std::vector<glm::vec3> localNormals;
       std::vector<glm::vec2> localTextureCoords;
       std::vector<uint32_t> localIndices;
-      std::vector<glm::ivec4> localJointIndices;
-      std::vector<glm::vec4> localWeights;
-      std::vector<kogayonon_resources::Vertex> localVertices;
+      std::vector<resources::Submesh> localSubmeshes;
+      // std::vector<glm::ivec4> localJointIndices;
+      // std::vector<glm::vec4> localWeights;
+      std::vector<resources::Vertex> localVertices;
 
       for ( unsigned j = 0; j < mesh->mNumVertices; j++ )
       {
@@ -94,25 +107,35 @@ void AssimpLoader::loadMesh( const std::string& path, kogayonon_resources::Mesh*
 
       for ( auto j = 0u; j < localPositions.size(); j++ )
       {
-        localVertices.emplace_back( kogayonon_resources::Vertex{
-          .translation = localPositions[j],
-          .normal = ( j < localNormals.size() ) ? localNormals[j] : glm::vec3{ 0.0f },
-          .textureCoords = ( j < localTextureCoords.size() ) ? localTextureCoords[j] : glm::vec2{ 0.0f },
-          .jointIndices = localJointIndices.empty() ? glm::ivec4{ 1 } : localJointIndices[j],
-          .weights = localWeights.empty() ? glm::vec4{ 1.0f } : localWeights[j] } );
-      }
+        float uvX{ 0.0f };
+        float uvY = uvX;
+        if ( j < localTextureCoords.size() )
+        {
+          uvX = localTextureCoords[j].x;
+          uvY = localTextureCoords[j].y;
+        }
 
-      uint32_t vertexOffset = static_cast<uint32_t>( vertices.size() );
+        localVertices.emplace_back(
+          resources::Vertex{ .translation = localPositions[j],
+                             .uvX = uvX,
+                             .normal = ( j < localNormals.size() ) ? localNormals[j] : glm::vec3{ 0.0f },
+                             .uvY = uvY } );
+      }
       uint32_t indexOffset = static_cast<uint32_t>( indices.size() );
+      uint32_t vertexOffset = static_cast<uint32_t>( vertices.size() );
+
+      localSubmeshes.emplace_back( resources::Submesh{ .vertexOffset = vertexOffset,
+                                                       .indexOffset = indexOffset,
+                                                       .indexCount = static_cast<uint32_t>( localIndices.size() ) } );
+
+      for ( auto& idx : localIndices )
+      {
+        idx += vertexOffset;
+      }
 
       vertices.insert( vertices.end(), localVertices.begin(), localVertices.end() );
       indices.insert( indices.end(), localIndices.begin(), localIndices.end() );
-
-      submeshes.emplace_back(
-        kogayonon_resources::Submesh{ .vertexOffest = vertexOffset,
-                                      .indexOffset = indexOffset,
-                                      .indexCount = static_cast<uint32_t>( localIndices.size() ) } );
+      submeshes.insert( submeshes.end(), localSubmeshes.begin(), localSubmeshes.end() );
     }
   }
 }
-} // namespace utilities

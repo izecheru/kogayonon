@@ -1,48 +1,46 @@
-#include "utilities/asset_manager/cgltf_loader.hpp"
+#include "core/asset_manager/cgltf_loader.hpp"
 #include <glm/gtc/type_ptr.hpp>
 #include <spdlog/spdlog.h>
 #include "resources/mesh.hpp"
 #include "resources/skeleton.hpp"
 #include "resources/texture.hpp"
 
-using namespace kogayonon_resources;
+using namespace resources;
 
-namespace utilities
-{
-
-CgltfLoader::CgltfLoader()
+core::CgltfLoader::CgltfLoader()
 {
 }
 
-CgltfLoader::~CgltfLoader()
+core::CgltfLoader::~CgltfLoader()
 {
 }
 
-void CgltfLoader::loadMesh( const std::string& path,
-                            kogayonon_resources::Mesh* m,
-                            std::unordered_map<std::string, std::shared_ptr<kogayonon_resources::Texture>>& loadedTex )
+void core::CgltfLoader::loadMesh( const std::string& path, resources::Mesh* m, std::vector<cgltf_mesh*>& meshes )
 {
   auto& vertices = m->getVertices();
   auto& indices = m->getIndices();
   auto& textures = m->getTextures();
   auto& submeshes = m->getSubmeshes();
 
-  auto data = readFile( path );
+  m_data = readFile( path );
 
-  for ( size_t i = 0; i < data->nodes_count; ++i )
+  for ( size_t i = 0; i < m_data->nodes_count; ++i )
   {
-    auto& node = data->nodes[i];
+    auto& node = m_data->nodes[i];
     if ( !node.mesh )
       continue;
 
-    if ( node.skin )
-    {
-      Skeleton s;
-      s = loadSkeleton( data, node.skin );
-      parseAnimations( data, s );
-    }
+    // if ( node.skin )
+    //{
+    //   Skeleton s;
+    //   s = loadSkeleton( m_data, node.skin );
+    //   parseAnimations( m_data, s );
+    // }
 
     cgltf_mesh& mesh = *node.mesh;
+
+    meshes.push_back( node.mesh );
+
     auto transform = glm::mat4( 1.0f );
     if ( node.has_matrix )
       transform = glm::make_mat4( node.matrix );
@@ -74,35 +72,41 @@ void CgltfLoader::loadMesh( const std::string& path,
       if ( primitive.indices )
         parseIndices( primitive.indices, localIndices );
 
-      if ( primitive.material )
-        parseTextures( primitive.material, textures, loadedTex );
-
       for ( size_t x = 0; x < localPositions.size(); ++x )
       {
-        localVertices.emplace_back( kogayonon_resources::Vertex{
-          .translation = localPositions[x],
-          .normal = ( x < localNormals.size() ) ? localNormals[x] : glm::vec3{ 0.0f },
-          .textureCoords = ( x < localTextureCoords.size() ) ? localTextureCoords[x] : glm::vec2{ 0.0f } } );
+        float uvX{ 0.0f };
+        float uvY = uvX;
+        if ( j < localTextureCoords.size() )
+        {
+          uvX = localTextureCoords[j].x;
+          uvY = localTextureCoords[j].y;
+        }
+
+        localVertices.emplace_back(
+          resources::Vertex{ .translation = localPositions[j],
+                             .uvX = uvX,
+                             .normal = ( j < localNormals.size() ) ? localNormals[j] : glm::vec3{ 0.0f },
+                             .uvY = uvY } );
       }
 
       uint32_t vertexOffset = static_cast<uint32_t>( vertices.size() );
       uint32_t indexOffset = static_cast<uint32_t>( indices.size() );
+      for ( auto& idx : localIndices )
+      {
+        idx += vertexOffset;
+      }
 
       vertices.insert( vertices.end(), localVertices.begin(), localVertices.end() );
       indices.insert( indices.end(), localIndices.begin(), localIndices.end() );
 
-      submeshes.emplace_back(
-        kogayonon_resources::Submesh{ .vertexOffest = static_cast<uint32_t>( vertexOffset ),
-                                      .indexOffset = static_cast<uint32_t>( indexOffset ),
-                                      .indexCount = static_cast<uint32_t>( localIndices.size() ) } );
+      submeshes.emplace_back( resources::Submesh{ .vertexOffset = static_cast<uint32_t>( vertexOffset ),
+                                                  .indexOffset = static_cast<uint32_t>( indexOffset ),
+                                                  .indexCount = static_cast<uint32_t>( localIndices.size() ) } );
     }
   }
-
-  if ( data )
-    cgltf_free( data );
 }
 
-auto CgltfLoader::readFile( const std::string& path ) -> cgltf_data*
+auto core::CgltfLoader::readFile( const std::string& path ) -> cgltf_data*
 {
   cgltf_options options{};
   cgltf_data* data = nullptr;
@@ -131,13 +135,13 @@ auto CgltfLoader::readFile( const std::string& path ) -> cgltf_data*
   return data;
 }
 
-void CgltfLoader::parseVertices( cgltf_primitive& primitive,
-                                 std::vector<glm::vec3>& positions,
-                                 std::vector<glm::vec3>& normals,
-                                 std::vector<glm::vec2>& tex_coords,
-                                 std::vector<glm::ivec4>& jointIndices,
-                                 std::vector<glm::vec4>& weights,
-                                 const glm::mat4& transformation ) const
+void core::CgltfLoader::parseVertices( cgltf_primitive& primitive,
+                                       std::vector<glm::vec3>& positions,
+                                       std::vector<glm::vec3>& normals,
+                                       std::vector<glm::vec2>& tex_coords,
+                                       std::vector<glm::ivec4>& jointIndices,
+                                       std::vector<glm::vec4>& weights,
+                                       const glm::mat4& transformation ) const
 {
   for ( auto i = 0; i < primitive.attributes_count; i++ )
   {
@@ -193,7 +197,7 @@ void CgltfLoader::parseVertices( cgltf_primitive& primitive,
   }
 }
 
-void CgltfLoader::parseIndices( cgltf_accessor* accessor, std::vector<uint32_t>& indices ) const
+void core::CgltfLoader::parseIndices( cgltf_accessor* accessor, std::vector<uint32_t>& indices ) const
 {
   indices.resize( accessor->count );
   for ( auto i = 0u; i < accessor->count; i++ )
@@ -202,63 +206,7 @@ void CgltfLoader::parseIndices( cgltf_accessor* accessor, std::vector<uint32_t>&
   }
 }
 
-void CgltfLoader::parseTextures(
-  const cgltf_material* material,
-  std::vector<Texture*>& textures,
-  std::unordered_map<std::string, std::shared_ptr<kogayonon_resources::Texture>>& loadedTex )
-{
-  if ( !material )
-    return;
-
-  if ( material->normal_texture.texture && material->normal_texture.texture->image )
-  {
-    std::string uri = material->normal_texture.texture->image->uri;
-    std::filesystem::path texturePath = std::filesystem::absolute( "resources" ) / uri;
-    std::string textureName = texturePath.filename().string();
-
-    std::shared_ptr<Texture> texture;
-
-    if ( loadedTex.contains( texturePath.string() ) )
-    {
-      texture = loadedTex.at( texturePath.string() );
-    }
-    else
-    {
-      texture = std::make_shared<Texture>( texturePath.string(), textureName );
-
-      if ( !loadedTex.contains( texturePath.string() ) )
-        loadedTex.emplace( texturePath.string(), texture );
-    }
-
-    textures.push_back( texture.get() );
-  }
-
-  if ( material->has_pbr_metallic_roughness && material->pbr_metallic_roughness.base_color_texture.texture &&
-       material->pbr_metallic_roughness.base_color_texture.texture->image )
-  {
-    std::string uri = material->pbr_metallic_roughness.base_color_texture.texture->image->uri;
-    std::filesystem::path texturePath = std::filesystem::absolute( "resources" ) / uri;
-    std::string textureName = texturePath.filename().string();
-
-    std::shared_ptr<Texture> texture;
-
-    if ( loadedTex.contains( texturePath.string() ) )
-    {
-      texture = loadedTex.at( texturePath.string() );
-    }
-    else
-    {
-      texture = std::make_shared<Texture>( texturePath.string(), textureName );
-
-      if ( !loadedTex.contains( texturePath.string() ) )
-        loadedTex.emplace( texturePath.string(), texture );
-    }
-
-    textures.push_back( texture.get() );
-  }
-}
-
-void CgltfLoader::parseAnimations( cgltf_data* data, Skeleton& s )
+void core::CgltfLoader::parseAnimations( cgltf_data* data, Skeleton& s )
 {
   std::vector<NodeAnim> anims;
   for ( auto i = 0u; i < data->animations_count; i++ )
@@ -356,7 +304,7 @@ void CgltfLoader::parseAnimations( cgltf_data* data, Skeleton& s )
 #endif
 }
 
-auto CgltfLoader::getLocalMatrix( const cgltf_node* node ) -> glm::mat4
+auto core::CgltfLoader::getLocalMatrix( const cgltf_node* node ) -> glm::mat4
 {
   if ( node->has_matrix )
     return glm::mat4{ *node->matrix };
@@ -371,7 +319,7 @@ auto CgltfLoader::getLocalMatrix( const cgltf_node* node ) -> glm::mat4
          glm::scale( glm::mat4{ 1.0f }, scale );
 }
 
-auto CgltfLoader::getNodeId( cgltf_node* target, cgltf_node* allNodes, unsigned int numNodes ) -> int
+auto core::CgltfLoader::getNodeId( cgltf_node* target, cgltf_node* allNodes, unsigned int numNodes ) -> int
 {
   if ( target == 0 )
   {
@@ -387,7 +335,7 @@ auto CgltfLoader::getNodeId( cgltf_node* target, cgltf_node* allNodes, unsigned 
   return -1;
 }
 
-auto CgltfLoader::getGlobalTransform( kogayonon_resources::Joint& joint ) -> glm::mat4
+auto core::CgltfLoader::getGlobalTransform( resources::Joint& joint ) -> glm::mat4
 {
   if ( !joint.parent )
     return joint.localMatrix;
@@ -395,7 +343,7 @@ auto CgltfLoader::getGlobalTransform( kogayonon_resources::Joint& joint ) -> glm
   return getGlobalTransform( *joint.parent ) * joint.localMatrix;
 }
 
-auto CgltfLoader::calculateGlobalMatrix( Skeleton& s )
+auto core::CgltfLoader::calculateGlobalMatrix( Skeleton& s )
 {
   for ( auto& joint : s.joints )
   {
@@ -408,7 +356,7 @@ auto CgltfLoader::calculateGlobalMatrix( Skeleton& s )
  * @param joint The actual joint we are currently at
  * @param level The number of indentations
  */
-void CgltfLoader::printChildren( Joint* joint, uint32_t level )
+void core::CgltfLoader::printChildren( Joint* joint, uint32_t level )
 {
   std::string indent( level * 2, ' ' );
   spdlog::info( "{}{}", indent, joint->name );
@@ -419,7 +367,7 @@ void CgltfLoader::printChildren( Joint* joint, uint32_t level )
   }
 }
 
-auto CgltfLoader::loadSkeleton( cgltf_data* data, cgltf_skin* skin ) -> kogayonon_resources::Skeleton
+auto core::CgltfLoader::loadSkeleton( cgltf_data* data, cgltf_skin* skin ) -> resources::Skeleton
 {
   Skeleton skeleton;
   // get all inverse bind matrices from the skin
@@ -479,7 +427,7 @@ auto CgltfLoader::loadSkeleton( cgltf_data* data, cgltf_skin* skin ) -> kogayono
   return skeleton;
 }
 
-auto CgltfLoader::getInverseBindMatrices( cgltf_skin* skin ) -> std::vector<glm::mat4>
+auto core::CgltfLoader::getInverseBindMatrices( cgltf_skin* skin ) -> std::vector<glm::mat4>
 {
   std::vector<glm::mat4> inverse;
   // get the accessor
@@ -499,4 +447,9 @@ auto CgltfLoader::getInverseBindMatrices( cgltf_skin* skin ) -> std::vector<glm:
   }
   return inverse;
 }
-} // namespace utilities
+
+void core::CgltfLoader::freeData()
+{
+  if ( m_data )
+    cgltf_free( m_data );
+}

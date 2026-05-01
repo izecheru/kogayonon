@@ -1,10 +1,9 @@
 #include <entt/entt.hpp>
+#include <vulkan/vulkan.h>
 #include "gui/imgui_windows/imgui_base.hpp"
 
 namespace core
 {
-struct TextureComponent;
-
 class Scene;
 class Entity;
 
@@ -15,6 +14,9 @@ class MouseClickedEvent;
 
 struct SceneHierarchySpec
 {
+  std::unordered_map<std::string, ImFont*>* fonts;
+
+  VkDescriptorSet cubeIcon;
 };
 
 namespace gui
@@ -41,7 +43,6 @@ private:
   void onKeyPressed( const core::KeyPressedEvent& e );
 
   void duplicateEntity( core::Entity& ent );
-  void deleteEntity( core::Entity& ent );
 
 private:
   entt::entity m_selectedEntity;

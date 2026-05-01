@@ -1,43 +1,43 @@
 #pragma once
-#include <glad/glad.h>
-#include <yaml-cpp/yaml.h>
 
 namespace utilities
 {
-GLenum glCheckError_( const char* file, int line )
-{
-  GLenum errorCode;
-  while ( ( errorCode = glGetError() ) != GL_NO_ERROR )
-  {
-    std::string error;
-    switch ( errorCode )
-    {
-    case GL_INVALID_ENUM:
-      error = "INVALID_ENUM";
-      break;
-    case GL_INVALID_VALUE:
-      error = "INVALID_VALUE";
-      break;
-    case GL_INVALID_OPERATION:
-      error = "INVALID_OPERATION";
-      break;
-    case GL_STACK_OVERFLOW:
-      error = "STACK_OVERFLOW";
-      break;
-    case GL_STACK_UNDERFLOW:
-      error = "STACK_UNDERFLOW";
-      break;
-    case GL_OUT_OF_MEMORY:
-      error = "OUT_OF_MEMORY";
-      break;
-    case GL_INVALID_FRAMEBUFFER_OPERATION:
-      error = "INVALID_FRAMEBUFFER_OPERATION";
-      break;
-    }
-    spdlog::error( " |{}({}) ", file, line );
-  }
-  return errorCode;
-}
+#ifndef NDEBUG
+#define KOGAYONON_INFO( ... )                                                                                          \
+  do                                                                                                                   \
+  {                                                                                                                    \
+    spdlog::info( __VA_ARGS__ );                                                                                       \
+  } while ( 0 )
+#else
+#define KOGAYONON_INFO( x )                                                                                            \
+  do                                                                                                                   \
+  {                                                                                                                    \
+  } while ( 0 )
+#endif
 
-#define glCheckError() glCheckError_( __FILE__, __LINE__ )
+#ifndef NDEBUG
+#define KOGAYONON_WARN( ... )                                                                                          \
+  do                                                                                                                   \
+  {                                                                                                                    \
+    spdlog::warn( __VA_ARGS__ );                                                                                       \
+  } while ( 0 )
+#else
+#define KOGAYONON_WARN( x )                                                                                            \
+  do                                                                                                                   \
+  {                                                                                                                    \
+  } while ( 0 )
+#endif
+
+#ifndef NDEBUG
+#define KOGAYONON_ERR( ... )                                                                                           \
+  do                                                                                                                   \
+  {                                                                                                                    \
+    spdlog::error( __VA_ARGS__ );                                                                                      \
+  } while ( 0 )
+#else
+#define KOGAYONON_ERR( x )                                                                                             \
+  do                                                                                                                   \
+  {                                                                                                                    \
+  } while ( 0 )
+#endif
 } // namespace utilities

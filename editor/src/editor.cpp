@@ -10,220 +10,97 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include "core/asset_manager/asset_manager.hpp"
+#include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
+#include "core/event/app_event.hpp"
+#include "core/event/event_dispatcher.hpp"
+#include "core/input/keyboard_events.hpp"
+#include "core/input/mouse_events.hpp"
+#include "core/scene/scene.hpp"
+#include "core/scene/scene_manager.hpp"
 #include "core/systems/scene_rendering_system.hpp"
 #include "graphics/vulkan_context.hpp"
 #include "graphics/vulkan_device.hpp"
 #include "graphics/vulkan_swapchain.hpp"
 #include "gui/vulkan_imgui_renderer.hpp"
+#include "resources/mesh_push_constant.hpp"
 #include "resources/texture.hpp"
+#include "resources/vertex.hpp"
 #include "utilities/config_manager/config_manager.hpp"
+#include "utilities/utils/utils.hpp"
 #include "window/window.hpp"
 
 namespace editor
 {
 
+// clean this up
 static VkPipeline graphicsPipeline;
 static VkPipelineLayout pipelineLayout;
+
 static VkDescriptorSetLayout descriptorSetLayout;
 static VkDescriptorPool descriptorPool;
-static std::vector<VkDescriptorSet> descriptorSets;
+static std::vector<VkDescriptorSet> globalDescriptorSets;
 
-static std::vector<VkBuffer> uniformBuffers;
-static std::vector<VkDeviceMemory> uniformBuffersMemory;
-static std::vector<void*> uniformBuffersMapped;
+static VkDescriptorSet cameraDescriptor;
+static VkDescriptorSetLayout cameraDescriptorLayout;
 
-static VkBuffer vertexBuffer;
-static VkDeviceMemory vertexBufferMemory;
-
-static VkBuffer indicesBuffer;
-static VkDeviceMemory indicesBufferMemory;
+static std::vector<graphics::VulkanBuffer> uniformBuffers;
 
 static VkBuffer stageBuffer;
 static VkDeviceMemory stageBufferMemory;
 
 static VkImage depthImage;
 static VkImageView depthView;
-static VkDeviceMemory depthMemory;
+static VmaAllocation depthAllocation;
 
+// the "game" is drawn onto this
 struct VulkanViewport
 {
   VkImage image;
   VkImageView imageView;
-  VkDeviceMemory memory;
+  VmaAllocation allocation;
 };
-
-static void createDescriptorPool( graphics::VulkanContext* ctx )
-{
-  std::array<VkDescriptorPoolSize, 2> poolSizes{
-    VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_FRAMES_IN_FLIGHT },
-    VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_FRAMES_IN_FLIGHT * 2 } };
-
-  VkDescriptorPoolCreateInfo poolInfo{};
-  poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-  poolInfo.poolSizeCount = static_cast<uint32_t>( poolSizes.size() );
-  poolInfo.pPoolSizes = poolSizes.data();
-  poolInfo.maxSets = static_cast<uint32_t>( MAX_FRAMES_IN_FLIGHT ) * 2;
-
-  VK_CALL( vkCreateDescriptorPool( ctx->device->getLogicalDevice(), &poolInfo, nullptr, &descriptorPool ) );
-}
 
 static VulkanViewport viewport;
 
 void createViewport( graphics::VulkanContext* ctx )
 {
-  CreateImageInfo info{ .width = static_cast<uint32_t>( ctx->swapchain->getSwapchainExtent().width ),
-                        .height = static_cast<uint32_t>( ctx->swapchain->getSwapchainExtent().height ),
-                        .format = ctx->swapchain->getSwapchainImageFormat(),
-                        .tiling = VK_IMAGE_TILING_OPTIMAL,
-                        .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                        .properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                        .image = &viewport.image,
-                        .imageMemory = &viewport.memory };
-
-  createImage( ctx, info );
-
-  viewport.imageView =
-    createImageView( ctx, viewport.image, ctx->swapchain->getSwapchainImageFormat(), VK_IMAGE_ASPECT_COLOR_BIT );
-
-  auto depthFormat = findDepthFormat( &ctx->device->getPhysicalDevice() );
-
-  CreateImageInfo depthInfo{ .width = static_cast<uint32_t>( ctx->swapchain->getSwapchainExtent().width ),
-                             .height = static_cast<uint32_t>( ctx->swapchain->getSwapchainExtent().height ),
-                             .format = depthFormat,
-                             .tiling = VK_IMAGE_TILING_OPTIMAL,
-                             .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                             .properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                             .image = &depthImage,
-                             .imageMemory = &depthMemory };
-
-  createImage( ctx, depthInfo );
-
-  depthView = createImageView( ctx, depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT );
 }
 
-struct UniformBufferObject
+struct CameraBuffer
 {
-  glm::mat4 model;
   glm::mat4 view;
   glm::mat4 proj;
-};
-
-struct Vertex
-{
-  glm::vec3 pos;
-  glm::vec3 color;
-  glm::vec2 texCoord;
-
-  static VkVertexInputBindingDescription getBindingDescription()
-  {
-    VkVertexInputBindingDescription bindingDescription{};
-    bindingDescription.binding = 0;
-    bindingDescription.stride = sizeof( Vertex );
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    return bindingDescription;
-  }
-
-  static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions()
-  {
-    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-
-    attributeDescriptions[0].binding = 0;
-    attributeDescriptions[0].location = 0;
-    attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[0].offset = offsetof( Vertex, pos );
-
-    attributeDescriptions[1].binding = 0;
-    attributeDescriptions[1].location = 1;
-    attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-    attributeDescriptions[1].offset = offsetof( Vertex, color );
-
-    attributeDescriptions[2].binding = 0;
-    attributeDescriptions[2].location = 2;
-    attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-    attributeDescriptions[2].offset = offsetof( Vertex, texCoord );
-
-    return attributeDescriptions;
-  }
-};
-
-const std::vector<Vertex> vertices = {
-  // Front face
-  { { -0.5f, -0.5f, 0.5f }, { 1, 0, 0 }, { 0, 0 } },
-  { { 0.5f, -0.5f, 0.5f }, { 0, 1, 0 }, { 1, 0 } },
-  { { 0.5f, 0.5f, 0.5f }, { 0, 0, 1 }, { 1, 1 } },
-  { { -0.5f, 0.5f, 0.5f }, { 1, 1, 1 }, { 0, 1 } },
-
-  // Back face
-  { { -0.5f, -0.5f, -0.5f }, { 1, 0, 0 }, { 1, 0 } },
-  { { 0.5f, -0.5f, -0.5f }, { 0, 1, 0 }, { 0, 0 } },
-  { { 0.5f, 0.5f, -0.5f }, { 0, 0, 1 }, { 0, 1 } },
-  { { -0.5f, 0.5f, -0.5f }, { 1, 1, 1 }, { 1, 1 } },
-
-  // Left face
-  { { -0.5f, -0.5f, -0.5f }, { 1, 0, 0 }, { 0, 0 } },
-  { { -0.5f, -0.5f, 0.5f }, { 0, 1, 0 }, { 1, 0 } },
-  { { -0.5f, 0.5f, 0.5f }, { 0, 0, 1 }, { 1, 1 } },
-  { { -0.5f, 0.5f, -0.5f }, { 1, 1, 1 }, { 0, 1 } },
-
-  // Right face
-  { { 0.5f, -0.5f, -0.5f }, { 1, 0, 0 }, { 1, 0 } },
-  { { 0.5f, -0.5f, 0.5f }, { 0, 1, 0 }, { 0, 0 } },
-  { { 0.5f, 0.5f, 0.5f }, { 0, 0, 1 }, { 0, 1 } },
-  { { 0.5f, 0.5f, -0.5f }, { 1, 1, 1 }, { 1, 1 } },
-
-  // Top face
-  { { -0.5f, 0.5f, -0.5f }, { 1, 0, 0 }, { 0, 1 } },
-  { { 0.5f, 0.5f, -0.5f }, { 0, 1, 0 }, { 1, 1 } },
-  { { 0.5f, 0.5f, 0.5f }, { 0, 0, 1 }, { 1, 0 } },
-  { { -0.5f, 0.5f, 0.5f }, { 1, 1, 1 }, { 0, 0 } },
-
-  // Bottom face
-  { { -0.5f, -0.5f, -0.5f }, { 1, 0, 0 }, { 1, 1 } },
-  { { 0.5f, -0.5f, -0.5f }, { 0, 1, 0 }, { 0, 1 } },
-  { { 0.5f, -0.5f, 0.5f }, { 0, 0, 1 }, { 0, 0 } },
-  { { -0.5f, -0.5f, 0.5f }, { 1, 1, 1 }, { 1, 0 } },
-};
-
-const std::vector<uint16_t> indices = {
-  0,  1,  2,  2,  3,  0,  // front
-  4,  5,  6,  6,  7,  4,  // back
-  8,  9,  10, 10, 11, 8,  // left
-  12, 13, 14, 14, 15, 12, // right
-  16, 17, 18, 18, 19, 16, // top
-  20, 21, 22, 22, 23, 20  // bottom
-};
+} ubo;
 
 void createUniformBuffers( graphics::VulkanContext* ctx )
 {
   uniformBuffers.resize( MAX_FRAMES_IN_FLIGHT );
-  uniformBuffersMemory.resize( MAX_FRAMES_IN_FLIGHT );
-  uniformBuffersMapped.resize( MAX_FRAMES_IN_FLIGHT );
 
   for ( size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++ )
   {
-    createBuffer( ctx,
-                  static_cast<VkDeviceSize>( sizeof( UniformBufferObject ) ),
-                  VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                  uniformBuffers[i],
-                  uniformBuffersMemory[i] );
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = sizeof( CameraBuffer );
+    bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
-    vkMapMemory( ctx->device->getLogicalDevice(),
-                 uniformBuffersMemory[i],
-                 0,
-                 static_cast<VkDeviceSize>( sizeof( UniformBufferObject ) ),
-                 0,
-                 &uniformBuffersMapped[i] );
+    VmaAllocationCreateInfo vmaAllocInfo{};
+    vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+    vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+    ctx->memoryAllocator->createBuffer( uniformBuffers.at( i ), bufferInfo, vmaAllocInfo );
+    vmaMapMemory(
+      ctx->memoryAllocator->getAllocator(), uniformBuffers.at( i ).allocation, &uniformBuffers.at( i ).mappedData );
+
+    uniformBuffers.at( i ).persistent = true;
   }
 }
 
 static void createGraphicsPipeline( graphics::VulkanContext* ctx )
 {
-  auto vert = std::filesystem::absolute( "." ) / "engine_resources\\shaders\\vert.spv";
-  auto frag = std::filesystem::absolute( "." ) / "engine_resources\\shaders\\frag.spv";
+  auto vert = std::filesystem::absolute( "." ) / "engine_resources\\shaders\\vulkan_vertex.spv";
+  auto frag = std::filesystem::absolute( "." ) / "engine_resources\\shaders\\vulkan_fragment.spv";
 
   auto vertShaderCode = readFile( vert.string() );
   auto fragShaderCode = readFile( frag.string() );
@@ -245,8 +122,8 @@ static void createGraphicsPipeline( graphics::VulkanContext* ctx )
 
   VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
-  auto bindingDesc = Vertex::getBindingDescription();
-  auto attribDesc = Vertex::getAttributeDescriptions();
+  auto bindingDesc = resources::Vertex::getBindingDescription();
+  auto attribDesc = resources::Vertex::getAttributeDescriptions();
 
   VkPipelineVertexInputStateCreateInfo vertexInputInfo{
     .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -304,8 +181,26 @@ static void createGraphicsPipeline( graphics::VulkanContext* ctx )
   dynamicState.dynamicStateCount = static_cast<uint32_t>( dynamicStates.size() );
   dynamicState.pDynamicStates = dynamicStates.data();
 
-  VkPipelineLayoutCreateInfo pipelineLayoutInfo{
-    .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, .setLayoutCount = 1, .pSetLayouts = &descriptorSetLayout };
+  // create the mesh constants here
+  VkPushConstantRange meshPushConstant{};
+  meshPushConstant.offset = 0;
+  meshPushConstant.size = sizeof( resources::MeshPushConstant );
+  meshPushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+  auto& assetManager = core::AssetManager::getInstance();
+  auto& bindlessDescriptorLayout = assetManager.getBindlessDescriptorLayout();
+  auto& materialsDescriptorLayout = assetManager.getMaterialsDescriptorLayout();
+  VkDescriptorSetLayout layouts[] = {
+    descriptorSetLayout /* this is the camera set, should be on index 1*/,
+    bindlessDescriptorLayout,
+    materialsDescriptorLayout,
+  };
+
+  VkPipelineLayoutCreateInfo pipelineLayoutInfo{ .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+                                                 .setLayoutCount = std::size( layouts ),
+                                                 .pSetLayouts = layouts,
+                                                 .pushConstantRangeCount = 1,
+                                                 .pPushConstantRanges = &meshPushConstant };
 
   VK_CALL( vkCreatePipelineLayout( ctx->device->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &pipelineLayout ) );
 
@@ -350,81 +245,82 @@ static void createGraphicsPipeline( graphics::VulkanContext* ctx )
   vkDestroyShaderModule( ctx->device->getLogicalDevice(), fragModule, nullptr );
 }
 
-void createDescriptorSets( graphics::VulkanContext* ctx )
+static void createDescriptorPool( graphics::VulkanContext* ctx )
 {
+  std::vector<VkDescriptorPoolSize> poolSizes{
+    VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_FRAMES_IN_FLIGHT },
+    VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, MAX_FRAMES_IN_FLIGHT },
+    VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 } };
+
+  VkDescriptorPoolCreateInfo poolInfo{};
+  poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+  poolInfo.flags = 0;
+  poolInfo.poolSizeCount = static_cast<uint32_t>( poolSizes.size() );
+  poolInfo.pPoolSizes = poolSizes.data();
+  poolInfo.maxSets = 3000;
+
+  VK_CALL( vkCreateDescriptorPool( ctx->device->getLogicalDevice(), &poolInfo, nullptr, &descriptorPool ) );
+}
+
+void createCameraDescriptorSets( graphics::VulkanContext* ctx )
+{
+  uint32_t descriptorCount[]{ 1 };
   std::vector<VkDescriptorSetLayout> layouts( MAX_FRAMES_IN_FLIGHT, descriptorSetLayout );
+
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool = descriptorPool;
-  allocInfo.descriptorSetCount = static_cast<uint32_t>( MAX_FRAMES_IN_FLIGHT );
+  allocInfo.descriptorSetCount = std::size( layouts );
   allocInfo.pSetLayouts = layouts.data();
+  allocInfo.pNext = nullptr;
 
-  descriptorSets.resize( MAX_FRAMES_IN_FLIGHT );
-  VK_CALL( vkAllocateDescriptorSets( ctx->device->getLogicalDevice(), &allocInfo, descriptorSets.data() ) );
-  auto stopPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\logo.png";
-  auto tex = core::AssetManager::getInstance().addTexture( "logo.png", stopPath.string() );
-
+  globalDescriptorSets.resize( MAX_FRAMES_IN_FLIGHT );
+  VK_CALL( vkAllocateDescriptorSets( ctx->device->getLogicalDevice(), &allocInfo, globalDescriptorSets.data() ) );
   for ( size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++ )
   {
     VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = uniformBuffers[i];
+    bufferInfo.buffer = uniformBuffers[i].vkBuffer;
     bufferInfo.offset = 0;
-    bufferInfo.range = sizeof( UniformBufferObject );
-
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = tex->getView();
-    imageInfo.sampler = core::AssetManager::getInstance().getTextureSampler();
+    bufferInfo.range = sizeof( CameraBuffer );
 
     auto uniformBufferDescriptor = VkWriteDescriptorSet{
       .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-      .dstSet = descriptorSets[i],
+      .dstSet = globalDescriptorSets[i],
       .dstBinding = 0,
-      .dstArrayElement = 0,
       .descriptorCount = 1,
       .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
       .pBufferInfo = &bufferInfo,
     };
 
-    auto samplerDescriptor = VkWriteDescriptorSet{ .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                                   .dstSet = descriptorSets[i],
-                                                   .dstBinding = 1,
-                                                   .dstArrayElement = 0,
-                                                   .descriptorCount = 1,
-                                                   .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                                   .pImageInfo = &imageInfo };
-
-    std::array<VkWriteDescriptorSet, 2> descriptorWrites{ uniformBufferDescriptor, samplerDescriptor };
-
-    vkUpdateDescriptorSets( ctx->device->getLogicalDevice(),
-                            static_cast<uint32_t>( descriptorWrites.size() ),
-                            descriptorWrites.data(),
-                            0,
-                            nullptr );
+    VkWriteDescriptorSet descriptorWrites = uniformBufferDescriptor;
+    vkUpdateDescriptorSets( ctx->device->getLogicalDevice(), 1, &descriptorWrites, 0, nullptr );
   }
 }
 
-static void createDescriptorSetLayout( graphics::VulkanContext* ctx )
+static void createCameraDescriptorSetLayout( graphics::VulkanContext* ctx )
 {
-  VkDescriptorSetLayoutBinding uboLayoutBinding{};
-  uboLayoutBinding.binding = 0;
-  uboLayoutBinding.descriptorCount = 1;
-  uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  uboLayoutBinding.pImmutableSamplers = nullptr;
-  uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+  VkDescriptorSetLayoutBinding cameraBufferBinding{};
+  cameraBufferBinding.binding = 0;
+  cameraBufferBinding.descriptorCount = 1;
 
-  VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-  samplerLayoutBinding.binding = 1;
-  samplerLayoutBinding.descriptorCount = 1;
-  samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  samplerLayoutBinding.pImmutableSamplers = nullptr;
-  samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  // this is a uniform buffer
+  cameraBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  cameraBufferBinding.pImmutableSamplers = nullptr;
+  cameraBufferBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-  std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+  VkDescriptorBindingFlags flags = 0;
+
+  VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags{};
+  bindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+  bindingFlags.bindingCount = 1;
+  bindingFlags.pBindingFlags = &flags;
+
   VkDescriptorSetLayoutCreateInfo layoutInfo{};
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  layoutInfo.bindingCount = static_cast<uint32_t>( bindings.size() );
-  layoutInfo.pBindings = bindings.data();
+  layoutInfo.bindingCount = 1;
+  layoutInfo.pBindings = &cameraBufferBinding;
+  layoutInfo.pNext = nullptr;
+  layoutInfo.flags = 0;
 
   VK_CALL( vkCreateDescriptorSetLayout( ctx->device->getLogicalDevice(), &layoutInfo, nullptr, &descriptorSetLayout ) );
 }
@@ -436,84 +332,22 @@ static void updateUniformBuffer( graphics::VulkanContext* ctx )
   auto currentTime = std::chrono::high_resolution_clock::now();
   float time = std::chrono::duration<float, std::chrono::seconds::period>( currentTime - startTime ).count();
 
-  UniformBufferObject ubo{};
-  ubo.model = glm::rotate( glm::mat4( 1.0f ), time * glm::radians( 90.0f ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
-  ubo.view = glm::lookAt( glm::vec3( 3.0f, 3.0f, 3.0f ), glm::vec3( 0.0f, 0.0f, 0.0f ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
+  ubo.view =
+    glm::lookAt( glm::vec3( 300.0f, 300.0f, 3.0f ), glm::vec3( 0.0f, 0.0f, 0.0f ), glm::vec3( 0.0f, 0.0f, 1.0f ) );
   ubo.proj =
-    glm::perspective( glm::radians( 65.0f ),
+    glm::perspective( glm::radians( 50.0f ),
                       ctx->swapchain->getSwapchainExtent().width / (float)ctx->swapchain->getSwapchainExtent().height,
                       0.1f,
-                      10.0f );
+                      1000.0f );
+
   ubo.proj[1][1] *= -1;
 
-  memcpy( uniformBuffersMapped[ctx->swapchain->getCurrentFrameIndex()], &ubo, sizeof( ubo ) );
-}
-
-static void createIndexBuffer( graphics::VulkanContext* ctx )
-{
-  VkDeviceSize bufferSize = sizeof( indices[0] ) * indices.size();
-
-  createBuffer( ctx,
-                bufferSize,
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                stageBuffer,
-                stageBufferMemory );
-
-  void* data;
-  vkMapMemory( ctx->device->getLogicalDevice(), stageBufferMemory, 0, bufferSize, 0, &data );
-  memcpy( data, indices.data(), (size_t)bufferSize );
-  vkUnmapMemory( ctx->device->getLogicalDevice(), stageBufferMemory );
-
-  createBuffer( ctx,
-                bufferSize,
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                indicesBuffer,
-                indicesBufferMemory );
-
-  copyBuffer( ctx->swapchain->getCommandPool(),
-              ctx->device->getLogicalDevice(),
-              ctx->device->getGraphicsQueue().handle,
-              stageBuffer,
-              indicesBuffer,
-              bufferSize );
-
-  vkDestroyBuffer( ctx->device->getLogicalDevice(), stageBuffer, nullptr );
-  vkFreeMemory( ctx->device->getLogicalDevice(), stageBufferMemory, nullptr );
-}
-
-static void createVertexBuffer( graphics::VulkanContext* ctx )
-{
-  VkDeviceSize bufferSize = sizeof( vertices[0] ) * vertices.size();
-  createBuffer( ctx,
-                bufferSize,
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                stageBuffer,
-                stageBufferMemory );
-
-  void* data;
-  vkMapMemory( ctx->device->getLogicalDevice(), stageBufferMemory, 0, bufferSize, 0, &data );
-  memcpy( data, vertices.data(), (size_t)bufferSize );
-  vkUnmapMemory( ctx->device->getLogicalDevice(), stageBufferMemory );
-
-  createBuffer( ctx,
-                bufferSize,
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                vertexBuffer,
-                vertexBufferMemory );
-
-  copyBuffer( ctx->swapchain->getCommandPool(),
-              ctx->device->getLogicalDevice(),
-              ctx->device->getGraphicsQueue().handle,
-              stageBuffer,
-              vertexBuffer,
-              bufferSize );
-
-  vkDestroyBuffer( ctx->device->getLogicalDevice(), stageBuffer, nullptr );
-  vkFreeMemory( ctx->device->getLogicalDevice(), stageBufferMemory, nullptr );
+  memcpy( uniformBuffers.at( ctx->swapchain->getCurrentFrameIndex() ).mappedData, &ubo, sizeof( CameraBuffer ) );
+  // vmaCopyMemoryToAllocation( ctx->memoryAllocator->getAllocator(),
+  //                            &ubo,
+  //                            uniformBuffers.at( ctx->swapchain->getCurrentFrameIndex() ).allocation,
+  //                            0,
+  //                            sizeof( CameraBuffer ) );
 }
 
 Editor::Editor()
@@ -521,7 +355,7 @@ Editor::Editor()
   auto consoleSink = std::make_shared<spdlog::sinks::wincolor_stdout_sink_st>();
   consoleSink->set_level( spdlog::level::debug );
 
-  // File sink (only error and above)
+  // file sink (only error and above)
   auto fileSink = std::make_shared<spdlog::sinks::daily_file_sink_st>( "logs/log.txt", 23, 59 );
   fileSink->set_level( spdlog::level::err );
   std::vector<spdlog::sink_ptr> sinks{ consoleSink, fileSink };
@@ -535,21 +369,25 @@ Editor::Editor()
 
   utilities::EditorConfigManager::initConfig();
 
+  KeyboardState::initState();
+
   init();
 }
 
 Editor::~Editor()
 {
-  cleanup();
 }
 
 void Editor::cleanup() const
 {
-  spdlog::info( "Closing editor and cleaning up" );
+  auto& vkCtx = core::MainRegistry::getInstance().getVulkanContext();
+  vkCtx->memoryAllocator->deallocate();
 }
 
 void Editor::pollEvents()
 {
+  const auto& pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
+
   SDL_Event e;
   while ( SDL_PollEvent( &e ) )
   {
@@ -561,80 +399,80 @@ void Editor::pollEvents()
       {
         int newWidth = e.window.data1;
         int newHeight = e.window.data2;
-        // WindowResizeEvent windowResizeEvent{ newWidth, newHeight };
-        // pEventDispatcher->dispatchEvent( windowResizeEvent );
+        core::WindowResizeEvent windowResizeEvent{ newWidth, newHeight };
+        pEventDispatcher->dispatchEvent( windowResizeEvent );
       }
       break;
     }
     case SDL_QUIT: {
-      // pEventDispatcher->dispatchEvent( WindowCloseEvent{} );
+      pEventDispatcher->dispatchEvent( core::WindowCloseEvent{} );
       m_running = false;
       break;
     }
     case SDL_KEYDOWN: {
-      // KeyboardState::updateState();
-      // auto scanCode = static_cast<KeyScanCode>( e.key.keysym.scancode );
+      KeyboardState::updateState();
+      auto scanCode = static_cast<KeyScanCode>( e.key.keysym.scancode );
 
-      // KeyPressedEvent keyPressEvent{ scanCode, KeyScanCode::None, 0 };
-      // if ( KeyboardState::getKeyState( KeyScanCode::LeftControl ) )
-      //{
-      //   keyPressEvent.setKeyModifier( KeyScanCode::LeftControl );
-      // }
+      core::KeyPressedEvent keyPressEvent{ scanCode, KeyScanCode::None, 0 };
+      if ( KeyboardState::getKeyState( KeyScanCode::LeftControl ) )
+      {
+        keyPressEvent.setKeyModifier( KeyScanCode::LeftControl );
+      }
 
-      // if ( KeyboardState::getKeyState( KeyScanCode::LeftShift ) )
-      //{
-      //   keyPressEvent.setKeyModifier( KeyScanCode::LeftShift );
-      // }
+      if ( KeyboardState::getKeyState( KeyScanCode::LeftShift ) )
+      {
+        keyPressEvent.setKeyModifier( KeyScanCode::LeftShift );
+      }
 
-      // pEventDispatcher->dispatchEvent( keyPressEvent );
+      pEventDispatcher->dispatchEvent( keyPressEvent );
       break;
     }
     case SDL_KEYUP: {
-      // KeyboardState::updateState();
-      // auto scanCode = static_cast<KeyScanCode>( e.key.keysym.scancode );
-      // KeyReleasedEvent keyReleaseEvent{ scanCode, KeyScanCode::None };
-      // pEventDispatcher->dispatchEvent( keyReleaseEvent );
-      // break;
+      KeyboardState::updateState();
+      auto scanCode = static_cast<KeyScanCode>( e.key.keysym.scancode );
+      core::KeyReleasedEvent keyReleaseEvent{ scanCode, KeyScanCode::None };
+      pEventDispatcher->dispatchEvent( keyReleaseEvent );
+      break;
     }
     case SDL_MOUSEMOTION: {
       double x = e.motion.x;
       double y = e.motion.y;
       double xRel = e.motion.xrel;
       double yRel = e.motion.yrel;
-      // MouseMovedEvent mouseMovedEvent{ x, y, xRel, yRel };
-      // pEventDispatcher->dispatchEvent( mouseMovedEvent );
+      core::MouseMovedEvent mouseMovedEvent{ x, y, xRel, yRel };
+      pEventDispatcher->dispatchEvent( mouseMovedEvent );
       break;
     }
     case SDL_MOUSEWHEEL: {
       double xOff = e.wheel.x;
       double yOff = e.wheel.y;
-      // MouseScrolledEvent mouseScrolled{ xOff, yOff };
-      // pEventDispatcher->dispatchEvent( mouseScrolled );
+      core::MouseScrolledEvent mouseScrolled{ xOff, yOff };
+      pEventDispatcher->dispatchEvent( mouseScrolled );
       break;
     }
     case SDL_MOUSEBUTTONDOWN: {
-      // UINT32 buttonState = SDL_GetMouseState( NULL, NULL );
-      // if ( buttonState & SDL_BUTTON( SDL_BUTTON_MIDDLE ) )
-      //{
-      //   MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_MIDDLE ),
-      //                                   static_cast<int>( MouseAction::Press ),
-      //                                   static_cast<int>( MouseModifier::None ) };
-      //   pEventDispatcher->dispatchEvent( mouseClicked );
-      // }
-      // if ( buttonState & SDL_BUTTON( SDL_BUTTON_LEFT ) )
-      //{
-      //   MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_LEFT ),
-      //                                   static_cast<int>( MouseAction::Press ),
-      //                                   static_cast<int>( MouseModifier::None ) };
-      //   pEventDispatcher->dispatchEvent( mouseClicked );
-      // }
-      // if ( buttonState & SDL_BUTTON( SDL_BUTTON_RIGHT ) )
-      //{
-      //   MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_RIGHT ),
-      //                                   static_cast<int>( MouseAction::Press ),
-      //                                   static_cast<int>( MouseModifier::None ) };
-      //   pEventDispatcher->dispatchEvent( mouseClicked );
-      // }
+      UINT32 buttonState = SDL_GetMouseState( NULL, NULL );
+      if ( buttonState & SDL_BUTTON( SDL_BUTTON_MIDDLE ) )
+      {
+        core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_MIDDLE ),
+                                              static_cast<int>( MouseAction::Press ),
+                                              static_cast<int>( MouseModifier::None ) };
+        pEventDispatcher->dispatchEvent( mouseClicked );
+      }
+      if ( buttonState & SDL_BUTTON( SDL_BUTTON_LEFT ) )
+      {
+        core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_LEFT ),
+                                              static_cast<int>( MouseAction::Press ),
+                                              static_cast<int>( MouseModifier::None ) };
+        pEventDispatcher->dispatchEvent( mouseClicked );
+      }
+      if ( buttonState & SDL_BUTTON( SDL_BUTTON_RIGHT ) )
+      {
+        core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_RIGHT ),
+                                              static_cast<int>( MouseAction::Press ),
+                                              static_cast<int>( MouseModifier::None ) };
+        pEventDispatcher->dispatchEvent( mouseClicked );
+      }
       break;
     }
     default:
@@ -653,25 +491,46 @@ void Editor::run()
 
   createViewport( vkContext.get() );
   createUniformBuffers( vkContext.get() );
-  createDescriptorSetLayout( vkContext.get() );
+  createCameraDescriptorSetLayout( vkContext.get() );
   createDescriptorPool( vkContext.get() );
-  createDescriptorSets( vkContext.get() );
+  createCameraDescriptorSets( vkContext.get() );
+
+  assetManager.setDescriptorPool( &descriptorPool );
+  assetManager.initDescriptors();
+
+  // create pipeline last since we need all descriptor layouts for pipeline creation
   createGraphicsPipeline( vkContext.get() );
-  createVertexBuffer( vkContext.get() );
-  createIndexBuffer( vkContext.get() );
 
   while ( m_running )
   {
     pollEvents();
+    auto scene = core::SceneManager::getCurrentScene().lock();
+
+    if ( !swapchain->isRendering() )
+      continue;
+
     swapchain->waitForFences();
     swapchain->resetFences();
     updateUniformBuffer( vkContext.get() );
+
+    const auto& view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
+
+    // update transforms if they are marked as update needed
+    view.each(
+      [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
+        if ( transform.update )
+        {
+          transform.computeMatrix();
+        }
+      } );
+
     swapchain->aquireNextImage();
 
     auto& cmd = swapchain->getCurrentCommandBuffer();
 
     // set the current command buffer into begin state
     swapchain->beginCommandBuffer();
+
     VkImageMemoryBarrier textureToColor{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                                          .srcAccessMask = 0,
                                          .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
@@ -746,25 +605,57 @@ void Editor::run()
     swapchain->setupScissors( cmd );
     swapchain->setupViewport( cmd );
 
-    // render the scene
-    VkBuffer vertexBuffers[] = { vertexBuffer };
     VkDeviceSize offsets[] = { 0 };
 
     vkCmdBindPipeline( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline );
-    vkCmdBindVertexBuffers( cmd, 0, 1, vertexBuffers, offsets );
-    vkCmdBindIndexBuffer( cmd, indicesBuffer, 0, VK_INDEX_TYPE_UINT16 );
 
-    // bind descriptor sets
     vkCmdBindDescriptorSets( cmd,
                              VK_PIPELINE_BIND_POINT_GRAPHICS,
                              pipelineLayout,
-                             0,
+                             0, // set = 0
                              1,
-                             &descriptorSets[swapchain->getCurrentFrameIndex()],
+                             &globalDescriptorSets[swapchain->getCurrentFrameIndex()],
                              0,
                              nullptr );
 
-    vkCmdDrawIndexed( cmd, static_cast<uint32_t>( indices.size() ), 1, 0, 0, 0 );
+    // this is the bindless texture set
+    vkCmdBindDescriptorSets( cmd,
+                             VK_PIPELINE_BIND_POINT_GRAPHICS,
+                             pipelineLayout,
+                             1, // set = 1
+                             1,
+                             &assetManager.getBindlessDescriptorSet(),
+                             0,
+                             nullptr );
+
+    view.each(
+      [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
+        vkCmdBindDescriptorSets( cmd,
+                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                 pipelineLayout,
+                                 2, // set = 2
+                                 1,
+                                 &assetManager.getMaterialsDescriptorSet(),
+                                 0,
+                                 nullptr );
+
+        vkCmdBindVertexBuffers( cmd, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
+        vkCmdBindIndexBuffer( cmd, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
+        for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
+        {
+          auto push =
+            resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(), .materialIndex = submesh.materialIndex };
+
+          vkCmdPushConstants( cmd,
+                              pipelineLayout,
+                              VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                              0,
+                              sizeof( resources::MeshPushConstant ),
+                              &push );
+
+          vkCmdDrawIndexed( cmd, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
+        }
+      } );
 
     swapchain->endRendering();
 
@@ -901,7 +792,6 @@ bool Editor::initMainWindow()
 
 bool Editor::init()
 {
-
   if ( !initSDL() )
   {
     throw std::runtime_error( "sdl could not be initialized" );
@@ -931,15 +821,37 @@ bool Editor::init()
   return true;
 }
 
+void Editor::onWindowClose( const core::WindowCloseEvent& e )
+{
+}
+
 bool Editor::initMainRegistry()
 {
   auto device = std::make_shared<graphics::VulkanDevice>( m_pWindow->getWindow() );
   auto swapchain = std::make_shared<graphics::VulkanSwapchain>( device.get(), m_pWindow->getWindow() );
-  auto vkCtx = std::make_shared<graphics::VulkanContext>( device, swapchain );
+
+  auto vma = std::make_shared<graphics::VulkanMemoryAllocator>(
+    device->getLogicalDevice(), device->getInstance(), device->getPhysicalDevice() );
+
+  auto vkCtx = std::make_shared<graphics::VulkanContext>( graphics::VulkanContext{
+    .device = std::move( device ), .swapchain = std::move( swapchain ), .memoryAllocator = std::move( vma ) } );
+
   auto& mainRegistry = core::MainRegistry::getInstance();
 
   assert( vkCtx.get() && "could not create vulkan context" );
   mainRegistry.addToContext<std::shared_ptr<graphics::VulkanContext>>( std::move( vkCtx ) );
+
+  auto eventDispatcher = std::make_shared<core::EventDispatcher>();
+  eventDispatcher->addHandler<core::WindowCloseEvent, &Editor::onWindowClose>( *this );
+  assert( eventDispatcher && "could not init event dispathcer" );
+  mainRegistry.addToContext<std::shared_ptr<core::EventDispatcher>>( std::move( eventDispatcher ) );
+
+  // TODO(kogayonon) remove this scene code from here
+  auto scene = std::make_shared<core::Scene>( "Default" );
+  core::SceneManager::addScene( scene );
+  core::SceneManager::setCurrentScene( scene->getName() );
+  //
+
   return true;
 }
 

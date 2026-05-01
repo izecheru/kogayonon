@@ -1,9 +1,11 @@
 #include "gui/vulkan_imgui_renderer.hpp"
+#include <SDL2/SDL.h>
 #include <glm/gtc/type_ptr.hpp>
 #include "core/asset_manager/asset_manager.hpp"
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_device.hpp"
 #include "graphics/vulkan_swapchain.hpp"
+#include "gui/imgui_windows/entity_properties.hpp"
 #include "gui/imgui_windows/file_explorer.hpp"
 #include "gui/imgui_windows/scene_hierarchy.hpp"
 #include "gui/imgui_windows/viewport.hpp"
@@ -72,13 +74,14 @@ void gui::VulkanImguiRenderer::setupDockspace( ImGuiViewport* viewport )
                         ImGuiDockNodeFlags_AutoHideTabBar | ImGuiDockNodeFlags_NoTabBar;
 
     auto centerNodeId = dockSpaceId;
-    const auto bottomNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Down, 0.35f, nullptr, &centerNodeId );
-    const auto leftNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Left, 0.20f, nullptr, &centerNodeId );
-    auto rightNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Right, 0.30f, nullptr, &centerNodeId );
+    auto leftNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Left, 0.30f, nullptr, &centerNodeId );
+    auto bottomLeftNodeId = ImGui::DockBuilderSplitNode( leftNodeId, ImGuiDir_Down, 0.50f, nullptr, &leftNodeId );
+    auto bottomNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Down, 0.35f, nullptr, &centerNodeId );
 
     ImGui::DockBuilderDockWindow( ICON_MDI_FOLDER_SEARCH "File explorer", bottomNodeId );
-    ImGui::DockBuilderDockWindow( ICON_MDI_AXIS "Viewport", rightNodeId );
+    ImGui::DockBuilderDockWindow( ICON_MDI_AXIS "Viewport", centerNodeId );
     ImGui::DockBuilderDockWindow( ICON_MDI_LIST_BOX "Hierarchy", leftNodeId );
+    ImGui::DockBuilderDockWindow( ICON_MDI_ADJUST "Properties", bottomLeftNodeId );
 
     ImGui::DockBuilderFinish( dockSpaceId );
   }
@@ -122,7 +125,7 @@ void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
                                           graphics::VulkanSwapchain* swapchain )
 {
   VkDescriptorPoolSize poolSizes[] = {
-    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE },
+    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_VULKAN_MAX_DESCRIPTORS },
   };
 
   VkDescriptorPoolCreateInfo poolInfo = {};
@@ -249,6 +252,12 @@ void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
   //   io.Fonts->AddFontFromFileTTF(
   //     "engine_resources/fonts/fontawesome/fa5-brands-400.ttf", iconFontSize, &iconsConfig, fontawesome5Ranges ) );
 
+  m_fonts.emplace( "inter-light",
+                   io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-Light.ttf", 18.0f, &cfg ) );
+
+  m_fonts.emplace( "inter-italic",
+                   io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-Italic.ttf", 18.0f, &cfg ) );
+
   m_fonts.emplace( "inter-bold",
                    io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-Bold.ttf", 18.0f, &cfg ) );
 
@@ -304,13 +313,13 @@ void gui::VulkanImguiRenderer::initWindows()
   auto& assetManager = core::AssetManager::getInstance();
 
   auto folderPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\folder.png";
-  auto folderTexture = assetManager.addTexture( "logo.png", folderPath.string() );
+  auto folderTexture = assetManager.loadTexture( "logo.png", folderPath.string() );
 
   auto filePath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\file.png";
-  auto fileTexture = assetManager.addTexture( "logo.png", filePath.string() );
+  auto fileTexture = assetManager.loadTexture( "logo.png", filePath.string() );
 
   auto gltfIconPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\gltf_file.png";
-  auto gltfTexture = assetManager.addTexture( "gltf_file.png", gltfIconPath.string() );
+  auto gltfTexture = assetManager.loadTexture( "gltf_file.png", gltfIconPath.string() );
 
   auto folder =
     ImGui_ImplVulkan_AddTexture( m_iconSampler, folderTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
@@ -321,23 +330,23 @@ void gui::VulkanImguiRenderer::initWindows()
   auto gltfFile =
     ImGui_ImplVulkan_AddTexture( m_iconSampler, gltfTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
-  FileExplorerSpec fileExp{ .fonts = &m_fonts,
-                            .iconGenericFolder = std::move( folder ),
-                            .genericFileIcon = std::move( file ),
-                            // this is an unordered map
-                            .fileIcons = { { ".gltf", gltfFile } } };
-
-  m_windows.emplace( "File explorer",
-                     std::make_unique<FileExplorerWindow>( ICON_MDI_FOLDER_SEARCH "File explorer", fileExp ) );
+  m_windows.emplace(
+    "File explorer",
+    std::make_unique<FileExplorerWindow>( ICON_MDI_FOLDER_SEARCH "File explorer",
+                                          FileExplorerSpec{ .fonts = &m_fonts,
+                                                            .iconGenericFolder = std::move( folder ),
+                                                            .genericFileIcon = std::move( file ),
+                                                            // this is an unordered map
+                                                            .fileIcons = { { ".gltf", gltfFile } } } ) );
 
   auto playPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\play.png";
-  auto playTexture = assetManager.addTexture( "play.png", playPath.string() );
+  auto playTexture = assetManager.loadTexture( "play.png", playPath.string() );
 
   auto stopPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\stop.png";
-  auto stopTexture = assetManager.addTexture( "stop.png", stopPath.string() );
+  auto stopTexture = assetManager.loadTexture( "stop.png", stopPath.string() );
 
   auto renderModePath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\render_mode_icon.png";
-  auto renderModeTexture = assetManager.addTexture( "render_mode_icon.png", renderModePath.string() );
+  auto renderModeTexture = assetManager.loadTexture( "render_mode_icon.png", renderModePath.string() );
 
   auto play =
     ImGui_ImplVulkan_AddTexture( m_iconSampler, playTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
@@ -348,17 +357,30 @@ void gui::VulkanImguiRenderer::initWindows()
   auto renderMode = ImGui_ImplVulkan_AddTexture(
     m_iconSampler, renderModeTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
-  ViewportSpec viewportSpec{ .fonts = &m_fonts,
-                             .renderModeIcon = std::move( renderMode ),
-                             .playIcon = std::move( play ),
-                             .stopIcon = std::move( stop ),
-                             .pViewportTexture = &m_viewportView,
-                             .pSampler = &m_iconSampler };
+  m_windows.emplace( "Viewport",
+                     std::make_unique<Viewport>( m_wnd,
+                                                 ICON_MDI_AXIS "Viewport",
+                                                 ViewportSpec{ .fonts = &m_fonts,
+                                                               .renderModeIcon = std::move( renderMode ),
+                                                               .playIcon = std::move( play ),
+                                                               .stopIcon = std::move( stop ),
+                                                               .pViewportTexture = &m_viewportView,
+                                                               .pSampler = &m_iconSampler } ) );
 
-  m_windows.emplace( "Viewport", std::make_unique<Viewport>( m_wnd, ICON_MDI_AXIS "Viewport", viewportSpec ) );
+  auto hierarchyCubeIcon = std::filesystem::absolute( "." ) / "engine_resources\\textures\\3d-cube.png";
+  auto hierarchyCubeIconTexture = assetManager.loadTexture( "3d-cube.png", hierarchyCubeIcon.string() );
 
-  m_windows.emplace( "Hierarchy",
-                     std::make_unique<SceneHierarchy>( ICON_MDI_LIST_BOX "Hierarchy", SceneHierarchySpec{} ) );
+  auto cubeIcon = ImGui_ImplVulkan_AddTexture(
+    m_iconSampler, hierarchyCubeIconTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+
+  m_windows.emplace(
+    "Hierarchy",
+    std::make_unique<SceneHierarchy>( ICON_MDI_LIST_BOX "Hierarchy",
+                                      SceneHierarchySpec{ .fonts = &m_fonts, .cubeIcon = std::move( cubeIcon ) } ) );
+
+  m_windows.emplace(
+    "EntityProperties",
+    std::make_unique<EntityProperties>( ICON_MDI_ADJUST "Properties", EntityPropertiesSpec{ .fonts = &m_fonts } ) );
 }
 
 void gui::VulkanImguiRenderer::mainMenu()
@@ -492,7 +514,15 @@ void gui::VulkanImguiRenderer::colorChanger()
 
 void gui::VulkanImguiRenderer::colorModal()
 {
-  if ( ImGui::BeginPopupModal( "Color settings", nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoDecoration ) )
+  static int w{ 0 };
+  static int h{ 0 };
+  SDL_GetWindowSize( m_wnd, &w, &h );
+  gui_utils::centerPopup( { static_cast<float>( w ), static_cast<float>( h ) }, { 600.0f, 600.0f } );
+
+  if ( ImGui::BeginPopupModal( "Color settings",
+                               nullptr,
+                               ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoDecoration |
+                                 ImGuiWindowFlags_AlwaysAutoResize ) )
   {
     ImGui::BeginGroup();
     gui_utils::moveTextToCenter( "Are you sure you want to save the color theme?" );
@@ -598,6 +628,12 @@ void gui::VulkanImguiRenderer::imguiChanger()
 
 void gui::VulkanImguiRenderer::imguiModal()
 {
+  static int w{ 0 };
+  static int h{ 0 };
+  SDL_GetWindowSize( m_wnd, &w, &h );
+
+  gui_utils::centerPopup( { static_cast<float>( w ), static_cast<float>( h ) }, { 600.0f, 600.0f } );
+
   if ( ImGui::BeginPopupModal(
          "Edit imgui", nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize ) )
   {
@@ -626,7 +662,7 @@ void gui::VulkanImguiRenderer::configChanger()
     auto id = std::format( "##fileFilter{}", i );
     ImGui::InputText( id.c_str(), &cfg.fileFilters.at( i ) );
     ImGui::SameLine();
-    auto buttonRemoveId = std::format( "-##folderRemove{}", cfg.fileFilters.at( i ) );
+    auto buttonRemoveId = std::format( ICON_MDI_DELETE "##folderRemove{}", cfg.fileFilters.at( i ) );
     // add or remove file filters
     if ( ImGui::Button( buttonRemoveId.c_str() ) )
     {
@@ -646,7 +682,7 @@ void gui::VulkanImguiRenderer::configChanger()
     ImGui::InputText( id.c_str(), &cfg.folderFilters.at( i ) );
     ImGui::SameLine();
     // add or remove folder filters
-    auto buttonRemoveId = std::format( "-##folderRemove{}", cfg.folderFilters.at( i ) );
+    auto buttonRemoveId = std::format( ICON_MDI_DELETE "##folderRemove{}", cfg.folderFilters.at( i ) );
     if ( ImGui::Button( buttonRemoveId.c_str() ) )
     {
       cfg.folderFilters.erase( cfg.folderFilters.begin() + i );
@@ -661,7 +697,11 @@ void gui::VulkanImguiRenderer::configChanger()
 
 void gui::VulkanImguiRenderer::configModal()
 {
+  static int w{ 0 };
+  static int h{ 0 };
+  SDL_GetWindowSize( m_wnd, &w, &h );
 
+  gui_utils::centerPopup( { static_cast<float>( w ), static_cast<float>( h ) }, { 600.0f, 600.0f } );
   if ( ImGui::BeginPopupModal(
          "Engine config", nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize ) )
   {
@@ -671,8 +711,10 @@ void gui::VulkanImguiRenderer::configModal()
       m_popups.configPopup = false;
       ImGui::CloseCurrentPopup();
     }
-    ImGui::SameLine();
-    if ( ImGui::Button( ICON_MDI_CLOSE "Save" ) )
+    ImGui::SameLine( ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize( ICON_MDI_FILE_EDIT "Save" ).x -
+                     2.0f * ImGui::GetStyle().FramePadding.x );
+
+    if ( ImGui::Button( ICON_MDI_FILE_EDIT "Save" ) )
     {
       // save config
       utilities::EditorConfigManager::writeConfig();

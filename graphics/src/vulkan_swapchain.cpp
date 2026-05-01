@@ -40,12 +40,14 @@ auto graphics::VulkanSwapchain::querySwapchainSupport() -> SwapchainSupportDetai
 graphics::VulkanSwapchain::VulkanSwapchain( VulkanDevice* vulkanDevice, SDL_Window* wnd )
     : m_pDevice{ vulkanDevice }
     , m_window{ wnd }
+    , m_rendering{ false }
 {
   createSwapchain();
   createImageViews();
   createCommandPool();
   createCommandBuffers();
   createSyncObjects();
+  m_rendering = true;
 }
 
 graphics::VulkanSwapchain::~VulkanSwapchain()
@@ -82,6 +84,7 @@ void graphics::VulkanSwapchain::recreateSwapchain()
   createCommandPool();
   createCommandBuffers();
   createSyncObjects();
+  m_rendering = true;
 }
 
 void graphics::VulkanSwapchain::presentFrame()
@@ -417,6 +420,7 @@ bool graphics::VulkanSwapchain::aquireNextImage()
   if ( result == VK_ERROR_OUT_OF_DATE_KHR )
   {
     recreateSwapchain();
+    m_rendering = false;
     return false;
   }
   else if ( result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR )
@@ -445,4 +449,9 @@ auto graphics::VulkanSwapchain::getCurrentFrame() -> SwapchainImage&
 void graphics::VulkanSwapchain::endCommandBuffer()
 {
   vkEndCommandBuffer( *m_currentCmdBuffer );
+}
+
+bool graphics::VulkanSwapchain::isRendering() const
+{
+  return m_rendering;
 }

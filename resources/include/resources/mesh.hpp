@@ -1,8 +1,8 @@
 #pragma once
-#include <memory>
-#include <optional>
-#include <string>
-#include <vector>
+#include <vulkan/vulkan.h>
+#include "graphics/vulkan_buffer.hpp"
+#include "precompiled/pch.hpp"
+#include "resources/material.hpp"
 #include "resources/skeleton.hpp"
 #include "resources/texture.hpp"
 #include "resources/vertex.hpp"
@@ -11,9 +11,11 @@ namespace resources
 {
 struct Submesh
 {
-  uint32_t vertexOffest{ 0 };
-  uint32_t indexOffset{ 0 };
-  uint32_t indexCount{ 0 };
+  uint32_t vertexOffset;
+  uint32_t indexOffset;
+  uint32_t indexCount;
+  Material submeshMaterial;
+  int materialIndex;
 };
 
 class Mesh
@@ -31,62 +33,44 @@ public:
   explicit Mesh( const std::string& path,
                  const std::vector<Vertex>&& vertices,
                  const std::vector<uint32_t>&& indices,
-                 const std::vector<Texture*>&& textures,
-                 const std::vector<Submesh>&& submeshes );
+                 const std::vector<Texture*>&& textures );
 
   explicit Mesh( const std::string& path,
                  const std::vector<Vertex>&& vertices,
                  const std::vector<uint32_t>&& indices,
                  const std::vector<Texture*>&& textures,
-                 const std::vector<Submesh>&& submeshes,
                  std::optional<resources::Skeleton> skeleton );
 
-  explicit Mesh( const std::string& path,
-                 const std::vector<Vertex>&& vertices,
-                 const std::vector<uint32_t>&& indices,
-                 const std::vector<Submesh>&& submeshes );
+  explicit Mesh( const std::string& path, const std::vector<Vertex>&& vertices, const std::vector<uint32_t>&& indices );
 
   auto getVertices() -> std::vector<Vertex>&;
   auto getIndices() -> std::vector<uint32_t>&;
   auto getTextures() -> std::vector<Texture*>&;
-  auto getSubmeshes() -> std::vector<Submesh>&;
-  auto getSkeleton() -> Skeleton&;
 
-  auto getPath() -> std::string&
+  auto getVertexBufferObject() -> graphics::VulkanBuffer&;
+  auto getVerticesAllocation() -> VmaAllocation&;
+
+  auto getIndicesBufferObject() -> graphics::VulkanBuffer&;
+  auto getIndicesAllocation() -> VmaAllocation&;
+
+  auto getSubmeshes() -> std::vector<Submesh>&;
+
+  inline auto getPath() -> std::string&
   {
     return m_path;
   }
-
-  // auto getBones() -> std::optional<std::vector<glm::mat4>>
-  //{
-  //   // if ( !m_hasSkeleton )
-  //   //   return {};
-
-  //  // std::vector<glm::mat4> bonesMatrices;
-  //  // for ( auto& bone : m_skeleton.joints )
-  //  //{
-  //  //   bonesMatrices.emplace_back( bone.offsetMatrix );
-  //  // }
-  //  // return bonesMatrices;
-  //}
-
-  auto getVao() -> uint32_t&;
-  auto getVbo() -> uint32_t&;
-  auto getEbo() -> uint32_t&;
 
 private:
   std::vector<Texture*> m_textures;
   std::vector<Vertex> m_vertices;
   std::vector<uint32_t> m_indices;
-  std::vector<Submesh> m_submeshes;
 
-  resources::Skeleton m_skeleton;
-  bool m_hasSkeleton{ false };
+  int m_materialIndex;
 
-  uint32_t m_vao;
-  uint32_t m_vbo;
-  uint32_t m_ebo;
+  graphics::VulkanBuffer m_verticesBuff;
+  graphics::VulkanBuffer m_indicesBuff;
 
   std::string m_path;
+  std::vector<Submesh> m_submeshes;
 };
 } // namespace resources

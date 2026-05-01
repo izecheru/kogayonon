@@ -27,6 +27,8 @@ set(targetSources
   "include/core/systems/scripting_system.hpp"
   "include/core/systems/scene_rendering_system.hpp"
   "include/core/asset_manager/asset_manager.hpp"
+  "include/core/asset_manager/cgltf_loader.hpp"
+  "include/core/asset_manager/assimp_loader.hpp"
 
   "src/main_registry.cpp"
   "src/entity.cpp"
@@ -34,6 +36,8 @@ set(targetSources
   "src/scene_manager.cpp"
   "src/scene_events.cpp"
   "src/asset_manager.cpp"
+  "src/assimp_loader.cpp"
+  "src/cgltf_loader.cpp"
   
   "src/project_manager.cpp"
   "src/scripting_system.cpp"

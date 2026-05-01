@@ -3,15 +3,15 @@
 #include <glm/glm.hpp>
 #include "precompiled/pch.hpp"
 
-namespace kogayonon_resources
+namespace resources
 {
 class Mesh;
 struct Joint;
 struct Skeleton;
 class Texture;
-} // namespace kogayonon_resources
+} // namespace resources
 
-namespace utilities
+namespace core
 {
 class CgltfLoader
 {
@@ -19,9 +19,8 @@ public:
   CgltfLoader();
   ~CgltfLoader();
 
-  void loadMesh( const std::string& path,
-                 kogayonon_resources::Mesh* m,
-                 std::unordered_map<std::string, std::shared_ptr<kogayonon_resources::Texture>>& loadedTex );
+  void loadMesh( const std::string& path, resources::Mesh* m, std::vector<cgltf_mesh*>& meshes );
+  void freeData();
 
 private:
   /**
@@ -37,17 +36,7 @@ private:
    * @brief Iterate through all animations and store them
    * @param data
    */
-  void parseAnimations( cgltf_data* data, kogayonon_resources::Skeleton& s );
-
-  /**
-   * @brief Parse all the textures and build "notyet-loaded" textures, they will be loaded right before scene rendering
-   * @param material
-   * @param textures
-   * @param loadedTex
-   */
-  void parseTextures( const cgltf_material* material,
-                      std::vector<kogayonon_resources::Texture*>& textures,
-                      std::unordered_map<std::string, std::shared_ptr<kogayonon_resources::Texture>>& loadedTex );
+  void parseAnimations( cgltf_data* data, resources::Skeleton& s );
 
   /**
    * @brief Get all the mesh indices and fill the indices vector
@@ -79,14 +68,14 @@ private:
    * @param skeleton
    * @return
    */
-  auto calculateGlobalMatrix( kogayonon_resources::Skeleton& skeleton );
+  auto calculateGlobalMatrix( resources::Skeleton& skeleton );
 
   /**
    * @brief Recursive function for globalMatrix calculation global(joint) = global(parentJoint) * local(joint)
    * @param joint
    * @return
    */
-  auto getGlobalTransform( kogayonon_resources::Joint& joint ) -> glm::mat4;
+  auto getGlobalTransform( resources::Joint& joint ) -> glm::mat4;
 
   /**
    * @brief Loads the skeleton from the cgltf_skin
@@ -94,7 +83,7 @@ private:
    * @param skin
    * @return
    */
-  auto loadSkeleton( cgltf_data* data, cgltf_skin* skin ) -> kogayonon_resources::Skeleton;
+  auto loadSkeleton( cgltf_data* data, cgltf_skin* skin ) -> resources::Skeleton;
 
   /**
    * @brief Get all the inverse bind matrices from the accessor
@@ -116,8 +105,9 @@ private:
    * @param joint
    * @param level
    */
-  void printChildren( kogayonon_resources::Joint* joint, uint32_t level );
+  void printChildren( resources::Joint* joint, uint32_t level );
 
 private:
+  cgltf_data* m_data;
 };
-} // namespace utilities
+} // namespace core

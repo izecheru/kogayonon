@@ -357,20 +357,42 @@ void graphics::VulkanDevice::createLogicalDevice()
     queueCreateInfos.push_back( queueCreateInfo );
   }
 
-  // specify the features
-  VkPhysicalDeviceFeatures deviceFeatures{};
+  // features
   VkPhysicalDeviceDynamicRenderingFeatures dynamicRendering{};
   dynamicRendering.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
   dynamicRendering.dynamicRendering = VK_TRUE;
 
+  VkPhysicalDeviceVulkan12Features features12{};
+  features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+  features12.pNext = &dynamicRendering;
+  features12.runtimeDescriptorArray = VK_TRUE;
+
+  features12.descriptorIndexing = VK_TRUE;
+  // not supported by my NVIDIA GTX 1060
+  // features12.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
+  features12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+  features12.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
+  features12.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+  features12.descriptorBindingUniformTexelBufferUpdateAfterBind = VK_TRUE;
+  features12.descriptorBindingStorageTexelBufferUpdateAfterBind = VK_TRUE;
+  features12.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+  features12.descriptorBindingPartiallyBound = VK_TRUE;
+  features12.descriptorBindingVariableDescriptorCount = VK_TRUE;
+
+  features12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+  features12.bufferDeviceAddress = VK_TRUE;
+
+  VkPhysicalDeviceFeatures deviceFeatures{};
+  deviceFeatures.geometryShader = VK_TRUE;
+  deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
+
   VkDeviceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-  createInfo.pNext = &dynamicRendering;
+  createInfo.pNext = &features12;
   createInfo.queueCreateInfoCount = queueCreateInfos.size();
   createInfo.pQueueCreateInfos = queueCreateInfos.data();
   createInfo.pEnabledFeatures = &deviceFeatures;
-
-  createInfo.enabledExtensionCount = 1;
+  createInfo.enabledExtensionCount = deviceExtensions.size();
   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
   // enable validation layers
