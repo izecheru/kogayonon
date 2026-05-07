@@ -8,23 +8,13 @@
 
 namespace graphics
 {
-struct CreateImageInfo
-{
-  uint32_t width;
-  uint32_t height;
-  VkFormat format;
-  VkImageTiling tiling;
-  VkImageUsageFlags usage;
-  VkMemoryPropertyFlags properties;
-  VkImage* image;
-  VkDeviceMemory* imageMemory;
-};
 
 struct VulkanContext
 {
   std::shared_ptr<VulkanDevice> device;
   std::shared_ptr<VulkanSwapchain> swapchain;
   std::shared_ptr<VulkanMemoryAllocator> memoryAllocator;
+  VkDescriptorPool* globalDescriptorPool;
 };
 
 inline auto createImageView( VulkanContext* ctx, VkImage& image, VkFormat format, VkImageAspectFlags aspectFlags )

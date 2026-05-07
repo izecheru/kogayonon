@@ -1,16 +1,40 @@
 #include "renderer/vulkan_renderer.hpp"
+#include <SDL2/SDL.h>
+#include "core/asset_manager/asset_manager.hpp"
+#include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/transform_component.hpp"
+#include "core/scene/scene.hpp"
+#include "core/scene/scene_manager.hpp"
 #include "graphics/vulkan_context.hpp"
+#include "gui/vulkan_imgui_renderer.hpp"
+#include "resources/mesh_push_constant.hpp"
 
-rendering::VulkanRenderer::VulkanRenderer(
-  const std::initializer_list<std::pair<PipelineType, graphics::VulkanPipelineSpec>>& pipelineInitializer,
-  graphics::VulkanContext* pCtx )
+rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Window* window )
     : m_pVkContext{ pCtx }
+    , m_wnd{ window }
 {
-  for ( auto& spec : pipelineInitializer )
-  {
-    // second is the spec and first is the type
-    createPipeline( spec.second, spec.first );
-  }
+  createCameraDescriptorSetLayout();
+  createCameraBuffers();
+  createCameraDescriptorSet();
+  createViewport();
+
+  initImgui();
+
+  auto& assetManager = core::AssetManager::getInstance();
+  auto shadersPath = std::filesystem::absolute( "." ) / "engine_resources\\shaders";
+
+  auto defaultPipelineSpec =
+    graphics::VulkanPipelineSpec{ .type = graphics::PipelineType::GEOMETRY_BASIC,
+                                  .descriptorLayout = { m_cameraDescriptor.layout,
+                                                        assetManager.getBindlessDescriptorLayout(),
+                                                        assetManager.getMaterialsDescriptorLayout() },
+                                  .vertexShaderPath = shadersPath / "vulkan_vertex.spv",
+                                  .fragmentShaderPath = shadersPath / "vulkan_fragment.spv",
+                                  .pushConstantSize = sizeof( resources::MeshPushConstant ),
+                                  .vertexBindingDescription = resources::Vertex::getBindingDescription(),
+                                  .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions() };
+
+  createPipeline( defaultPipelineSpec );
 }
 
 rendering::VulkanRenderer::~VulkanRenderer()
@@ -19,13 +43,251 @@ rendering::VulkanRenderer::~VulkanRenderer()
 
 void rendering::VulkanRenderer::render()
 {
-  // now render here based on pipeline type
+  auto scene = core::SceneManager::getCurrentScene().lock();
+  auto& assetManager = core::AssetManager::getInstance();
+
+  if ( !m_pVkContext->swapchain->isRendering() )
+    return;
+
+  m_pVkContext->swapchain->waitForFences();
+  m_pVkContext->swapchain->resetFences();
+  updateCameraBuffer();
+
+  const auto& view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
+
+  // update transforms if they are marked as update needed
+  // this will eventually change with physics and so on
+  view.each(
+    [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
+      if ( transform.update )
+      {
+        transform.computeMatrix();
+      }
+    } );
+
+  m_pVkContext->swapchain->aquireNextImage();
+
+  auto& cmd = m_pVkContext->swapchain->getCurrentCommandBuffer();
+
+  // set the current command buffer into begin state
+  m_pVkContext->swapchain->beginCommandBuffer();
+
+  VkImageMemoryBarrier textureToColor{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                       .srcAccessMask = 0,
+                                       .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                       .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                       .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                       .image = m_viewport.image,
+                                       .subresourceRange = {
+                                         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                         .levelCount = 1,
+                                         .layerCount = 1,
+                                       } };
+
+  vkCmdPipelineBarrier( cmd,
+                        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        0,
+                        0,
+                        nullptr,
+                        0,
+                        nullptr,
+                        1,
+                        &textureToColor );
+
+  VkImageMemoryBarrier depthBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                     .srcAccessMask = 0,
+                                     .dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                     .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                     .newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                                     .image = m_viewport.depthImage,
+                                     .subresourceRange = {
+                                       .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+                                       .levelCount = 1,
+                                       .layerCount = 1,
+                                     } };
+
+  VkRenderingAttachmentInfo depthAttachment{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                                             .imageView = m_viewport.depthView,
+                                             .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                                             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                                             .clearValue = { .depthStencil = { 1.f, 0 } } };
+
+  vkCmdPipelineBarrier( cmd,
+                        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                        VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                        0,
+                        0,
+                        nullptr,
+                        0,
+                        nullptr,
+                        1,
+                        &depthBarrier );
+
+  VkRenderingAttachmentInfo colorAttachment{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                                             .imageView = m_viewport.imageView,
+                                             .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                             .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                             .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                                             .clearValue = { { 0.350f, 0.350f, 0.350f, 0.8f } } };
+
+  VkRenderingInfo renderingInfo{
+    .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+    .renderArea = { { 0, 0 }, m_pVkContext->swapchain->getSwapchainExtent() },
+    .layerCount = 1,
+    .colorAttachmentCount = 1,
+    .pColorAttachments = &colorAttachment,
+    .pDepthAttachment = &depthAttachment,
+  };
+
+  m_pVkContext->swapchain->beginRendering( renderingInfo );
+  m_pVkContext->swapchain->setupScissors( cmd );
+  m_pVkContext->swapchain->setupViewport( cmd );
+
+  VkDeviceSize offsets[] = { 0 };
+
+  auto& pipeline = m_pipelines.at( graphics::PipelineType ::GEOMETRY_BASIC );
+  pipeline.bind( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS );
+
+  // camera descriptor, this is tripple buffered to ensure operations are not overwritten by cpu/ gpu
+  vkCmdBindDescriptorSets( cmd,
+                           VK_PIPELINE_BIND_POINT_GRAPHICS,
+                           pipeline.getLayout(),
+                           0, // set = 0 camera
+                           1,
+                           &m_cameraDescriptor.set.at( m_pVkContext->swapchain->getCurrentFrameIndex() ),
+                           0,
+                           nullptr );
+
+  // this is the bindless texture set
+  vkCmdBindDescriptorSets( cmd,
+                           VK_PIPELINE_BIND_POINT_GRAPHICS,
+                           pipeline.getLayout(),
+                           1, // set = 1
+                           1,
+                           &assetManager.getBindlessDescriptorSet(),
+                           0,
+                           nullptr );
+
+  view.each(
+    [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
+      vkCmdBindDescriptorSets( cmd,
+                               VK_PIPELINE_BIND_POINT_GRAPHICS,
+                               pipeline.getLayout(),
+                               2, // set = 2
+                               1,
+                               &assetManager.getMaterialsDescriptorSet(),
+                               0,
+                               nullptr );
+
+      vkCmdBindVertexBuffers( cmd, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
+      vkCmdBindIndexBuffer( cmd, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
+      for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
+      {
+        // this should be expensive, move it somewhere in the mesh or submesh
+        auto push =
+          resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(), .materialIndex = submesh.materialIndex };
+
+        vkCmdPushConstants( cmd,
+                            pipeline.getLayout(),
+                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                            0,
+                            sizeof( resources::MeshPushConstant ),
+                            &push );
+
+        vkCmdDrawIndexed( cmd, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
+      }
+    } );
+
+  m_pVkContext->swapchain->endRendering();
+
+  VkImageMemoryBarrier textureToShader{
+    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+    .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+    .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+    .oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+    .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    .image = m_viewport.image,
+    .subresourceRange =
+      {
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .baseMipLevel = 0,
+        .levelCount = 1,
+        .baseArrayLayer = 0,
+        .layerCount = 1,
+      },
+  };
+
+  vkCmdPipelineBarrier( cmd,
+                        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                        0,
+                        0,
+                        nullptr,
+                        0,
+                        nullptr,
+                        1,
+                        &textureToShader );
+
+  VkImageMemoryBarrier swapchainToColor{
+    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+    .srcAccessMask = 0,
+    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+    .image = m_pVkContext->swapchain->getCurrentFrame().image,
+    .subresourceRange =
+      {
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .baseMipLevel = 0,
+        .levelCount = 1,
+        .baseArrayLayer = 0,
+        .layerCount = 1,
+      },
+  };
+
+  vkCmdPipelineBarrier( cmd,
+                        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        0,
+                        0,
+                        nullptr,
+                        0,
+                        nullptr,
+                        1,
+                        &swapchainToColor );
+
+  VkRenderingAttachmentInfo imguiColorAttachment{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                                                  .imageView = m_pVkContext->swapchain->getCurrentFrame().imageView,
+                                                  .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                                  .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                                  .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                                                  .clearValue = { { 0.f, 0.f, 0.f, 1.f } } };
+
+  VkRenderingInfo imguiRenderingInfo{
+    .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+    .renderArea = { { 0, 0 }, m_pVkContext->swapchain->getSwapchainExtent() },
+    .layerCount = 1,
+    .colorAttachmentCount = 1,
+    .pColorAttachments = &imguiColorAttachment,
+    .pDepthAttachment = nullptr,
+  };
+
+  // render imgui
+  if ( !assetManagerInit ) // we need asset manager to load icons
+    return;
+
+  m_pVkContext->swapchain->beginRendering( imguiRenderingInfo );
+  m_pImguiRenderer->setViewport( m_viewport.imageView );
+  m_pImguiRenderer->render();
+  m_pImguiRenderer->present( cmd );
+  m_pVkContext->swapchain->endRendering();
 }
 
-void rendering::VulkanRenderer::createPipeline( const graphics::VulkanPipelineSpec& spec,
-                                                const PipelineType& pipelineType )
+void rendering::VulkanRenderer::createPipeline( const graphics::VulkanPipelineSpec& spec )
 {
-  m_pipelines.emplace( pipelineType, graphics::VulkanPipeline{ spec, m_pVkContext } );
+  m_pipelines.emplace( spec.type, graphics::VulkanPipeline{ spec, m_pVkContext } );
 }
 
 auto rendering::VulkanRenderer::getViewport() -> VulkanViewport&
@@ -82,4 +344,125 @@ void rendering::VulkanRenderer::createViewport()
     m_viewport.depthImage, depthImageInfo, depthAllocInfo, m_viewport.depthAllocation );
 
   m_viewport.depthView = createImageView( m_pVkContext, m_viewport.depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT );
+}
+
+void rendering::VulkanRenderer::createCameraBuffers()
+{
+  m_cameraBuffers.resize( MAX_FRAMES_IN_FLIGHT );
+
+  for ( size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++ )
+  {
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = sizeof( CameraUBO );
+    bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+    VmaAllocationCreateInfo vmaAllocInfo{};
+    vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+    vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+    m_pVkContext->memoryAllocator->createBuffer( m_cameraBuffers.at( i ), bufferInfo, vmaAllocInfo );
+    vmaMapMemory( m_pVkContext->memoryAllocator->getAllocator(),
+                  m_cameraBuffers.at( i ).allocation,
+                  &m_cameraBuffers.at( i ).mappedData );
+
+    m_cameraBuffers.at( i ).persistent = true;
+  }
+}
+
+void rendering::VulkanRenderer::updateCameraBuffer()
+{
+  static auto startTime = std::chrono::high_resolution_clock::now();
+
+  auto currentTime = std::chrono::high_resolution_clock::now();
+  float time = std::chrono::duration<float, std::chrono::seconds::period>( currentTime - startTime ).count();
+
+  auto up = glm::vec3{ 0.0f, 1.0f, 0.0f };
+  m_cameraUbo.view = glm::lookAt( glm::vec3{ 30.0f, 30.0f, 3.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, up );
+  m_cameraUbo.proj = glm::perspective( glm::radians( 50.0f ),
+                                       m_pVkContext->swapchain->getSwapchainExtent().width /
+                                         (float)m_pVkContext->swapchain->getSwapchainExtent().height,
+                                       0.1f,
+                                       1000.0f );
+
+  m_cameraUbo.proj[1][1] *= -1;
+
+  memcpy( m_cameraBuffers.at( m_pVkContext->swapchain->getCurrentFrameIndex() ).mappedData,
+          &m_cameraUbo,
+          sizeof( CameraUBO ) );
+}
+
+void rendering::VulkanRenderer::createCameraDescriptorSet()
+{
+  uint32_t descriptorCount[]{ 1 };
+  std::vector<VkDescriptorSetLayout> layouts( MAX_FRAMES_IN_FLIGHT, m_cameraDescriptor.layout );
+
+  VkDescriptorSetAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+  allocInfo.descriptorPool = *m_pVkContext->globalDescriptorPool;
+  allocInfo.descriptorSetCount = std::size( layouts );
+  allocInfo.pSetLayouts = layouts.data();
+  allocInfo.pNext = nullptr;
+
+  // m_cameraDescriptor.set.resize( MAX_FRAMES_IN_FLIGHT );
+  VK_CALL(
+    vkAllocateDescriptorSets( m_pVkContext->device->getLogicalDevice(), &allocInfo, m_cameraDescriptor.set.data() ) );
+
+  m_cameraBuffers.resize( MAX_FRAMES_IN_FLIGHT );
+  for ( size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++ )
+  {
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = m_cameraBuffers.at( i ).vkBuffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof( CameraUBO );
+
+    auto uniformBufferDescriptor = VkWriteDescriptorSet{
+      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+      .dstSet = m_cameraDescriptor.set.at( i ),
+      .dstBinding = 0,
+      .descriptorCount = 1,
+      .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      .pBufferInfo = &bufferInfo,
+    };
+
+    VkWriteDescriptorSet descriptorWrites = uniformBufferDescriptor;
+    vkUpdateDescriptorSets( m_pVkContext->device->getLogicalDevice(), 1, &descriptorWrites, 0, nullptr );
+  }
+}
+
+void rendering::VulkanRenderer::createCameraDescriptorSetLayout()
+{
+  VkDescriptorSetLayoutBinding cameraBufferBinding{};
+  cameraBufferBinding.binding = 0;
+  cameraBufferBinding.descriptorCount = 1;
+
+  // this is a uniform buffer
+  cameraBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  cameraBufferBinding.pImmutableSamplers = nullptr;
+  cameraBufferBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+  VkDescriptorBindingFlags flags = 0;
+
+  VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags{};
+  bindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+  bindingFlags.bindingCount = 1;
+  bindingFlags.pBindingFlags = &flags;
+
+  VkDescriptorSetLayoutCreateInfo layoutInfo{};
+  layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  layoutInfo.bindingCount = 1;
+  layoutInfo.pBindings = &cameraBufferBinding;
+  layoutInfo.pNext = nullptr;
+  layoutInfo.flags = 0;
+
+  VK_CALL( vkCreateDescriptorSetLayout(
+    m_pVkContext->device->getLogicalDevice(), &layoutInfo, nullptr, &m_cameraDescriptor.layout ) );
+}
+
+void rendering::VulkanRenderer::initImgui()
+{
+  assetManagerInit = true;
+
+  m_pImguiRenderer =
+    std::make_shared<gui::VulkanImguiRenderer>( m_wnd, m_pVkContext->device.get(), m_pVkContext->swapchain.get() );
 }

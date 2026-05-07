@@ -1,4 +1,5 @@
 #pragma once
+#include <vulkan/vulkan.h>
 #include "precompiled/pch.hpp"
 
 namespace window
@@ -16,6 +17,11 @@ namespace core
 class WindowCloseEvent;
 }
 
+namespace rendering
+{
+class VulkanRenderer;
+}
+
 namespace editor
 {
 class Editor
@@ -29,18 +35,23 @@ public:
 
   bool initMainRegistry();
   bool initMainWindow();
+  bool initRenderer();
   bool initVulkan();
-  bool initImgui();
+
   bool initSDL();
   bool init();
+
+private: // funcs
+  void createDescriptorPool();
 
 private:
   // EVENTS
   void onWindowClose( const core::WindowCloseEvent& e );
 
 private:
+  VkDescriptorPool m_globalDescriptorPool;
   std::shared_ptr<window::Window> m_pWindow;
-  std::shared_ptr<gui::VulkanImguiRenderer> m_pImguiRenderer;
+  std::shared_ptr<rendering::VulkanRenderer> m_pRenderer;
 
   bool m_running{ false };
 };

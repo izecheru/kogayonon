@@ -164,7 +164,7 @@ void gui::SceneHierarchy::drawContextMenu()
 
     if ( ImGui::MenuItem( "Create object" ) )
     {
-      std::filesystem::path p{ std::filesystem::absolute( "." ) / "engine_resources\\models\\riggedModel.gltf" };
+      std::filesystem::path p{ std::filesystem::absolute( "." ) / "engine_resources\\models\\default_cone.gltf" };
       auto entityId = scene->getRegistry()->createEntity();
 
       Entity ent{ scene->getRegistry(), entityId };

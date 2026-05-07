@@ -7,11 +7,8 @@ graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, Vulkan
     : m_spec{ spec }
     , m_pVkContext{ pContext }
 {
-  auto vert = std::filesystem::absolute( "." ) / "engine_resources\\shaders\\vulkan_vertex.spv";
-  auto frag = std::filesystem::absolute( "." ) / "engine_resources\\shaders\\vulkan_fragment.spv";
-
-  auto vertShaderCode = readFile( vert.string() );
-  auto fragShaderCode = readFile( frag.string() );
+  auto vertShaderCode = readFile( m_spec.vertexShaderPath.string() );
+  auto fragShaderCode = readFile( m_spec.fragmentShaderPath.string() );
 
   auto vertModule = createShaderModule( vertShaderCode, m_pVkContext->device->getLogicalDevice() );
   auto fragModule = createShaderModule( fragShaderCode, m_pVkContext->device->getLogicalDevice() );
@@ -89,17 +86,27 @@ graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, Vulkan
   dynamicState.dynamicStateCount = static_cast<uint32_t>( dynamicStates.size() );
   dynamicState.pDynamicStates = dynamicStates.data();
 
-  // create the mesh constants here
-  VkPushConstantRange pushConstant{};
-  pushConstant.offset = 0;
-  pushConstant.size = spec.pushSize;
-  pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+  VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+  pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+  pipelineLayoutInfo.setLayoutCount = std::size( spec.descriptorLayout );
+  pipelineLayoutInfo.pSetLayouts = spec.descriptorLayout.data();
 
-  VkPipelineLayoutCreateInfo pipelineLayoutInfo{ .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                                                 .setLayoutCount = std::size( spec.descriptorsLayout ),
-                                                 .pSetLayouts = spec.descriptorsLayout.data(),
-                                                 .pushConstantRangeCount = 1,
-                                                 .pPushConstantRanges = &pushConstant };
+  if ( m_spec.pushConstantSize != 0u )
+  {
+    // create the mesh constants here
+    VkPushConstantRange pushConstant{};
+    pushConstant.offset = 0;
+    pushConstant.size = spec.pushConstantSize;
+    pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
+  }
+  else // no push constants
+  {
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    pipelineLayoutInfo.pPushConstantRanges = nullptr;
+  }
 
   VK_CALL(
     vkCreatePipelineLayout( m_pVkContext->device->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_layout ) );
@@ -145,7 +152,12 @@ graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, Vulkan
   vkDestroyShaderModule( m_pVkContext->device->getLogicalDevice(), fragModule, nullptr );
 }
 
-void graphics::VulkanPipeline::bind( VkCommandBuffer& cmd ) const
+void graphics::VulkanPipeline::bind( VkCommandBuffer& cmd, VkPipelineBindPoint bindPoint ) const
 {
-  vkCmdBindPipeline( cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline );
+  vkCmdBindPipeline( cmd, bindPoint, m_pipeline );
+}
+
+auto graphics::VulkanPipeline::getLayout() -> VkPipelineLayout&
+{
+  return m_layout;
 }

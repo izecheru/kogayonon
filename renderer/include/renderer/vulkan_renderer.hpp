@@ -1,19 +1,34 @@
 #pragma once
+#include <glm/glm.hpp>
 #include <vma/vk_mem_alloc.h>
+#include <vulkan/vulkan.h>
+#include "graphics/vulkan_buffer.hpp"
+#include "graphics/vulkan_descriptor.hpp"
 #include "graphics/vulkan_pipeline.hpp"
 #include "precompiled/pch.hpp"
+
+#define MAX_TEXTURE_NUM 1000
+
+struct SDL_Window;
+
+struct CameraUBO
+{
+  glm::mat4 view;
+  glm::mat4 proj;
+};
 
 namespace graphics
 {
 struct VulkanContext;
 }
 
+namespace gui
+{
+class VulkanImguiRenderer;
+}
+
 namespace rendering
 {
-enum PipelineType
-{
-  GEOMETRY_BASIC
-};
 
 struct VulkanViewport
 {
@@ -29,9 +44,7 @@ struct VulkanViewport
 class VulkanRenderer
 {
 public:
-  explicit VulkanRenderer(
-    const std::initializer_list<std::pair<PipelineType, graphics::VulkanPipelineSpec>>& pipelineInitializer,
-    graphics::VulkanContext* pCtx );
+  explicit VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Window* window );
 
   ~VulkanRenderer();
 
@@ -39,14 +52,30 @@ public:
 
   auto getViewport() -> VulkanViewport&;
 
+  void initImgui();
+
 private: // funcs
   void createViewport();
-  void createPipeline( const graphics::VulkanPipelineSpec& spec, const PipelineType& pipelineType );
+
+  void createCameraBuffers();
+  void updateCameraBuffer();
+  void createCameraDescriptorSetLayout();
+  void createCameraDescriptorSet();
+
+  void createPipeline( const graphics::VulkanPipelineSpec& spec );
 
 private:
-  std::map<PipelineType, std::unique_ptr<graphics::VulkanPipeline>> m_pipelines;
-  graphics::VulkanContext* m_pVkContext{ nullptr };
+  bool assetManagerInit{ false };
+  // this should be tied to scene or smth cause we can create a camera entity
+  CameraUBO m_cameraUbo;
+  std::vector<graphics::VulkanBuffer> m_cameraBuffers;
+  graphics::BufferedVulkanDescriptor m_cameraDescriptor;
 
+  std::map<graphics::PipelineType, graphics::VulkanPipeline> m_pipelines;
+
+  graphics::VulkanContext* m_pVkContext{ nullptr };
+  std::shared_ptr<gui::VulkanImguiRenderer> m_pImguiRenderer;
   VulkanViewport m_viewport;
+  SDL_Window* m_wnd;
 };
 } // namespace rendering

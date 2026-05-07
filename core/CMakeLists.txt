@@ -59,5 +59,5 @@ target_include_directories(core
 target_link_libraries(
   core
   PUBLIC EnTT::EnTT glm::glm-header-only lua physics precompiled
-  PRIVATE  spdlog::spdlog glad window yaml-cpp::yaml-cpp utilities resources graphics 
+  PRIVATE  spdlog::spdlog glad window yaml-cpp::yaml-cpp utilities resources
 )

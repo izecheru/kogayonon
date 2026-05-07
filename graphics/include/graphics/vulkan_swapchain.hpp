@@ -1,8 +1,7 @@
 #pragma once
 #include <vulkan/vulkan.h>
+#include "graphics/vulkan_defines.hpp"
 #include "precompiled/pch.hpp"
-
-#define MAX_FRAMES_IN_FLIGHT 3
 
 namespace graphics
 {

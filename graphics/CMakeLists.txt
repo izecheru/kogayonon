@@ -5,6 +5,8 @@
 	"include/graphics/vulkan_context.hpp"
 	"include/graphics/vulkan_buffer.hpp"
 	"include/graphics/vulkan_memory_allocator.hpp"
+	"include/graphics/vulkan_descriptor.hpp"
+	"include/graphics/vulkan_defines.hpp"
 	"include/graphics/utils.hpp"
 
 	"src/vulkan_device.cpp"

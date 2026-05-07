@@ -48,6 +48,6 @@ void main()
     normalColor = texture( inBindlessTextures[nonuniformEXT( material.normalIndex )], fragTexCoord ).xyz;
   }
 
-  outColor = vec4( 0.4f, 0.4f, 0.4f, 0.5f );
+  // this is just a test color
+  outColor = diffuseColor;
 }
-

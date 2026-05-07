@@ -112,6 +112,7 @@ void core::AssetManager::initDescriptors()
   {
     createBindlessDescriptorSetLayout();
     allocateBindlessDescriptorSet();
+
     // materials
     createMaterialsBuffers();
     createMaterialsDescriptorSetLayout();

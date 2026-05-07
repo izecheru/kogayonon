@@ -9,19 +9,26 @@ namespace graphics
 // with this we change how we provide the vertex input in the spec struct
 #define VERTEX_PROVIDED
 
+enum PipelineType
+{
+  GEOMETRY_BASIC
+};
+
 struct VulkanPipelineSpec
 {
+  PipelineType type;
+  std::vector<VkDescriptorSetLayout> descriptorLayout;
+
   /**
-   * @brief Layout of the descriptor sets, if we have a descriptor at index 0, in shader we access that set with layout
-   * ( set = 0, binding = bindingNum )
+   * @brief Shader paths
    */
-  std::vector<VkDescriptorSetLayout> descriptorsLayout;
+  std::filesystem::path vertexShaderPath{ "" };
+  std::filesystem::path fragmentShaderPath{ "" };
 
-  // shader paths
-  std::string vertexShaderPath{ "" };
-  std::string fragmentShaderPath{ "" };
-
-  uint32_t pushSize{ 0u };
+  /**
+   * @brief sizeof(PushConstant)
+   */
+  uint32_t pushConstantSize{ 0u };
 
 #ifdef VERTEX_PROVIDED
   VkVertexInputBindingDescription vertexBindingDescription;
@@ -39,14 +46,15 @@ public:
    * @brief Bind the pipeline
    * @param cmd Current VkCommandBuffer that we register commands on
    */
-  void bind( VkCommandBuffer& cmd ) const;
+  void bind( VkCommandBuffer& cmd, VkPipelineBindPoint bindPoint ) const;
+
+  auto getLayout() -> VkPipelineLayout&;
 
 private:
   VulkanPipelineSpec m_spec;
   VkPipeline m_pipeline;
   VkPipelineLayout m_layout;
 
-  // vulkan context for device and swapchain access
   VulkanContext* m_pVkContext{ nullptr };
 };
 } // namespace graphics

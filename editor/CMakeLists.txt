@@ -22,8 +22,9 @@ target_link_libraries(
 	  spdlog::spdlog
 	  SDL2::SDL2
 	  utilities
-	  graphics
 	  resources
+	  renderer
+	  graphics
 	  window 
 	  imgui
 	  core
