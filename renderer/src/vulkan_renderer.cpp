@@ -25,6 +25,7 @@ rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Wi
 
   auto defaultPipelineSpec =
     graphics::VulkanPipelineSpec{ .type = graphics::PipelineType::GEOMETRY_BASIC,
+                                  .options = { .cullMode = VK_CULL_MODE_NONE, .polyMode = VK_POLYGON_MODE_LINE },
                                   .descriptorLayout = { m_cameraDescriptor.layout,
                                                         assetManager.getBindlessDescriptorLayout(),
                                                         assetManager.getMaterialsDescriptorLayout() },
@@ -378,7 +379,7 @@ void rendering::VulkanRenderer::updateCameraBuffer()
   float time = std::chrono::duration<float, std::chrono::seconds::period>( currentTime - startTime ).count();
 
   auto up = glm::vec3{ 0.0f, 1.0f, 0.0f };
-  m_cameraUbo.view = glm::lookAt( glm::vec3{ 30.0f, 30.0f, 3.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, up );
+  m_cameraUbo.view = glm::lookAt( glm::vec3{ 8.0f, 8.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, up );
   m_cameraUbo.proj = glm::perspective( glm::radians( 50.0f ),
                                        m_pVkContext->swapchain->getSwapchainExtent().width /
                                          (float)m_pVkContext->swapchain->getSwapchainExtent().height,
@@ -394,7 +395,6 @@ void rendering::VulkanRenderer::updateCameraBuffer()
 
 void rendering::VulkanRenderer::createCameraDescriptorSet()
 {
-  uint32_t descriptorCount[]{ 1 };
   std::vector<VkDescriptorSetLayout> layouts( MAX_FRAMES_IN_FLIGHT, m_cameraDescriptor.layout );
 
   VkDescriptorSetAllocateInfo allocInfo{};
@@ -436,7 +436,6 @@ void rendering::VulkanRenderer::createCameraDescriptorSetLayout()
   cameraBufferBinding.binding = 0;
   cameraBufferBinding.descriptorCount = 1;
 
-  // this is a uniform buffer
   cameraBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   cameraBufferBinding.pImmutableSamplers = nullptr;
   cameraBufferBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;

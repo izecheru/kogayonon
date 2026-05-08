@@ -14,9 +14,27 @@ enum PipelineType
   GEOMETRY_BASIC
 };
 
+/**
+ * @brief Options related to various pipeline options
+ */
+struct VulkanPipelineOptions
+{
+  VkCullModeFlags cullMode{ VK_CULL_MODE_BACK_BIT };
+  VkPolygonMode polyMode{ VK_POLYGON_MODE_FILL };
+
+  // Depth
+  VkBool32 depthTestEnable{ VK_TRUE };
+  VkBool32 depthWriteEnable{ VK_TRUE };
+  VkCompareOp depthCompareOp{ VK_COMPARE_OP_LESS };
+
+  // For wireframe
+  float lineWidth{ 1.0f };
+};
+
 struct VulkanPipelineSpec
 {
   PipelineType type;
+  VulkanPipelineOptions options;
   std::vector<VkDescriptorSetLayout> descriptorLayout;
 
   /**
@@ -54,7 +72,6 @@ private:
   VulkanPipelineSpec m_spec;
   VkPipeline m_pipeline;
   VkPipelineLayout m_layout;
-
-  VulkanContext* m_pVkContext{ nullptr };
+  VulkanContext* m_pVkContext;
 };
 } // namespace graphics

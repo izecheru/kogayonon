@@ -52,11 +52,11 @@ graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, Vulkan
     .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
     .depthClampEnable = VK_FALSE,
     .rasterizerDiscardEnable = VK_FALSE,
-    .polygonMode = VK_POLYGON_MODE_FILL,
-    .cullMode = VK_CULL_MODE_NONE /*VK_CULL_MODE_BACK_BIT*/,
+    .polygonMode = m_spec.options.polyMode,
+    .cullMode = m_spec.options.cullMode,
     .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
     .depthBiasEnable = VK_FALSE,
-    .lineWidth = 1.0f,
+    .lineWidth = 5.0f,
   };
 
   VkPipelineMultisampleStateCreateInfo multisampling{};
@@ -81,6 +81,14 @@ graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, Vulkan
   colorBlending.blendConstants[3] = 0.0f;
 
   std::vector<VkDynamicState> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+
+  // If we have a line width bigger than 1 and the pipeline is a wireframe one, we add the dynamic state line width to
+  // the dynamicStates
+  if ( m_spec.options.lineWidth > 1.0f )
+  {
+    dynamicStates.push_back( VK_DYNAMIC_STATE_LINE_WIDTH );
+  }
+
   VkPipelineDynamicStateCreateInfo dynamicState{};
   dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
   dynamicState.dynamicStateCount = static_cast<uint32_t>( dynamicStates.size() );
@@ -120,9 +128,9 @@ graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, Vulkan
 
   VkPipelineDepthStencilStateCreateInfo depthStencil{ .sType =
                                                         VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-                                                      .depthTestEnable = VK_TRUE,
-                                                      .depthWriteEnable = VK_TRUE,
-                                                      .depthCompareOp = VK_COMPARE_OP_LESS,
+                                                      .depthTestEnable = m_spec.options.depthTestEnable,
+                                                      .depthWriteEnable = m_spec.options.depthWriteEnable,
+                                                      .depthCompareOp = m_spec.options.depthCompareOp,
                                                       .depthBoundsTestEnable = VK_FALSE,
                                                       .stencilTestEnable = VK_FALSE };
 

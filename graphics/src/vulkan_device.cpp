@@ -386,6 +386,11 @@ void graphics::VulkanDevice::createLogicalDevice()
   deviceFeatures.geometryShader = VK_TRUE;
   deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
 
+  // for wireframe pipeline
+  deviceFeatures.fillModeNonSolid = VK_TRUE;
+  // this is too for the wireframe, without this we cannot change the line width
+  deviceFeatures.wideLines = VK_TRUE;
+
   VkDeviceCreateInfo createInfo{};
   createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
   createInfo.pNext = &features12;

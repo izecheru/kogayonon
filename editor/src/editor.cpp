@@ -32,33 +32,6 @@
 #include "utilities/utils/utils.hpp"
 #include "window/window.hpp"
 
-// clean this up
-static VkPipeline graphicsPipeline;
-static VkPipelineLayout pipelineLayout;
-
-static VkDescriptorSetLayout globalDescriptorSetLayout;
-static VkDescriptorPool descriptorPool;
-static std::vector<VkDescriptorSet> globalDescriptorSets;
-
-static VkDescriptorSet cameraDescriptor;
-static VkDescriptorSetLayout cameraDescriptorLayout;
-
-static std::vector<graphics::VulkanBuffer> uniformBuffers;
-
-static VkBuffer stageBuffer;
-static VkDeviceMemory stageBufferMemory;
-
-static VkImage depthImage;
-static VkImageView depthView;
-static VmaAllocation depthAllocation;
-
-// the "game" is drawn onto this
-struct VulkanViewport
-{
-  VkImage image;
-  VkImageView imageView;
-  VmaAllocation allocation;
-};
 
 editor::Editor::Editor()
 {
