@@ -1,9 +1,9 @@
 // https://github.com/CedricGuillemet/ImGuizmo
-// v1.91.3 WIP
+// v1.92.5 WIP
 //
 // The MIT License(MIT)
 //
-// Copyright(c) 2021 Cedric Guillemet
+// Copyright(c) 2016-2021 Cedric Guillemet
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -193,6 +193,9 @@ namespace IMGUIZMO_NAMESPACE
    {
    public:
       float x, y, z, w;
+
+      vec_t() = default;
+      vec_t(float _x, float _y, float _z, float _w = 0.f) : x(_x), y(_y), z(_z), w(_w) {}
 
       void Lerp(const vec_t& v, float t)
       {
@@ -1278,19 +1281,19 @@ namespace IMGUIZMO_NAMESPACE
       ImU32 colors[7];
       ComputeColors(colors, type, ROTATE);
 
-      vec_t cameraToModelNormalized;
+      vec_t viewDirNormalized;
       if (gContext.mIsOrthographic)
       {
          matrix_t viewInverse;
          viewInverse.Inverse(*(matrix_t*)&gContext.mViewMat);
-         cameraToModelNormalized = -viewInverse.v.dir;
+         viewDirNormalized = -viewInverse.v.dir;
       }
       else
       {
-         cameraToModelNormalized = Normalized(gContext.mModel.v.position - gContext.mCameraEye);
+         viewDirNormalized = Normalized(gContext.mCameraDir);
       }
 
-      cameraToModelNormalized.TransformVector(gContext.mModelInverse);
+      viewDirNormalized.TransformVector(gContext.mModelInverse);
 
       gContext.mRadiusSquareCenter = screenRotateSize * gContext.mHeight;
 
@@ -1313,7 +1316,7 @@ namespace IMGUIZMO_NAMESPACE
 
          ImVec2* circlePos = (ImVec2*)alloca(sizeof(ImVec2) * (circleMul * halfCircleSegmentCount + 1));
 
-         float angleStart = atan2f(cameraToModelNormalized[(4 - axis) % 3], cameraToModelNormalized[(3 - axis) % 3]) + ZPI * 0.5f;
+         float angleStart = atan2f(viewDirNormalized[(4 - axis) % 3], viewDirNormalized[(3 - axis) % 3]) + (gContext.mIsOrthographic ? ZPI : -ZPI) * 0.5f;
 
          for (int i = 0; i < circleMul * halfCircleSegmentCount + 1; i++)
          {
@@ -1656,10 +1659,12 @@ namespace IMGUIZMO_NAMESPACE
       return false;
    }
 
-   static void HandleAndDrawLocalBounds(const float* bounds, matrix_t* matrix, const float* snapValues, OPERATION operation)
+   static bool HandleAndDrawLocalBounds(const float* bounds, matrix_t* matrix, const float* snapValues, OPERATION operation)
    {
       ImGuiIO& io = ImGui::GetIO();
       ImDrawList* drawList = gContext.mDrawList;
+
+      bool manipulated = false;
 
       // compute best projection axis
       vec_t axesWorldDirections[3];
@@ -1885,6 +1890,10 @@ namespace IMGUIZMO_NAMESPACE
                   }
                }
                scale.component[axisIndex1] *= ratioAxis;
+
+               if (fabsf(ratioAxis - 1.0f) > FLT_EPSILON) {
+                  manipulated = true;
+               }
             }
 
             // transform matrix
@@ -1915,6 +1924,8 @@ namespace IMGUIZMO_NAMESPACE
             break;
          }
       }
+
+      return manipulated;
    }
 
    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2685,7 +2696,7 @@ namespace IMGUIZMO_NAMESPACE
 
       if (localBounds && !gContext.mbUsing)
       {
-         HandleAndDrawLocalBounds(localBounds, (matrix_t*)matrix, boundsSnap, operation);
+         manipulated |= HandleAndDrawLocalBounds(localBounds, (matrix_t*)matrix, boundsSnap, operation);
       }
 
       gContext.mOperation = operation;
@@ -2742,6 +2753,86 @@ namespace IMGUIZMO_NAMESPACE
       for (int i = 0; i < 6; i++)
       {
          frustum[i].Normalize();
+      }
+   }
+   
+   void DrawAxes(const float* view, const float* projection, const float* matrices, int matrixCount)
+   {
+      matrix_t viewM = *(matrix_t*)view;
+      matrix_t projM = *(matrix_t*)projection;
+      matrix_t viewProj = viewM * projM;
+
+      // build frustum
+      vec_t frustum[6];
+      ComputeFrustumPlanes(frustum, viewProj.m16);
+
+      for (int i = 0; i < matrixCount; i++)
+      {
+         const float* matrix = &matrices[i * 16];
+         matrix_t model = *(matrix_t*)matrix;
+         matrix_t mvp = model * viewProj;
+
+         // world-space origin
+         vec_t origin;
+         origin.TransformPoint(vec_t(0.f, 0.f, 0.f), model);
+
+         struct Axis
+         {
+               vec_t dir;
+               ImU32 color;
+         };
+
+         Axis axes[3] = {
+               { vec_t(1.f, 0.f, 0.f), IM_COL32(255, 0, 0, 255) }, // X - red
+               { vec_t(0.f, 1.f, 0.f), IM_COL32(0, 255, 0, 255) }, // Y - green
+               { vec_t(0.f, 0.f, 1.f), IM_COL32(0, 0, 255, 255) }  // Z - blue
+         };
+
+         for (int a = 0; a < 3; a++)
+         {
+               vec_t endLocal = axes[a].dir;
+
+               // world-space endpoint
+               vec_t end;
+               end.TransformPoint(endLocal, model);
+
+               // frustum test
+               bool visible = true;
+               for (int f = 0; f < 6; f++)
+               {
+                  float d0 = DistanceToPlane(origin, frustum[f]);
+                  float d1 = DistanceToPlane(end, frustum[f]);
+
+                  // both outside - reject
+                  if (d0 < 0.f && d1 < 0.f)
+                  {
+                     visible = false;
+                     break;
+                  }
+               }
+
+               if (!visible)
+               {
+                  continue;
+               }
+
+               // project to screen
+               ImVec2 p0 = worldToPos(vec_t(0.f, 0.f, 0.f), mvp);
+               ImVec2 p1 = worldToPos(endLocal, mvp);
+
+               // reject behind camera (clip space)
+               vec_t clip0, clip1;
+               clip0.TransformPoint(vec_t(0.f, 0.f, 0.f), mvp);
+               clip1.TransformPoint(endLocal, mvp);
+
+               if (clip0.w <= 0.f && clip1.w <= 0.f)
+               {
+                  continue;
+               }
+
+               // draw
+               gContext.mDrawList->AddLine(p0, p1, axes[a].color, 2.0f);
+         }
       }
    }
 
@@ -2812,11 +2903,25 @@ namespace IMGUIZMO_NAMESPACE
             bool inFrustum = true;
             for (int iFrustum = 0; iFrustum < 6; iFrustum++)
             {
-               float dist = DistanceToPlane(centerPosition, frustum[iFrustum]);
-               if (dist < 0.f)
+               const vec_t& plane = frustum[iFrustum];
+
+               bool allOutside = true;
+
+               for (unsigned int iCoord = 0; iCoord < 4; iCoord++)
                {
-                  inFrustum = false;
-                  break;
+                  vec_t worldPos;
+                  worldPos.TransformPoint(faceCoords[iCoord] * 0.5f * invert, *(matrix_t*)matrix);
+
+                  if (DistanceToPlane(worldPos, plane) >= 0.f)
+                  {
+                     allOutside = false;
+                     break;
+                  }
+               }
+
+               if (allOutside)
+               {
+                  continue; // face is fully outside this plane - discard
                }
             }
 
@@ -2913,6 +3018,96 @@ namespace IMGUIZMO_NAMESPACE
             }
          }
       }
+   }
+
+   void DrawGridCustom(const float* view, const float* projection, const float* matrix, const float gridSize, const float majorStep, const unsigned int subdivision)
+   {
+      const ImU32 majorCol = IM_COL32(0x80, 0x80, 0x80, 0xFF);
+      const ImU32 minorCol = IM_COL32(0x90, 0x90, 0x90, 0xFF);
+      const ImU32 centerCol = IM_COL32(0x40, 0x40, 0x40, 0xFF);
+      DrawGridCustomColor(view, projection, matrix, gridSize, majorStep, subdivision, majorCol, minorCol, centerCol);
+   }
+
+   void DrawGridCustomColor(const float* view, const float* projection, const float* matrix, const float gridSize, const float majorStep, const unsigned int subdivision, const ImU32 majorCol, const ImU32 minorCol, const ImU32 centerCol)
+   {
+       // Must have at least 1 subdivision
+       IM_ASSERT(subdivision > 0 && "At least 1 segment required!");
+
+       matrix_t viewProjection = *(matrix_t*)view * *(matrix_t*)projection;
+
+       vec_t frustum[6];
+       ComputeFrustumPlanes(frustum, viewProjection.m16);
+
+       matrix_t res = *(matrix_t*)matrix * viewProjection;
+
+       const float minorStep = majorStep / (float)subdivision;
+       const int lineCount = (int)ceilf(gridSize / minorStep);
+
+       for (int i = -lineCount; i <= lineCount; i++)
+       {
+           float f = i * minorStep;
+
+           const bool isMajor  = (i % (int)subdivision) == 0;
+           const bool isCenter = (i == 0);
+
+           // Styling
+           ImU32 col = minorCol;
+           if (isMajor)
+               col = majorCol;
+           if (isCenter)
+               col = centerCol;
+
+           float thickness = 1.0f;
+           if (isMajor)
+               thickness = 1.5f;
+           if (isCenter)
+               thickness = 2.3f;
+
+           for (int dir = 0; dir < 2; dir++)
+           {
+               vec_t ptA = makeVect(dir ? -gridSize : f, 0.f, dir ? f : -gridSize);
+               vec_t ptB = makeVect(dir ? gridSize : f, 0.f, dir ? f : gridSize);
+
+               bool visible = true;
+
+               // Frustum clipping
+               for (int p = 0; p < 6; p++)
+               {
+                   float dA = DistanceToPlane(ptA, frustum[p]);
+                   float dB = DistanceToPlane(ptB, frustum[p]);
+
+                   if (dA < 0.f && dB < 0.f)
+                   {
+                       visible = false;
+                       break;
+                   }
+
+                   if (dA > 0.f && dB > 0.f)
+                       continue;
+
+                   if (dA < 0.f)
+                   {
+                       float t = fabsf(dA) / fabsf(dA - dB);
+                       ptA.Lerp(ptB, t);
+                   }
+
+                   if (dB < 0.f)
+                   {
+                       float t = fabsf(dB) / fabsf(dB - dA);
+                       ptB.Lerp(ptA, t);
+                   }
+               }
+
+               if (visible)
+               {
+                   gContext.mDrawList->AddLine(
+                       worldToPos(ptA, res),
+                       worldToPos(ptB, res),
+                       col,
+                       thickness);
+               }
+           }
+       }
    }
 
    void ViewManipulate(float* view, const float* projection, OPERATION operation, MODE mode, float* matrix, float length, ImVec2 position, ImVec2 size, ImU32 backgroundColor)

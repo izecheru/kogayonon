@@ -13,8 +13,8 @@ add_library(imguizmo
   "include/ImZoomSlider.h"
 )
 
-target_include_directories(imgui PUBLIC
+target_include_directories(imguizmo PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}/include/"
 )
 
-target_link_libraries(imguizmo PRIVATE imgui)
+target_link_libraries(imguizmo PUBLIC imgui)
