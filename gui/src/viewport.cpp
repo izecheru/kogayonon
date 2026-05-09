@@ -6,6 +6,7 @@
 #include "core/input/keyboard_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
+#include "gui/utils/font_keys.hpp"
 #include "gui/utils/imgui_utils.hpp"
 #include "utilities/fonts/materialdesign.hpp"
 #include "utilities/input/keyboard_state.hpp"
@@ -98,10 +99,11 @@ void gui::Viewport::drawToolbar()
   ImGui::PushStyleVar( ImGuiStyleVar_ChildRounding, 10.0f );
   ImGui::PushStyleColor( ImGuiCol_ChildBg, { 0.15f, 0.15f, 0.15f, 0.75f } );
 
-  constexpr int buttonCount = 3;
-  static float toolbarWidth =
+  uint32_t buttonCount = m_guizmoEnabled ? 6u : 3u;
+  float toolbarWidth =
     style.WindowPadding.x * 2.0f + ( 14.0f * buttonCount ) + ( style.ItemSpacing.x * buttonCount ) + ( 2.0f * 5.0f );
 
+  ImGui::BeginGroup();
   if ( ImGui::BeginChild( "Toolbar",
                           { toolbarWidth, 25.0f },
                           false,
@@ -128,9 +130,48 @@ void gui::Viewport::drawToolbar()
       // kogayonon_physics::NvidiaPhysx::getInstance().switchState( true );
     }
 
-    ImGui::PopStyleColor( 2 );
-    ImGui::EndChild();
+    ImGui::SameLine();
+    if ( m_guizmoEnabled )
+    {
+      if ( m_guizmoAxisLock == AxisLock::X )
+      {
+        gui_utils::renderWithSizedFont(
+          m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "X" ); } );
+      }
+      else
+      {
+        gui_utils::renderWithSizedFont(
+          m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "X" ); } );
+      }
+      ImGui::SameLine();
+      if ( m_guizmoAxisLock == AxisLock::Y )
+      {
+        gui_utils::renderWithSizedFont(
+          m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "Y" ); } );
+      }
+      else
+      {
+        gui_utils::renderWithSizedFont(
+          m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "Y" ); } );
+      }
+      ImGui::SameLine();
+      if ( m_guizmoAxisLock == AxisLock::Z )
+      {
+        gui_utils::renderWithSizedFont(
+          m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "Z" ); } );
+      }
+      else
+      {
+        gui_utils::renderWithSizedFont(
+          m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "Z" ); } );
+      }
+    }
   }
+
+  ImGui::PopStyleColor( 2 );
+
+  ImGui::EndChild();
+  ImGui::EndGroup();
 
   ImGui::PopStyleColor();
   ImGui::PopStyleVar( 2 );

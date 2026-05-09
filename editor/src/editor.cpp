@@ -1,14 +1,4 @@
 #include "editor/editor.hpp"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
-#include <glm/gtc/type_ptr.hpp>
-#include <imgui.h>
-#include <imgui_impl_sdl2.h>
-#include <imgui_impl_vulkan.h>
-#include <rapidjson/istreamwrapper.h>
-#include <spdlog/sinks/daily_file_sink.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/spdlog.h>
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
@@ -31,6 +21,16 @@
 #include "utilities/config_manager/config_manager.hpp"
 #include "utilities/utils/utils.hpp"
 #include "window/window.hpp"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
+#include <glm/gtc/type_ptr.hpp>
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_vulkan.h>
+#include <rapidjson/istreamwrapper.h>
+#include <spdlog/sinks/daily_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 
 editor::Editor::Editor()
 {

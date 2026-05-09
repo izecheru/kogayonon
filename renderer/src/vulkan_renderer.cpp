@@ -1,5 +1,4 @@
 #include "renderer/vulkan_renderer.hpp"
-#include <SDL2/SDL.h>
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
@@ -8,6 +7,7 @@
 #include "graphics/vulkan_context.hpp"
 #include "gui/vulkan_imgui_renderer.hpp"
 #include "resources/mesh_push_constant.hpp"
+#include <SDL2/SDL.h>
 
 rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Window* window )
     : m_pVkContext{ pCtx }
@@ -170,31 +170,35 @@ void rendering::VulkanRenderer::render()
 
   view.each(
     [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
-      vkCmdBindDescriptorSets( cmd,
-                               VK_PIPELINE_BIND_POINT_GRAPHICS,
-                               pipeline.getLayout(),
-                               2, // set = 2
-                               1,
-                               &assetManager.getMaterialsDescriptorSet(),
-                               0,
-                               nullptr );
-
-      vkCmdBindVertexBuffers( cmd, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
-      vkCmdBindIndexBuffer( cmd, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
-      for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
+      if ( meshComponent.loaded )
       {
-        // this should be expensive, move it somewhere in the mesh or submesh
-        auto push =
-          resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(), .materialIndex = submesh.materialIndex };
 
-        vkCmdPushConstants( cmd,
-                            pipeline.getLayout(),
-                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                            0,
-                            sizeof( resources::MeshPushConstant ),
-                            &push );
+        vkCmdBindDescriptorSets( cmd,
+                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                 pipeline.getLayout(),
+                                 2, // set = 2
+                                 1,
+                                 &assetManager.getMaterialsDescriptorSet(),
+                                 0,
+                                 nullptr );
 
-        vkCmdDrawIndexed( cmd, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
+        vkCmdBindVertexBuffers( cmd, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
+        vkCmdBindIndexBuffer( cmd, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
+        for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
+        {
+          // this should be expensive, move it somewhere in the mesh or submesh
+          auto push =
+            resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(), .materialIndex = submesh.materialIndex };
+
+          vkCmdPushConstants( cmd,
+                              pipeline.getLayout(),
+                              VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                              0,
+                              sizeof( resources::MeshPushConstant ),
+                              &push );
+
+          vkCmdDrawIndexed( cmd, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
+        }
       }
     } );
 

@@ -1,5 +1,6 @@
 set(targetSources
 	"include/gui/utils/imgui_utils.hpp"
+	"include/gui/utils/imgui_dragdrop_defines.hpp"
 	"include/gui/utils/font_keys.hpp"
 	"include/gui/vulkan_imgui_renderer.hpp"
 	"include/gui/imgui_windows/imgui_base.hpp"

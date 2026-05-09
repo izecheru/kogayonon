@@ -1,5 +1,4 @@
 #include "gui/imgui_windows/entity_properties.hpp"
-#include <imgui_stdlib.h>
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
@@ -11,9 +10,11 @@
 #include "core/scene/scene_manager.hpp"
 #include "graphics/vulkan_context.hpp"
 #include "gui/utils/font_keys.hpp"
+#include "gui/utils/imgui_dragdrop_defines.hpp"
 #include "gui/utils/imgui_utils.hpp"
 #include "utilities/fonts/materialdesign.hpp"
 #include "utilities/utils/utils.hpp"
+#include <imgui_stdlib.h>
 
 gui::EntityProperties::EntityProperties( const std::string& name, const EntityPropertiesSpec& spec )
     : ImGuiWindow{ name }
@@ -84,8 +85,8 @@ void gui::EntityProperties::contextMenu()
           scene->getRegistry()->addComponent<core::TransformComponent>( m_selectedEntity, core::TransformComponent{} );
           scene->getRegistry()->addComponent<core::MeshComponent>( m_selectedEntity,
                                                                    core::MeshComponent{
-                                                                     .pMesh = mesh.value(),
-                                                                     .loaded = true,
+                                                                     .pMesh = nullptr,
+                                                                     .loaded = false,
                                                                    } );
         }
       }
@@ -120,10 +121,43 @@ void gui::EntityProperties::renderMesh()
     }
   } );
 
-  auto meshPath = std::filesystem::path{ meshComponent->pMesh->getPath() };
-  ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
-  ImGui::Text( "Filename: %s", meshPath.stem().string().c_str() );
-  ImGui::PopFont();
+  if ( !meshComponent->pMesh )
+  {
+    gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 14.0f, []() {
+      ImGui::Text( "You don't have a loaded mesh at the moment, drop a model file here to load it" );
+    } );
+
+    if ( ImGui::BeginDragDropTarget() )
+    {
+      auto payload = ImGui::AcceptDragDropPayload( ASSET_DROP );
+
+      if ( !payload )
+      {
+        return;
+      }
+
+      auto data = static_cast<const char*>( payload->Data );
+      std::string dropResult( data, payload->DataSize );
+      std::filesystem::path p{ dropResult };
+      auto& assetManager = core::AssetManager::getInstance();
+      auto pMesh = assetManager.loadMesh( p.stem().string(), p.string() );
+
+      core::Entity ent{ scene->getRegistry(), m_selectedEntity };
+
+      ent.removeComponent<core::TransformComponent>();
+      ent.removeComponent<core::MeshComponent>();
+
+      ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
+      ent.addComponent<core::MeshComponent>( core::MeshComponent{ .pMesh = pMesh, .loaded = true } );
+    }
+  }
+  else
+  {
+    auto meshPath = std::filesystem::path{ meshComponent->pMesh->getPath() };
+    ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
+    ImGui::Text( "Filename: %s", meshPath.stem().string().c_str() );
+    ImGui::PopFont();
+  }
 }
 
 void gui::EntityProperties::renderTransform()

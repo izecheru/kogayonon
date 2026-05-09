@@ -1,16 +1,17 @@
 #include "gui/imgui_windows/file_explorer.hpp"
-#include <imgui_impl_vulkan.h>
-#include <imgui_stdlib.h>
-#include <spdlog/spdlog.h>
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
 #include "core/event/file_events.hpp"
 #include "gui/utils/font_keys.hpp"
+#include "gui/utils/imgui_dragdrop_defines.hpp"
 #include "gui/utils/imgui_utils.hpp"
 #include "precompiled/pch.hpp"
 #include "utilities/config_manager/config_manager.hpp"
 #include "utilities/directory_watcher/directory_watcher.hpp"
 #include "utilities/fonts/materialdesign.hpp"
+#include <imgui_impl_vulkan.h>
+#include <imgui_stdlib.h>
+#include <spdlog/spdlog.h>
 
 using namespace core;
 using namespace utilities;
@@ -234,10 +235,17 @@ void FileExplorerWindow::render()
       }
 
       if ( ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) &&
-           file.path.extension().string() == ".glsl" )
+             file.path.extension().string() == ".glsl" ||
+           file.path.extension().string() == ".frag" || file.path.extension().string() == ".vert" )
       {
         // TODO(kogayonon) add a setting for the user to choose his own editor
         ShellExecute( NULL, "open", "code", file.path.string().c_str(), NULL, SW_HIDE );
+      }
+      if ( ImGui::BeginDragDropSource( ImGuiDragDropFlags_SourceNoPreviewTooltip ) )
+      {
+        std::string path = file.path.string();
+        ImGui::SetDragDropPayload( ASSET_DROP, path.c_str(), path.size() + 1 );
+        ImGui::EndDragDropSource();
       }
     }
     ImGui::PopItemWidth();
