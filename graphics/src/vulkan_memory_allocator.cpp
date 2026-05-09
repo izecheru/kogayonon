@@ -34,10 +34,13 @@ void graphics::VulkanMemoryAllocator::createBuffer( VulkanBuffer& vulkanBuffer,
   VK_CALL(
     vmaCreateBuffer( m_allocator, &createInfo, &usage, &vulkanBuffer.vkBuffer, &vulkanBuffer.allocation, nullptr ) );
 
-  if ( vulkanBuffer.stagingBuff )
+  if ( vulkanBuffer.stagingBuffer )
     return;
 
   m_deleteQueue.push( [&]() {
+    if ( vulkanBuffer.deallocated )
+      return;
+
     // unmap memory before deleting
     if ( vulkanBuffer.persistent )
     {
@@ -64,7 +67,7 @@ auto graphics::VulkanMemoryAllocator::getAllocator() -> VmaAllocator&
 auto graphics::VulkanMemoryAllocator::createStagingBuffer( VkBufferCreateInfo& createInfo,
                                                            VmaAllocationCreateInfo& usage ) -> VulkanBuffer
 {
-  VulkanBuffer stageBuffer{ .persistent = false, .stagingBuff = true };
+  VulkanBuffer stageBuffer{ .persistent = false, .stagingBuffer = true };
   createBuffer( stageBuffer, createInfo, usage );
   return stageBuffer;
 }

@@ -1,6 +1,12 @@
 #include "gui/vulkan_imgui_renderer.hpp"
 #include <SDL2/SDL.h>
 #include <glm/gtc/type_ptr.hpp>
+
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_vulkan.h>
+#include <imgui_internal.h>
+#include <imgui_stdlib.h>
 #include "core/asset_manager/asset_manager.hpp"
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_device.hpp"
@@ -10,15 +16,12 @@
 #include "gui/imgui_windows/scene_hierarchy.hpp"
 #include "gui/imgui_windows/viewport.hpp"
 #include "gui/utils/imgui_utils.hpp"
-#include "imgui.h"
-#include "imgui_impl_sdl2.h"
-#include "imgui_impl_vulkan.h"
-#include "imgui_internal.h"
-#include "imgui_stdlib.h"
 #include "precompiled/pch.hpp"
 #include "resources/texture.hpp"
 #include "utilities/config_manager/config_manager.hpp"
 #include "utilities/fonts/materialdesign.hpp"
+
+#include <ImGuizmo.h>
 
 gui::VulkanImguiRenderer::VulkanImguiRenderer( SDL_Window* wnd,
                                                graphics::VulkanDevice* device,
@@ -50,6 +53,7 @@ void gui::VulkanImguiRenderer::begin()
   ImGui_ImplVulkan_NewFrame();
   ImGui_ImplSDL2_NewFrame();
   ImGui::NewFrame();
+  ImGuizmo::BeginFrame();
   setupDockspace( ImGui::GetMainViewport() );
 }
 
@@ -126,6 +130,8 @@ void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
 {
   VkDescriptorPoolSize poolSizes[] = {
     { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_VULKAN_MAX_DESCRIPTORS },
+    { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, IMGUI_VULKAN_MAX_DESCRIPTORS },
+    { VK_DESCRIPTOR_TYPE_SAMPLER, IMGUI_VULKAN_MAX_DESCRIPTORS },
   };
 
   VkDescriptorPoolCreateInfo poolInfo = {};

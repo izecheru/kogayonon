@@ -1,10 +1,11 @@
 #pragma once
+#include "imgui_base.hpp"
+#include "precompiled/pch.hpp"
+#include <ImGuizmo.h>
 #include <SDL2/SDL.h>
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
-#include "imgui_base.hpp"
-#include "precompiled/pch.hpp"
 
 namespace core
 {
@@ -22,22 +23,19 @@ class MouseClickedEvent;
 namespace gui
 {
 
-enum class GizmoMode
+enum class GuizmoMode
 {
-  SCALE,
-  SCALE_X,
-  SCALE_Y,
-  SCALE_Z,
-
-  ROTATE,
-  ROTATE_X,
-  ROTATE_Y,
-  ROTATE_Z,
-
   TRANSLATE,
-  TRANSLATE_X,
-  TRANSLATE_Y,
-  TRANSLATE_Z
+  SCALE,
+  ROTATE
+};
+
+enum class AxisLock
+{
+  NONE,
+  X,
+  Y,
+  Z
 };
 
 enum class RenderMode
@@ -72,19 +70,26 @@ public:
 
   void render() override;
 
+private: // funcs
   void drawToolbar();
+  auto getGuizmoOp() -> ImGuizmo::OPERATION;
 
+private:
   // Events
-  // void onSelectedEntity( const kogayonon_core::SelectEntityEvent& e );
+  void onSelectedEntity( const core::SelectEntityEvent& e );
   // void onMouseMoved( const kogayonon_core::MouseMovedEvent& e );
   // void onMouseClicked( const kogayonon_core::MouseClickedEvent& e );
-  // void onKeyPressed( const kogayonon_core::KeyPressedEvent& e );
+  void onKeyPressed( const core::KeyPressedEvent& e );
   // void onMouseScrolled( const kogayonon_core::MouseScrolledEvent& e );
 
 private:
   SDL_Window* m_mainWindow;
-  GizmoMode m_gizmoMode;
-  bool m_gizmoEnabled{ false };
   ViewportSpec m_spec;
+  entt::entity m_selectedEntity;
+
+  ImGuizmo::OPERATION m_guizmoOp;
+  bool m_guizmoEnabled;
+  GuizmoMode m_guizmoMode;
+  AxisLock m_guizmoAxisLock;
 };
 } // namespace gui

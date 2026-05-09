@@ -19,7 +19,7 @@ set(targetSources
 add_library(gui ${targetSources})
 
 target_include_directories(gui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(gui PRIVATE imgui Vulkan::Vulkan graphics core utilities spdlog::spdlog resources EnTT::EnTT)
+target_link_libraries(gui PRIVATE imgui Vulkan::Vulkan graphics core utilities spdlog::spdlog resources EnTT::EnTT imguizmo)
 
 if(MSVC)
     set(CMAKE_CXX_FLAGS_DEBUG "/MDd /ZI /Ob0 /Od /RTC1")

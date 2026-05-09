@@ -64,6 +64,8 @@ public:
   auto getSurface() -> VkSurfaceKHR&;
   auto getInstance() -> VkInstance&;
 
+  auto getLimits() -> VkPhysicalDeviceLimits&;
+
 private:
   auto findQueueFamilies( VkPhysicalDevice& device ) -> QueueFamilyIndices;
   bool isDeviceSuitable( VkPhysicalDevice& device );
@@ -76,6 +78,7 @@ private:
   VkPhysicalDeviceProperties m_physicalDeviceProps;
   VkPhysicalDeviceMemoryProperties m_physicalDeviceMemoryProps;
   VkPhysicalDeviceFeatures m_physicalDeviceFeatures;
+  VkPhysicalDeviceLimits m_physicalDeviceLimits;
 
   VkDebugUtilsMessengerEXT m_debugMessenger{ VK_NULL_HANDLE };
 

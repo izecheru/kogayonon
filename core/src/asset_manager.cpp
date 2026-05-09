@@ -267,7 +267,10 @@ auto core::AssetManager::getMesh( const std::string& path ) -> std::optional<res
   if ( m_loadedMeshes.contains( path ) )
     return std::optional<resources::Mesh*>( m_loadedMeshes.at( path ).get() );
 
-  return std::optional<resources::Mesh*>( nullptr );
+  auto p = std::filesystem::path{ path };
+  auto opt = std::optional<resources::Mesh*>{ loadMesh( p.stem().string(), p.string() ) };
+
+  return opt;
 }
 
 void core::AssetManager::createIndexBuffer( resources::Mesh* pMesh )
@@ -526,15 +529,11 @@ void core::AssetManager::createMaterialsBuffers()
 
 void core::AssetManager::updateMaterialsBuffer()
 {
-  // vmaCopyMemoryToAllocation( m_pVkContext->memoryAllocator->getAllocator(),
-  //                            m_materials.data(),
-  //                            m_materialsBuffer.at( m_pVkContext->swapchain->getCurrentFrameIndex() ).allocation,
-  //                            0,
-  //                            sizeof( resources::Material ) * m_materials.size() );
-
-  memcpy( m_materialsBuffer.at( m_pVkContext->swapchain->getCurrentFrameIndex() ).mappedData,
-          m_materials.data(),
-          sizeof( resources::Material ) * m_materials.size() );
+  vmaCopyMemoryToAllocation( m_pVkContext->memoryAllocator->getAllocator(),
+                             m_materials.data(),
+                             m_materialsBuffer.at( m_pVkContext->swapchain->getCurrentFrameIndex() ).allocation,
+                             0,
+                             sizeof( resources::Material ) * m_materials.size() );
 }
 
 auto core::AssetManager::getMaterialsDescriptorLayout() -> VkDescriptorSetLayout&

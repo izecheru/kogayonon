@@ -5,6 +5,7 @@
  *   from the imgui renderer
  */
 
+#define ICON_MDI "materialdesign"
 #define INTER "inter"
 #define INTER_I "inter-italic"
 #define INTER_L "inter-light"

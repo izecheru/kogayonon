@@ -15,6 +15,11 @@ struct VulkanBuffer
   bool persistent{ false };
 
   /**
+   * @brief Prevents a second deallocation in the lambda queue in VulkanMemoryAllocator
+   */
+  bool deallocated{ false };
+
+  /**
    * @brief If the buffer is persistent, we need to store the pData here
    */
   void* mappedData{ nullptr };
@@ -22,6 +27,6 @@ struct VulkanBuffer
   /**
    * @brief Is this buffer a staging buffer? If yes we manually vmaDestroyBuffer at the end of current scope
    */
-  bool stagingBuff{ false };
+  bool stagingBuffer{ false };
 };
 } // namespace graphics

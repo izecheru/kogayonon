@@ -48,10 +48,16 @@ public:
 
   ~VulkanRenderer();
 
+  /**
+   * @brief Rendering function, passes should be different functions
+   */
   void render();
 
   auto getViewport() -> VulkanViewport&;
 
+  /**
+   * @brief Initialize ImGui UI renderer
+   */
   void initImgui();
 
 private: // funcs

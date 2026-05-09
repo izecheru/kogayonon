@@ -29,8 +29,12 @@ private:
   //------------------
 
 private:
+  void contextMenu();
+
+  void renderMesh();
+
   /**
-   * @brief Renders all the details about the transform component
+   * @brief Render all the details about the transform component
    */
   void renderTransform();
   void renderTransformTranslation( bool& translationChanged, core::TransformComponent* pTransform );

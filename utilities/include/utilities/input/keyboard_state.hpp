@@ -1,7 +1,7 @@
 #pragma once
-#include <SDL2/SDL.h>
 #include "key_codes.hpp"
 #include "precompiled/pch.hpp"
+#include <SDL2/SDL.h>
 
 namespace utilities
 {
@@ -32,7 +32,7 @@ public:
     for ( auto& code : codes )
     {
       // if all are true &=
-      result &= m_keyboardState[code];
+      result &= static_cast<bool>( m_keyboardState[code] );
     }
     return result;
   }

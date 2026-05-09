@@ -1,4 +1,7 @@
 #include "gui/imgui_windows/entity_properties.hpp"
+#include <imgui_stdlib.h>
+#include "core/asset_manager/asset_manager.hpp"
+#include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -6,6 +9,7 @@
 #include "core/event/scene_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
+#include "graphics/vulkan_context.hpp"
 #include "gui/utils/font_keys.hpp"
 #include "gui/utils/imgui_utils.hpp"
 #include "utilities/fonts/materialdesign.hpp"
@@ -30,10 +34,15 @@ void gui::EntityProperties::render()
     ImGui::PushFont( m_spec.fonts->at( INTER_I ), 18.0f );
     ImGui::Text( "No entity selected..." );
     ImGui::PopFont();
+    ImGui::End();
+    return;
   }
+
+  contextMenu();
 
   renderIdentification();
   renderTransform();
+  renderMesh();
 
   ImGui::End();
 }
@@ -54,6 +63,67 @@ void gui::EntityProperties::onSelectEntity( const core::SelectEntityEvent& e )
     m_selectedEntity = e.getEntityId();
     KOGAYONON_INFO( "showing properties of entity with id {}", static_cast<uint32_t>( m_selectedEntity ) );
   }
+}
+
+void gui::EntityProperties::contextMenu()
+{
+  ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
+  if ( ImGui::BeginCombo( "##", "Add component" ) )
+  {
+    auto scene = core::SceneManager::getCurrentScene().lock();
+    auto meshComp = scene->getRegistry()->tryGetComponent<core::MeshComponent>( m_selectedEntity );
+    if ( !meshComp )
+    {
+      if ( ImGui::MenuItem( "Mesh" ) )
+      {
+        auto p =
+          std::filesystem::path{ std::filesystem::absolute( "." ) / "engine_resources\\models\\default_cone.gltf" };
+        auto mesh = core::AssetManager::getInstance().getMesh( p.string() );
+        if ( mesh.has_value() )
+        {
+          scene->getRegistry()->addComponent<core::TransformComponent>( m_selectedEntity, core::TransformComponent{} );
+          scene->getRegistry()->addComponent<core::MeshComponent>( m_selectedEntity,
+                                                                   core::MeshComponent{
+                                                                     .pMesh = mesh.value(),
+                                                                     .loaded = true,
+                                                                   } );
+        }
+      }
+    }
+    else
+    {
+      RenderDisabled( ImGui::MenuItem( "Mesh" ) );
+    }
+    ImGui::EndCombo();
+  }
+  ImGui::PopFont();
+}
+
+void gui::EntityProperties::renderMesh()
+{
+  if ( m_selectedEntity == entt::null )
+    return;
+
+  auto scene = core::SceneManager::getCurrentScene().lock();
+  auto meshComponent = scene->getRegistry()->tryGetComponent<core::MeshComponent>( m_selectedEntity );
+
+  if ( !meshComponent )
+    return;
+
+  gui_utils::renderWithFont( m_spec.fonts->at( INTER_I ), [&]() { ImGui::SeparatorText( "Mesh component" ); } );
+
+  gui_utils::renderWithSizedFont( m_spec.fonts->at( ICON_MDI ), 12.0f, [&]() {
+    if ( ImGui::Button( ICON_MDI_DELETE "Remove component" ) )
+    {
+      scene->getRegistry()->removeComponent<core::MeshComponent>( m_selectedEntity );
+      scene->getRegistry()->removeComponent<core::TransformComponent>( m_selectedEntity );
+    }
+  } );
+
+  auto meshPath = std::filesystem::path{ meshComponent->pMesh->getPath() };
+  ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
+  ImGui::Text( "Filename: %s", meshPath.stem().string().c_str() );
+  ImGui::PopFont();
 }
 
 void gui::EntityProperties::renderTransform()
@@ -247,8 +317,8 @@ void gui::EntityProperties::renderIdentification()
   ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
   core::Entity selectedEntity{ scene->getRegistry(), m_selectedEntity };
   auto& idComp = selectedEntity.getComponent<core::IdentifierComponent>();
-  ImGui::Text( "Name- %s", idComp.name.c_str() );
-  ImGui::Text( "Group- %s", idComp.group.c_str() );
+  ImGui::InputText( "##id", &idComp.name );
+  ImGui::Text( "Group: %s", idComp.group.c_str() );
   ImGui::PopFont();
 }
 

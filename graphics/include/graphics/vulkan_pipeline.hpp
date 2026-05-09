@@ -14,6 +14,19 @@ enum PipelineType
   GEOMETRY_BASIC
 };
 
+enum VulkanAttachmentType
+{
+  DEPTH,
+  COLOR
+};
+
+struct VulkanPipelineAttachmentData
+{
+  VulkanAttachmentType type;
+  uint32_t count{ 0u };
+  std::vector<VkRenderingAttachmentInfo> attachment;
+};
+
 /**
  * @brief Options related to various pipeline options
  */
@@ -29,6 +42,10 @@ struct VulkanPipelineOptions
 
   // For wireframe
   float lineWidth{ 1.0f };
+
+  // Color and depth attachment data
+  VulkanPipelineAttachmentData colorAttachmentData;
+  VulkanPipelineAttachmentData depthAttachmentData;
 };
 
 struct VulkanPipelineSpec
@@ -52,6 +69,10 @@ struct VulkanPipelineSpec
   VkVertexInputBindingDescription vertexBindingDescription;
   std::vector<VkVertexInputAttributeDescription> vertexAttributesDescription;
 #endif
+
+  // Color and depth attachments
+  std::vector<VkRenderingAttachmentInfo> colorAttachment;
+  std::vector<VkRenderingAttachmentInfo> depthAttachment;
 };
 
 class VulkanPipeline

@@ -23,17 +23,17 @@ rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Wi
   auto& assetManager = core::AssetManager::getInstance();
   auto shadersPath = std::filesystem::absolute( "." ) / "engine_resources\\shaders";
 
-  auto defaultPipelineSpec =
-    graphics::VulkanPipelineSpec{ .type = graphics::PipelineType::GEOMETRY_BASIC,
-                                  .options = { .cullMode = VK_CULL_MODE_NONE, .polyMode = VK_POLYGON_MODE_LINE },
-                                  .descriptorLayout = { m_cameraDescriptor.layout,
-                                                        assetManager.getBindlessDescriptorLayout(),
-                                                        assetManager.getMaterialsDescriptorLayout() },
-                                  .vertexShaderPath = shadersPath / "vulkan_vertex.spv",
-                                  .fragmentShaderPath = shadersPath / "vulkan_fragment.spv",
-                                  .pushConstantSize = sizeof( resources::MeshPushConstant ),
-                                  .vertexBindingDescription = resources::Vertex::getBindingDescription(),
-                                  .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions() };
+  auto defaultPipelineSpec = graphics::VulkanPipelineSpec{
+    .type = graphics::PipelineType::GEOMETRY_BASIC,
+    .options = { .cullMode = VK_CULL_MODE_BACK_BIT, .polyMode = VK_POLYGON_MODE_FILL, .lineWidth = 1.0f },
+    .descriptorLayout = { m_cameraDescriptor.layout,
+                          assetManager.getBindlessDescriptorLayout(),
+                          assetManager.getMaterialsDescriptorLayout() },
+    .vertexShaderPath = shadersPath / "vulkan_vertex.spv",
+    .fragmentShaderPath = shadersPath / "vulkan_fragment.spv",
+    .pushConstantSize = sizeof( resources::MeshPushConstant ),
+    .vertexBindingDescription = resources::Vertex::getBindingDescription(),
+    .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions() };
 
   createPipeline( defaultPipelineSpec );
 }
@@ -67,10 +67,7 @@ void rendering::VulkanRenderer::render()
     } );
 
   m_pVkContext->swapchain->aquireNextImage();
-
   auto& cmd = m_pVkContext->swapchain->getCurrentCommandBuffer();
-
-  // set the current command buffer into begin state
   m_pVkContext->swapchain->beginCommandBuffer();
 
   VkImageMemoryBarrier textureToColor{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -373,11 +370,6 @@ void rendering::VulkanRenderer::createCameraBuffers()
 
 void rendering::VulkanRenderer::updateCameraBuffer()
 {
-  static auto startTime = std::chrono::high_resolution_clock::now();
-
-  auto currentTime = std::chrono::high_resolution_clock::now();
-  float time = std::chrono::duration<float, std::chrono::seconds::period>( currentTime - startTime ).count();
-
   auto up = glm::vec3{ 0.0f, 1.0f, 0.0f };
   m_cameraUbo.view = glm::lookAt( glm::vec3{ 8.0f, 8.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, up );
   m_cameraUbo.proj = glm::perspective( glm::radians( 50.0f ),
@@ -388,9 +380,11 @@ void rendering::VulkanRenderer::updateCameraBuffer()
 
   m_cameraUbo.proj[1][1] *= -1;
 
-  memcpy( m_cameraBuffers.at( m_pVkContext->swapchain->getCurrentFrameIndex() ).mappedData,
-          &m_cameraUbo,
-          sizeof( CameraUBO ) );
+  vmaCopyMemoryToAllocation( m_pVkContext->memoryAllocator->getAllocator(),
+                             &m_cameraUbo,
+                             m_cameraBuffers.at( m_pVkContext->swapchain->getCurrentFrameIndex() ).allocation,
+                             0,
+                             sizeof( CameraUBO ) );
 }
 
 void rendering::VulkanRenderer::createCameraDescriptorSet()
@@ -404,7 +398,6 @@ void rendering::VulkanRenderer::createCameraDescriptorSet()
   allocInfo.pSetLayouts = layouts.data();
   allocInfo.pNext = nullptr;
 
-  // m_cameraDescriptor.set.resize( MAX_FRAMES_IN_FLIGHT );
   VK_CALL(
     vkAllocateDescriptorSets( m_pVkContext->device->getLogicalDevice(), &allocInfo, m_cameraDescriptor.set.data() ) );
 

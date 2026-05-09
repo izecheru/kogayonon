@@ -90,8 +90,12 @@ auto graphics::VulkanDevice::findQueueFamilies( VkPhysicalDevice& device ) -> Qu
 
 bool graphics::VulkanDevice::isDeviceSuitable( VkPhysicalDevice& device )
 {
-  // get the device features and properties
+  // Get the device features and properties
   vkGetPhysicalDeviceProperties( device, &m_physicalDeviceProps );
+
+  // Assign the limits to get for future stuff
+  m_physicalDeviceLimits = m_physicalDeviceProps.limits;
+
   vkGetPhysicalDeviceFeatures( device, &m_physicalDeviceFeatures );
   vkGetPhysicalDeviceMemoryProperties( device, &m_physicalDeviceMemoryProps );
   auto indices = findQueueFamilies( device );
@@ -423,4 +427,9 @@ void graphics::VulkanDevice::createLogicalDevice()
 auto graphics::VulkanDevice::getInstance() -> VkInstance&
 {
   return m_platform.instance;
+}
+
+auto graphics::VulkanDevice::getLimits() -> VkPhysicalDeviceLimits&
+{
+  return m_physicalDeviceLimits;
 }

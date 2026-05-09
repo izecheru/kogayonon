@@ -35,15 +35,3 @@ BinPackArguments: false
 AlwaysBreakAfterReturnType: None
 AlwaysBreakTemplateDeclarations: Yes
 SeparateDefinitionBlocks: Always
-
-# Include Sorting
-IncludeCategories:
-  - Regex:           '^<c[^>]+>$'
-    Priority:        1
-  - Regex:           '^<[a-z][^>]*>$'
-    Priority:        2
-  - Regex:           '^<[^>]+>$'
-    Priority:        3
-  - Regex:           '^".*"$'
-    Priority:        4
-SortIncludes:        true
