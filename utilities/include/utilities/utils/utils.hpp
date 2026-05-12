@@ -1,7 +1,5 @@
 #pragma once
 
-namespace utilities
-{
 #ifndef NDEBUG
 #define KOGAYONON_INFO( ... )                                                                                          \
   do                                                                                                                   \
@@ -40,4 +38,3 @@ namespace utilities
   {                                                                                                                    \
   } while ( 0 )
 #endif
-} // namespace utilities

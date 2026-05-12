@@ -37,7 +37,7 @@ auto resources::Mesh::getTextures() -> std::vector<Texture*>&
   return m_textures;
 }
 
-auto resources::Mesh::getVertexBufferObject() -> graphics::VulkanBuffer&
+auto resources::Mesh::getVertexBufferObject() -> graphics::GpuBuffer&
 {
   return m_verticesBuff;
 }
@@ -47,7 +47,7 @@ auto resources::Mesh::getVerticesAllocation() -> VmaAllocation&
   return m_verticesBuff.allocation;
 }
 
-auto resources::Mesh::getIndicesBufferObject() -> graphics::VulkanBuffer&
+auto resources::Mesh::getIndicesBufferObject() -> graphics::GpuBuffer&
 {
   return m_indicesBuff;
 }

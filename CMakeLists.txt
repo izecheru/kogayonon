@@ -34,6 +34,7 @@ find_package(benchmark CONFIG REQUIRED)
 find_package(rapidjson CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
+find_package(slang CONFIG REQUIRED)
 find_package(Vulkan)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 

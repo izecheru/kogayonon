@@ -1,8 +1,8 @@
 #include "core/asset_manager/assimp_loader.hpp"
-#include <assimp/postprocess.h>
-#include <spdlog/spdlog.h>
 #include "resources/mesh.hpp"
 #include "utilities/utils/utils.hpp"
+#include <assimp/postprocess.h>
+#include <spdlog/spdlog.h>
 
 core::AssimpLoader::AssimpLoader()
     : m_importer{}
@@ -107,19 +107,10 @@ void core::AssimpLoader::loadMesh( const std::string& path, resources::Mesh* m, 
 
       for ( auto j = 0u; j < localPositions.size(); j++ )
       {
-        float uvX{ 0.0f };
-        float uvY = uvX;
-        if ( j < localTextureCoords.size() )
-        {
-          uvX = localTextureCoords[j].x;
-          uvY = localTextureCoords[j].y;
-        }
-
         localVertices.emplace_back(
           resources::Vertex{ .translation = localPositions[j],
-                             .uvX = uvX,
                              .normal = ( j < localNormals.size() ) ? localNormals[j] : glm::vec3{ 0.0f },
-                             .uvY = uvY } );
+                             .uv = { localTextureCoords[j].x, localTextureCoords[j].y } } );
       }
       uint32_t indexOffset = static_cast<uint32_t>( indices.size() );
       uint32_t vertexOffset = static_cast<uint32_t>( vertices.size() );

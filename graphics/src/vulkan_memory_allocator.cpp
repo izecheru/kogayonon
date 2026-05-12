@@ -1,6 +1,7 @@
 #define VMA_IMPLEMENTATION
 #include "graphics/vulkan_memory_allocator.hpp"
 #include "graphics/utils.hpp"
+#include "utilities/utils/utils.hpp"
 
 graphics::VulkanMemoryAllocator::VulkanMemoryAllocator( VkDevice& device,
                                                         VkInstance& instance,
@@ -27,17 +28,28 @@ graphics::VulkanMemoryAllocator::~VulkanMemoryAllocator()
   vmaDestroyAllocator( m_allocator );
 }
 
-void graphics::VulkanMemoryAllocator::createBuffer( VulkanBuffer& vulkanBuffer,
+void graphics::VulkanMemoryAllocator::createBuffer( GpuBuffer& vulkanBuffer,
                                                     VkBufferCreateInfo& createInfo,
-                                                    VmaAllocationCreateInfo& usage )
+                                                    VmaAllocationCreateInfo& usage,
+                                                    bool mapBuffer )
 {
   VK_CALL(
     vmaCreateBuffer( m_allocator, &createInfo, &usage, &vulkanBuffer.vkBuffer, &vulkanBuffer.allocation, nullptr ) );
 
   if ( vulkanBuffer.stagingBuffer )
+  {
+    KOGAYONON_INFO( "Allocating staging buffer: {}", formatSize( static_cast<double>( createInfo.size ) ) );
     return;
+  }
 
-  m_deleteQueue.push( [&]() {
+  if ( mapBuffer )
+  {
+    vmaMapMemory( m_allocator, vulkanBuffer.allocation, &vulkanBuffer.mappedData );
+    vulkanBuffer.persistent = true;
+  }
+
+  KOGAYONON_INFO( "Allocating buffer: {}", formatSize( static_cast<double>( createInfo.size ) ) );
+  m_deleteQueue.emplace( [&]() {
     if ( vulkanBuffer.deallocated )
       return;
 
@@ -47,7 +59,20 @@ void graphics::VulkanMemoryAllocator::createBuffer( VulkanBuffer& vulkanBuffer,
       vmaUnmapMemory( m_allocator, vulkanBuffer.allocation );
     }
     vmaDestroyBuffer( m_allocator, vulkanBuffer.vkBuffer, vulkanBuffer.allocation );
+    KOGAYONON_INFO( "Deallocating buffer: {}",
+                    formatSize( static_cast<double>( vulkanBuffer.allocation->GetSize() ) ) );
   } );
+}
+
+void graphics::VulkanMemoryAllocator::createBuffers( FrameInFlightBuffer& vulkanBuffer,
+                                                     VkBufferCreateInfo& createInfo,
+                                                     VmaAllocationCreateInfo& usage,
+                                                     bool mapBuffer )
+{
+  for ( auto& buffer : vulkanBuffer.buffers )
+  {
+    createBuffer( buffer, createInfo, usage, mapBuffer );
+  }
 }
 
 void graphics::VulkanMemoryAllocator::createImage( VkImage& image,
@@ -56,7 +81,11 @@ void graphics::VulkanMemoryAllocator::createImage( VkImage& image,
                                                    VmaAllocation& allocation )
 {
   VK_CALL( vmaCreateImage( m_allocator, &imageCreateInfo, &usage, &image, &allocation, nullptr ) );
-  m_deleteQueue.push( [&]() { vmaDestroyImage( m_allocator, image, allocation ); } );
+  KOGAYONON_INFO( "Allocating image: {}", formatSize( static_cast<double>( allocation->GetSize() ) ) );
+  m_deleteQueue.emplace( [&]() {
+    KOGAYONON_INFO( "Dellocating image: {}", formatSize( static_cast<double>( allocation->GetSize() ) ) );
+    vmaDestroyImage( m_allocator, image, allocation );
+  } );
 }
 
 auto graphics::VulkanMemoryAllocator::getAllocator() -> VmaAllocator&
@@ -65,10 +94,10 @@ auto graphics::VulkanMemoryAllocator::getAllocator() -> VmaAllocator&
 }
 
 auto graphics::VulkanMemoryAllocator::createStagingBuffer( VkBufferCreateInfo& createInfo,
-                                                           VmaAllocationCreateInfo& usage ) -> VulkanBuffer
+                                                           VmaAllocationCreateInfo& usage ) -> GpuBuffer
 {
-  VulkanBuffer stageBuffer{ .persistent = false, .stagingBuffer = true };
-  createBuffer( stageBuffer, createInfo, usage );
+  GpuBuffer stageBuffer{ .persistent = false, .stagingBuffer = true };
+  createBuffer( stageBuffer, createInfo, usage, false );
   return stageBuffer;
 }
 
@@ -79,9 +108,28 @@ void graphics::VulkanMemoryAllocator::deallocate()
 
   while ( !m_deleteQueue.empty() )
   {
-    const std::function<void()>& func = m_deleteQueue.front();
-    func();
-
+    m_deleteQueue.front()();
     m_deleteQueue.pop();
   }
+}
+
+auto graphics::VulkanMemoryAllocator::formatSize( VkDeviceSize size ) -> std::string
+{
+  const double KB = 1024.0;
+  const double MB = KB * 1024.0;
+  const double GB = MB * 1024.0;
+
+  std::ostringstream oss;
+  oss << std::fixed << std::setprecision( 2 );
+
+  if ( size >= GB )
+    oss << ( size / GB ) << " GB";
+  else if ( size >= MB )
+    oss << ( size / MB ) << " MB";
+  else if ( size >= KB )
+    oss << ( size / KB ) << " KB";
+  else
+    oss << size << " B";
+
+  return oss.str();
 }

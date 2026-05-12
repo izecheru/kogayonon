@@ -14,6 +14,7 @@ add_library(
   "include/utilities/yaml_serializer/yaml_serializer.hpp"
   "include/utilities/json_serializer/json_serializer.hpp"
   "include/utilities/utils/yaml_utils.hpp"
+  "include/utilities/shader_compiler/shader_compiler.hpp"
 
   "include/utilities/fonts/fontawesome6Pro.hpp"
   "include/utilities/fonts/fontawesome5.hpp"
@@ -33,6 +34,7 @@ add_library(
   "src/script.cpp"
   "src/yaml_serializer.cpp" 
   "src/json_serializer.cpp"
+  "src/shader_compiler.cpp"
  )
 
 target_include_directories(utilities
@@ -50,4 +52,5 @@ target_link_libraries(utilities PUBLIC cgltf
 	assimp::assimp
 	resources
 	precompiled
+	slang::gfx slang::slang 
 )

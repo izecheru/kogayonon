@@ -1,15 +1,15 @@
 #include "core/asset_manager/asset_manager.hpp"
+#include "utilities/utils/utils.hpp"
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>
-#include "utilities/utils/utils.hpp"
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_context.hpp"
 #include "graphics/vulkan_device.hpp"
 #include "graphics/vulkan_swapchain.hpp"
 #include "resources/mesh.hpp"
 #include "resources/texture.hpp"
+#include <stb_image.h>
 
 auto core::AssetManager::loadTexture( const std::string& textureName, const std::string& texturePath )
   -> resources::Texture*
@@ -302,7 +302,7 @@ void core::AssetManager::createIndexBuffer( resources::Mesh* pMesh )
   VmaAllocationCreateInfo vmaAllocInfo{};
   vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
-  m_pVkContext->memoryAllocator->createBuffer( pMesh->getIndicesBufferObject(), bufferInfo, vmaAllocInfo );
+  m_pVkContext->memoryAllocator->createBuffer( pMesh->getIndicesBufferObject(), bufferInfo, vmaAllocInfo, false );
 
   copyBuffer( m_pVkContext->swapchain->getCommandPool(),
               m_pVkContext->device->getLogicalDevice(),
@@ -344,7 +344,7 @@ void core::AssetManager::createVertexBuffer( resources::Mesh* pMesh )
   VmaAllocationCreateInfo vmaAllocInfo{};
   vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
-  m_pVkContext->memoryAllocator->createBuffer( pMesh->getVertexBufferObject(), bufferInfo, vmaAllocInfo );
+  m_pVkContext->memoryAllocator->createBuffer( pMesh->getVertexBufferObject(), bufferInfo, vmaAllocInfo, false );
 
   copyBuffer( m_pVkContext->swapchain->getCommandPool(),
               m_pVkContext->device->getLogicalDevice(),
@@ -439,7 +439,7 @@ void core::AssetManager::createMaterialsDescriptorSet()
   for ( auto i = 0u; i < MAX_FRAMES_IN_FLIGHT; i++ )
   {
     VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = m_materialsBuffer[i].vkBuffer;
+    bufferInfo.buffer = m_materialsBuffer.buffers.at( i ).vkBuffer;
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof( resources::Material );
 
@@ -504,36 +504,26 @@ void core::AssetManager::allocateMaterialsDescriptorSet()
 
 void core::AssetManager::createMaterialsBuffers()
 {
-  m_materialsBuffer.resize( MAX_FRAMES_IN_FLIGHT );
+  VkBufferCreateInfo bufferInfo{};
+  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  bufferInfo.size = sizeof( resources::Material );
+  bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
-  for ( auto i = 0u; i < MAX_FRAMES_IN_FLIGHT; i++ )
-  {
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = sizeof( resources::Material );
-    bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+  VmaAllocationCreateInfo vmaAllocInfo{};
+  vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+  vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-    VmaAllocationCreateInfo vmaAllocInfo{};
-    vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-    vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-    m_pVkContext->memoryAllocator->createBuffer( m_materialsBuffer.at( i ), bufferInfo, vmaAllocInfo );
-
-    vmaMapMemory( m_pVkContext->memoryAllocator->getAllocator(),
-                  m_materialsBuffer.at( i ).allocation,
-                  &m_materialsBuffer.at( i ).mappedData );
-
-    m_materialsBuffer.at( i ).persistent = true;
-  }
+  m_pVkContext->memoryAllocator->createBuffers( m_materialsBuffer, bufferInfo, vmaAllocInfo, true );
 }
 
 void core::AssetManager::updateMaterialsBuffer()
 {
-  vmaCopyMemoryToAllocation( m_pVkContext->memoryAllocator->getAllocator(),
-                             m_materials.data(),
-                             m_materialsBuffer.at( m_pVkContext->swapchain->getCurrentFrameIndex() ).allocation,
-                             0,
-                             sizeof( resources::Material ) * m_materials.size() );
+  vmaCopyMemoryToAllocation(
+    m_pVkContext->memoryAllocator->getAllocator(),
+    m_materials.data(),
+    m_materialsBuffer.buffers.at( m_pVkContext->swapchain->getCurrentFrameIndex() ).allocation,
+    0,
+    sizeof( resources::Material ) * m_materials.size() );
 }
 
 auto core::AssetManager::getMaterialsDescriptorLayout() -> VkDescriptorSetLayout&

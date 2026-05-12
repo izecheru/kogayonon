@@ -12,6 +12,7 @@
 rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Window* window )
     : m_pVkContext{ pCtx }
     , m_wnd{ window }
+    , m_shaderCompiler{}
 {
   createCameraDescriptorSetLayout();
   createCameraBuffers();
@@ -21,21 +22,35 @@ rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Wi
   initImgui();
 
   auto& assetManager = core::AssetManager::getInstance();
-  auto shadersPath = std::filesystem::absolute( "." ) / "engine_resources\\shaders";
+  auto shadersPath = std::filesystem::current_path() / "engine_resources" / " shaders ";
+
+  auto vertex = m_shaderCompiler.compileShaderFromSource( "vulkan_vertex" );
+  auto fragment = m_shaderCompiler.compileShaderFromSource( "vulkan_fragment" );
+
+  auto vModule = m_shaderCompiler.createShaderModule( vertex, m_pVkContext->device->getLogicalDevice() );
+  auto fModule = m_shaderCompiler.createShaderModule( fragment, m_pVkContext->device->getLogicalDevice() );
+
+  assert( vModule != VK_NULL_HANDLE );
+  assert( fModule != VK_NULL_HANDLE );
 
   auto defaultPipelineSpec = graphics::VulkanPipelineSpec{
     .type = graphics::PipelineType::GEOMETRY_BASIC,
-    .options = { .cullMode = VK_CULL_MODE_BACK_BIT, .polyMode = VK_POLYGON_MODE_FILL, .lineWidth = 1.0f },
+    .options = { .cullMode = VK_CULL_MODE_NONE, .polyMode = VK_POLYGON_MODE_FILL, .lineWidth = 1.0f },
     .descriptorLayout = { m_cameraDescriptor.layout,
                           assetManager.getBindlessDescriptorLayout(),
                           assetManager.getMaterialsDescriptorLayout() },
-    .vertexShaderPath = shadersPath / "vulkan_vertex.spv",
-    .fragmentShaderPath = shadersPath / "vulkan_fragment.spv",
+    .vertexModule = vModule,
+    .fragmentModule = fModule,
     .pushConstantSize = sizeof( resources::MeshPushConstant ),
     .vertexBindingDescription = resources::Vertex::getBindingDescription(),
     .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions() };
 
   createPipeline( defaultPipelineSpec );
+
+  // auto pickingPipelineSpcec = defaultPipelineSpec;
+  //  Modify the variables of the pipeline to make it suitable for entity picking
+
+  // createPipeline( pickingPipelineSpcec );
 }
 
 rendering::VulkanRenderer::~VulkanRenderer()
@@ -168,37 +183,38 @@ void rendering::VulkanRenderer::render()
                            0,
                            nullptr );
 
+  // Since view.each calls a lambda for each entity in the view and does not act like a traditional for
+  // we just return if the mesh is not loaded for obvious reasons
   view.each(
     [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
-      if ( meshComponent.loaded )
+      if ( !meshComponent.loaded )
+        return;
+
+      vkCmdBindDescriptorSets( cmd,
+                               VK_PIPELINE_BIND_POINT_GRAPHICS,
+                               pipeline.getLayout(),
+                               2, // set = 2
+                               1,
+                               &assetManager.getMaterialsDescriptorSet(),
+                               0,
+                               nullptr );
+
+      vkCmdBindVertexBuffers( cmd, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
+      vkCmdBindIndexBuffer( cmd, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
+      for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
       {
+        // this should be expensive, move it somewhere in the mesh or submesh
+        auto push =
+          resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(), .materialIndex = submesh.materialIndex };
 
-        vkCmdBindDescriptorSets( cmd,
-                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                 pipeline.getLayout(),
-                                 2, // set = 2
-                                 1,
-                                 &assetManager.getMaterialsDescriptorSet(),
-                                 0,
-                                 nullptr );
+        vkCmdPushConstants( cmd,
+                            pipeline.getLayout(),
+                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                            0,
+                            sizeof( resources::MeshPushConstant ),
+                            &push );
 
-        vkCmdBindVertexBuffers( cmd, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
-        vkCmdBindIndexBuffer( cmd, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
-        for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
-        {
-          // this should be expensive, move it somewhere in the mesh or submesh
-          auto push =
-            resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(), .materialIndex = submesh.materialIndex };
-
-          vkCmdPushConstants( cmd,
-                              pipeline.getLayout(),
-                              VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                              0,
-                              sizeof( resources::MeshPushConstant ),
-                              &push );
-
-          vkCmdDrawIndexed( cmd, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
-        }
+        vkCmdDrawIndexed( cmd, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
       }
     } );
 
@@ -350,26 +366,16 @@ void rendering::VulkanRenderer::createViewport()
 
 void rendering::VulkanRenderer::createCameraBuffers()
 {
-  m_cameraBuffers.resize( MAX_FRAMES_IN_FLIGHT );
+  VkBufferCreateInfo bufferInfo{};
+  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  bufferInfo.size = sizeof( CameraUBO );
+  bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
-  for ( size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++ )
-  {
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = sizeof( CameraUBO );
-    bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+  VmaAllocationCreateInfo vmaAllocInfo{};
+  vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+  vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-    VmaAllocationCreateInfo vmaAllocInfo{};
-    vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-    vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-    m_pVkContext->memoryAllocator->createBuffer( m_cameraBuffers.at( i ), bufferInfo, vmaAllocInfo );
-    vmaMapMemory( m_pVkContext->memoryAllocator->getAllocator(),
-                  m_cameraBuffers.at( i ).allocation,
-                  &m_cameraBuffers.at( i ).mappedData );
-
-    m_cameraBuffers.at( i ).persistent = true;
-  }
+  m_pVkContext->memoryAllocator->createBuffers( m_cameraBuffers, bufferInfo, vmaAllocInfo, true );
 }
 
 void rendering::VulkanRenderer::updateCameraBuffer()
@@ -386,7 +392,7 @@ void rendering::VulkanRenderer::updateCameraBuffer()
 
   vmaCopyMemoryToAllocation( m_pVkContext->memoryAllocator->getAllocator(),
                              &m_cameraUbo,
-                             m_cameraBuffers.at( m_pVkContext->swapchain->getCurrentFrameIndex() ).allocation,
+                             m_cameraBuffers.buffers.at( m_pVkContext->swapchain->getCurrentFrameIndex() ).allocation,
                              0,
                              sizeof( CameraUBO ) );
 }
@@ -405,11 +411,10 @@ void rendering::VulkanRenderer::createCameraDescriptorSet()
   VK_CALL(
     vkAllocateDescriptorSets( m_pVkContext->device->getLogicalDevice(), &allocInfo, m_cameraDescriptor.set.data() ) );
 
-  m_cameraBuffers.resize( MAX_FRAMES_IN_FLIGHT );
   for ( size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++ )
   {
     VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = m_cameraBuffers.at( i ).vkBuffer;
+    bufferInfo.buffer = m_cameraBuffers.buffers.at( i ).vkBuffer;
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof( CameraUBO );
 

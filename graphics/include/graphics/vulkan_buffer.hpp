@@ -1,10 +1,11 @@
 #pragma once
+#include "graphics/vulkan_defines.hpp"
 #include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 
 namespace graphics
 {
-struct VulkanBuffer
+struct GpuBuffer
 {
   VkBuffer vkBuffer{ VK_NULL_HANDLE };
   VmaAllocation allocation{ nullptr };
@@ -29,4 +30,15 @@ struct VulkanBuffer
    */
   bool stagingBuffer{ false };
 };
+
+/**
+ * @brief This is used for buffers like camera, ssbos and what not that need to be written either by cpu or gpu at the
+ * same time and to avoid overwriting information, we just index into the currentFrameIndex variable from the swapchain
+ * to avoid that so we got ourselves a simple sync mechanism
+ */
+struct FrameInFlightBuffer
+{
+  std::array<GpuBuffer, MAX_FRAMES_IN_FLIGHT> buffers;
+};
+
 } // namespace graphics

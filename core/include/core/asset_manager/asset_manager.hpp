@@ -1,12 +1,12 @@
 #pragma once
-#include <glm/glm.hpp>
-#include <vma/vk_mem_alloc.h>
-#include <vulkan/vulkan.h>
 #include "core/asset_manager/assimp_loader.hpp"
 #include "core/asset_manager/cgltf_loader.hpp"
 #include "graphics/vulkan_buffer.hpp"
 #include "precompiled/pch.hpp"
 #include "resources/material.hpp"
+#include <glm/glm.hpp>
+#include <vma/vk_mem_alloc.h>
+#include <vulkan/vulkan.h>
 
 namespace graphics
 {
@@ -121,13 +121,13 @@ public:
 
 private:
   /**
-   * @brief Uses the vertices VulkanBuffer of a mesh to fill it up with Vertex data from model file
+   * @brief Uses the vertices GpuBuffer of a mesh to fill it up with Vertex data from model file
    * @param pMesh Pointer to the mesh
    */
   void createVertexBuffer( resources::Mesh* pMesh );
 
   /**
-   * @brief Uses the indices VulkanBuffer of a mesh to fill it up with uint32_t indices data from model file
+   * @brief Uses the indices GpuBuffer of a mesh to fill it up with uint32_t indices data from model file
    * @param pMesh Pointer to the mesh
    */
   void createIndexBuffer( resources::Mesh* pMesh );
@@ -192,7 +192,7 @@ private:
 
   VkDescriptorSetLayout m_materialsDescriptorSetLayout;
   std::vector<VkDescriptorSet> m_materialsDescriptorSets;
-  std::vector<graphics::VulkanBuffer> m_materialsBuffer;
+  graphics::FrameInFlightBuffer m_materialsBuffer;
   std::vector<resources::Material> m_materials;
 
   std::unordered_map<std::string, std::shared_ptr<resources::Texture>> m_loadedTextures;

@@ -6,7 +6,7 @@ namespace resources
 
 struct MeshPushConstant
 {
-  glm::mat4 modelMatrix;
+  alignas( 16 ) glm::mat4 modelMatrix;
   int materialIndex;
 };
 

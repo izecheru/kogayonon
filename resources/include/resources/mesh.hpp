@@ -47,10 +47,10 @@ public:
   auto getIndices() -> std::vector<uint32_t>&;
   auto getTextures() -> std::vector<Texture*>&;
 
-  auto getVertexBufferObject() -> graphics::VulkanBuffer&;
+  auto getVertexBufferObject() -> graphics::GpuBuffer&;
   auto getVerticesAllocation() -> VmaAllocation&;
 
-  auto getIndicesBufferObject() -> graphics::VulkanBuffer&;
+  auto getIndicesBufferObject() -> graphics::GpuBuffer&;
   auto getIndicesAllocation() -> VmaAllocation&;
 
   auto getSubmeshes() -> std::vector<Submesh>&;
@@ -67,8 +67,8 @@ private:
 
   int m_materialIndex;
 
-  graphics::VulkanBuffer m_verticesBuff;
-  graphics::VulkanBuffer m_indicesBuff;
+  graphics::GpuBuffer m_verticesBuff;
+  graphics::GpuBuffer m_indicesBuff;
 
   std::string m_path;
   std::vector<Submesh> m_submeshes;

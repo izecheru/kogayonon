@@ -1,11 +1,12 @@
 #pragma once
-#include <glm/glm.hpp>
-#include <vma/vk_mem_alloc.h>
-#include <vulkan/vulkan.h>
 #include "graphics/vulkan_buffer.hpp"
 #include "graphics/vulkan_descriptor.hpp"
 #include "graphics/vulkan_pipeline.hpp"
 #include "precompiled/pch.hpp"
+#include "utilities/shader_compiler/shader_compiler.hpp"
+#include <glm/glm.hpp>
+#include <vma/vk_mem_alloc.h>
+#include <vulkan/vulkan.h>
 
 #define MAX_TEXTURE_NUM 1000
 
@@ -74,7 +75,7 @@ private:
   bool assetManagerInit{ false };
   // this should be tied to scene or smth cause we can create a camera entity
   CameraUBO m_cameraUbo;
-  std::vector<graphics::VulkanBuffer> m_cameraBuffers;
+  graphics::FrameInFlightBuffer m_cameraBuffers;
   graphics::BufferedVulkanDescriptor m_cameraDescriptor;
 
   std::map<graphics::PipelineType, graphics::VulkanPipeline> m_pipelines;
@@ -83,5 +84,6 @@ private:
   std::shared_ptr<gui::VulkanImguiRenderer> m_pImguiRenderer;
   VulkanViewport m_viewport;
   SDL_Window* m_wnd;
+  utilities::ShaderCompiler m_shaderCompiler;
 };
 } // namespace rendering

@@ -158,25 +158,28 @@ void gui::SceneHierarchy::drawContextMenu()
   {
     if ( ImGui::MenuItem( "Default entity" ) )
     {
-      auto entityId = scene->getRegistry()->createEntity();
-      Entity ent{ scene->getRegistry(), entityId };
+      Entity ent{ scene->getRegistry(), "DefaultEnt" };
+
+      pEventDispatcher->dispatchEvent<SelectEntityEvent>(
+        SelectEntityEvent{ ent.getEntityId(), SelectEntityEventSource::HierarchyWindow } );
+
+      m_selectedEntity = ent.getEntityId();
     }
 
     if ( ImGui::MenuItem( "Create object" ) )
     {
       std::filesystem::path p{ std::filesystem::absolute( "." ) / "engine_resources\\models\\default_cone.gltf" };
-      auto entityId = scene->getRegistry()->createEntity();
 
-      Entity ent{ scene->getRegistry(), entityId };
+      Entity ent{ scene->getRegistry(), "ObjectEntity" };
 
       ent.addComponent<TransformComponent>( TransformComponent{} );
       ent.addComponent<MeshComponent>(
         MeshComponent{ .pMesh = assetManager.loadMesh( "test", p.string() ), .loaded = true } );
 
       pEventDispatcher->dispatchEvent<SelectEntityEvent>(
-        SelectEntityEvent{ entityId, SelectEntityEventSource::HierarchyWindow } );
+        SelectEntityEvent{ ent.getEntityId(), SelectEntityEventSource::HierarchyWindow } );
 
-      m_selectedEntity = entityId;
+      m_selectedEntity = ent.getEntityId();
     }
 
     ImGui::EndPopup();

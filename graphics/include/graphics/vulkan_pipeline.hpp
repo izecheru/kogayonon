@@ -1,7 +1,7 @@
 #pragma once
-#include <vulkan/vulkan.h>
 #include "precompiled/pch.hpp"
 #include "vulkan_context.hpp"
+#include <vulkan/vulkan.h>
 
 namespace graphics
 {
@@ -54,11 +54,8 @@ struct VulkanPipelineSpec
   VulkanPipelineOptions options;
   std::vector<VkDescriptorSetLayout> descriptorLayout;
 
-  /**
-   * @brief Shader paths
-   */
-  std::filesystem::path vertexShaderPath{ "" };
-  std::filesystem::path fragmentShaderPath{ "" };
+  VkShaderModule vertexModule;
+  VkShaderModule fragmentModule;
 
   /**
    * @brief sizeof(PushConstant)

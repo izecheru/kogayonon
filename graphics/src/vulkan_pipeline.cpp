@@ -1,28 +1,23 @@
 #include "graphics/vulkan_pipeline.hpp"
-#include <vulkan/vulkan_core.h>
 #include "graphics/utils.hpp"
 #include "resources/vertex.hpp"
+#include <vulkan/vulkan_core.h>
 
 graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, VulkanContext* pContext )
     : m_spec{ spec }
     , m_pVkContext{ pContext }
 {
-  auto vertShaderCode = readFile( m_spec.vertexShaderPath.string() );
-  auto fragShaderCode = readFile( m_spec.fragmentShaderPath.string() );
-
-  auto vertModule = createShaderModule( vertShaderCode, m_pVkContext->device->getLogicalDevice() );
-  auto fragModule = createShaderModule( fragShaderCode, m_pVkContext->device->getLogicalDevice() );
 
   VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
   vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-  vertShaderStageInfo.module = vertModule;
+  vertShaderStageInfo.module = spec.vertexModule;
   vertShaderStageInfo.pName = "main";
 
   VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
   fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-  fragShaderStageInfo.module = fragModule;
+  fragShaderStageInfo.module = spec.fragmentModule;
   fragShaderStageInfo.pName = "main";
 
   VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
@@ -156,8 +151,8 @@ graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, Vulkan
   VK_CALL( vkCreateGraphicsPipelines(
     m_pVkContext->device->getLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline ) );
 
-  vkDestroyShaderModule( m_pVkContext->device->getLogicalDevice(), vertModule, nullptr );
-  vkDestroyShaderModule( m_pVkContext->device->getLogicalDevice(), fragModule, nullptr );
+  vkDestroyShaderModule( m_pVkContext->device->getLogicalDevice(), spec.vertexModule, nullptr );
+  vkDestroyShaderModule( m_pVkContext->device->getLogicalDevice(), spec.fragmentModule, nullptr );
 }
 
 void graphics::VulkanPipeline::bind( VkCommandBuffer& cmd, VkPipelineBindPoint bindPoint ) const

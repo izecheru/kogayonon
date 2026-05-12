@@ -1,0 +1,123 @@
+#include "utilities/shader_compiler/shader_compiler.hpp"
+#include "utilities/utils/utils.hpp"
+#include <spdlog/spdlog.h>
+
+utilities::ShaderCompiler::ShaderCompiler()
+{
+  SlangGlobalSessionDesc desc{};
+  desc.structureSize = sizeof( desc );
+  desc.apiVersion = SLANG_API_VERSION;
+  desc.minLanguageVersion = SLANG_LANGUAGE_VERSION_2025;
+  desc.enableGLSL = true;
+
+  auto res = slang::createGlobalSession( &desc, m_globalSession.writeRef() );
+  assert( res == 0 && "could not initialize shader compiler" );
+}
+
+utilities::ShaderCompiler::~ShaderCompiler()
+{
+  m_globalSession->release();
+}
+
+auto utilities::ShaderCompiler::compileShaderFromSource( const std::string& shaderName ) -> ShaderObject
+{
+  ShaderObject obj{};
+  auto slangTargets{ std::to_array<slang::TargetDesc>(
+    { { .format{ SLANG_SPIRV }, .profile{ m_globalSession->findProfile( "spirv_1_5" ) } } } ) };
+
+  auto slangOptions{ std::to_array<slang::CompilerOptionEntry>(
+    { { slang::CompilerOptionName::EmitSpirvDirectly, { slang::CompilerOptionValueKind::Int, 1 } },
+      { slang::CompilerOptionName::MatrixLayoutColumn, { slang::CompilerOptionValueKind::Int, 1 } },
+      { slang::CompilerOptionName::MatrixLayoutRow, { slang::CompilerOptionValueKind::Int, 0 } },
+      { slang::CompilerOptionName::EmitSpirvDirectly, { slang::CompilerOptionValueKind::Int, 1 } } } ) };
+
+  const auto shaderPath = ( std::filesystem::absolute( "." ) / "engine_resources" / "shaders" ).string();
+
+  const char* searchPaths[] = { shaderPath.c_str() };
+
+  slang::SessionDesc slangSessionDesc{ .targets{ slangTargets.data() },
+                                       .targetCount{ SlangInt( slangTargets.size() ) },
+                                       .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
+                                       .searchPaths = searchPaths,
+                                       .searchPathCount = 1,
+                                       .compilerOptionEntries{ slangOptions.data() },
+                                       .compilerOptionEntryCount{ uint32_t( slangOptions.size() ) } };
+
+  Slang::ComPtr<slang::ISession> session;
+
+  auto res = m_globalSession->createSession( slangSessionDesc, session.writeRef() );
+
+  if ( SLANG_FAILED( res ) )
+  {
+    KOGAYONON_ERR( "Failed to create Slang session" );
+    return obj;
+  }
+
+  Slang::ComPtr<slang::IModule> slangModule;
+  {
+    Slang::ComPtr<slang::IBlob> diagnosticsBlob;
+    slangModule = session->loadModule( shaderName.c_str(), diagnosticsBlob.writeRef() );
+
+    if ( !slangModule )
+    {
+      KOGAYONON_ERR( (const char*)diagnosticsBlob->getBufferPointer() );
+      throw std::runtime_error( "Could not load slang module" );
+    }
+  }
+
+  Slang::ComPtr<slang::IEntryPoint> entryPoint;
+  slangModule->findEntryPointByName( "main", entryPoint.writeRef() );
+
+  slang::IComponentType* components[] = { slangModule.get(), entryPoint.get() };
+  Slang::ComPtr<slang::IComponentType> composedProgram;
+  session->createCompositeComponentType( components, 2, composedProgram.writeRef() );
+
+  Slang::ComPtr<slang::IBlob> diagnosticsBlob;
+  composedProgram->getLayout()->getEntryPointByIndex( 0 );
+
+  res = composedProgram->getEntryPointCode( 0, 0, obj.code.writeRef(), diagnosticsBlob.writeRef() );
+
+  if ( SLANG_FAILED( res ) )
+  {
+    if ( diagnosticsBlob )
+    {
+      KOGAYONON_ERR( (const char*)diagnosticsBlob->getBufferPointer() );
+    }
+    throw std::runtime_error( "Failed to compile entry point to SPIR-V" );
+  }
+
+  return obj;
+}
+
+auto utilities::ShaderCompiler::readFile( const std::string& filePath ) -> std::vector<char>
+{
+  std::ifstream file( filePath, std::ios::ate | std::ios::binary );
+
+  if ( !file.is_open() )
+  {
+    throw std::runtime_error( "failed to open shader file!\n" );
+  }
+  size_t fileSize = (size_t)file.tellg();
+  std::vector<char> buffer( fileSize );
+  file.seekg( 0 );
+  file.read( buffer.data(), fileSize );
+  file.close();
+
+  return buffer;
+}
+
+auto utilities::ShaderCompiler::createShaderModule( ShaderObject& obj, VkDevice device ) -> VkShaderModule
+{
+  VkShaderModuleCreateInfo createInfo{
+    .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+    .codeSize = obj.code->getBufferSize(),
+    .pCode = reinterpret_cast<const uint32_t*>( obj.code->getBufferPointer() ),
+  };
+
+  VkShaderModule shaderModule{};
+  if ( ( vkCreateShaderModule( device, &createInfo, nullptr, &shaderModule ) != VK_SUCCESS ) )
+  {
+    throw std::runtime_error( "could not create shader module" );
+  }
+  return shaderModule;
+}

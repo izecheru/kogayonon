@@ -2,10 +2,10 @@
 #define VMA_STATIC_VULKAN_FUNCTIONS 1
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
 #define VMA_VULKAN_VERSION 1004000
-#include <vk_mem_alloc.h>
-#include <vulkan/vulkan.h>
 #include "graphics/vulkan_buffer.hpp"
 #include "precompiled/pch.hpp"
+#include <vk_mem_alloc.h>
+#include <vulkan/vulkan.h>
 
 namespace graphics
 {
@@ -16,8 +16,17 @@ public:
   explicit VulkanMemoryAllocator( VkDevice& device, VkInstance& instance, VkPhysicalDevice& physicalDevice );
   ~VulkanMemoryAllocator();
 
-  void createBuffer( VulkanBuffer& vulkanBuffer, VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& usage );
-  auto createStagingBuffer( VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& usage ) -> VulkanBuffer;
+  void createBuffer( GpuBuffer& vulkanBuffer,
+                     VkBufferCreateInfo& createInfo,
+                     VmaAllocationCreateInfo& usage,
+                     bool mapBuffer );
+
+  void createBuffers( FrameInFlightBuffer& vulkanBuffer,
+                      VkBufferCreateInfo& createInfo,
+                      VmaAllocationCreateInfo& usage,
+                      bool mapBuffer );
+
+  auto createStagingBuffer( VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& usage ) -> GpuBuffer;
 
   void createImage( VkImage& image,
                     VkImageCreateInfo& imageCreateInfo,
@@ -27,6 +36,9 @@ public:
   auto getAllocator() -> VmaAllocator&;
 
   void deallocate();
+
+private: // Funcs
+  auto formatSize( VkDeviceSize size ) -> std::string;
 
 private:
   VmaVulkanFunctions m_vulkanFunctions;

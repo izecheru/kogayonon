@@ -1,9 +1,9 @@
 #include "core/asset_manager/cgltf_loader.hpp"
-#include <glm/gtc/type_ptr.hpp>
-#include <spdlog/spdlog.h>
 #include "resources/mesh.hpp"
 #include "resources/skeleton.hpp"
 #include "resources/texture.hpp"
+#include <glm/gtc/type_ptr.hpp>
+#include <spdlog/spdlog.h>
 
 using namespace resources;
 
@@ -84,9 +84,8 @@ void core::CgltfLoader::loadMesh( const std::string& path, resources::Mesh* m, s
 
         localVertices.emplace_back(
           resources::Vertex{ .translation = localPositions[j],
-                             .uvX = uvX,
                              .normal = ( j < localNormals.size() ) ? localNormals[j] : glm::vec3{ 0.0f },
-                             .uvY = uvY } );
+                             .uv = { uvX, uvY } } );
       }
 
       uint32_t vertexOffset = static_cast<uint32_t>( vertices.size() );

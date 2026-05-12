@@ -1,7 +1,7 @@
 #pragma once
+#include "precompiled/pch.hpp"
 #include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>
-#include "precompiled/pch.hpp"
 
 /**
  * @brief Got this from here https://gist.github.com/Pikachuxxxx/1bfb4a5eca2593fbf0dc409953ad9bde
@@ -124,17 +124,6 @@ static auto readFile( const std::string& filePath ) -> std::vector<char>
   file.close();
 
   return buffer;
-}
-
-static auto createShaderModule( const std::vector<char>& code, VkDevice& device ) -> VkShaderModule
-{
-  VkShaderModuleCreateInfo createInfo{};
-  createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  createInfo.codeSize = code.size();
-  createInfo.pCode = reinterpret_cast<const uint32_t*>( code.data() );
-  VkShaderModule shaderModule;
-  VK_CALL( vkCreateShaderModule( device, &createInfo, nullptr, &shaderModule ) );
-  return shaderModule;
 }
 
 static auto findSupportedFormat( VkPhysicalDevice* device,

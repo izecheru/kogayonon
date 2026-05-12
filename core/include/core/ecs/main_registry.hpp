@@ -5,7 +5,7 @@
 namespace utilities
 {
 class TaskManager;
-class ShaderManager;
+class ShaderCompiler;
 class TimeTracker;
 } // namespace utilities
 
@@ -85,9 +85,9 @@ public:
     return getContext<std::shared_ptr<utilities::TimeTracker>>();
   }
 
-  auto getShaderManager() -> std::shared_ptr<utilities::ShaderManager>&
+  auto getShaderManager() -> std::shared_ptr<utilities::ShaderCompiler>&
   {
-    return getContext<std::shared_ptr<utilities::ShaderManager>>();
+    return getContext<std::shared_ptr<utilities::ShaderCompiler>>();
   }
 
   auto getScriptingSystem() -> std::shared_ptr<core::ScriptingSystem>&
