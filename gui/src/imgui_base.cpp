@@ -1,30 +1,40 @@
 #include "gui/imgui_windows/imgui_base.hpp"
 
 gui::ImGuiWindow::ImGuiWindow( std::string name )
-    : m_props{ std::make_unique<imgui_props>( name ) }
+    : m_props{ std::make_unique<ImGuiProps>( name ) }
 {
 }
 
 gui::ImGuiWindow::ImGuiWindow( std::string name, ImGuiWindowFlags flags )
-    : m_props{ std::make_unique<imgui_props>( name, flags ) }
+    : m_props{ std::make_unique<ImGuiProps>( name, flags ) }
 {
 }
 
 gui::ImGuiWindow::ImGuiWindow( std::string name, ImGuiWindowFlags flags, ImVec2 size )
-    : m_props{ std::make_unique<imgui_props>( name, flags, size ) }
+    : m_props{ std::make_unique<ImGuiProps>( name, flags, size ) }
 
 {
   ImGui::SetWindowSize( size );
 }
 
 gui::ImGuiWindow::ImGuiWindow( std::string name, ImVec2 size )
-    : m_props{ std::make_unique<imgui_props>( name, size ) }
+    : m_props{ std::make_unique<ImGuiProps>( name, size ) }
 {
+}
+
+void gui::ImGuiWindow::render()
+{
+  throw std::runtime_error( "Please provide an implementation for this func <3" );
 }
 
 std::string gui::ImGuiWindow::getName() const
 {
   return m_props->name;
+}
+
+auto gui::ImGuiWindow::getProps() -> ImGuiProps*
+{
+  return m_props.get();
 }
 
 void gui::ImGuiWindow::hide()
@@ -57,14 +67,6 @@ void gui::ImGuiWindow::updateSize()
   m_props->width = static_cast<int>( size.x );
 }
 
-void gui::ImGuiWindow::setBounds()
-{
-  // auto max = ImGui::GetWindowContentRegionMax();
-  // auto min = ImGui::GetWindowContentRegionMin();
-  // m_props->bounds.bottomRight = ImVec2{ max.x + m_props->x, max.y + m_props->y };
-  // m_props->bounds.topLeft = ImVec2{ min.x + m_props->x, min.y + m_props->y };
-}
-
 void gui::ImGuiWindow::updateFocused()
 {
   m_props->focused = ImGui::IsWindowFocused();
@@ -80,7 +82,7 @@ void gui::ImGuiWindow::setDocked()
   m_props->hovered = ImGui::IsWindowDocked();
 }
 
-void gui::ImGuiWindow::initProps()
+void gui::ImGuiWindow::updateProps()
 {
   updatePosition();
   updateSize();
@@ -99,7 +101,7 @@ bool gui::ImGuiWindow::begin()
     return false;
   }
 
-  initProps();
+  updateProps();
   return true;
 }
 

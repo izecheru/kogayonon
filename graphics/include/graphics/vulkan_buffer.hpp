@@ -5,7 +5,7 @@
 
 namespace graphics
 {
-struct GpuBuffer
+struct VulkanBuffer
 {
   VkBuffer vkBuffer{ VK_NULL_HANDLE };
   VmaAllocation allocation{ nullptr };
@@ -36,9 +36,9 @@ struct GpuBuffer
  * same time and to avoid overwriting information, we just index into the currentFrameIndex variable from the swapchain
  * to avoid that so we got ourselves a simple sync mechanism
  */
-struct FrameInFlightBuffer
+struct FrameInFlightVulkanBuffer
 {
-  std::array<GpuBuffer, MAX_FRAMES_IN_FLIGHT> buffers;
+  std::array<VulkanBuffer, MAX_FRAMES_IN_FLIGHT> buffers;
 };
 
 } // namespace graphics

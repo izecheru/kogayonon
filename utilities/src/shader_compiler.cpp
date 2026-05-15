@@ -2,7 +2,8 @@
 #include "utilities/utils/utils.hpp"
 #include <spdlog/spdlog.h>
 
-utilities::ShaderCompiler::ShaderCompiler()
+utilities::ShaderCompiler::ShaderCompiler( VkDevice d )
+    : m_pDevice{ d }
 {
   SlangGlobalSessionDesc desc{};
   desc.structureSize = sizeof( desc );
@@ -23,7 +24,7 @@ auto utilities::ShaderCompiler::compileShaderFromSource( const std::string& shad
 {
   ShaderObject obj{};
   auto slangTargets{ std::to_array<slang::TargetDesc>(
-    { { .format{ SLANG_SPIRV }, .profile{ m_globalSession->findProfile( "spirv_1_5" ) } } } ) };
+    { { .format{ SLANG_SPIRV }, .profile{ m_globalSession->findProfile( "spirv_1_6" ) } } } ) };
 
   auto slangOptions{ std::to_array<slang::CompilerOptionEntry>(
     { { slang::CompilerOptionName::EmitSpirvDirectly, { slang::CompilerOptionValueKind::Int, 1 } },
@@ -106,8 +107,10 @@ auto utilities::ShaderCompiler::readFile( const std::string& filePath ) -> std::
   return buffer;
 }
 
-auto utilities::ShaderCompiler::createShaderModule( ShaderObject& obj, VkDevice device ) -> VkShaderModule
+auto utilities::ShaderCompiler::createShaderModule( const std::string& shaderName ) -> VkShaderModule
 {
+  auto obj = compileShaderFromSource( shaderName );
+
   VkShaderModuleCreateInfo createInfo{
     .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
     .codeSize = obj.code->getBufferSize(),
@@ -115,7 +118,7 @@ auto utilities::ShaderCompiler::createShaderModule( ShaderObject& obj, VkDevice 
   };
 
   VkShaderModule shaderModule{};
-  if ( ( vkCreateShaderModule( device, &createInfo, nullptr, &shaderModule ) != VK_SUCCESS ) )
+  if ( ( vkCreateShaderModule( m_pDevice, &createInfo, nullptr, &shaderModule ) != VK_SUCCESS ) )
   {
     throw std::runtime_error( "could not create shader module" );
   }

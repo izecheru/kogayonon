@@ -1,5 +1,3 @@
-#version 460
-
 struct FragmentInput
 {
   float4 position : SV_Position;
@@ -26,7 +24,7 @@ struct PushConstant
 };
 
 [[vk::binding( 0, 1 )]]
-Sampler2D inBindlessTextures[];
+Sampler2D bindlessTextures[];
 
 [[vk::push_constant]]
 PushConstant push;
@@ -51,11 +49,10 @@ FragmentOutput main( FragmentInput input )
 
   if ( material.diffuseIndex != -1 )
   {
-    diffuseColor = inBindlessTextures[NonUniformResourceIndex( material.diffuseIndex )].Sample( input.fragTexCoord );
+    diffuseColor = bindlessTextures[NonUniformResourceIndex( material.diffuseIndex )].Sample( input.fragTexCoord );
   }
 
-  output.outColor = vec4( diffuseColor );
-  // output.outColor = float4( 1.0f, 1.0f, 1.0f, 0.5f );
+  output.outColor = float4( diffuseColor );
   return output;
 }
 

@@ -16,17 +16,18 @@ public:
   explicit VulkanMemoryAllocator( VkDevice& device, VkInstance& instance, VkPhysicalDevice& physicalDevice );
   ~VulkanMemoryAllocator();
 
-  void createBuffer( GpuBuffer& vulkanBuffer,
-                     VkBufferCreateInfo& createInfo,
-                     VmaAllocationCreateInfo& usage,
-                     bool mapBuffer );
+  void createBuffer( VulkanBuffer& vulkanBuffer, VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& usage );
 
-  void createBuffers( FrameInFlightBuffer& vulkanBuffer,
+  void createBuffers( FrameInFlightVulkanBuffer& vulkanBuffer,
                       VkBufferCreateInfo& createInfo,
-                      VmaAllocationCreateInfo& usage,
-                      bool mapBuffer );
+                      VmaAllocationCreateInfo& usage );
 
-  auto createStagingBuffer( VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& usage ) -> GpuBuffer;
+  auto createStagingBuffer( VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& usage ) -> VulkanBuffer;
+
+  void mapBuffer( VulkanBuffer& vulkanBuffer ) const;
+  void mapBuffer( FrameInFlightVulkanBuffer& vulkanBuffer ) const;
+  void unmapBuffer( VulkanBuffer& vulkanBuffer ) const;
+  void unmapBuffer( FrameInFlightVulkanBuffer& vulkanBuffer ) const;
 
   void createImage( VkImage& image,
                     VkImageCreateInfo& imageCreateInfo,

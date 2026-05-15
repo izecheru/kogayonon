@@ -1,7 +1,8 @@
 #pragma once
-#include <vulkan/vulkan.h>
 #include "graphics/vulkan_defines.hpp"
 #include "precompiled/pch.hpp"
+#include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 namespace graphics
 {
@@ -10,6 +11,12 @@ class VulkanDevice;
 
 struct QueueFamilyIndices;
 struct SDL_Window;
+
+struct RectangularExtent
+{
+  glm::vec2 start{ 0.0f };
+  glm::vec2 end{ 0.0f };
+};
 
 struct SwapchainImage
 {
@@ -72,6 +79,9 @@ public:
 
   void setupViewport( VkCommandBuffer& cmd );
   void setupScissors( VkCommandBuffer& cmd );
+
+  void setupViewport( VkCommandBuffer& cmd, const RectangularExtent& extent );
+  void setupScissors( VkCommandBuffer& cmd, const RectangularExtent& extent );
 
 private:
   void destroy();

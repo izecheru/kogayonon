@@ -29,6 +29,7 @@ gui::Viewport::Viewport( SDL_Window* mainWindow, const std::string& name, const 
   auto& pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
   pEventDispatcher->addHandler<core::SelectEntityEvent, &Viewport::onSelectedEntity>( *this );
   pEventDispatcher->addHandler<core::KeyPressedEvent, &Viewport::onKeyPressed>( *this );
+  // pEventDispatcher->addHandler<core::MouseClickedEvent, &Viewport::onMouseClicked>( *this );
 }
 
 void gui::Viewport::render()

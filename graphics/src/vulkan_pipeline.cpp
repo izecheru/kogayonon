@@ -117,7 +117,7 @@ graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, Vulkan
   VkPipelineRenderingCreateInfo renderingInfo{};
   renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
   renderingInfo.colorAttachmentCount = 1;
-  renderingInfo.pColorAttachmentFormats = &m_pVkContext->swapchain->getSwapchainImageFormat();
+  renderingInfo.pColorAttachmentFormats = &m_spec.colorAttachmentFormat;
   renderingInfo.depthAttachmentFormat = findDepthFormat( &m_pVkContext->device->getPhysicalDevice() );
   renderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
@@ -150,9 +150,6 @@ graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, Vulkan
 
   VK_CALL( vkCreateGraphicsPipelines(
     m_pVkContext->device->getLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline ) );
-
-  vkDestroyShaderModule( m_pVkContext->device->getLogicalDevice(), spec.vertexModule, nullptr );
-  vkDestroyShaderModule( m_pVkContext->device->getLogicalDevice(), spec.fragmentModule, nullptr );
 }
 
 void graphics::VulkanPipeline::bind( VkCommandBuffer& cmd, VkPipelineBindPoint bindPoint ) const

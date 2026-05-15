@@ -11,20 +11,14 @@ namespace graphics
 
 enum PipelineType
 {
-  GEOMETRY_BASIC
+  GEOMETRY_BASIC,
+  PICKING
 };
 
 enum VulkanAttachmentType
 {
   DEPTH,
   COLOR
-};
-
-struct VulkanPipelineAttachmentData
-{
-  VulkanAttachmentType type;
-  uint32_t count{ 0u };
-  std::vector<VkRenderingAttachmentInfo> attachment;
 };
 
 /**
@@ -42,10 +36,6 @@ struct VulkanPipelineOptions
 
   // For wireframe
   float lineWidth{ 1.0f };
-
-  // Color and depth attachment data
-  VulkanPipelineAttachmentData colorAttachmentData;
-  VulkanPipelineAttachmentData depthAttachmentData;
 };
 
 struct VulkanPipelineSpec
@@ -53,6 +43,8 @@ struct VulkanPipelineSpec
   PipelineType type;
   VulkanPipelineOptions options;
   std::vector<VkDescriptorSetLayout> descriptorLayout;
+
+  VkFormat colorAttachmentFormat;
 
   VkShaderModule vertexModule;
   VkShaderModule fragmentModule;

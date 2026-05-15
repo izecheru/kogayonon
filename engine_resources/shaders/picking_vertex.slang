@@ -10,34 +10,32 @@ struct VertexInput
 struct VertexOut
 {
   float4 position : SV_Position;
-  float2 fragTexCoord : TEXCOORD0;
 };
-
-[[vk::binding( 0, 0 )]]
-ConstantBuffer<Camera> camera;
 
 struct PushConstant
 {
   float4x4 modelMatrix;
-  int materialIndex;
+  uint32_t entityId;
 };
 
 [[vk::push_constant]]
 PushConstant push;
 
-[shader( "vertex" )]
-VertexOut main( VertexInput input )
-{
-  VertexOut output;
+[[vk::binding( 0, 0 )]]
+ConstantBuffer<Camera> camera;
 
-  float4 pos = float4( input.position, 1.0 );
+[shader( "vertex" )]
+VertexOut main( VertexInput vertexInput )
+{
+  VertexOut vertexOutput;
+
+  float4 pos = float4( vertexInput.position, 1.0 );
   pos = mul( push.modelMatrix, pos );
   pos = mul( camera.view, pos );
   pos = mul( camera.projection, pos );
 
-  output.position = pos;
-  output.fragTexCoord = input.uv;
+  vertexOutput.position = pos;
 
-  return output;
+  return vertexOutput;
 }
 

@@ -78,7 +78,7 @@ private:
   // Events
   void onSelectedEntity( const core::SelectEntityEvent& e );
   // void onMouseMoved( const kogayonon_core::MouseMovedEvent& e );
-  // void onMouseClicked( const kogayonon_core::MouseClickedEvent& e );
+  // void onMouseClicked( const core::MouseClickedEvent& e );
   void onKeyPressed( const core::KeyPressedEvent& e );
   // void onMouseScrolled( const kogayonon_core::MouseScrolledEvent& e );
 

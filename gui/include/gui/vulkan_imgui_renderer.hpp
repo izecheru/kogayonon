@@ -1,6 +1,6 @@
 #pragma once
-#include <vulkan/vulkan.h>
 #include "precompiled/pch.hpp"
+#include <vulkan/vulkan.h>
 
 struct SDL_Window;
 struct ImGuiViewport;
@@ -18,6 +18,18 @@ namespace utilities
 {
 struct ColorConfig;
 }
+
+namespace gui
+{
+enum class ImGuiWindowName
+{
+  File_Explorer,
+  // If we have multiple viewports we change from map<enum,pWindow> to map<enum,vector<pWindow>> or smth
+  Viewport,
+  Scene_Hierarchy,
+  Entity_Properties
+};
+} // namespace gui
 
 namespace gui
 {
@@ -43,6 +55,9 @@ public:
   void render();
   void present( VkCommandBuffer& buffer );
 
+  auto getImGuiWindows() -> std::unordered_map<ImGuiWindowName, std::unique_ptr<ImGuiWindow>>&;
+
+  // Used to pass the rendered output to a texture and display it in the viewport window
   void setViewport( VkImageView& viewportView );
 
 private:
@@ -76,7 +91,7 @@ private:
 
   VkDescriptorPool m_descriptorPool;
   graphics::VulkanDevice* m_device;
-  std::unordered_map<std::string, std::unique_ptr<ImGuiWindow>> m_windows;
+  std::unordered_map<ImGuiWindowName, std::unique_ptr<ImGuiWindow>> m_windows;
   VkSampler m_iconSampler;
   Popups m_popups;
 

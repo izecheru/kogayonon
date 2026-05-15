@@ -1,10 +1,10 @@
 #include "graphics/vulkan_swapchain.hpp"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
-#include <spdlog/spdlog.h>
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_device.hpp"
 #include "precompiled/pch.hpp"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
+#include <spdlog/spdlog.h>
 
 auto graphics::VulkanSwapchain::querySwapchainSupport() -> SwapchainSupportDetails
 {
@@ -168,15 +168,30 @@ auto graphics::VulkanSwapchain::getSwapchainImageFormat() -> VkFormat&
 
 void graphics::VulkanSwapchain::setupViewport( VkCommandBuffer& cmd )
 {
-
   VkViewport viewport{ 0, 0, (float)m_swapchainExtent.width, (float)m_swapchainExtent.height, 0.0f, 1.0f };
+  vkCmdSetViewport( cmd, 0, 1, &viewport );
+}
+
+void graphics::VulkanSwapchain::setupViewport( VkCommandBuffer& cmd, const RectangularExtent& extent )
+{
+  VkViewport viewport{ extent.start.x,
+                       extent.start.y,
+                       static_cast<float>( extent.end.x - extent.start.x ),
+                       static_cast<float>( extent.end.y - extent.start.y ),
+                       0.0f,
+                       1.0f };
   vkCmdSetViewport( cmd, 0, 1, &viewport );
 }
 
 void graphics::VulkanSwapchain::setupScissors( VkCommandBuffer& cmd )
 {
-
   VkRect2D scissor{ { 0, 0 }, m_swapchainExtent };
+  vkCmdSetScissor( cmd, 0, 1, &scissor );
+}
+
+void graphics::VulkanSwapchain::setupScissors( VkCommandBuffer& cmd, const RectangularExtent& extent )
+{
+  VkRect2D scissor{ { extent.start.x, extent.start.y }, { extent.end.x, extent.end.y } };
   vkCmdSetScissor( cmd, 0, 1, &scissor );
 }
 

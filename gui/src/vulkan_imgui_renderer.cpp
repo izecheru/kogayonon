@@ -1,12 +1,4 @@
 #include "gui/vulkan_imgui_renderer.hpp"
-#include <SDL2/SDL.h>
-#include <glm/gtc/type_ptr.hpp>
-
-#include <imgui.h>
-#include <imgui_impl_sdl2.h>
-#include <imgui_impl_vulkan.h>
-#include <imgui_internal.h>
-#include <imgui_stdlib.h>
 #include "core/asset_manager/asset_manager.hpp"
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_device.hpp"
@@ -20,6 +12,13 @@
 #include "resources/texture.hpp"
 #include "utilities/config_manager/config_manager.hpp"
 #include "utilities/fonts/materialdesign.hpp"
+#include <SDL2/SDL.h>
+#include <glm/gtc/type_ptr.hpp>
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_vulkan.h>
+#include <imgui_internal.h>
+#include <imgui_stdlib.h>
 
 #include <ImGuizmo.h>
 
@@ -337,7 +336,7 @@ void gui::VulkanImguiRenderer::initWindows()
     ImGui_ImplVulkan_AddTexture( m_iconSampler, gltfTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
   m_windows.emplace(
-    "File explorer",
+    ImGuiWindowName::File_Explorer,
     std::make_unique<FileExplorerWindow>( ICON_MDI_FOLDER_SEARCH "File explorer",
                                           FileExplorerSpec{ .fonts = &m_fonts,
                                                             .iconGenericFolder = std::move( folder ),
@@ -363,7 +362,7 @@ void gui::VulkanImguiRenderer::initWindows()
   auto renderMode = ImGui_ImplVulkan_AddTexture(
     m_iconSampler, renderModeTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
-  m_windows.emplace( "Viewport",
+  m_windows.emplace( ImGuiWindowName::Viewport,
                      std::make_unique<Viewport>( m_wnd,
                                                  ICON_MDI_AXIS "Viewport",
                                                  ViewportSpec{ .fonts = &m_fonts,
@@ -380,12 +379,12 @@ void gui::VulkanImguiRenderer::initWindows()
     m_iconSampler, hierarchyCubeIconTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
   m_windows.emplace(
-    "Hierarchy",
+    ImGuiWindowName::Scene_Hierarchy,
     std::make_unique<SceneHierarchy>( ICON_MDI_LIST_BOX "Hierarchy",
                                       SceneHierarchySpec{ .fonts = &m_fonts, .cubeIcon = std::move( cubeIcon ) } ) );
 
   m_windows.emplace(
-    "EntityProperties",
+    ImGuiWindowName::Entity_Properties,
     std::make_unique<EntityProperties>( ICON_MDI_ADJUST "Properties", EntityPropertiesSpec{ .fonts = &m_fonts } ) );
 }
 
@@ -1112,4 +1111,9 @@ void gui::VulkanImguiRenderer::changeColorConfig()
 void gui::VulkanImguiRenderer::setViewport( VkImageView& viewportView )
 {
   m_viewportView = viewportView;
+}
+
+auto gui::VulkanImguiRenderer::getImGuiWindows() -> std::unordered_map<ImGuiWindowName, std::unique_ptr<ImGuiWindow>>&
+{
+  return m_windows;
 }

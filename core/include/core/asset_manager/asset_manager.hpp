@@ -8,6 +8,8 @@
 #include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 
+#define MAX_TEXTURE_SUPPORT 1000
+
 namespace graphics
 {
 struct VulkanContext;
@@ -121,13 +123,13 @@ public:
 
 private:
   /**
-   * @brief Uses the vertices GpuBuffer of a mesh to fill it up with Vertex data from model file
+   * @brief Uses the vertices VulkanBuffer of a mesh to fill it up with Vertex data from model file
    * @param pMesh Pointer to the mesh
    */
   void createVertexBuffer( resources::Mesh* pMesh );
 
   /**
-   * @brief Uses the indices GpuBuffer of a mesh to fill it up with uint32_t indices data from model file
+   * @brief Uses the indices VulkanBuffer of a mesh to fill it up with uint32_t indices data from model file
    * @param pMesh Pointer to the mesh
    */
   void createIndexBuffer( resources::Mesh* pMesh );
@@ -192,7 +194,7 @@ private:
 
   VkDescriptorSetLayout m_materialsDescriptorSetLayout;
   std::vector<VkDescriptorSet> m_materialsDescriptorSets;
-  graphics::FrameInFlightBuffer m_materialsBuffer;
+  graphics::FrameInFlightVulkanBuffer m_materialsBuffer;
   std::vector<resources::Material> m_materials;
 
   std::unordered_map<std::string, std::shared_ptr<resources::Texture>> m_loadedTextures;

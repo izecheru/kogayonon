@@ -1,6 +1,6 @@
 #pragma once
-#include <entt/entt.hpp>
 #include "core/event/event.hpp"
+#include <entt/entt.hpp>
 
 namespace core
 {

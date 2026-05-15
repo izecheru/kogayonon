@@ -9,30 +9,26 @@ namespace core
 class MouseEnteredEvent : public IEvent
 {
 public:
-  explicit MouseEnteredEvent( const int entered )
-      : m_entered( entered )
+  explicit MouseEnteredEvent( const bool entered )
+      : m_entered{ entered }
   {
   }
 
-  int hasEntered() const
+  bool hasEntered() const
   {
     return m_entered;
   }
 
 private:
-  int m_entered;
+  bool m_entered;
 };
 
 class MouseMovedEvent : public IEvent
 {
-private:
-  double m_mouse_x;
-  double m_mouse_y;
-
 public:
   MouseMovedEvent( const double x, const double y, const double xRel, const double yRel )
-      : m_mouse_x{ x }
-      , m_mouse_y{ y }
+      : m_mouseX{ x }
+      , m_mouseY{ y }
       , m_xRel{ xRel }
       , m_yRel{ yRel }
   {
@@ -40,12 +36,12 @@ public:
 
   inline double getX() const
   {
-    return m_mouse_x;
+    return m_mouseX;
   }
 
   inline double getY() const
   {
-    return m_mouse_y;
+    return m_mouseY;
   }
 
   inline double getXRel() const
@@ -59,34 +55,37 @@ public:
   }
 
 private:
+  double m_mouseX;
+  double m_mouseY;
   double m_xRel;
   double m_yRel;
 };
 
 class MouseClickedEvent : public IEvent
 {
-private:
-  MouseCode m_button;
-  MouseAction m_action;
-  MouseModifier m_mods;
 
 public:
   MouseClickedEvent( int button, int action, int mods )
-      : m_button( MouseCode( button ) )
-      , m_action( MouseAction( action ) )
-      , m_mods( MouseModifier( mods ) )
+      : m_button{ static_cast<utilities::MouseCode>( button ) }
+      , m_action{ static_cast<utilities::MouseAction>( action ) }
+      , m_mods{ static_cast<utilities::MouseModifier>( mods ) }
   {
   }
 
-  MouseCode getButton() const
+  utilities::MouseCode getButton() const
   {
     return m_button;
   }
 
-  MouseAction getAction() const
+  utilities::MouseAction getAction() const
   {
     return m_action;
   }
+
+private:
+  utilities::MouseCode m_button;
+  utilities::MouseAction m_action;
+  utilities::MouseModifier m_mods;
 };
 
 class MouseScrolledEvent : public IEvent
@@ -97,8 +96,8 @@ private:
 
 public:
   MouseScrolledEvent( double t_x_offset, double t_y_offset )
-      : m_x_offset( t_x_offset )
-      , m_y_offset( t_y_offset )
+      : m_x_offset{ t_x_offset }
+      , m_y_offset{ t_y_offset }
   {
   }
 

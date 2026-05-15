@@ -1,9 +1,50 @@
 #pragma once
-#include <imgui.h>
 #include "precompiled/pch.hpp"
+#include <imgui.h>
 
 namespace gui
 {
+struct ImGuiProps
+{
+  std::string name;
+  double x{ 0.0 };
+  double y{ 0.0 };
+  int width{ 0 };
+  int height{ 0 };
+  bool canMove{ true };
+  bool visible{ true };
+  bool docked{ false };
+  bool hovered{ false };
+  bool resizable{ false };
+  bool focused{ false };
+  ImGuiWindowFlags flags{ 0 };
+  ImVec2 size{ 0.0f, 0.0f };
+
+  explicit ImGuiProps( std::string t_name )
+      : name{ std::move( t_name ) }
+  {
+  }
+
+  explicit ImGuiProps( std::string t_name, ImGuiWindowFlags t_flags )
+      : name{ t_name }
+      , flags{ t_flags }
+  {
+  }
+
+  explicit ImGuiProps( std::string t_name, ImGuiWindowFlags t_flags, ImVec2 size )
+      : name{ t_name }
+      , flags{ t_flags }
+      , size{ size }
+  {
+  }
+
+  explicit ImGuiProps( std::string t_name, ImVec2 size )
+      : name{ t_name }
+      , size{ size }
+  {
+  }
+};
+
 class ImGuiWindow
 {
 public:
@@ -13,9 +54,10 @@ public:
   explicit ImGuiWindow( std::string name, ImVec2 size );
   virtual ~ImGuiWindow() = default;
 
-  virtual void render() = 0;
+  virtual void render();
 
-  std::string getName() const;
+  auto getName() const -> std::string;
+  auto getProps() -> ImGuiProps*;
 
   void hide();
   void show();
@@ -26,7 +68,6 @@ public:
 
   virtual void updatePosition();
   virtual void updateSize();
-  virtual void setBounds();
 
   virtual bool begin();
   virtual void end();
@@ -34,59 +75,9 @@ public:
   /**
    * @brief Sets up width, height, x, y when called
    */
-  virtual void initProps();
-
-  int width();
-  int height();
+  virtual void updateProps();
 
 protected:
-  struct imgui_props
-  {
-    std::string name;
-    double x{ 0.0 };
-    double y{ 0.0 };
-    int width{ 0 };
-    int height{ 0 };
-    bool canMove{ true };
-    bool visible{ true };
-    bool docked{ false };
-    bool hovered{ false };
-    bool resizable{ false };
-    bool focused{ false };
-    ImGuiWindowFlags flags{ 0 };
-    ImVec2 size{ 0.0f, 0.0f };
-
-    struct
-    {
-      ImVec2 topLeft{ 0.0f, 0.0f };
-      ImVec2 bottomRight{ 0.0f, 0.0f };
-    } bounds;
-
-    explicit imgui_props( std::string t_name )
-        : name{ std::move( t_name ) }
-    {
-    }
-
-    explicit imgui_props( std::string t_name, ImGuiWindowFlags t_flags )
-        : name{ t_name }
-        , flags{ t_flags }
-    {
-    }
-
-    explicit imgui_props( std::string t_name, ImGuiWindowFlags t_flags, ImVec2 size )
-        : name{ t_name }
-        , flags{ t_flags }
-        , size{ size }
-    {
-    }
-
-    explicit imgui_props( std::string t_name, ImVec2 size )
-        : name{ t_name }
-        , size{ size }
-    {
-    }
-  };
-
-  std::unique_ptr<imgui_props> m_props = nullptr;
+  std::unique_ptr<ImGuiProps> m_props;
 };
 } // namespace gui

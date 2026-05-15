@@ -28,10 +28,9 @@ graphics::VulkanMemoryAllocator::~VulkanMemoryAllocator()
   vmaDestroyAllocator( m_allocator );
 }
 
-void graphics::VulkanMemoryAllocator::createBuffer( GpuBuffer& vulkanBuffer,
+void graphics::VulkanMemoryAllocator::createBuffer( VulkanBuffer& vulkanBuffer,
                                                     VkBufferCreateInfo& createInfo,
-                                                    VmaAllocationCreateInfo& usage,
-                                                    bool mapBuffer )
+                                                    VmaAllocationCreateInfo& usage )
 {
   VK_CALL(
     vmaCreateBuffer( m_allocator, &createInfo, &usage, &vulkanBuffer.vkBuffer, &vulkanBuffer.allocation, nullptr ) );
@@ -40,12 +39,6 @@ void graphics::VulkanMemoryAllocator::createBuffer( GpuBuffer& vulkanBuffer,
   {
     KOGAYONON_INFO( "Allocating staging buffer: {}", formatSize( static_cast<double>( createInfo.size ) ) );
     return;
-  }
-
-  if ( mapBuffer )
-  {
-    vmaMapMemory( m_allocator, vulkanBuffer.allocation, &vulkanBuffer.mappedData );
-    vulkanBuffer.persistent = true;
   }
 
   KOGAYONON_INFO( "Allocating buffer: {}", formatSize( static_cast<double>( createInfo.size ) ) );
@@ -64,14 +57,13 @@ void graphics::VulkanMemoryAllocator::createBuffer( GpuBuffer& vulkanBuffer,
   } );
 }
 
-void graphics::VulkanMemoryAllocator::createBuffers( FrameInFlightBuffer& vulkanBuffer,
+void graphics::VulkanMemoryAllocator::createBuffers( FrameInFlightVulkanBuffer& vulkanBuffer,
                                                      VkBufferCreateInfo& createInfo,
-                                                     VmaAllocationCreateInfo& usage,
-                                                     bool mapBuffer )
+                                                     VmaAllocationCreateInfo& usage )
 {
   for ( auto& buffer : vulkanBuffer.buffers )
   {
-    createBuffer( buffer, createInfo, usage, mapBuffer );
+    createBuffer( buffer, createInfo, usage );
   }
 }
 
@@ -94,10 +86,10 @@ auto graphics::VulkanMemoryAllocator::getAllocator() -> VmaAllocator&
 }
 
 auto graphics::VulkanMemoryAllocator::createStagingBuffer( VkBufferCreateInfo& createInfo,
-                                                           VmaAllocationCreateInfo& usage ) -> GpuBuffer
+                                                           VmaAllocationCreateInfo& usage ) -> VulkanBuffer
 {
-  GpuBuffer stageBuffer{ .persistent = false, .stagingBuffer = true };
-  createBuffer( stageBuffer, createInfo, usage, false );
+  VulkanBuffer stageBuffer{ .persistent = false, .stagingBuffer = true };
+  createBuffer( stageBuffer, createInfo, usage );
   return stageBuffer;
 }
 
@@ -132,4 +124,34 @@ auto graphics::VulkanMemoryAllocator::formatSize( VkDeviceSize size ) -> std::st
     oss << size << " B";
 
   return oss.str();
+}
+
+void graphics::VulkanMemoryAllocator::mapBuffer( VulkanBuffer& vulkanBuffer ) const
+{
+  vmaMapMemory( m_allocator, vulkanBuffer.allocation, &vulkanBuffer.mappedData );
+  vulkanBuffer.persistent = true;
+}
+
+void graphics::VulkanMemoryAllocator::mapBuffer( FrameInFlightVulkanBuffer& vulkanBuffer ) const
+{
+  for ( auto& buff : vulkanBuffer.buffers )
+  {
+    vmaMapMemory( m_allocator, buff.allocation, &buff.mappedData );
+    buff.persistent = true;
+  }
+}
+
+void graphics::VulkanMemoryAllocator::unmapBuffer( VulkanBuffer& vulkanBuffer ) const
+{
+  vmaUnmapMemory( m_allocator, vulkanBuffer.allocation );
+  vulkanBuffer.persistent = false;
+}
+
+void graphics::VulkanMemoryAllocator::unmapBuffer( FrameInFlightVulkanBuffer& vulkanBuffer ) const
+{
+  for ( auto& buff : vulkanBuffer.buffers )
+  {
+    vmaUnmapMemory( m_allocator, buff.allocation );
+    buff.persistent = false;
+  }
 }

@@ -27,7 +27,7 @@ void gui::SceneHierarchy::render()
 
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
 
-  initProps();
+  updateProps();
 
   auto scene = SceneManager::getCurrentScene().lock();
 
