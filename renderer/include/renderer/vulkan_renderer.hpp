@@ -11,6 +11,8 @@
 
 #define MAX_TEXTURE_NUM 1000
 
+#define PICKING_ENABLED_
+
 struct SDL_Window;
 
 namespace core

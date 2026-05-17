@@ -29,7 +29,9 @@ rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Wi
 
   createCameraDescriptorSetLayout();
   createCameraBuffers();
+#ifdef PICKING_ENABLED
   createPickingBuffers();
+#endif
   createCameraDescriptorSet();
   initImgui();
   initViewports();
@@ -58,6 +60,7 @@ rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Wi
 
   createPipeline( defaultPipelineSpec );
 
+#ifdef PICKING_ENABLED
   auto pickingPipelineSpec = defaultPipelineSpec;
 
   auto pickingVertexModule = m_shaderCompiler.createShaderModule( "picking_vertex" );
@@ -73,12 +76,13 @@ rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Wi
   pickingPipelineSpec.options.depthWriteEnable = VK_FALSE;
 
   createPipeline( pickingPipelineSpec );
+  vkDestroyShaderModule( m_pVkContext->device->getLogicalDevice(), pickingVertexModule, nullptr );
+  vkDestroyShaderModule( m_pVkContext->device->getLogicalDevice(), pickingFragmentModule, nullptr );
+#endif
 
   // Destroy the shader modules after pipeline creation
   vkDestroyShaderModule( m_pVkContext->device->getLogicalDevice(), basicGeometryVertex, nullptr );
   vkDestroyShaderModule( m_pVkContext->device->getLogicalDevice(), basicGeometryFragment, nullptr );
-  vkDestroyShaderModule( m_pVkContext->device->getLogicalDevice(), pickingVertexModule, nullptr );
-  vkDestroyShaderModule( m_pVkContext->device->getLogicalDevice(), pickingFragmentModule, nullptr );
 }
 
 void rendering::VulkanRenderer::onEntitySelect( core::SelectEntityEvent& e )
@@ -108,6 +112,8 @@ void rendering::VulkanRenderer::render()
 
   m_pVkContext->swapchain->waitForFences();
   m_pVkContext->swapchain->resetFences();
+
+#ifdef PICKING_ENABLED
   static bool copyImage{ false };
 
   if ( copyImage )
@@ -137,6 +143,7 @@ void rendering::VulkanRenderer::render()
     m_mouseCoord = { -1, -1 };
     copyImage = false;
   }
+#endif
 
   updateCameraBuffer();
 
@@ -174,11 +181,13 @@ void rendering::VulkanRenderer::render()
                         1,
                         &swapchainToColor );
 
+#ifdef PICKING_ENABLED
   if ( m_mouseCoord.x >= 0 && m_mouseCoord.y >= 0 && m_selectedEntity == entt::null )
   {
     pickingPass( cmd );
     copyImage = true;
   }
+#endif
 
   imguiPass( cmd );
 }
@@ -317,7 +326,6 @@ void rendering::VulkanRenderer::updateCameraBuffer()
   // camera kind of struct
   auto scene = core::SceneManager::getCurrentScene().lock();
   auto view = scene->getEnttRegistry().view<core::CameraComponent>();
-  KOGAYONON_INFO( "there are {} camera component entities", view.size() );
   view.each( [&]( const entt::entity& entityId, core::CameraComponent& cameraComp ) {
     if ( cameraComp.isUsed )
     {
@@ -801,6 +809,7 @@ void rendering::VulkanRenderer::imguiPass( VkCommandBuffer& cmd )
 
 void rendering::VulkanRenderer::onMouseClicked( core::MouseClickedEvent& e )
 {
+#ifdef PICKING_ENABLED
   if ( m_selectedEntity != entt::null )
     return;
 
@@ -822,6 +831,7 @@ void rendering::VulkanRenderer::onMouseClicked( core::MouseClickedEvent& e )
     m_mouseCoord.y = static_cast<int>( localY * extent.height );
     KOGAYONON_INFO( "mouse coords for picking {} {}", m_mouseCoord.x, m_mouseCoord.y );
   }
+#endif
 }
 
 void rendering::VulkanRenderer::createPickingBuffers()
@@ -842,5 +852,7 @@ void rendering::VulkanRenderer::initViewports()
 {
   auto& extent = m_pVkContext->swapchain->getSwapchainExtent();
   createViewport( extent.width, extent.height );
+#ifdef PICKING_ENABLED
   createPickingViewport( extent.width, extent.height );
+#endif
 }
