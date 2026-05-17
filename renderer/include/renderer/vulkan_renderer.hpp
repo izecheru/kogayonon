@@ -13,14 +13,10 @@
 
 struct SDL_Window;
 
-struct CameraUBO
-{
-  glm::mat4 view;
-  glm::mat4 proj;
-};
-
 namespace core
 {
+class Entity;
+
 class MouseClickedEvent;
 class SelectEntityEvent;
 } // namespace core
@@ -31,7 +27,6 @@ struct VulkanContext;
 }
 
 namespace gui
-
 {
 class VulkanImguiRenderer;
 }
@@ -74,12 +69,14 @@ private: // Events
   void onEntitySelect( core::SelectEntityEvent& e );
 
 private: // funcs
+  void initViewports();
+
   void geometryPass( VkCommandBuffer& cmd );
   void pickingPass( VkCommandBuffer& cmd );
   void imguiPass( VkCommandBuffer& cmd );
 
-  void createViewport();
-  void createPickingViewport();
+  void createViewport( uint32_t width, uint32_t height );
+  void createPickingViewport( uint32_t width, uint32_t height );
 
   void createPickingBuffers();
 
@@ -93,12 +90,9 @@ private: // funcs
 private:
   bool m_assetManagerInit{ false };
   // this should be tied to scene or smth cause we can create a camera entity
-  CameraUBO m_cameraUbo;
   graphics::FrameInFlightVulkanBuffer m_cameraBuffers;
   graphics::BufferedVulkanDescriptor m_cameraDescriptor;
-
   std::map<graphics::PipelineType, graphics::VulkanPipeline> m_pipelines;
-
   graphics::VulkanContext* m_pVkContext{ nullptr };
   std::shared_ptr<gui::VulkanImguiRenderer> m_pImguiRenderer;
 
@@ -106,12 +100,9 @@ private:
   VulkanViewport m_pickingViewport;
 
   graphics::FrameInFlightVulkanBuffer m_pickingBuffer;
-
   SDL_Window* m_wnd;
   utilities::ShaderCompiler m_shaderCompiler;
-
   glm::ivec2 m_mouseCoord;
-
   entt::entity m_selectedEntity;
 };
 } // namespace rendering

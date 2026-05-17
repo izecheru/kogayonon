@@ -51,10 +51,10 @@ void gui::EntityProperties::render()
 void gui::EntityProperties::onSelectEntity( const core::SelectEntityEvent& e )
 {
   // accept event from anywhere BUT itself
-  if ( e.getEventSource() == core::SelectEntityEventSource::PropertiesWindow )
+  if ( e.getEventSource() == core::SelectEntityEventSource::Properties_Window )
     return;
 
-  if ( e.getEntityId() == entt::null && e.getEventSource() != core::SelectEntityEventSource::PropertiesWindow )
+  if ( e.getEntityId() == entt::null && e.getEventSource() != core::SelectEntityEventSource::Properties_Window )
   {
     m_selectedEntity = entt::null;
     KOGAYONON_INFO( "entity was deselected, nothing to show in properties window" );

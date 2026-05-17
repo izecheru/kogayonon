@@ -16,7 +16,7 @@ static_assert( sizeof( MeshPushConstant ) < 128, "Vulkan push constants must be 
 struct EntityPickingPushConstant
 {
   glm::mat4 modelMatrix;
-  uint32_t entityId;
+  int entityId{ -1 };
 };
 
 static_assert( sizeof( MeshPushConstant ) < 128, "Vulkan push constants must be lower than 128 bytes" );

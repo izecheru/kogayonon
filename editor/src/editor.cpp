@@ -1,5 +1,6 @@
 #include "editor/editor.hpp"
 #include "core/asset_manager/asset_manager.hpp"
+#include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -295,8 +296,23 @@ bool editor::Editor::initMainRegistry()
   // TODO(kogayonon) remove this scene code from here
   auto scene = std::make_shared<core::Scene>( "Default" );
   core::SceneManager::addScene( scene );
+  core::Entity entity{ scene->getRegistry(), "DefaultCamera" };
   core::SceneManager::setCurrentScene( scene->getName() );
-  //
+
+  auto ctx = mainRegistry.getVulkanContext();
+  entity.addComponent<core::CameraComponent>( core::CameraComponent{
+    .ubo = { .view = glm::lookAt(
+               glm::vec3{ 0.0f, 0.0f, 10.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 1.0f, 0.0f } ),
+
+             .projection = glm::perspective( glm::radians( 70.0f ),
+                                             ctx->swapchain->getSwapchainExtent().width /
+                                               (float)ctx->swapchain->getSwapchainExtent().height,
+                                             0.1f,
+                                             1000.0f ) },
+    .isUsed = true,
+  } );
+
+  entity.getComponent<core::CameraComponent>().ubo.projection[1][1] *= -1;
 
   return true;
 }

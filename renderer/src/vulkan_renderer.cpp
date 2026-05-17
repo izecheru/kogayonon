@@ -1,5 +1,6 @@
 #include "renderer/vulkan_renderer.hpp"
 #include "core/asset_manager/asset_manager.hpp"
+#include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -30,10 +31,8 @@ rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Wi
   createCameraBuffers();
   createPickingBuffers();
   createCameraDescriptorSet();
-  createViewport();
-  createPickingViewport();
-
   initImgui();
+  initViewports();
 
   auto& assetManager = core::AssetManager::getInstance();
   auto shadersPath = std::filesystem::current_path() / "engine_resources" / " shaders ";
@@ -46,7 +45,7 @@ rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Wi
 
   auto defaultPipelineSpec = graphics::VulkanPipelineSpec{
     .type = graphics::PipelineType::GEOMETRY_BASIC,
-    .options = { .cullMode = VK_CULL_MODE_NONE, .polyMode = VK_POLYGON_MODE_FILL, .lineWidth = 1.0f },
+    .options = { .cullMode = VK_CULL_MODE_BACK_BIT, .polyMode = VK_POLYGON_MODE_FILL, .lineWidth = 1.0f },
     .descriptorLayout = { m_cameraDescriptor.layout,
                           assetManager.getBindlessDescriptorLayout(),
                           assetManager.getMaterialsDescriptorLayout() },
@@ -69,7 +68,9 @@ rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Wi
   pickingPipelineSpec.pushConstantSize = sizeof( resources::EntityPickingPushConstant );
   pickingPipelineSpec.type = graphics::PipelineType::PICKING;
   pickingPipelineSpec.descriptorLayout = { m_cameraDescriptor.layout };
-  pickingPipelineSpec.colorAttachmentFormat = VK_FORMAT_R32_UINT;
+  pickingPipelineSpec.colorAttachmentFormat = VK_FORMAT_R32_SINT;
+  pickingPipelineSpec.options.depthTestEnable = VK_FALSE;
+  pickingPipelineSpec.options.depthWriteEnable = VK_FALSE;
 
   createPipeline( pickingPipelineSpec );
 
@@ -82,10 +83,16 @@ rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Wi
 
 void rendering::VulkanRenderer::onEntitySelect( core::SelectEntityEvent& e )
 {
-  if ( e.getEventSource() != core::SelectEntityEventSource::ViewportWindow && e.getEntityId() != entt::null )
+  if ( e.getEntityId() == m_selectedEntity )
+    return;
+
+  if ( e.getEventSource() == core::SelectEntityEventSource::None && e.getEntityId() == entt::null )
   {
-    m_selectedEntity = e.getEntityId();
+    m_selectedEntity = entt::null;
+    return;
   }
+
+  m_selectedEntity = e.getEntityId();
 }
 
 rendering::VulkanRenderer::~VulkanRenderer()
@@ -100,6 +107,7 @@ void rendering::VulkanRenderer::render()
     return;
 
   m_pVkContext->swapchain->waitForFences();
+  m_pVkContext->swapchain->resetFences();
   static bool copyImage{ false };
 
   if ( copyImage )
@@ -109,15 +117,19 @@ void rendering::VulkanRenderer::render()
                   m_pickingBuffer.buffers.at( m_pVkContext->swapchain->getCurrentFrameIndex() ).allocation,
                   &data );
 
-    uint32_t id = 0;
-    std::memcpy( &id, data, sizeof( uint32_t ) );
+    int32_t id{ -1 };
+    std::memcpy( &id, data, sizeof( int32_t ) );
     auto entity = static_cast<entt::entity>( id );
     if ( scene->getEnttRegistry().valid( entity ) )
     {
       auto& pEventDispathcer = core::MainRegistry::getInstance().getEventDispatcher();
       m_selectedEntity = entity;
       pEventDispathcer->dispatchEvent<core::SelectEntityEvent>(
-        core::SelectEntityEvent{ entity, core::SelectEntityEventSource::ViewportWindow } );
+        core::SelectEntityEvent{ entity, core::SelectEntityEventSource::Viewport_Window } );
+    }
+    else
+    {
+      KOGAYONON_WARN( "Got {} from picking", id );
     }
 
     vmaUnmapMemory( m_pVkContext->memoryAllocator->getAllocator(),
@@ -126,18 +138,11 @@ void rendering::VulkanRenderer::render()
     copyImage = false;
   }
 
-  m_pVkContext->swapchain->resetFences();
   updateCameraBuffer();
 
   m_pVkContext->swapchain->aquireNextImage();
   auto& cmd = m_pVkContext->swapchain->getCurrentCommandBuffer();
   m_pVkContext->swapchain->beginCommandBuffer();
-
-  if ( m_mouseCoord.x >= 0 && m_mouseCoord.y >= 0 )
-  {
-    pickingPass( cmd );
-    copyImage = true;
-  }
 
   geometryPass( cmd );
 
@@ -169,6 +174,12 @@ void rendering::VulkanRenderer::render()
                         1,
                         &swapchainToColor );
 
+  if ( m_mouseCoord.x >= 0 && m_mouseCoord.y >= 0 && m_selectedEntity == entt::null )
+  {
+    pickingPass( cmd );
+    copyImage = true;
+  }
+
   imguiPass( cmd );
 }
 
@@ -182,17 +193,17 @@ auto rendering::VulkanRenderer::getViewport() -> VulkanViewport&
   return m_viewport;
 }
 
-void rendering::VulkanRenderer::createPickingViewport()
+void rendering::VulkanRenderer::createPickingViewport( uint32_t width, uint32_t height )
 {
   VkImageCreateInfo imageInfo{};
   imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   imageInfo.imageType = VK_IMAGE_TYPE_2D;
-  imageInfo.extent.width = m_pVkContext->swapchain->getSwapchainExtent().width;
-  imageInfo.extent.height = m_pVkContext->swapchain->getSwapchainExtent().height;
+  imageInfo.extent.width = width;
+  imageInfo.extent.height = height;
   imageInfo.extent.depth = 1;
   imageInfo.mipLevels = 1;
   imageInfo.arrayLayers = 1;
-  imageInfo.format = VK_FORMAT_R32_UINT;
+  imageInfo.format = VK_FORMAT_R32_SINT;
   imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
   imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   imageInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
@@ -206,7 +217,7 @@ void rendering::VulkanRenderer::createPickingViewport()
     m_pickingViewport.image, imageInfo, imageAllocInfo, m_pickingViewport.allocation );
 
   m_pickingViewport.imageView =
-    createImageView( m_pVkContext, m_pickingViewport.image, VK_FORMAT_R32_UINT, VK_IMAGE_ASPECT_COLOR_BIT );
+    createImageView( m_pVkContext, m_pickingViewport.image, VK_FORMAT_R32_SINT, VK_IMAGE_ASPECT_COLOR_BIT );
 
   auto depthFormat = findDepthFormat( &m_pVkContext->device->getPhysicalDevice() );
 
@@ -235,13 +246,13 @@ void rendering::VulkanRenderer::createPickingViewport()
     createImageView( m_pVkContext, m_pickingViewport.depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT );
 }
 
-void rendering::VulkanRenderer::createViewport()
+void rendering::VulkanRenderer::createViewport( uint32_t width, uint32_t height )
 {
   VkImageCreateInfo imageInfo{};
   imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   imageInfo.imageType = VK_IMAGE_TYPE_2D;
-  imageInfo.extent.width = m_pVkContext->swapchain->getSwapchainExtent().width;
-  imageInfo.extent.height = m_pVkContext->swapchain->getSwapchainExtent().height;
+  imageInfo.extent.width = width;
+  imageInfo.extent.height = height;
   imageInfo.extent.depth = 1;
   imageInfo.mipLevels = 1;
   imageInfo.arrayLayers = 1;
@@ -290,7 +301,7 @@ void rendering::VulkanRenderer::createCameraBuffers()
 {
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  bufferInfo.size = sizeof( CameraUBO );
+  bufferInfo.size = sizeof( core::CameraUbo );
   bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
   VmaAllocationCreateInfo vmaAllocInfo{};
@@ -302,21 +313,22 @@ void rendering::VulkanRenderer::createCameraBuffers()
 
 void rendering::VulkanRenderer::updateCameraBuffer()
 {
-  auto up = glm::vec3{ 0.0f, 1.0f, 0.0f };
-  m_cameraUbo.view = glm::lookAt( glm::vec3{ 8.0f, 8.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, up );
-  m_cameraUbo.proj = glm::perspective( glm::radians( 50.0f ),
-                                       m_pVkContext->swapchain->getSwapchainExtent().width /
-                                         (float)m_pVkContext->swapchain->getSwapchainExtent().height,
-                                       0.1f,
-                                       1000.0f );
-
-  m_cameraUbo.proj[1][1] *= -1;
-
-  vmaCopyMemoryToAllocation( m_pVkContext->memoryAllocator->getAllocator(),
-                             &m_cameraUbo,
-                             m_cameraBuffers.buffers.at( m_pVkContext->swapchain->getCurrentFrameIndex() ).allocation,
-                             0,
-                             sizeof( CameraUBO ) );
+  // I should get the camera entity here because i use something here but in the viewport imgui window I create another
+  // camera kind of struct
+  auto scene = core::SceneManager::getCurrentScene().lock();
+  auto view = scene->getEnttRegistry().view<core::CameraComponent>();
+  KOGAYONON_INFO( "there are {} camera component entities", view.size() );
+  view.each( [&]( const entt::entity& entityId, core::CameraComponent& cameraComp ) {
+    if ( cameraComp.isUsed )
+    {
+      vmaCopyMemoryToAllocation(
+        m_pVkContext->memoryAllocator->getAllocator(),
+        &cameraComp.ubo,
+        m_cameraBuffers.buffers.at( m_pVkContext->swapchain->getCurrentFrameIndex() ).allocation,
+        0,
+        sizeof( core::CameraUbo ) );
+    }
+  } );
 }
 
 void rendering::VulkanRenderer::createCameraDescriptorSet()
@@ -338,7 +350,7 @@ void rendering::VulkanRenderer::createCameraDescriptorSet()
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = m_cameraBuffers.buffers.at( i ).vkBuffer;
     bufferInfo.offset = 0;
-    bufferInfo.range = sizeof( CameraUBO );
+    bufferInfo.range = sizeof( core::CameraUbo );
 
     auto uniformBufferDescriptor = VkWriteDescriptorSet{
       .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -652,7 +664,7 @@ void rendering::VulkanRenderer::pickingPass( VkCommandBuffer& cmd )
                                              .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                                              .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                                              .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                                             .clearValue = { { 0, 0, 0, 0 } } };
+                                             .clearValue = { .color = { .int32 = { -1, -1, -1, -1 } } } };
 
   VkRenderingInfo renderingInfo{
     .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
@@ -695,7 +707,7 @@ void rendering::VulkanRenderer::pickingPass( VkCommandBuffer& cmd )
       {
         // this should be expensive, move it somewhere in the mesh or submesh
         auto push = resources::EntityPickingPushConstant{ .modelMatrix = transform.getMatrix(),
-                                                          .entityId = static_cast<uint32_t>( entityId ) };
+                                                          .entityId = static_cast<int>( entityId ) };
 
         vkCmdPushConstants( cmd,
                             pipeline.getLayout(),
@@ -746,8 +758,7 @@ void rendering::VulkanRenderer::pickingPass( VkCommandBuffer& cmd )
   region.imageSubresource.mipLevel = 0;
   region.imageSubresource.baseArrayLayer = 0;
   region.imageSubresource.layerCount = 1;
-  region.imageOffset = {
-    m_mouseCoord.x, static_cast<int>( m_pVkContext->swapchain->getSwapchainExtent().height ) - m_mouseCoord.y, 0 };
+  region.imageOffset = { m_mouseCoord.x, m_mouseCoord.y, 0 };
   region.imageExtent = { 1, 1, 1 };
 
   vkCmdCopyImageToBuffer( cmd,
@@ -790,6 +801,9 @@ void rendering::VulkanRenderer::imguiPass( VkCommandBuffer& cmd )
 
 void rendering::VulkanRenderer::onMouseClicked( core::MouseClickedEvent& e )
 {
+  if ( m_selectedEntity != entt::null )
+    return;
+
   int mouseX, mouseY;
   SDL_GetMouseState( &mouseX, &mouseY );
 
@@ -797,17 +811,17 @@ void rendering::VulkanRenderer::onMouseClicked( core::MouseClickedEvent& e )
 
   auto props = viewport->getProps();
 
-  float localX = mouseX - props->x;
-  float localY = mouseY - props->y;
+  auto extent = m_pVkContext->swapchain->getSwapchainExtent();
 
-  float viewportWidth = props->width;
-  float viewportHeight = props->height;
+  float localX = ( mouseX - props->x ) / props->width;
+  float localY = ( mouseY - props->y ) / props->height;
 
-  float u = localX / viewportWidth;
-  float v = localY / viewportHeight;
-
-  m_mouseCoord.x = uint32_t( u * 1920.0f );
-  m_mouseCoord.y = uint32_t( ( 1.0f - v ) * 1009.0f );
+  if ( localX >= 0.0f && localX <= 1.0f && localY >= 0.0f && localY <= 1.0f )
+  {
+    m_mouseCoord.x = static_cast<int>( localX * extent.width );
+    m_mouseCoord.y = static_cast<int>( localY * extent.height );
+    KOGAYONON_INFO( "mouse coords for picking {} {}", m_mouseCoord.x, m_mouseCoord.y );
+  }
 }
 
 void rendering::VulkanRenderer::createPickingBuffers()
@@ -822,4 +836,11 @@ void rendering::VulkanRenderer::createPickingBuffers()
   vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 
   m_pVkContext->memoryAllocator->createBuffers( m_pickingBuffer, bufferInfo, vmaAllocInfo );
+}
+
+void rendering::VulkanRenderer::initViewports()
+{
+  auto& extent = m_pVkContext->swapchain->getSwapchainExtent();
+  createViewport( extent.width, extent.height );
+  createPickingViewport( extent.width, extent.height );
 }

@@ -1,4 +1,5 @@
 #include "gui/imgui_windows/viewport.hpp"
+#include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
@@ -27,7 +28,7 @@ gui::Viewport::Viewport( SDL_Window* mainWindow, const std::string& name, const 
     , m_guizmoEnabled{ false }
 {
   auto& pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
-  pEventDispatcher->addHandler<core::SelectEntityEvent, &Viewport::onSelectedEntity>( *this );
+  pEventDispatcher->addHandler<core::SelectEntityEvent, &Viewport::onEntitySelect>( *this );
   pEventDispatcher->addHandler<core::KeyPressedEvent, &Viewport::onKeyPressed>( *this );
   // pEventDispatcher->addHandler<core::MouseClickedEvent, &Viewport::onMouseClicked>( *this );
 }
@@ -66,14 +67,24 @@ void gui::Viewport::render()
       auto windowPos = ImGui::GetWindowPos();
       auto windowSize = ImGui::GetWindowSize();
 
-      auto view =
-        glm::lookAt( glm::vec3{ 8.0f, 8.0f, 0.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 1.0f, 0.0f } );
-      auto proj = glm::perspective( glm::radians( 50.0f ), windowSize.x / windowSize.y, 0.1f, 1000.0f );
-      // proj[1][1] *= -1;
-
       ImGuizmo::SetRect( windowPos.x, windowPos.y, windowSize.x, windowSize.y );
-      if ( ImGuizmo::Manipulate( glm::value_ptr( view ),
-                                 glm::value_ptr( proj ),
+
+      auto view = scene->getEnttRegistry().view<core::CameraComponent>();
+      entt::entity cameraEntity = entt::null;
+      view.each( [&]( const entt::entity& entityId, core::CameraComponent& cameraComp ) {
+        if ( cameraComp.isUsed )
+        {
+          cameraEntity = entityId;
+        }
+      } );
+
+      auto& cameraComponent = scene->getRegistry()->getComponent<core::CameraComponent>( cameraEntity );
+      auto projection = cameraComponent.ubo.projection;
+
+      // Unflip the projection
+      projection[1][1] *= -1;
+      if ( ImGuizmo::Manipulate( glm::value_ptr( cameraComponent.ubo.view ),
+                                 glm::value_ptr( projection ),
                                  getGuizmoOp(),
                                  ImGuizmo::LOCAL,
                                  glm::value_ptr( transformComp->getMatrix() ) ) )
@@ -229,22 +240,35 @@ auto gui::Viewport::getGuizmoOp() -> ImGuizmo::OPERATION
   }
 }
 
-void gui::Viewport::onSelectedEntity( const core::SelectEntityEvent& e )
+void gui::Viewport::onEntitySelect( const core::SelectEntityEvent& e )
 {
-  if ( e.getEntityId() == m_selectedEntity || e.getEntityId() == entt::null )
+  if ( e.getEntityId() == m_selectedEntity )
     return;
 
-  KOGAYONON_INFO( "selected entity in viewport received" );
+  if ( e.getEntityId() == entt::null && e.getEventSource() == core::SelectEntityEventSource::None )
+  {
+    m_selectedEntity = entt::null;
+    return;
+  }
+
   m_selectedEntity = e.getEntityId();
 }
 
 void gui::Viewport::onKeyPressed( const core::KeyPressedEvent& e )
 {
+  auto& pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
   if ( KeyboardState::getKeyCombinationState( { KeyScanCode::LeftShift, KeyScanCode::G } ) )
   {
     m_guizmoEnabled = !m_guizmoEnabled;
   }
 
+  if ( KeyboardState::getKeyState( KeyScanCode::Escape ) )
+  {
+    pEventDispatcher->dispatchEvent<core::SelectEntityEvent>( core::SelectEntityEvent{} );
+    m_selectedEntity = entt::null;
+  }
+
+  // Guizmo op down
   if ( !m_guizmoEnabled )
     return;
 

@@ -7,13 +7,13 @@ struct FragmentInput
 
 struct FragmentOutput
 {
-  uint32_t outColor : SV_Target0;
+  int outColor : SV_Target0;
 };
 
 struct PushConstant
 {
   float4x4 modelMatrix;
-  uint32_t entityId;
+  int entityId;
 };
 
 [[vk::push_constant]]
@@ -23,7 +23,6 @@ PushConstant push;
 FragmentOutput main( FragmentInput input )
 {
   FragmentOutput output;
-  float4 colorResult = colorFromNumber( push.entityId );
   output.outColor = push.entityId;
   return output;
 }

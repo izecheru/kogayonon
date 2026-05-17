@@ -18,6 +18,8 @@ gui::SceneHierarchy::SceneHierarchy( const std::string& name, const SceneHierarc
     , m_spec{ spec }
     , m_selectedEntity{ entt::null }
 {
+  auto& peventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+  peventDispatcher->addHandler<SelectEntityEvent, &SceneHierarchy::onEntitySelect>( *this );
 }
 
 void gui::SceneHierarchy::render()
@@ -59,7 +61,7 @@ void gui::SceneHierarchy::render()
 
     ImGui::TableHeadersRow();
 
-    view.each( [&]( const auto& entityId, auto& identifierComponent ) {
+    view.each( [&]( const entt::entity& entityId, const core::IdentifierComponent& identifierComponent ) {
       // first column
       ImGui::TableNextRow();
       ImGui::TableNextColumn();
@@ -78,7 +80,7 @@ void gui::SceneHierarchy::render()
       {
         m_selectedEntity = entityId;
         Entity entity{ scene->getRegistry(), entityId };
-        pEventDispatcher->dispatchEvent( SelectEntityEvent{ entityId, SelectEntityEventSource::HierarchyWindow } );
+        pEventDispatcher->dispatchEvent( SelectEntityEvent{ entityId, SelectEntityEventSource::Hierarchy_Window } );
       }
       ImGui::PopStyleColor();
       drawItemContexMenu( selectableId, entityId );
@@ -138,13 +140,24 @@ void gui::SceneHierarchy::drawItemContexMenu( const std::string& itemId, entt::e
       // first deselect entity
       auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
       pEventDispatcher->dispatchEvent<SelectEntityEvent>(
-        SelectEntityEvent{ SelectEntityEventSource::HierarchyWindow } );
+        SelectEntityEvent{ SelectEntityEventSource::Hierarchy_Window } );
 
       scene->removeEntity( entity.getEntityId() );
     }
 
     ImGui::EndPopup();
   }
+}
+
+void gui::SceneHierarchy::onEntitySelect( const core::SelectEntityEvent& e )
+{
+  if ( e.getEntityId() == m_selectedEntity || e.getEventSource() == SelectEntityEventSource::Hierarchy_Window )
+    return;
+
+  if ( e.getEventSource() == SelectEntityEventSource::None )
+    m_selectedEntity = entt::null;
+
+  m_selectedEntity = e.getEntityId();
 }
 
 void gui::SceneHierarchy::drawContextMenu()
@@ -161,7 +174,7 @@ void gui::SceneHierarchy::drawContextMenu()
       Entity ent{ scene->getRegistry(), "DefaultEnt" };
 
       pEventDispatcher->dispatchEvent<SelectEntityEvent>(
-        SelectEntityEvent{ ent.getEntityId(), SelectEntityEventSource::HierarchyWindow } );
+        SelectEntityEvent{ ent.getEntityId(), SelectEntityEventSource::Hierarchy_Window } );
 
       m_selectedEntity = ent.getEntityId();
     }
@@ -177,7 +190,7 @@ void gui::SceneHierarchy::drawContextMenu()
         MeshComponent{ .pMesh = assetManager.loadMesh( "test", p.string() ), .loaded = true } );
 
       pEventDispatcher->dispatchEvent<SelectEntityEvent>(
-        SelectEntityEvent{ ent.getEntityId(), SelectEntityEventSource::HierarchyWindow } );
+        SelectEntityEvent{ ent.getEntityId(), SelectEntityEventSource::Hierarchy_Window } );
 
       m_selectedEntity = ent.getEntityId();
     }

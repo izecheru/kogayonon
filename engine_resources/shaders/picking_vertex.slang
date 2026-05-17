@@ -15,7 +15,7 @@ struct VertexOut
 struct PushConstant
 {
   float4x4 modelMatrix;
-  uint32_t entityId;
+  int entityId;
 };
 
 [[vk::push_constant]]

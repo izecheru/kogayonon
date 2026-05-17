@@ -32,7 +32,7 @@ struct VulkanPipelineOptions
   // Depth
   VkBool32 depthTestEnable{ VK_TRUE };
   VkBool32 depthWriteEnable{ VK_TRUE };
-  VkCompareOp depthCompareOp{ VK_COMPARE_OP_LESS };
+  VkCompareOp depthCompareOp{ VK_COMPARE_OP_LESS_OR_EQUAL };
 
   // For wireframe
   float lineWidth{ 1.0f };

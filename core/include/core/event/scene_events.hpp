@@ -12,9 +12,9 @@ namespace core
 enum class SelectEntityEventSource
 {
   None,
-  ViewportWindow,
-  PropertiesWindow,
-  HierarchyWindow
+  Viewport_Window,
+  Properties_Window,
+  Hierarchy_Window
 };
 
 class SelectEntityEvent : public IEvent

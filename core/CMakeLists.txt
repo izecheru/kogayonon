@@ -15,6 +15,7 @@ set(targetSources
   "include/core/scene/scene_manager.hpp"
   "include/core/ecs/components/transform_component.hpp"
   "include/core/ecs/components/pointlight_component.hpp"
+  "include/core/ecs/components/camera_component.hpp"
   "include/core/event/file_events.hpp"
   "include/core/ecs/components/index_component.hpp"
   "include/core/event/project_event.hpp"
