@@ -90,8 +90,6 @@ private: // funcs
   void createPipeline( const graphics::VulkanPipelineSpec& spec );
 
 private:
-  bool m_assetManagerInit{ false };
-  // this should be tied to scene or smth cause we can create a camera entity
   graphics::FrameInFlightVulkanBuffer m_cameraBuffers;
   graphics::BufferedVulkanDescriptor m_cameraDescriptor;
   std::map<graphics::PipelineType, graphics::VulkanPipeline> m_pipelines;

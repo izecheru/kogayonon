@@ -300,19 +300,23 @@ bool editor::Editor::initMainRegistry()
   core::SceneManager::setCurrentScene( scene->getName() );
 
   auto ctx = mainRegistry.getVulkanContext();
-  entity.addComponent<core::CameraComponent>( core::CameraComponent{
-    .ubo = { .view = glm::lookAt(
-               glm::vec3{ 0.0f, 0.0f, 10.0f }, glm::vec3{ 0.0f, 0.0f, 0.0f }, glm::vec3{ 0.0f, 1.0f, 0.0f } ),
+  auto extent = ctx->swapchain->getSwapchainExtent();
 
-             .projection = glm::perspective( glm::radians( 70.0f ),
-                                             ctx->swapchain->getSwapchainExtent().width /
-                                               (float)ctx->swapchain->getSwapchainExtent().height,
-                                             0.1f,
-                                             1000.0f ) },
-    .isUsed = true,
-  } );
+  auto cameraComponent = core::CameraComponent{};
 
-  entity.getComponent<core::CameraComponent>().ubo.projection[1][1] *= -1;
+  cameraComponent.ubo.view =
+    glm::lookAt( cameraComponent.props.eye, cameraComponent.props.center, cameraComponent.props.up );
+
+  cameraComponent.ubo.projection = glm::perspective( glm::radians( cameraComponent.props.fov ),
+                                                     extent.width / (float)( extent.height ),
+                                                     cameraComponent.props.nearView,
+                                                     cameraComponent.props.farView );
+
+  cameraComponent.ubo.projection[1][1] *= -1;
+  cameraComponent.props.extent = { (float)extent.width, (float)extent.height };
+  cameraComponent.isUsed = true;
+
+  entity.addComponent<core::CameraComponent>( cameraComponent );
 
   return true;
 }

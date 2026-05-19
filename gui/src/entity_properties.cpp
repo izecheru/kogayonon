@@ -1,5 +1,6 @@
 #include "gui/imgui_windows/entity_properties.hpp"
 #include "core/asset_manager/asset_manager.hpp"
+#include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
@@ -44,6 +45,7 @@ void gui::EntityProperties::render()
   renderIdentification();
   renderTransform();
   renderMesh();
+  renderCamera();
 
   ImGui::End();
 }
@@ -160,6 +162,72 @@ void gui::EntityProperties::renderMesh()
   }
 }
 
+void gui::EntityProperties::renderCamera()
+{
+  if ( m_selectedEntity == entt::null )
+    return;
+
+  auto scene = core::SceneManager::getCurrentScene().lock();
+  auto camera = scene->getRegistry()->tryGetComponent<core::CameraComponent>( m_selectedEntity );
+
+  if ( !camera )
+    return;
+
+  gui_utils::renderWithFont( m_spec.fonts->at( INTER_I ), []() { ImGui::SeparatorText( "Camera component" ); } );
+  // this is if we want to link the values and make them equal
+  static bool translationLink{ false };
+  static bool scaleLink{ false };
+  static bool rotationLink{ false };
+
+  gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 18.0f, []() { ImGui::Text( "Translation" ); } );
+  // render translation here
+  if ( !translationLink )
+  {
+    renderTranslation( camera->props.changed, camera->props.eye );
+  }
+  else
+  {
+    RenderDisabled( renderTranslation( camera->props.changed, camera->props.eye ) );
+    ImGui::SameLine();
+
+    gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 16.0f, [&]() {
+      ImGui::PushItemWidth( 50.0f );
+      camera->props.changed |= ImGui::DragFloat( "##transCameraTranslation", &camera->props.eye.x, 0.04f );
+      ImGui::PopItemWidth();
+    } );
+    camera->props.eye.y = camera->props.eye.x;
+    camera->props.eye.z = camera->props.eye.x;
+  }
+  ImGui::SameLine();
+  gui_utils::renderWithSizedFont(
+    m_spec.fonts->at( INTER ), 16.0f, [&]() { ImGui::Checkbox( ICON_MDI_LINK "##tLink", &translationLink ); } );
+
+  renderCameraFov( camera->props.changed, camera->props.fov );
+  renderCameraNear( camera->props.changed, camera->props.nearView );
+  renderCameraFar( camera->props.changed, camera->props.farView );
+}
+
+void gui::EntityProperties::renderCameraFov( bool& changed, float& fov )
+{
+  ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
+  changed |= ImGui::DragFloat( "FOV", &fov );
+  ImGui::PopFont();
+}
+
+void gui::EntityProperties::renderCameraNear( bool& changed, float& camNear )
+{
+  ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
+  changed |= ImGui::DragFloat( "Near", &camNear );
+  ImGui::PopFont();
+}
+
+void gui::EntityProperties::renderCameraFar( bool& changed, float& camFar )
+{
+  ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
+  changed |= ImGui::DragFloat( "Far", &camFar );
+  ImGui::PopFont();
+}
+
 void gui::EntityProperties::renderTransform()
 {
   if ( m_selectedEntity == entt::null )
@@ -182,15 +250,15 @@ void gui::EntityProperties::renderTransform()
   bool scaleChanged{ false };
   bool rotationChanged{ false };
 
-  gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 18.0f, []() { ImGui::LabelText( "##", "Translation" ); } );
+  gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 18.0f, []() { ImGui::Text( "Translation" ); } );
   // render translation here
   if ( !translationLink )
   {
-    renderTransformTranslation( translationChanged, pTransform );
+    renderTranslation( translationChanged, pTransform->translation );
   }
   else
   {
-    RenderDisabled( renderTransformTranslation( translationChanged, pTransform ) );
+    RenderDisabled( renderTranslation( translationChanged, pTransform->translation ) );
     ImGui::SameLine();
 
     gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 16.0f, [&]() {
@@ -206,15 +274,15 @@ void gui::EntityProperties::renderTransform()
   gui_utils::renderWithSizedFont(
     m_spec.fonts->at( INTER ), 16.0f, [&]() { ImGui::Checkbox( ICON_MDI_LINK "##tLink", &translationLink ); } );
 
-  gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 18.0f, []() { ImGui::LabelText( "##", "Scale" ); } );
+  gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 18.0f, []() { ImGui::Text( "Scale" ); } );
   // render scale here
   if ( !scaleLink )
   {
-    renderTransformScale( scaleChanged, pTransform );
+    renderScale( scaleChanged, pTransform->scale );
   }
   else
   {
-    RenderDisabled( renderTransformScale( scaleChanged, pTransform ) );
+    RenderDisabled( renderScale( scaleChanged, pTransform->scale ) );
     ImGui::SameLine();
 
     gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 16.0f, [&]() {
@@ -231,15 +299,15 @@ void gui::EntityProperties::renderTransform()
   gui_utils::renderWithSizedFont(
     m_spec.fonts->at( INTER ), 16.0f, [&]() { ImGui::Checkbox( ICON_MDI_LINK "##sLink", &scaleLink ); } );
 
-  gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 18.0f, []() { ImGui::LabelText( "##", "Rotation" ); } );
+  gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 18.0f, []() { ImGui::Text( "Rotation" ); } );
   // render scale here
   if ( !rotationLink )
   {
-    renderTransformRotation( rotationChanged, pTransform );
+    renderRotation( rotationChanged, pTransform->rotation );
   }
   else
   {
-    RenderDisabled( renderTransformRotation( rotationChanged, pTransform ) );
+    RenderDisabled( renderRotation( rotationChanged, pTransform->rotation ) );
     ImGui::SameLine();
 
     gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 16.0f, [&]() {
@@ -262,7 +330,7 @@ void gui::EntityProperties::renderTransform()
   }
 }
 
-void gui::EntityProperties::renderTransformTranslation( bool& translationChanged, core::TransformComponent* pTransform )
+void gui::EntityProperties::renderTranslation( bool& translationChanged, glm::vec3& translation )
 {
   ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
   ImGui::PushItemWidth( 50.0f );
@@ -270,24 +338,24 @@ void gui::EntityProperties::renderTransformTranslation( bool& translationChanged
   renderColoredAxis( "X##t", COL_RED_LA );
   ImGui::SameLine();
 
-  translationChanged |= ImGui::DragFloat( "##transX", &pTransform->translation.x, 0.04f );
+  translationChanged |= ImGui::DragFloat( "##transCameraX", &translation.x, 0.04f );
   ImGui::SameLine();
 
   renderColoredAxis( "Y##t", COL_GREEN_LA );
   ImGui::SameLine();
 
-  translationChanged |= ImGui::DragFloat( "##transY", &pTransform->translation.y, 0.04f );
+  translationChanged |= ImGui::DragFloat( "##transCameraY", &translation.y, 0.04f );
   ImGui::SameLine();
 
   renderColoredAxis( "Z##t", COL_BLUE_LA );
   ImGui::SameLine();
 
-  translationChanged |= ImGui::DragFloat( "##transZ", &pTransform->translation.z, 0.04f );
+  translationChanged |= ImGui::DragFloat( "##transCameraZ", &translation.z, 0.04f );
   ImGui::PopFont();
   ImGui::PopItemWidth();
 }
 
-void gui::EntityProperties::renderTransformScale( bool& scaleChanged, core::TransformComponent* pTransform )
+void gui::EntityProperties::renderScale( bool& scaleChanged, glm::vec3& scale )
 {
   ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
   ImGui::PushItemWidth( 50.0f );
@@ -295,25 +363,25 @@ void gui::EntityProperties::renderTransformScale( bool& scaleChanged, core::Tran
   renderColoredAxis( "X##s", COL_RED_LA );
   ImGui::SameLine();
 
-  scaleChanged = ImGui::DragFloat( "##scaleX", &pTransform->scale.x, 0.04f );
+  scaleChanged = ImGui::DragFloat( "##scaleCameraX", &scale.x, 0.04f );
   ImGui::SameLine();
 
   renderColoredAxis( "Y##s", COL_GREEN_LA );
   ImGui::SameLine();
 
-  scaleChanged |= ImGui::DragFloat( "##scaleY", &pTransform->scale.y, 0.04f );
+  scaleChanged |= ImGui::DragFloat( "##scaleCameraY", &scale.y, 0.04f );
   ImGui::SameLine();
 
   renderColoredAxis( "Z##s", COL_BLUE_LA );
   ImGui::SameLine();
 
-  scaleChanged |= ImGui::DragFloat( "##scaleZ", &pTransform->scale.z, 0.04f );
+  scaleChanged |= ImGui::DragFloat( "##scaleCameraZ", &scale.z, 0.04f );
 
   ImGui::PopFont();
   ImGui::PopItemWidth();
 }
 
-void gui::EntityProperties::renderTransformRotation( bool& rotationChanged, core::TransformComponent* pTransform )
+void gui::EntityProperties::renderRotation( bool& rotationChanged, glm::vec3& rotation )
 {
   ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
   ImGui::PushItemWidth( 50.0f );
@@ -321,19 +389,19 @@ void gui::EntityProperties::renderTransformRotation( bool& rotationChanged, core
   renderColoredAxis( "X##r", COL_RED_LA );
   ImGui::SameLine();
 
-  rotationChanged = ImGui::DragFloat( "##rotationX", &pTransform->rotation.x, 0.04f );
+  rotationChanged = ImGui::DragFloat( "##rotationX", &rotation.x, 0.04f );
   ImGui::SameLine();
 
   renderColoredAxis( "Y##r", COL_GREEN_LA );
   ImGui::SameLine();
 
-  rotationChanged |= ImGui::DragFloat( "##rotationY", &pTransform->rotation.y, 0.04f );
+  rotationChanged |= ImGui::DragFloat( "##rotationY", &rotation.y, 0.04f );
   ImGui::SameLine();
 
   renderColoredAxis( "Z##r", COL_BLUE_LA );
   ImGui::SameLine();
 
-  rotationChanged |= ImGui::DragFloat( "##rotationZ", &pTransform->rotation.z, 0.04f );
+  rotationChanged |= ImGui::DragFloat( "##rotationZ", &rotation.z, 0.04f );
   ImGui::PopFont();
   ImGui::PopItemWidth();
 }

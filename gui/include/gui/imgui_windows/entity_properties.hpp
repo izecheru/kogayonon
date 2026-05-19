@@ -1,6 +1,7 @@
 #pragma once
-#include <entt/entt.hpp>
 #include "gui/imgui_windows/imgui_base.hpp"
+#include <entt/entt.hpp>
+#include <glm/glm.hpp>
 
 namespace core
 {
@@ -33,13 +34,19 @@ private:
 
   void renderMesh();
 
+  void renderCamera();
+  void renderCameraFov( bool& changed, float& fov );
+  void renderCameraNear( bool& changed, float& camNear );
+  void renderCameraFar( bool& changed, float& camFar );
+
   /**
    * @brief Render all the details about the transform component
    */
   void renderTransform();
-  void renderTransformTranslation( bool& translationChanged, core::TransformComponent* pTransform );
-  void renderTransformScale( bool& scaleChanged, core::TransformComponent* pTransform );
-  void renderTransformRotation( bool& rotationChanged, core::TransformComponent* pTransform );
+
+  void renderTranslation( bool& translationChanged, glm::vec3& translation );
+  void renderScale( bool& scaleChanged, glm::vec3& scale );
+  void renderRotation( bool& rotationChanged, glm::vec3& rotation );
 
   /**
    * @brief Renders details about the IdentifierComponent of the currently selected entity

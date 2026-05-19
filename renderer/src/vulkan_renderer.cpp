@@ -322,13 +322,17 @@ void rendering::VulkanRenderer::createCameraBuffers()
 
 void rendering::VulkanRenderer::updateCameraBuffer()
 {
-  // I should get the camera entity here because i use something here but in the viewport imgui window I create another
-  // camera kind of struct
   auto scene = core::SceneManager::getCurrentScene().lock();
   auto view = scene->getEnttRegistry().view<core::CameraComponent>();
   view.each( [&]( const entt::entity& entityId, core::CameraComponent& cameraComp ) {
     if ( cameraComp.isUsed )
     {
+
+      if ( cameraComp.props.changed )
+      {
+        cameraComp.updateUbo();
+      }
+
       vmaCopyMemoryToAllocation(
         m_pVkContext->memoryAllocator->getAllocator(),
         &cameraComp.ubo,
@@ -404,8 +408,6 @@ void rendering::VulkanRenderer::createCameraDescriptorSetLayout()
 
 void rendering::VulkanRenderer::initImgui()
 {
-  m_assetManagerInit = true;
-
   m_pImguiRenderer =
     std::make_shared<gui::VulkanImguiRenderer>( m_wnd, m_pVkContext->device.get(), m_pVkContext->swapchain.get() );
 }
@@ -779,11 +781,6 @@ void rendering::VulkanRenderer::pickingPass( VkCommandBuffer& cmd )
 
 void rendering::VulkanRenderer::imguiPass( VkCommandBuffer& cmd )
 {
-  // We need asset manager to load icons so don't render imgui untill we have a valid
-  // asset manager instance
-  if ( !m_assetManagerInit )
-    return;
-
   VkRenderingAttachmentInfo imguiColorAttachment{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
                                                   .imageView = m_pVkContext->swapchain->getCurrentFrame().imageView,
                                                   .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
