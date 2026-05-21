@@ -4,6 +4,7 @@
 
 utilities::ShaderCompiler::ShaderCompiler( VkDevice d )
     : m_pDevice{ d }
+    , m_globalSession{ nullptr }
 {
   SlangGlobalSessionDesc desc{};
   desc.structureSize = sizeof( desc );
@@ -17,7 +18,6 @@ utilities::ShaderCompiler::ShaderCompiler( VkDevice d )
 
 utilities::ShaderCompiler::~ShaderCompiler()
 {
-  m_globalSession->release();
 }
 
 auto utilities::ShaderCompiler::compileShaderFromSource( const std::string& shaderName ) -> ShaderObject
