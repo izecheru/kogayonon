@@ -12,6 +12,7 @@
 #include "utilities/fonts/materialdesign.hpp"
 #include "utilities/input/keyboard_state.hpp"
 #include "utilities/utils/utils.hpp"
+#include <ImOGuizmo.hpp>
 #include <SDL2/SDL.h>
 #include <imgui.h>
 #include <imgui_impl_vulkan.h>
@@ -21,7 +22,7 @@ gui::Viewport::Viewport( SDL_Window* mainWindow, const std::string& name, const 
     : ImGuiWindow{ name, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar }
     , m_spec{ spec }
     , m_mainWindow{ mainWindow }
-    , m_guizmoMode{ GuizmoMode::ROTATE }
+    , m_guizmoMode{ GuizmoMode::SCALE }
     , m_guizmoAxisLock{ AxisLock::NONE }
     , m_selectedEntity{ entt::null }
     , m_guizmoOp{ ImGuizmo::SCALE }
@@ -43,42 +44,61 @@ void gui::Viewport::render()
   if ( !begin() )
     return;
 
-  // TODO(kogayonon) draw the scene here
   auto viewportPanelSize = ImGui::GetContentRegionAvail();
+  static bool first{ true };
 
-  ImGui::BeginGroup();
-  static auto viewportDescriptorSet =
-    ImGui_ImplVulkan_AddTexture( *m_spec.pSampler, *m_spec.pViewportTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
-  ImGui::Image( viewportDescriptorSet, viewportPanelSize );
+  if ( first )
+  {
+    m_viewportDescriptor =
+      ImGui_ImplVulkan_AddTexture( m_spec.sampler, m_spec.viewportTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+    first = false;
+  }
+
+  // For the click to go to the guizmo
+  ImGui::SetNextItemAllowOverlap();
+  ImGui::Image( m_viewportDescriptor, viewportPanelSize );
+  auto min = ImGui::GetItemRectMin();
+  auto max = ImGui::GetItemRectMax();
 
   drawToolbar();
-  ImGui::EndGroup();
+
+  auto scene = core::SceneManager::getCurrentScene().lock();
+  auto view = scene->getEnttRegistry().view<core::PerspectiveCameraComponent>();
+  view.each( [&]( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComp ) {
+    if ( cameraComp.isUsed )
+    {
+      ImOGuizmo::SetDrawList( ImGui::GetWindowDrawList() );
+      ImOGuizmo::SetRect( max.x - 110.0f, min.y + 10.0f, 100.0f );
+      gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, [&]() {
+        if ( ImOGuizmo::DrawGizmo(
+               glm::value_ptr( cameraComp.ubo.view ), glm::value_ptr( cameraComp.ubo.projection ), 0.1f ) )
+        {
+        }
+      } );
+    }
+  } );
 
   if ( m_selectedEntity != entt::null && m_guizmoEnabled )
   {
     ImGuizmo::Enable( true );
-    auto scene = core::SceneManager::getCurrentScene().lock();
     auto transformComp = scene->getRegistry()->tryGetComponent<core::TransformComponent>( m_selectedEntity );
     if ( transformComp )
     {
       ImGuizmo::SetOrthographic( false );
-      ImGuizmo::SetDrawlist();
+      ImGuizmo::SetDrawlist( ImGui::GetWindowDrawList() );
 
-      auto windowPos = ImGui::GetWindowPos();
-      auto windowSize = ImGui::GetWindowSize();
+      ImGuizmo::SetRect( min.x, min.y, max.x - min.x, max.y - min.y );
 
-      ImGuizmo::SetRect( windowPos.x, windowPos.y, windowSize.x, windowSize.y );
-
-      auto view = scene->getEnttRegistry().view<core::CameraComponent>();
+      auto view = scene->getEnttRegistry().view<core::PerspectiveCameraComponent>();
       entt::entity cameraEntity = entt::null;
-      view.each( [&]( const entt::entity& entityId, core::CameraComponent& cameraComp ) {
+      view.each( [&]( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComp ) {
         if ( cameraComp.isUsed )
         {
           cameraEntity = entityId;
         }
       } );
 
-      auto& cameraComponent = scene->getRegistry()->getComponent<core::CameraComponent>( cameraEntity );
+      auto& cameraComponent = scene->getRegistry()->getComponent<core::PerspectiveCameraComponent>( cameraEntity );
       auto projection = cameraComponent.ubo.projection;
 
       // Unflip the projection
@@ -96,7 +116,6 @@ void gui::Viewport::render()
       }
     }
   }
-
   ImGui::End();
 }
 
@@ -104,7 +123,6 @@ void gui::Viewport::drawToolbar()
 {
   auto& style = ImGui::GetStyle();
 
-  // WARNING thake this into account when mouse picking
   ImGui::SetCursorPos( { 20.0f, 20.0f } );
 
   ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, { 8.0f, 8.0f } );

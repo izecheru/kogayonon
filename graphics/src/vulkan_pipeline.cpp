@@ -100,7 +100,7 @@ graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, Vulkan
     VkPushConstantRange pushConstant{};
     pushConstant.offset = 0;
     pushConstant.size = spec.pushConstantSize;
-    pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstant.stageFlags = spec.pushConstantVisibility;
 
     pipelineLayoutInfo.pushConstantRangeCount = 1;
     pipelineLayoutInfo.pPushConstantRanges = &pushConstant;

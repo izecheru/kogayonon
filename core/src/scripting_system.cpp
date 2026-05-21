@@ -1,8 +1,4 @@
 #include "core/systems/scripting_system.hpp"
-#include <filesystem>
-#include <fstream>
-#include <sol/sol.hpp>
-#include <spdlog/spdlog.h>
 #include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/index_component.hpp"
@@ -17,6 +13,10 @@
 #include "core/event/event_dispatcher.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
 #include "window/window.hpp"
+#include <filesystem>
+#include <fstream>
+#include <sol/sol.hpp>
+#include <spdlog/spdlog.h>
 
 using namespace utilities;
 using namespace window;
@@ -53,9 +53,7 @@ void ScriptingSystem::registerBindings( sol::state& lua )
   Registry::createLuaBindings( lua );
   TimeTracker::createLuaBindings( lua );
   EventDispatcher::createLuaBindings( lua );
-  DynamicRigidbodyComponent::createLuaBindings( lua );
   DirectionalLightComponent::createLuaBindings( lua );
-  StaticRigidbodyComponent::createLuaBindings( lua );
   PointLightComponent::createLuaBindings( lua );
   IdentifierComponent::createLuaBindings( lua );
   TransformComponent::createLuaBindings( lua );
@@ -64,8 +62,6 @@ void ScriptingSystem::registerBindings( sol::state& lua )
   MeshComponent::createLuaBindings( lua );
 
   registerMetaComponent<DirectionalLightComponent>();
-  registerMetaComponent<DynamicRigidbodyComponent>();
-  registerMetaComponent<StaticRigidbodyComponent>();
   registerMetaComponent<PointLightComponent>();
   registerMetaComponent<IdentifierComponent>();
   registerMetaComponent<TransformComponent>();

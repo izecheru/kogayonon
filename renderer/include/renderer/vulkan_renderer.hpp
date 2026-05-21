@@ -15,6 +15,13 @@
 
 struct SDL_Window;
 
+enum DescriptorSetNum
+{
+  SET_0 = 0,
+  SET_1 = 1,
+  SET_2 = 2
+};
+
 namespace core
 {
 class Entity;

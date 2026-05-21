@@ -12,7 +12,6 @@
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
-#include "physics/nvidia_physx.hpp"
 #include "resources/light_types.hpp"
 #include "resources/pointlight.hpp"
 #include "utilities/math/math.hpp"
@@ -85,8 +84,3 @@ void core::Scene::removeMeshFromEntity( entt::entity entity )
   ent.removeComponent<TransformComponent>();
 }
 
-void core::Scene::updateRigidbodyEntities()
-{
-  if ( !physics::NvidiaPhysx::getInstance().isRunning() )
-    return;
-}

@@ -20,7 +20,8 @@ utilities::ShaderCompiler::~ShaderCompiler()
 {
 }
 
-auto utilities::ShaderCompiler::compileShaderFromSource( const std::string& shaderName ) -> ShaderObject
+auto utilities::ShaderCompiler::compileShaderFromSource( const std::string& shaderName,
+                                                         const std::string& shaderEntryFunc ) -> ShaderObject
 {
   ShaderObject obj{};
   auto slangTargets{ std::to_array<slang::TargetDesc>(
@@ -67,11 +68,22 @@ auto utilities::ShaderCompiler::compileShaderFromSource( const std::string& shad
   }
 
   Slang::ComPtr<slang::IEntryPoint> entryPoint;
-  slangModule->findEntryPointByName( "main", entryPoint.writeRef() );
+  res = slangModule->findEntryPointByName( shaderEntryFunc.c_str(), entryPoint.writeRef() );
+
+  if ( SLANG_FAILED( res ) || !entryPoint )
+  {
+    KOGAYONON_ERR( "Entry point not found: {}", shaderEntryFunc );
+    throw std::runtime_error( "Entry point lookup failed" );
+  }
 
   slang::IComponentType* components[] = { slangModule.get(), entryPoint.get() };
   Slang::ComPtr<slang::IComponentType> composedProgram;
-  session->createCompositeComponentType( components, 2, composedProgram.writeRef() );
+  res = session->createCompositeComponentType( components, 2, composedProgram.writeRef() );
+
+  if ( SLANG_FAILED( res ) )
+  {
+    throw std::runtime_error( "Could not create composite component" );
+  }
 
   Slang::ComPtr<slang::IBlob> diagnosticsBlob;
   composedProgram->getLayout()->getEntryPointByIndex( 0 );
@@ -107,9 +119,10 @@ auto utilities::ShaderCompiler::readFile( const std::string& filePath ) -> std::
   return buffer;
 }
 
-auto utilities::ShaderCompiler::createShaderModule( const std::string& shaderName ) -> VkShaderModule
+auto utilities::ShaderCompiler::createShaderModule( const std::string& shaderName, const std::string& shaderEntryFunc )
+  -> VkShaderModule
 {
-  auto obj = compileShaderFromSource( shaderName );
+  auto obj = compileShaderFromSource( shaderName, shaderEntryFunc );
 
   VkShaderModuleCreateInfo createInfo{
     .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,

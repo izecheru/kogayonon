@@ -75,7 +75,9 @@ void gui::EntityProperties::contextMenu()
   {
     auto scene = core::SceneManager::getCurrentScene().lock();
     auto meshComp = scene->getRegistry()->tryGetComponent<core::MeshComponent>( m_selectedEntity );
-    if ( !meshComp )
+    bool hasCamera = scene->getRegistry()->hasComponent<core::PerspectiveCameraComponent>( m_selectedEntity );
+
+    if ( !meshComp && !hasCamera )
     {
       if ( ImGui::MenuItem( "Mesh" ) )
       {
@@ -168,7 +170,7 @@ void gui::EntityProperties::renderCamera()
     return;
 
   auto scene = core::SceneManager::getCurrentScene().lock();
-  auto camera = scene->getRegistry()->tryGetComponent<core::CameraComponent>( m_selectedEntity );
+  auto camera = scene->getRegistry()->tryGetComponent<core::PerspectiveCameraComponent>( m_selectedEntity );
 
   if ( !camera )
     return;

@@ -144,10 +144,7 @@ void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
   poolInfo.poolSizeCount = (uint32_t)IM_COUNTOF( poolSizes );
   poolInfo.pPoolSizes = poolSizes;
 
-  if ( vkCreateDescriptorPool( device->getLogicalDevice(), &poolInfo, nullptr, &m_descriptorPool ) != VK_SUCCESS )
-  {
-    throw std::runtime_error( "failed to create imgui descriptor pool!" );
-  }
+  VK_CALL( vkCreateDescriptorPool( device->getLogicalDevice(), &poolInfo, nullptr, &m_descriptorPool ) );
 
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
@@ -164,26 +161,17 @@ void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
   cfg.PixelSnapH = true;
 
   float baseFontSize = 24.0f;
-  float iconFontSize =
-    baseFontSize * 2.0f /
-    3.0f; // FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly
+  float iconFontSize = baseFontSize * 2.0f / 3.0f;
 
-  // static const ImWchar fontawesome6Ranges[] = { ICON_MIN_FA6, ICON_MAX_16_FA6, 0 };
-  // static const ImWchar fontawesome5Ranges[] = { ICON_MIN_FA5, ICON_MAX_16_FA5, 0 };
   static const ImWchar materialdesignRanges[] = { ICON_MIN_MDI, ICON_MAX_MDI, 0 };
-  // static const ImWchar googleMaterialdesignRanges[] = { ICON_MIN_MD, ICON_MAX_MD, 0 };
-  // static const ImWchar googleMaterialsymbolsRanges[] = { ICON_MIN_MS, ICON_MAX_MS, 0 };
-  // static const ImWchar forkAwesomeRanges[] = { ICON_MIN_FK, ICON_MAX_16_FK, 0 };
-  // static const ImWchar codiconRanges[] = { ICON_MIN_CI, ICON_MAX_CI, 0 };
-  // static const ImWchar lucideRanges[] = { ICON_MIN_LC, ICON_MAX_16_LC, 0 };
 
-  ImFontConfig iconsConfig;
+  ImFontConfig iconsConfig{};
   iconsConfig.PixelSnapH = true;
   iconsConfig.GlyphMinAdvanceX = iconFontSize;
   iconsConfig.MergeMode = true;
   iconsConfig.PixelSnapH = true;
 
-  ImFontConfig materialdesignConfig;
+  ImFontConfig materialdesignConfig{};
   materialdesignConfig.PixelSnapH = true;
   materialdesignConfig.GlyphMinAdvanceX = baseFontSize;
   materialdesignConfig.MergeMode = true;
@@ -194,68 +182,11 @@ void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
 
   io.FontDefault = m_fonts.at( "inter" );
 
-  // m_fonts.emplace( "codicon",
-  //                  io.Fonts->AddFontFromFileTTF(
-  //                    "engine_resources/fonts/codicon.ttf", baseFontSize - 5.0f, &iconsConfig, codiconRanges ) );
-
-  // m_fonts.emplace( "lucide",
-  //                  io.Fonts->AddFontFromFileTTF(
-  //                    "engine_resources/fonts/lucide.ttf", baseFontSize - 5.0f, &iconsConfig, lucideRanges ) );
-
-  // m_fonts.emplace(
-  //   "forkawesome",
-  //   io.Fonts->AddFontFromFileTTF(
-  //     "engine_resources/fonts/forkawesome-webfont.ttf", iconFontSize, &iconsConfig, forkAwesomeRanges ) );
-
-  // m_fonts.emplace( "google-materialdesign",
-  //                  io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/MaterialIcons-Regular.ttf",
-  //                                                baseFontSize,
-  //                                                &materialdesignConfig,
-  //                                                googleMaterialdesignRanges ) );
-
-  // m_fonts.emplace(
-  //   "google-materialsymbols",
-  //   io.Fonts->AddFontFromFileTTF(
-  //   "engine_resources/fonts/MaterialSymbolsOutlined-VariableFont_FILL,GRAD,opsz,wght.ttf",
-  //                                 baseFontSize,
-  //                                 &materialdesignConfig,
-  //                                 googleMaterialsymbolsRanges ) );
-
   m_fonts.emplace( "materialdesign",
                    io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/materialdesignicons-webfont.ttf",
                                                  baseFontSize - 5.0f,
                                                  &materialdesignConfig,
                                                  materialdesignRanges ) );
-
-  // m_fonts.emplace(
-  //   "fa6-brands-400",
-  //   io.Fonts->AddFontFromFileTTF(
-  //     "engine_resources/fonts/fontawesome/fa6-brands-400.otf", iconFontSize, &iconsConfig, fontawesome6Ranges ) );
-
-  // m_fonts.emplace(
-  //   "fa6-regular-400",
-  //   io.Fonts->AddFontFromFileTTF(
-  //     "engine_resources/fonts/fontawesome/fa6-regular-400.otf", iconFontSize, &iconsConfig, fontawesome6Ranges ) );
-
-  // m_fonts.emplace(
-  //   "fa6-solid-900",
-  //   io.Fonts->AddFontFromFileTTF(
-  //     "engine_resources/fonts/fontawesome/fa6-solid-900.otf", iconFontSize, &iconsConfig, fontawesome6Ranges ) );
-
-  // m_fonts.emplace(
-  //   "fa5-regular-400",
-  //   io.Fonts->AddFontFromFileTTF(
-  //     "engine_resources/fonts/fontawesome/fa5-regular-400.ttf", iconFontSize, &iconsConfig, fontawesome5Ranges ) );
-
-  // m_fonts.emplace(
-  //   "fa5-solid-900",
-  //   io.Fonts->AddFontFromFileTTF(
-  //     "engine_resources/fonts/fontawesome/fa5-solid-900.ttf", iconFontSize, &iconsConfig, fontawesome5Ranges ) );
-
-  // m_fonts.emplace(
-  //   "fa5-brands-400",
-  //   io.Fonts->AddFontFromFileTTF(
-  //     "engine_resources/fonts/fontawesome/fa5-brands-400.ttf", iconFontSize, &iconsConfig, fontawesome5Ranges ) );
 
   m_fonts.emplace( "inter-light",
                    io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-Light.ttf", 18.0f, &cfg ) );
@@ -279,7 +210,7 @@ void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
   // change the style
   ImGuiStyle& style = ImGui::GetStyle();
   ImVec4* colors = style.Colors;
-  style.WindowRounding = 0.0f;
+  style.WindowRounding = 0.5f;
   style.GrabRounding = style.FrameRounding = 2.3f;
   style.ScrollbarRounding = 5.0f;
   style.FrameBorderSize = 1.0f;
@@ -369,8 +300,8 @@ void gui::VulkanImguiRenderer::initWindows()
                                                                .renderModeIcon = std::move( renderMode ),
                                                                .playIcon = std::move( play ),
                                                                .stopIcon = std::move( stop ),
-                                                               .pViewportTexture = &m_viewportView,
-                                                               .pSampler = &m_iconSampler } ) );
+                                                               .viewportTexture = m_viewportView,
+                                                               .sampler = m_iconSampler } ) );
 
   auto hierarchyCubeIcon = std::filesystem::absolute( "." ) / "engine_resources\\textures\\3d-cube.png";
   auto hierarchyCubeIconTexture = assetManager.loadTexture( "3d-cube.png", hierarchyCubeIcon.string() );

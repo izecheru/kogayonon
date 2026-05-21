@@ -1,3 +1,19 @@
+#include "structures.slang"
+#include "utils.slang"
+
+struct VertexInput
+{
+  float3 position : POSITION;
+  float3 normal : NORMAL;
+  float2 uv : TEXCOORD0;
+};
+
+struct VertexOut
+{
+  float4 position : SV_Position;
+  float2 fragTexCoord : TEXCOORD0;
+};
+
 struct FragmentInput
 {
   float4 position : SV_Position;
@@ -23,6 +39,9 @@ struct PushConstant
   int materialIndex;
 };
 
+[[vk::binding( 0, 0 )]]
+ConstantBuffer<Camera> camera;
+
 [[vk::binding( 0, 1 )]]
 Sampler2D bindlessTextures[];
 
@@ -37,8 +56,24 @@ MaterialDescription getMaterial( int materialIndex )
   return materials[materialIndex];
 }
 
+[shader( "vertex" )]
+VertexOut vertexMain( VertexInput input )
+{
+  VertexOut output;
+
+  float4 pos = float4( input.position, 1.0 );
+  pos = mul( push.modelMatrix, pos );
+  pos = mul( camera.view, pos );
+  pos = mul( camera.projection, pos );
+
+  output.position = pos;
+  output.fragTexCoord = input.uv;
+
+  return output;
+}
+
 [shader( "fragment" )]
-FragmentOutput main( FragmentInput input )
+FragmentOutput fragmentMain( FragmentInput input )
 {
   FragmentOutput output;
 

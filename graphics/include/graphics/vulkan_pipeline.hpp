@@ -53,6 +53,7 @@ struct VulkanPipelineSpec
    * @brief sizeof(PushConstant)
    */
   uint32_t pushConstantSize{ 0u };
+  VkShaderStageFlags pushConstantVisibility;
 
 #ifdef VERTEX_PROVIDED
   VkVertexInputBindingDescription vertexBindingDescription;

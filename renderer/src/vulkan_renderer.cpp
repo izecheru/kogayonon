@@ -33,14 +33,14 @@ rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Wi
   createPickingBuffers();
 #endif
   createCameraDescriptorSet();
-  initImgui();
   initViewports();
+  initImgui();
 
   auto& assetManager = core::AssetManager::getInstance();
   auto shadersPath = std::filesystem::current_path() / "engine_resources" / " shaders ";
 
-  auto basicGeometryVertex = m_shaderCompiler.createShaderModule( "vulkan_vertex" );
-  auto basicGeometryFragment = m_shaderCompiler.createShaderModule( "vulkan_fragment" );
+  auto basicGeometryVertex = m_shaderCompiler.createShaderModule( "basic_shader", "vertexMain" );
+  auto basicGeometryFragment = m_shaderCompiler.createShaderModule( "basic_shader", "fragmentMain" );
 
   assert( basicGeometryVertex != VK_NULL_HANDLE );
   assert( basicGeometryFragment != VK_NULL_HANDLE );
@@ -55,6 +55,7 @@ rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Wi
     .vertexModule = basicGeometryVertex,
     .fragmentModule = basicGeometryFragment,
     .pushConstantSize = sizeof( resources::MeshPushConstant ),
+    .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
     .vertexBindingDescription = resources::Vertex::getBindingDescription(),
     .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions() };
 
@@ -323,8 +324,8 @@ void rendering::VulkanRenderer::createCameraBuffers()
 void rendering::VulkanRenderer::updateCameraBuffer()
 {
   auto scene = core::SceneManager::getCurrentScene().lock();
-  auto view = scene->getEnttRegistry().view<core::CameraComponent>();
-  view.each( [&]( const entt::entity& entityId, core::CameraComponent& cameraComp ) {
+  auto view = scene->getEnttRegistry().view<core::PerspectiveCameraComponent>();
+  view.each( [&]( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComp ) {
     if ( cameraComp.isUsed )
     {
 
@@ -410,6 +411,7 @@ void rendering::VulkanRenderer::initImgui()
 {
   m_pImguiRenderer =
     std::make_shared<gui::VulkanImguiRenderer>( m_wnd, m_pVkContext->device.get(), m_pVkContext->swapchain.get() );
+  m_pImguiRenderer->setViewport( m_viewport.imageView );
 }
 
 void rendering::VulkanRenderer::geometryPass( VkCommandBuffer& cmd )
@@ -487,7 +489,7 @@ void rendering::VulkanRenderer::geometryPass( VkCommandBuffer& cmd )
                                              .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                                              .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                                              .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                                             .clearValue = { { 0.350f, 0.350f, 0.350f, 0.8f } } };
+                                             .clearValue = { { 0.2471f, 0.2471f, 0.2471f, 1.0f } } };
 
   VkRenderingInfo renderingInfo{
     .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
@@ -511,7 +513,7 @@ void rendering::VulkanRenderer::geometryPass( VkCommandBuffer& cmd )
   vkCmdBindDescriptorSets( cmd,
                            VK_PIPELINE_BIND_POINT_GRAPHICS,
                            pipeline.getLayout(),
-                           0, // set = 0 camera
+                           DescriptorSetNum::SET_0,
                            1,
                            &m_cameraDescriptor.set.at( m_pVkContext->swapchain->getCurrentFrameIndex() ),
                            0,
@@ -521,7 +523,7 @@ void rendering::VulkanRenderer::geometryPass( VkCommandBuffer& cmd )
   vkCmdBindDescriptorSets( cmd,
                            VK_PIPELINE_BIND_POINT_GRAPHICS,
                            pipeline.getLayout(),
-                           1, // set = 1
+                           DescriptorSetNum::SET_1,
                            1,
                            &assetManager.getBindlessDescriptorSet(),
                            0,
@@ -537,7 +539,7 @@ void rendering::VulkanRenderer::geometryPass( VkCommandBuffer& cmd )
       vkCmdBindDescriptorSets( cmd,
                                VK_PIPELINE_BIND_POINT_GRAPHICS,
                                pipeline.getLayout(),
-                               2, // set = 2
+                               DescriptorSetNum::SET_2,
                                1,
                                &assetManager.getMaterialsDescriptorSet(),
                                0,
@@ -605,16 +607,6 @@ void rendering::VulkanRenderer::pickingPass( VkCommandBuffer& cmd )
   auto& assetManager = core::AssetManager::getInstance();
 
   const auto& view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
-
-  // Update transforms if they are marked as update needed
-  // this will eventually change with physics and so on
-  view.each(
-    [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
-      if ( transform.update )
-      {
-        transform.computeMatrix();
-      }
-    } );
 
   VkImageMemoryBarrier textureToColor{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                                        .srcAccessMask = 0,
@@ -711,6 +703,11 @@ void rendering::VulkanRenderer::pickingPass( VkCommandBuffer& cmd )
       if ( !meshComponent.loaded )
         return;
 
+      if ( transform.update )
+      {
+        transform.computeMatrix();
+      }
+
       vkCmdBindVertexBuffers( cmd, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
       vkCmdBindIndexBuffer( cmd, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
       for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
@@ -798,7 +795,6 @@ void rendering::VulkanRenderer::imguiPass( VkCommandBuffer& cmd )
   };
 
   m_pVkContext->swapchain->beginRendering( imguiRenderingInfo );
-  m_pImguiRenderer->setViewport( m_viewport.imageView );
   m_pImguiRenderer->render();
   m_pImguiRenderer->present( cmd );
   m_pVkContext->swapchain->endRendering();

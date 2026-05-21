@@ -6,7 +6,7 @@ namespace core
 {
 struct CameraProps
 {
-  glm::vec3 eye{ 0.0f, 0.0f, 10.0f };
+  glm::vec3 eye{ 5.0f, 5.0f, 10.0f };
   glm::vec3 center{ 0.0f, 0.0f, 0.0f };
   glm::vec3 up{ 0.0f, 1.0f, 0.0f };
   glm::vec2 extent;
@@ -24,7 +24,7 @@ struct CameraUbo
   glm::mat4 projection;
 };
 
-struct CameraComponent
+struct PerspectiveCameraComponent
 {
   CameraUbo ubo;
   CameraProps props;
@@ -40,6 +40,38 @@ struct CameraComponent
       ubo.projection[1][1] *= -1;
       props.changed = false;
     }
+  }
+};
+
+struct OrthoCameraProps
+{
+  glm::vec2 horizontal;
+  glm::vec2 vertical;
+  glm::vec3 position;
+  float zoom{ 1.0f };
+  float aspect{ 1.0f };
+  float nearView{ 0.1f };
+  float farView{ 1000.0f };
+};
+
+struct OrthoUbo
+{
+  glm::mat4 view;
+  glm::mat4 projection;
+};
+
+// This should be the engine default camera
+struct OrthoCameraComponent
+{
+  OrthoUbo ubo;
+  OrthoCameraProps props;
+
+  inline void updateUbo()
+  {
+    ubo.view = glm::translate( glm::mat4( 1.0f ), -props.position );
+
+    ubo.projection = glm::ortho(
+      props.horizontal.x, props.horizontal.y, props.vertical.x, props.vertical.y, props.nearView, props.farView );
   }
 };
 } // namespace core

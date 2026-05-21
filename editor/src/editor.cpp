@@ -302,7 +302,7 @@ bool editor::Editor::initMainRegistry()
   auto ctx = mainRegistry.getVulkanContext();
   auto extent = ctx->swapchain->getSwapchainExtent();
 
-  auto cameraComponent = core::CameraComponent{};
+  auto cameraComponent = core::PerspectiveCameraComponent{};
 
   cameraComponent.ubo.view =
     glm::lookAt( cameraComponent.props.eye, cameraComponent.props.center, cameraComponent.props.up );
@@ -316,7 +316,7 @@ bool editor::Editor::initMainRegistry()
   cameraComponent.props.extent = { (float)extent.width, (float)extent.height };
   cameraComponent.isUsed = true;
 
-  entity.addComponent<core::CameraComponent>( cameraComponent );
+  entity.addComponent<core::PerspectiveCameraComponent>( cameraComponent );
 
   return true;
 }
