@@ -1,9 +1,7 @@
 #include "utilities/time_tracker/time_tracker.hpp"
 #include <spdlog/spdlog.h>
 
-namespace utilities
-{
-void TimeTracker::update( const std::string& key )
+void utilities::TimeTracker::update( const std::string& key )
 {
   std::lock_guard lock( m_timeMutex );
   auto it = m_durationMap.find( key );
@@ -15,14 +13,14 @@ void TimeTracker::update( const std::string& key )
   }
 }
 
-void TimeTracker::start( const std::string& key )
+void utilities::TimeTracker::start( const std::string& key )
 {
   std::lock_guard lock( m_timeMutex );
   auto now = std::chrono::high_resolution_clock::now();
   m_durationMap.emplace( key, std::make_pair( now, duration( 0.0 ) ) );
 }
 
-auto TimeTracker::getDuration( const std::string& key ) -> TimeTracker::duration
+auto utilities::TimeTracker::getDuration( const std::string& key ) -> utilities::TimeTracker::duration
 {
   std::lock_guard lock( m_timeMutex );
   auto it = m_durationMap.find( key );
@@ -34,7 +32,12 @@ auto TimeTracker::getDuration( const std::string& key ) -> TimeTracker::duration
   return duration{ 0 };
 }
 
-void TimeTracker::createLuaBindings( sol::state& lua )
+auto utilities::TimeTracker::getDurationInSeconds( const std::string& key ) -> float
+{
+  return getDuration( key ).count();
+}
+
+void utilities::TimeTracker::createLuaBindings( sol::state& lua )
 {
   lua.new_usertype<TimeTracker>(
     "TimeTracker",
@@ -47,4 +50,3 @@ void TimeTracker::createLuaBindings( sol::state& lua )
       return sol::make_object( currentState, self.getDuration( key ).count() );
     } );
 }
-} // namespace utilities

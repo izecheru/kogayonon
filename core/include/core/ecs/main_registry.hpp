@@ -2,6 +2,11 @@
 #include "precompiled/pch.hpp"
 #include "registry.hpp"
 
+namespace physics
+{
+class JoltPhysics;
+}
+
 namespace utilities
 {
 class TaskManager;
@@ -53,6 +58,11 @@ public:
   auto getContext() -> TContext&
   {
     return m_pRegistry->getContext<TContext>();
+  }
+
+  auto getJoltPhysics() -> std::shared_ptr<physics::JoltPhysics>&
+  {
+    return getContext<std::shared_ptr<physics::JoltPhysics>>();
   }
 
   auto getVulkanContext() -> std::shared_ptr<graphics::VulkanContext>&

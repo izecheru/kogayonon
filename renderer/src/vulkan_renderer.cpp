@@ -2,6 +2,7 @@
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/rigidbody_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
@@ -12,6 +13,7 @@
 #include "graphics/vulkan_context.hpp"
 #include "gui/imgui_windows/viewport.hpp"
 #include "gui/vulkan_imgui_renderer.hpp"
+#include "physics/jolt_physics.hpp"
 #include "resources/mesh_push_constant.hpp"
 #include "utilities/utils/utils.hpp"
 #include <SDL2/SDL.h>
@@ -420,16 +422,34 @@ void rendering::VulkanRenderer::geometryPass( VkCommandBuffer& cmd )
   auto& assetManager = core::AssetManager::getInstance();
 
   const auto& view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
+  const auto& rigidView =
+    scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent, core::RigidbodyComponent>();
 
-  // update transforms if they are marked as update needed
-  // this will eventually change with physics and so on
-  view.each(
-    [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
+  rigidView.each( [&]( const entt::entity& entityId,
+                       core::MeshComponent& meshComponent,
+                       core::TransformComponent& transform,
+                       core::RigidbodyComponent& rigidBody ) {
+    auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
+    auto& bodyInterface = jolt->getPhysicsSystem().GetBodyInterface();
+    if ( jolt->isRunning() )
+    {
+      auto pos = bodyInterface.GetCenterOfMassPosition( rigidBody.body );
+      transform.translation = { pos.GetX(), pos.GetY(), pos.GetZ() };
+      transform.computeMatrix();
+    }
+    else
+    {
       if ( transform.update )
       {
+        bodyInterface.SetPositionAndRotation(
+          rigidBody.body,
+          { transform.translation.x, transform.translation.y, transform.translation.z },
+          JPH::Quat{},
+          JPH::EActivation::Activate );
         transform.computeMatrix();
       }
-    } );
+    }
+  } );
 
   VkImageMemoryBarrier textureToColor{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                                        .srcAccessMask = 0,

@@ -1,5 +1,7 @@
 #include "gui/imgui_windows/viewport.hpp"
+#include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/camera_component.hpp"
+#include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
@@ -9,6 +11,7 @@
 #include "core/scene/scene_manager.hpp"
 #include "gui/utils/font_keys.hpp"
 #include "gui/utils/imgui_utils.hpp"
+#include "physics/jolt_physics.hpp"
 #include "utilities/fonts/materialdesign.hpp"
 #include "utilities/input/keyboard_state.hpp"
 #include "utilities/utils/utils.hpp"
@@ -27,6 +30,9 @@ gui::Viewport::Viewport( SDL_Window* mainWindow, const std::string& name, const 
     , m_selectedEntity{ entt::null }
     , m_guizmoOp{ ImGuizmo::SCALE }
     , m_guizmoEnabled{ false }
+    , m_entityMenu{ false }
+    , m_viewportDescriptor{ VK_NULL_HANDLE }
+    , m_mouseCoords{ 0.0f, 0.0f }
 {
   auto& pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
   pEventDispatcher->addHandler<core::SelectEntityEvent, &Viewport::onEntitySelect>( *this );
@@ -61,6 +67,7 @@ void gui::Viewport::render()
   auto max = ImGui::GetItemRectMax();
 
   drawToolbar();
+  drawEntityMenu();
 
   auto scene = core::SceneManager::getCurrentScene().lock();
   auto view = scene->getEnttRegistry().view<core::PerspectiveCameraComponent>();
@@ -129,13 +136,13 @@ void gui::Viewport::drawToolbar()
   ImGui::PushStyleVar( ImGuiStyleVar_ChildRounding, 10.0f );
   ImGui::PushStyleColor( ImGuiCol_ChildBg, { 0.15f, 0.15f, 0.15f, 0.75f } );
 
-  uint32_t buttonCount = m_guizmoEnabled ? 6u : 3u;
+  uint32_t buttonCount = m_guizmoEnabled ? 5u : 2u;
   float toolbarWidth =
     style.WindowPadding.x * 2.0f + ( 14.0f * buttonCount ) + ( style.ItemSpacing.x * buttonCount ) + ( 2.0f * 5.0f );
 
   ImGui::BeginGroup();
   if ( ImGui::BeginChild( "Toolbar",
-                          { toolbarWidth, 25.0f },
+                          { toolbarWidth, 30.0f },
                           false,
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse ) )
   {
@@ -143,21 +150,18 @@ void gui::Viewport::drawToolbar()
     ImGui::PushStyleColor( ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f } );
     ImGui::PushStyleColor( ImGuiCol_Border, { 0.0f, 0.0f, 0.0f, 0.0f } );
 
-    ImGui::SetCursorPos( { 5.0f, 2.5f } );
-    if ( ImGui::ImageButton( "##renderMode", m_spec.renderModeIcon, { 14.0f, 14.0f } ) )
-    {
-    }
-    ImGui::SameLine();
+    ImGui::SetCursorPos( { 5.0f, 5.5f } );
+    auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
 
     if ( ImGui::ImageButton( "##stopButton", m_spec.stopIcon, { 14.0f, 14.0f } ) )
     {
-      // kogayonon_physics::NvidiaPhysx::getInstance().switchState( false );
+      jolt->stop();
     }
     ImGui::SameLine();
 
     if ( ImGui::ImageButton( "##startButton", m_spec.playIcon, { 14.0f, 14.0f } ) )
     {
-      // kogayonon_physics::NvidiaPhysx::getInstance().switchState( true );
+      jolt->start();
     }
 
     ImGui::SameLine();
@@ -205,6 +209,111 @@ void gui::Viewport::drawToolbar()
 
   ImGui::PopStyleColor();
   ImGui::PopStyleVar( 2 );
+}
+
+void gui::Viewport::drawEntityMenu()
+{
+  if ( !m_entityMenu )
+    return;
+
+  if ( m_mouseCoords.x == 0.0f && m_mouseCoords.y == 0.0f )
+  {
+    auto mouse = ImGui::GetMousePos();
+    if ( m_props->hovered )
+    {
+      m_mouseCoords = { mouse.x, mouse.y };
+    }
+    else
+    {
+      auto size = ImGui::GetWindowSize();
+      m_mouseCoords = { m_props->x + ( size.x * 0.5f ) - 130.0f, m_props->y + ( size.y * 0.5f ) - 100.0f };
+    }
+  }
+
+  ImGui::SetNextWindowSize( { 130.0f, 190.0f } );
+  ImGui::SetNextWindowPos( { m_mouseCoords.x, m_mouseCoords.y } );
+
+  ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, { 8.0f, 8.0f } );
+  ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, { 8.0f, 8.0f } );
+  ImGui::PushStyleVar( ImGuiStyleVar_ChildRounding, 10.0f );
+  ImGui::PushStyleColor( ImGuiCol_ChildBg, { 0.15f, 0.15f, 0.15f, 0.75f } );
+
+  if ( ImGui::Begin(
+         "##quickMenu", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove ) )
+  {
+    // Close the menu if we the mouse does not hover over the window but we detect a click
+    if ( !ImGui::IsWindowHovered( ImGuiHoveredFlags_RootAndChildWindows ) &&
+         ImGui::IsMouseClicked( ImGuiMouseButton_Left ) )
+    {
+      m_entityMenu = false;
+      m_mouseCoords = { 0.0f, 0.0f };
+    }
+
+    ImGui::PushItemWidth( 130.0f / 2.0f );
+
+    auto scene = core::SceneManager::getCurrentScene().lock();
+    auto& pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
+    auto& assetManager = core::AssetManager::getInstance();
+
+    ImGui::PushFont( m_spec.fonts->at( INTER ), 14.0f );
+    if ( ImGui::BeginMenu( "Add object" ) )
+    {
+      std::string filename{ "" };
+      bool selected{ false };
+
+      if ( ImGui::MenuItem( "Cone" ) )
+      {
+        filename = "default_cone.gltf";
+        selected = true;
+      }
+
+      if ( ImGui::MenuItem( "Cube" ) )
+      {
+        filename = "cub.gltf";
+        selected = true;
+      }
+
+      if ( selected )
+      {
+        std::filesystem::path p{ std::filesystem::absolute( "." ) / "engine_resources" / "models" / filename };
+
+        core::Entity ent{ scene->getRegistry(), "object" };
+
+        ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
+        ent.addComponent<core::MeshComponent>(
+          core::MeshComponent{ .pMesh = assetManager.loadMesh( "test", p.string() ), .loaded = true } );
+
+        pEventDispatcher->dispatchEvent<core::SelectEntityEvent>(
+          core::SelectEntityEvent{ ent.getEntityId(), core::SelectEntityEventSource::Viewport_Window } );
+
+        m_selectedEntity = ent.getEntityId();
+
+        m_entityMenu = false;
+        m_mouseCoords = { 0.0f, 0.0f };
+        KOGAYONON_INFO( "menu closed" );
+      }
+      ImGui::EndMenu();
+    }
+    if ( m_selectedEntity != entt::null )
+    {
+      if ( ImGui::BeginMenu( "Add component" ) )
+      {
+        ImGui::EndMenu();
+      }
+    }
+    else
+    {
+      RenderDisabled( ImGui::MenuItem( "Add component" ) );
+    }
+
+    ImGui::PopFont();
+
+    ImGui::PopItemWidth();
+  }
+  ImGui::End();
+
+  ImGui::PopStyleColor();
+  ImGui::PopStyleVar( 3 );
 }
 
 auto gui::Viewport::getGuizmoOp() -> ImGuizmo::OPERATION
@@ -278,6 +387,14 @@ void gui::Viewport::onKeyPressed( const core::KeyPressedEvent& e )
   if ( KeyboardState::getKeyCombinationState( { KeyScanCode::LeftShift, KeyScanCode::G } ) )
   {
     m_guizmoEnabled = !m_guizmoEnabled;
+  }
+
+  if ( KeyboardState::getKeyCombinationState( { KeyScanCode::LeftShift, KeyScanCode::A } ) )
+  {
+    if ( m_entityMenu )
+      m_mouseCoords = { 0.0f, 0.0f }; // Reset mouse coords on close
+
+    m_entityMenu = !m_entityMenu;
   }
 
   if ( KeyboardState::getKeyState( KeyScanCode::Escape ) )

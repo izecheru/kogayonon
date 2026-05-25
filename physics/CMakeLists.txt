@@ -1,10 +1,16 @@
 add_library(physics
-"include/physics/nvidia_physx.hpp"
-"src/nvidia_physx.cpp"
+	"include/physics/jolt_physics.hpp"
+	"include/physics/rigidbody_type.hpp"
+
+	"src/jolt_physics.cpp"
 )
 
-target_include_directories(physics PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_include_directories(physics PUBLIC 
+		"${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
 target_link_libraries(physics
-PRIVATE spdlog::spdlog
-PUBLIC unofficial::omniverse-physx-sdk::sdk
+	PUBLIC	
+	glm::glm-header-only
+	spdlog::spdlog_header_only
+	Jolt::Jolt
 )

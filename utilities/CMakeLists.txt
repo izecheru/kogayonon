@@ -41,11 +41,13 @@ target_include_directories(utilities
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
                            PRIVATE ${SOL2_INCLUDE_DIRS})
 
-target_link_libraries(utilities PUBLIC cgltf 
- PRIVATE
+target_link_libraries(utilities 
+	PUBLIC 
+	cgltf 
+	spdlog::spdlog_header_only
+	PRIVATE
 	glm::glm-header-only 
 	yaml-cpp::yaml-cpp
-	spdlog::spdlog 
 	lua 
 	glad 
 	rapidjson

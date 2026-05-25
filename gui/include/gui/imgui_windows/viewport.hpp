@@ -53,8 +53,8 @@ struct ViewportSpec
   VkDescriptorSet playIcon;
   VkDescriptorSet stopIcon;
 
-  VkImageView* pViewportTexture;
-  VkSampler* pSampler;
+  VkImageView& viewportTexture;
+  VkSampler& sampler;
 };
 
 class Viewport : public ImGuiWindow
@@ -72,6 +72,7 @@ public:
 
 private: // funcs
   void drawToolbar();
+  void drawEntityMenu();
   auto getGuizmoOp() -> ImGuizmo::OPERATION;
 
 private:
@@ -91,5 +92,9 @@ private:
   bool m_guizmoEnabled;
   GuizmoMode m_guizmoMode;
   AxisLock m_guizmoAxisLock;
+  VkDescriptorSet m_viewportDescriptor;
+
+  glm::vec2 m_mouseCoords;
+  bool m_entityMenu;
 };
 } // namespace gui

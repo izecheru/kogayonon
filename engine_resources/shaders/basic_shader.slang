@@ -8,13 +8,7 @@ struct VertexInput
   float2 uv : TEXCOORD0;
 };
 
-struct VertexOut
-{
-  float4 position : SV_Position;
-  float2 fragTexCoord : TEXCOORD0;
-};
-
-struct FragmentInput
+struct VertexOutput
 {
   float4 position : SV_Position;
   float2 fragTexCoord : TEXCOORD0;
@@ -57,23 +51,19 @@ MaterialDescription getMaterial( int materialIndex )
 }
 
 [shader( "vertex" )]
-VertexOut vertexMain( VertexInput input )
+VertexOutput vertexMain( VertexInput input )
 {
-  VertexOut output;
+  VertexOutput output;
 
-  float4 pos = float4( input.position, 1.0 );
-  pos = mul( push.modelMatrix, pos );
-  pos = mul( camera.view, pos );
-  pos = mul( camera.projection, pos );
-
-  output.position = pos;
+  output.position =
+    mul( camera.projection, mul( camera.view, mul( push.modelMatrix, float4( input.position, 1.0f ) ) ) );
   output.fragTexCoord = input.uv;
 
   return output;
 }
 
 [shader( "fragment" )]
-FragmentOutput fragmentMain( FragmentInput input )
+FragmentOutput fragmentMain( VertexOutput input )
 {
   FragmentOutput output;
 
@@ -87,7 +77,7 @@ FragmentOutput fragmentMain( FragmentInput input )
     diffuseColor = bindlessTextures[NonUniformResourceIndex( material.diffuseIndex )].Sample( input.fragTexCoord );
   }
 
-  output.outColor = float4( diffuseColor );
+  output.outColor = diffuseColor;
   return output;
 }
 

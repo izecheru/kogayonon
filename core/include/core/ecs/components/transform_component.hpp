@@ -1,11 +1,11 @@
 #pragma once
+#include "utilities/json_serializer/json_serializer.hpp"
+#include "utilities/utils/yaml_utils.hpp"
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <sol/sol.hpp>
 #include <yaml-cpp/yaml.h>
-#include "utilities/json_serializer/json_serializer.hpp"
-#include "utilities/utils/yaml_utils.hpp"
 
 namespace core
 {

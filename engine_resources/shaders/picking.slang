@@ -7,12 +7,7 @@ struct VertexInput
   float2 uv : TEXCOORD0;
 };
 
-struct VertexOut
-{
-  float4 position : SV_Position;
-};
-
-struct FragmentInput
+struct VertexOutput
 {
   float4 position : SV_Position;
 };
@@ -35,22 +30,18 @@ PushConstant push;
 ConstantBuffer<Camera> camera;
 
 [shader( "vertex" )]
-VertexOut vertexMain( VertexInput vertexInput )
+VertexOutput vertexMain( VertexInput vertexInput )
 {
-  VertexOut vertexOutput;
+  VertexOutput vertexOutput;
 
-  float4 pos = float4( vertexInput.position, 1.0 );
-  pos = mul( push.modelMatrix, pos );
-  pos = mul( camera.view, pos );
-  pos = mul( camera.projection, pos );
-
-  vertexOutput.position = pos;
+  vertexOutput.position =
+    mul( camera.projection, mul( camera.view, mul( push.modelMatrix, float4( vertexInput.position, 1.0f ) ) ) );
 
   return vertexOutput;
 }
 
 [shader( "fragment" )]
-FragmentOutput fragmentMain( FragmentInput input )
+FragmentOutput fragmentMain( VertexOutput input )
 {
   FragmentOutput output;
   output.outColor = push.entityId;

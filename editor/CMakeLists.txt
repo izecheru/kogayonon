@@ -19,12 +19,13 @@ target_link_libraries(
   editor
   PRIVATE 
 	  SDL2::SDL2main
-	  spdlog::spdlog
+	  spdlog::spdlog_header_only
 	  SDL2::SDL2
 	  utilities
 	  resources
 	  renderer
 	  graphics
+	  physics
 	  window 
 	  imgui
 	  core

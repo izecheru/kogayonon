@@ -1,6 +1,8 @@
 #pragma once
-#include <sol/sol.hpp>
 #include "precompiled/pch.hpp"
+#include <sol/sol.hpp>
+
+#define DELTA_TIME "deltaTime"
 
 namespace utilities
 {
@@ -21,6 +23,7 @@ public:
   void update( const std::string& key );
   void start( const std::string& key );
   auto getDuration( const std::string& key ) -> duration;
+  auto getDurationInSeconds( const std::string& key ) -> float;
 
   static void createLuaBindings( sol::state& lua );
 

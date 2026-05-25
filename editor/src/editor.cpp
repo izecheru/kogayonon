@@ -15,11 +15,13 @@
 #include "graphics/vulkan_device.hpp"
 #include "graphics/vulkan_swapchain.hpp"
 #include "gui/vulkan_imgui_renderer.hpp"
+#include "physics/jolt_physics.hpp"
 #include "renderer/vulkan_renderer.hpp"
 #include "resources/mesh_push_constant.hpp"
 #include "resources/texture.hpp"
 #include "resources/vertex.hpp"
 #include "utilities/config_manager/config_manager.hpp"
+#include "utilities/time_tracker/time_tracker.hpp"
 #include "utilities/utils/utils.hpp"
 #include "window/window.hpp"
 #include <SDL2/SDL.h>
@@ -171,14 +173,28 @@ void editor::Editor::run()
 
   auto& assetManager = core::AssetManager::getInstance();
   assetManager.initSampler();
+  auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
+  auto& timeTracker = core::MainRegistry::getInstance().getTimeTracker();
+
+  // Start the delta time count
+  timeTracker->start( DELTA_TIME );
 
   while ( m_running )
   {
+    // Poll events and dispatch them to listeners
     pollEvents();
+
+    // Update physics based on delta
+    jolt->update( timeTracker->getDurationInSeconds( DELTA_TIME ) );
+
+    // Render
     m_pRenderer->render();
 
-    // present the rendering result to the screen
+    // Present frame
     swapchain->presentFrame();
+
+    // Update delta time
+    timeTracker->update( DELTA_TIME );
   }
 }
 
@@ -288,10 +304,17 @@ bool editor::Editor::initMainRegistry()
   assert( vkCtx.get() && "could not create vulkan context" );
   mainRegistry.addToContext<std::shared_ptr<graphics::VulkanContext>>( std::move( vkCtx ) );
 
+  auto joltPhysics = std::make_shared<physics::JoltPhysics>();
+  mainRegistry.addToContext<std::shared_ptr<physics::JoltPhysics>>( std::move( joltPhysics ) );
+
   auto eventDispatcher = std::make_shared<core::EventDispatcher>();
   eventDispatcher->addHandler<core::WindowCloseEvent, &editor::Editor::onWindowClose>( *this );
   assert( eventDispatcher && "could not init event dispathcer" );
   mainRegistry.addToContext<std::shared_ptr<core::EventDispatcher>>( std::move( eventDispatcher ) );
+
+  auto timeTracker = std::make_shared<utilities::TimeTracker>();
+  assert( timeTracker && "could not initialize TimeTracker" );
+  mainRegistry.addToContext<std::shared_ptr<utilities::TimeTracker>>( std::move( timeTracker ) );
 
   // TODO(kogayonon) remove this scene code from here
   auto scene = std::make_shared<core::Scene>( "Default" );

@@ -27,7 +27,7 @@ target_link_libraries(graphics
 	utilities
  PRIVATE $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
          $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
- spdlog::spdlog
+ spdlog::spdlog_header_only
  precompiled
  resources
 )

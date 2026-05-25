@@ -2,6 +2,7 @@
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/rigidbody_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -13,6 +14,7 @@
 #include "gui/utils/font_keys.hpp"
 #include "gui/utils/imgui_dragdrop_defines.hpp"
 #include "gui/utils/imgui_utils.hpp"
+#include "physics/jolt_physics.hpp"
 #include "utilities/fonts/materialdesign.hpp"
 #include "utilities/utils/utils.hpp"
 #include <imgui_stdlib.h>
@@ -99,6 +101,50 @@ void gui::EntityProperties::contextMenu()
     {
       RenderDisabled( ImGui::MenuItem( "Mesh" ) );
     }
+
+    bool hasRigidBody = scene->getRegistry()->hasComponent<core::RigidbodyComponent>( m_selectedEntity );
+    if ( !hasRigidBody && meshComp )
+    {
+      if ( ImGui::MenuItem( "Dynamic rigid body" ) )
+      {
+        auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
+        auto& transform = scene->getRegistry()->getComponent<core::TransformComponent>( m_selectedEntity );
+        scene->getRegistry()->addComponent<core::RigidbodyComponent>(
+          m_selectedEntity,
+          core::RigidbodyComponent{
+            .type = physics::RigidbodyType::Dynamic,
+            .body = jolt->createRigidBody(
+              physics::RigidbodyType::Dynamic,
+              physics::RigidbodyShape::Box,
+              { transform.translation.x, transform.translation.y, transform.translation.z },
+              { transform.scale.x,
+                transform.scale.y,
+                transform.scale.y }, // TODO(kogayonon) detemrine size somehow, with a bounding box i guess
+              glm::quat{ glm::radians( transform.rotation ) } ) } );
+      }
+    }
+
+    if ( !hasRigidBody && meshComp )
+    {
+      if ( ImGui::MenuItem( "Static rigid body" ) )
+      {
+        auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
+        auto& transform = scene->getRegistry()->getComponent<core::TransformComponent>( m_selectedEntity );
+        scene->getRegistry()->addComponent<core::RigidbodyComponent>(
+          m_selectedEntity,
+          core::RigidbodyComponent{
+            .type = physics::RigidbodyType::Static,
+            .body = jolt->createRigidBody(
+              physics::RigidbodyType::Static,
+              physics::RigidbodyShape::Box,
+              { transform.translation.x, transform.translation.y, transform.translation.z },
+              { transform.scale.x,
+                transform.scale.y,
+                transform.scale.y }, // TODO(kogayonon) detemrine size somehow, with a bounding box i guess
+              glm::quat{ glm::radians( transform.rotation ) } ) } );
+      }
+    }
+
     ImGui::EndCombo();
   }
   ImGui::PopFont();
