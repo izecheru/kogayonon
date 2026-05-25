@@ -2,13 +2,13 @@
 
 namespace physics
 {
-enum RigidbodyType
+enum class RigidbodyType
 {
   Static,
   Dynamic
 };
 
-enum RigidbodyShape
+enum class RigidbodyShape
 {
   Empty,
   Box,

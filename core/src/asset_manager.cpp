@@ -158,6 +158,21 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
   m_assimpLoader.loadMesh( meshPath, mesh.get(), materials );
   auto& submeshes = mesh->getSubmeshes();
 
+  // If we don't have any material, just use the default one
+  if ( m_materials.empty() )
+  {
+    resources::Material defaultMaterial{};
+
+    defaultMaterial.diffuseTextureIndex = m_bindlessTexturesIndex;
+    auto path = std::filesystem::current_path() / "engine_resources" / "textures" / "default.png";
+    auto texture = loadTexture( "deafult", path.string() );
+    texture->setIndex( m_bindlessTexturesIndex );
+    updateBindlessTextures( texture );
+    ++m_bindlessTexturesIndex;
+    m_materials.push_back( defaultMaterial );
+    updateMaterialsBuffer();
+  }
+
   for ( auto i = 0u; i < materials.size(); i++ )
   {
 
@@ -240,7 +255,6 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
            existing.normalTextureIndex == mat.normalTextureIndex &&
            existing.specularTextureIndex == mat.specularTextureIndex )
       {
-        submeshes[i].submeshMaterial = existing;
         found = true;
         break;
       }
@@ -248,9 +262,16 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
 
     if ( !found )
     {
-      m_materials.push_back( mat );
-      submeshes[i].submeshMaterial = mat;
-      updateMaterialsBuffer();
+      if ( mat.diffuseTextureIndex == -1 && mat.normalTextureIndex == -1 && mat.specularTextureIndex == -1 )
+      {
+        submeshes[i].submeshMaterial = m_materials.at( 0 );
+      }
+      else
+      {
+        m_materials.push_back( mat );
+        submeshes[i].submeshMaterial = mat;
+        updateMaterialsBuffer();
+      }
     }
   }
 
@@ -380,8 +401,8 @@ void core::AssetManager::createBindlessDescriptorSetLayout()
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   layoutInfo.bindingCount = 1;
   layoutInfo.pBindings = &samplerLayoutBinding;
-  layoutInfo.pNext = nullptr;
-  layoutInfo.flags = 0;
+  layoutInfo.pNext = &bindingFlags;
+  layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 
   VK_CALL( vkCreateDescriptorSetLayout(
     m_pVkContext->device->getLogicalDevice(), &layoutInfo, nullptr, &m_bindlessTexturesDescriptorSetLayout ) );
@@ -445,7 +466,7 @@ void core::AssetManager::createMaterialsDescriptorSet()
 
     auto shaderStorageBufferDescriptor = VkWriteDescriptorSet{
       .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-      .dstSet = m_materialsDescriptorSets[i],
+      .dstSet = m_materialsDescriptorSets.set[i],
       .dstBinding = 0,
       .descriptorCount = 1,
       .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -468,7 +489,7 @@ void core::AssetManager::createMaterialsDescriptorSetLayout()
   materialsBufferBinding.pImmutableSamplers = nullptr;
   materialsBufferBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-  VkDescriptorBindingFlags flags = 0;
+  VkDescriptorBindingFlags flags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
 
   VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags{};
   bindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
@@ -480,7 +501,7 @@ void core::AssetManager::createMaterialsDescriptorSetLayout()
   layoutInfo.bindingCount = 1;
   layoutInfo.pBindings = &materialsBufferBinding;
   layoutInfo.pNext = &bindingFlags;
-  layoutInfo.flags = 0;
+  layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 
   VK_CALL( vkCreateDescriptorSetLayout(
     m_pVkContext->device->getLogicalDevice(), &layoutInfo, nullptr, &m_materialsDescriptorSetLayout ) );
@@ -497,9 +518,8 @@ void core::AssetManager::allocateMaterialsDescriptorSet()
   allocInfo.pSetLayouts = layouts.data();
   allocInfo.pNext = nullptr;
 
-  m_materialsDescriptorSets.resize( MAX_FRAMES_IN_FLIGHT );
   VK_CALL( vkAllocateDescriptorSets(
-    m_pVkContext->device->getLogicalDevice(), &allocInfo, m_materialsDescriptorSets.data() ) );
+    m_pVkContext->device->getLogicalDevice(), &allocInfo, m_materialsDescriptorSets.set.data() ) );
 }
 
 void core::AssetManager::createMaterialsBuffers()
@@ -533,7 +553,7 @@ auto core::AssetManager::getMaterialsDescriptorLayout() -> VkDescriptorSetLayout
 
 auto core::AssetManager::getMaterialsDescriptorSet() -> VkDescriptorSet&
 {
-  return m_materialsDescriptorSets[m_pVkContext->swapchain->getCurrentFrameIndex()];
+  return m_materialsDescriptorSets.set.at( m_pVkContext->swapchain->getCurrentFrameIndex() );
 }
 
 auto core::AssetManager::getBindlessDescriptorLayout() -> VkDescriptorSetLayout&

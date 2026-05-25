@@ -2,6 +2,7 @@
 #include "core/asset_manager/assimp_loader.hpp"
 #include "core/asset_manager/cgltf_loader.hpp"
 #include "graphics/vulkan_buffer.hpp"
+#include "graphics/vulkan_descriptor.hpp"
 #include "precompiled/pch.hpp"
 #include "resources/material.hpp"
 #include <glm/glm.hpp>
@@ -193,7 +194,7 @@ private:
   VkDescriptorSet m_bindlessTextureDescriptorSet;
 
   VkDescriptorSetLayout m_materialsDescriptorSetLayout;
-  std::vector<VkDescriptorSet> m_materialsDescriptorSets;
+  graphics::FrameInFlightVulkanDescriptor m_materialsDescriptorSets;
   graphics::FrameInFlightVulkanBuffer m_materialsBuffer;
   std::vector<resources::Material> m_materials;
 

@@ -263,18 +263,49 @@ void gui::Viewport::drawEntityMenu()
 
       if ( ImGui::MenuItem( "Cone" ) )
       {
-        filename = "default_cone.gltf";
+        filename = "default_cone";
         selected = true;
       }
 
       if ( ImGui::MenuItem( "Cube" ) )
       {
-        filename = "cub.gltf";
+        filename = "cub";
+        selected = true;
+      }
+
+      if ( ImGui::MenuItem( "Sphere" ) )
+      {
+        filename = "sphere";
+        selected = true;
+      }
+
+      if ( ImGui::MenuItem( "Ico Sphere" ) )
+      {
+        filename = "ico_sphere";
+        selected = true;
+      }
+
+      if ( ImGui::MenuItem( "Cylinder" ) )
+      {
+        filename = "cylinder";
+        selected = true;
+      }
+
+      if ( ImGui::MenuItem( "Torus" ) )
+      {
+        filename = "torus";
+        selected = true;
+      }
+
+      if ( ImGui::MenuItem( "Plane" ) )
+      {
+        filename = "plane";
         selected = true;
       }
 
       if ( selected )
       {
+        filename += ".gltf";
         std::filesystem::path p{ std::filesystem::absolute( "." ) / "engine_resources" / "models" / filename };
 
         core::Entity ent{ scene->getRegistry(), "object" };

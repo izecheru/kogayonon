@@ -69,7 +69,7 @@ FragmentOutput fragmentMain( VertexOutput input )
 
   MaterialDescription material = getMaterial( push.materialIndex );
 
-  float4 diffuseColor = float4( 1.0 );
+  float4 diffuseColor = float4( 0.3, 0.3, 0.3, 1.0 );
   float3 normalColor = float3( 0.5, 0.5, 1.0 );
 
   if ( material.diffuseIndex != -1 )

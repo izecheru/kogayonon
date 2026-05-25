@@ -1,10 +1,10 @@
 #pragma once
-#include <vulkan/vulkan.h>
 #include "graphics/vulkan_defines.hpp"
+#include <vulkan/vulkan.h>
 
 namespace graphics
 {
-struct BufferedVulkanDescriptor
+struct FrameInFlightVulkanDescriptor
 {
   VkDescriptorSetLayout layout{};
   std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> set{};

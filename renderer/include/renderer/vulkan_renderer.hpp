@@ -98,7 +98,7 @@ private: // funcs
 
 private:
   graphics::FrameInFlightVulkanBuffer m_cameraBuffers;
-  graphics::BufferedVulkanDescriptor m_cameraDescriptor;
+  graphics::FrameInFlightVulkanDescriptor m_cameraDescriptor;
   std::map<graphics::PipelineType, graphics::VulkanPipeline> m_pipelines;
   graphics::VulkanContext* m_pVkContext{ nullptr };
   std::shared_ptr<gui::VulkanImguiRenderer> m_pImguiRenderer;
