@@ -1,4 +1,5 @@
 #pragma once
+#define GLM_FORCE_RADIANS
 #include "utilities/json_serializer/json_serializer.hpp"
 #include "utilities/utils/yaml_utils.hpp"
 #include <entt/entt.hpp>
@@ -16,7 +17,15 @@ struct TransformComponent
   glm::vec3 rotation{ 0.0f };
   glm::vec3 scale{ 1.0f };
   glm::mat4 modelMatrix{ 1.0f };
-  bool update{ false };
+
+  /**
+   * @brief Get a quaternion from the vec3 rotation
+   * @return
+   */
+  inline auto getOrientation() const -> glm::quat
+  {
+    return glm::quat{ glm::radians( rotation ) };
+  }
 
   /**
    * @brief Calculate the model matrix based on transform data and mark as updated
@@ -25,13 +34,9 @@ struct TransformComponent
   {
     modelMatrix = glm::translate( { 1.0f }, translation );
 
-    modelMatrix = glm::rotate( modelMatrix, rotation.x, glm::vec3{ 1.0f, 0.0f, 0.0f } );
-    modelMatrix = glm::rotate( modelMatrix, rotation.y, glm::vec3{ 0.0f, 1.0f, 0.0f } );
-    modelMatrix = glm::rotate( modelMatrix, rotation.z, glm::vec3{ 0.0f, 0.0f, 1.0f } );
+    modelMatrix *= glm::mat4_cast( getOrientation() );
 
     modelMatrix = glm::scale( modelMatrix, scale );
-
-    update = false;
   }
 
   auto getMatrix() -> glm::mat4&

@@ -2,6 +2,7 @@
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/rigidbody_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
@@ -85,7 +86,8 @@ void gui::Viewport::render()
     }
   } );
 
-  if ( m_selectedEntity != entt::null && m_guizmoEnabled )
+  auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
+  if ( m_selectedEntity != entt::null && m_guizmoEnabled && !jolt->isRunning() )
   {
     ImGuizmo::Enable( true );
     auto transformComp = scene->getRegistry()->tryGetComponent<core::TransformComponent>( m_selectedEntity );
@@ -110,16 +112,31 @@ void gui::Viewport::render()
 
       // Unflip the projection
       projection[1][1] *= -1;
-      if ( ImGuizmo::Manipulate( glm::value_ptr( cameraComponent.ubo.view ),
-                                 glm::value_ptr( projection ),
-                                 getGuizmoOp(),
-                                 ImGuizmo::LOCAL,
-                                 glm::value_ptr( transformComp->getMatrix() ) ) )
+      ImGuizmo::Manipulate( glm::value_ptr( cameraComponent.ubo.view ),
+                            glm::value_ptr( projection ),
+                            getGuizmoOp(),
+                            ImGuizmo::LOCAL,
+                            glm::value_ptr( transformComp->getMatrix() ) );
+
+      if ( ImGuizmo::IsUsing() )
       {
         ImGuizmo::DecomposeMatrixToComponents( glm::value_ptr( transformComp->getMatrix() ),
                                                glm::value_ptr( transformComp->translation ),
                                                glm::value_ptr( transformComp->rotation ),
                                                glm::value_ptr( transformComp->scale ) );
+
+        // If the entity has a rigid body then update the position and rotation of that too
+        if ( auto pBody = scene->getRegistry()->tryGetComponent<core::RigidbodyComponent>( m_selectedEntity ) )
+        {
+          // Now set position and rotation for the rigid body
+          auto& bodyInterface = jolt->getPhysicsSystem().GetBodyInterface();
+          auto quat = transformComp->getOrientation();
+          bodyInterface.SetPositionAndRotation(
+            pBody->body,
+            { transformComp->translation.x, transformComp->translation.y, transformComp->translation.z },
+            JPH::Quat{ quat.x, quat.y, quat.z, quat.w },
+            pBody->data.activation );
+        }
       }
     }
   }

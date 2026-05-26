@@ -47,19 +47,19 @@ rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Wi
   assert( basicGeometryVertex != VK_NULL_HANDLE );
   assert( basicGeometryFragment != VK_NULL_HANDLE );
 
-  auto defaultPipelineSpec = graphics::VulkanPipelineSpec{
-    .type = graphics::PipelineType::GEOMETRY_BASIC,
-    .options = { .cullMode = VK_CULL_MODE_BACK_BIT, .polyMode = VK_POLYGON_MODE_FILL, .lineWidth = 1.0f },
-    .descriptorLayout = { m_cameraDescriptor.layout,
-                          assetManager.getBindlessDescriptorLayout(),
-                          assetManager.getMaterialsDescriptorLayout() },
-    .colorAttachmentFormat = m_pVkContext->swapchain->getSwapchainImageFormat(),
-    .vertexModule = basicGeometryVertex,
-    .fragmentModule = basicGeometryFragment,
-    .pushConstantSize = sizeof( resources::MeshPushConstant ),
-    .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-    .vertexBindingDescription = resources::Vertex::getBindingDescription(),
-    .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions() };
+  auto defaultPipelineSpec =
+    graphics::VulkanPipelineSpec{ .type = graphics::PipelineType::GEOMETRY_BASIC,
+                                  .options = { .cullMode = VK_CULL_MODE_BACK_BIT, .polyMode = VK_POLYGON_MODE_FILL },
+                                  .descriptorLayout = { m_cameraDescriptor.layout,
+                                                        assetManager.getBindlessDescriptorLayout(),
+                                                        assetManager.getMaterialsDescriptorLayout() },
+                                  .colorAttachmentFormat = m_pVkContext->swapchain->getSwapchainImageFormat(),
+                                  .vertexModule = basicGeometryVertex,
+                                  .fragmentModule = basicGeometryFragment,
+                                  .pushConstantSize = sizeof( resources::MeshPushConstant ),
+                                  .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                  .vertexBindingDescription = resources::Vertex::getBindingDescription(),
+                                  .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions() };
 
   createPipeline( defaultPipelineSpec );
 
@@ -431,23 +431,16 @@ void rendering::VulkanRenderer::geometryPass( VkCommandBuffer& cmd )
                        core::RigidbodyComponent& rigidBody ) {
     auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
     auto& bodyInterface = jolt->getPhysicsSystem().GetBodyInterface();
+
     if ( jolt->isRunning() )
     {
       auto pos = bodyInterface.GetCenterOfMassPosition( rigidBody.body );
+      auto rotation = bodyInterface.GetRotation( rigidBody.body );
+
       transform.translation = { pos.GetX(), pos.GetY(), pos.GetZ() };
+      auto euler = rotation.GetEulerAngles();
+      transform.rotation = { glm::degrees( euler.GetX() ), glm::degrees( euler.GetY() ), glm::degrees( euler.GetZ() ) };
       transform.computeMatrix();
-    }
-    else
-    {
-      if ( transform.update )
-      {
-        bodyInterface.SetPositionAndRotation(
-          rigidBody.body,
-          { transform.translation.x, transform.translation.y, transform.translation.z },
-          JPH::Quat{},
-          JPH::EActivation::Activate );
-        transform.computeMatrix();
-      }
     }
   } );
 
@@ -722,11 +715,6 @@ void rendering::VulkanRenderer::pickingPass( VkCommandBuffer& cmd )
     [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
       if ( !meshComponent.loaded )
         return;
-
-      if ( transform.update )
-      {
-        transform.computeMatrix();
-      }
 
       vkCmdBindVertexBuffers( cmd, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
       vkCmdBindIndexBuffer( cmd, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );

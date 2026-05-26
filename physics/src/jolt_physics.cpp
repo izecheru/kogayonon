@@ -111,34 +111,36 @@ auto physics::JoltPhysics::createRigidBody( const RigidbodyType& type,
   {
     // Box shape, both static and dynamic
   case RigidbodyShape::Box: {
-    JPH::Ref<JPH::BoxShapeSettings> boxSettings = new JPH::BoxShapeSettings( Vec3{ size.x, size.y, size.z } );
+    JPH::BoxShapeSettings boxSettings{ Vec3{ size.x, size.y, size.z } };
 
-    JPH::ShapeSettings::ShapeResult shapeResult = boxSettings->Create();
+    JPH::ShapeSettings::ShapeResult shapeResult = boxSettings.Create();
     JPH::Ref<JPH::Shape> s = shapeResult.Get();
 
     uint32_t layer{};
     EMotionType motionType{};
+    EActivation activation{};
 
     if ( type == RigidbodyType::Dynamic )
     {
       layer = Layers::MOVING;
       motionType = EMotionType::Dynamic;
+      activation = EActivation::Activate;
     }
     else
     {
       layer = Layers::NON_MOVING;
       motionType = EMotionType::Static;
+      activation = EActivation::DontActivate;
     }
 
     BodyCreationSettings settings(
       s, RVec3{ pos.x, pos.y, pos.z }, Quat{ rotation.x, rotation.y, rotation.z, rotation.w }, motionType, layer );
 
-    r = interface.CreateAndAddBody( settings, EActivation::Activate );
+    r = interface.CreateAndAddBody( settings, activation );
 
-    m_deletionQueue.push( [this, r]() {
-      auto& itf = m_physicsSystem.GetBodyInterface();
-      itf.RemoveBody( r );
-      itf.DestroyBody( r );
+    m_deletionQueue.push( [this, r, &interface]() {
+      interface.RemoveBody( r );
+      interface.DestroyBody( r );
     } );
 
     break;

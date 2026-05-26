@@ -112,15 +112,19 @@ void gui::EntityProperties::contextMenu()
         scene->getRegistry()->addComponent<core::RigidbodyComponent>(
           m_selectedEntity,
           core::RigidbodyComponent{
-            .type = physics::RigidbodyType::Dynamic,
+            .data{ .type = physics::RigidbodyType::Dynamic,
+                   .shape = physics::RigidbodyShape::Box,
+                   .layer = Layers::NON_MOVING,
+                   .motionType = JPH::EMotionType::Dynamic,
+                   .activation = JPH::EActivation::Activate },
             .body = jolt->createRigidBody(
               physics::RigidbodyType::Dynamic,
               physics::RigidbodyShape::Box,
               { transform.translation.x, transform.translation.y, transform.translation.z },
               { transform.scale.x,
                 transform.scale.y,
-                transform.scale.y }, // TODO(kogayonon) detemrine size somehow, with a bounding box i guess
-              glm::quat{ glm::radians( transform.rotation ) } ) } );
+                transform.scale.z }, // TODO(kogayonon) detemrine size somehow, with a bounding box i guess
+              transform.getOrientation() ) } );
       }
     }
 
@@ -133,15 +137,19 @@ void gui::EntityProperties::contextMenu()
         scene->getRegistry()->addComponent<core::RigidbodyComponent>(
           m_selectedEntity,
           core::RigidbodyComponent{
-            .type = physics::RigidbodyType::Static,
+            .data{ .type = physics::RigidbodyType::Static,
+                   .shape = physics::RigidbodyShape::Box,
+                   .layer = Layers::NON_MOVING,
+                   .motionType = JPH::EMotionType::Static,
+                   .activation = JPH::EActivation::DontActivate },
             .body = jolt->createRigidBody(
               physics::RigidbodyType::Static,
               physics::RigidbodyShape::Box,
               { transform.translation.x, transform.translation.y, transform.translation.z },
               { transform.scale.x,
                 transform.scale.y,
-                transform.scale.y }, // TODO(kogayonon) detemrine size somehow, with a bounding box i guess
-              glm::quat{ glm::radians( transform.rotation ) } ) } );
+                transform.scale.z }, // TODO(kogayonon) detemrine size somehow, with a bounding box i guess
+              transform.getOrientation() ) } );
       }
     }
 
@@ -374,7 +382,21 @@ void gui::EntityProperties::renderTransform()
 
   if ( translationChanged || scaleChanged || rotationChanged )
   {
-    pTransform->update = true;
+    pTransform->computeMatrix();
+
+    auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
+    auto pBody = scene->getRegistry()->tryGetComponent<core::RigidbodyComponent>( m_selectedEntity );
+    if ( pBody && !jolt->isRunning() )
+    {
+      // Now set position and rotation for the rigid body
+      auto& bodyInterface = jolt->getPhysicsSystem().GetBodyInterface();
+      auto quat = pTransform->getOrientation();
+      bodyInterface.SetPositionAndRotation(
+        pBody->body,
+        { pTransform->translation.x, pTransform->translation.y, pTransform->translation.z },
+        JPH::Quat{ quat.x, quat.y, quat.z, quat.w },
+        pBody->data.activation );
+    }
   }
 }
 
