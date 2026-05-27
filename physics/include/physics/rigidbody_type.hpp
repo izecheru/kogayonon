@@ -1,7 +1,9 @@
 #pragma once
+#include <string>
 
 namespace physics
 {
+
 enum class RigidbodyType
 {
   Static,
@@ -24,4 +26,31 @@ enum class RigidbodyShape
   MutableCompound,
   Mesh
 };
+
+inline auto rigidbodyTypeStr( const RigidbodyType& type ) -> std::string
+{
+  switch ( type )
+  {
+  case RigidbodyType::Static:
+    return "Static";
+  case RigidbodyType::Dynamic:
+    return "Dynamic";
+  }
+}
+
+inline auto rigidbodyShapeStr( const RigidbodyShape& shape ) -> std::string
+{
+  switch ( shape )
+  {
+  case RigidbodyShape::Box:
+    return "Box";
+
+  case RigidbodyShape::Sphere:
+    return "Sphere";
+
+  default:
+    return "Not implemented";
+  }
+}
+
 } // namespace physics

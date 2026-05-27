@@ -48,6 +48,7 @@ void gui::EntityProperties::render()
   renderTransform();
   renderMesh();
   renderCamera();
+  renderRigidbody();
 
   ImGui::End();
 }
@@ -236,6 +237,7 @@ void gui::EntityProperties::renderCamera()
   static bool rotationLink{ false };
 
   gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 18.0f, []() { ImGui::Text( "Translation" ); } );
+  ImGui::SameLine();
   // render translation here
   if ( !translationLink )
   {
@@ -284,6 +286,26 @@ void gui::EntityProperties::renderCameraFar( bool& changed, float& camFar )
   ImGui::PopFont();
 }
 
+void gui::EntityProperties::renderRigidbody()
+{
+  if ( m_selectedEntity == entt::null )
+    return;
+
+  auto scene = core::SceneManager::getCurrentScene().lock();
+
+  auto pRigidbody = scene->getRegistry()->tryGetComponent<core::RigidbodyComponent>( m_selectedEntity );
+
+  if ( !pRigidbody )
+    return;
+
+  gui_utils::renderWithFont( m_spec.fonts->at( INTER_I ), []() { ImGui::SeparatorText( "Rigidbody component" ); } );
+
+  gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 16.0f, [&]() {
+    ImGui::Text( "Shape: %s", physics::rigidbodyShapeStr( pRigidbody->data.shape ).c_str() );
+    ImGui::Text( "Type: %s", physics::rigidbodyTypeStr( pRigidbody->data.type ).c_str() );
+  } );
+}
+
 void gui::EntityProperties::renderTransform()
 {
   if ( m_selectedEntity == entt::null )
@@ -307,6 +329,7 @@ void gui::EntityProperties::renderTransform()
   bool rotationChanged{ false };
 
   gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 18.0f, []() { ImGui::Text( "Translation" ); } );
+  ImGui::SameLine( ImGui::CalcTextSize( "Translation" ).x );
   // render translation here
   if ( !translationLink )
   {
@@ -331,6 +354,7 @@ void gui::EntityProperties::renderTransform()
     m_spec.fonts->at( INTER ), 16.0f, [&]() { ImGui::Checkbox( ICON_MDI_LINK "##tLink", &translationLink ); } );
 
   gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 18.0f, []() { ImGui::Text( "Scale" ); } );
+  ImGui::SameLine( ImGui::CalcTextSize( "Translation" ).x );
   // render scale here
   if ( !scaleLink )
   {
@@ -356,6 +380,7 @@ void gui::EntityProperties::renderTransform()
     m_spec.fonts->at( INTER ), 16.0f, [&]() { ImGui::Checkbox( ICON_MDI_LINK "##sLink", &scaleLink ); } );
 
   gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 18.0f, []() { ImGui::Text( "Rotation" ); } );
+  ImGui::SameLine( ImGui::CalcTextSize( "Translation" ).x );
   // render scale here
   if ( !rotationLink )
   {

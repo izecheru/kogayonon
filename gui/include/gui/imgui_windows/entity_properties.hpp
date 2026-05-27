@@ -39,6 +39,8 @@ private:
   void renderCameraNear( bool& changed, float& camNear );
   void renderCameraFar( bool& changed, float& camFar );
 
+  void renderRigidbody();
+
   /**
    * @brief Render all the details about the transform component
    */

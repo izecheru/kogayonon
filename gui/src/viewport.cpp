@@ -338,7 +338,6 @@ void gui::Viewport::drawEntityMenu()
 
         m_entityMenu = false;
         m_mouseCoords = { 0.0f, 0.0f };
-        KOGAYONON_INFO( "menu closed" );
       }
       ImGui::EndMenu();
     }
@@ -346,6 +345,63 @@ void gui::Viewport::drawEntityMenu()
     {
       if ( ImGui::BeginMenu( "Add component" ) )
       {
+        if ( !scene->getRegistry()->hasComponent<core::RigidbodyComponent>( m_selectedEntity ) )
+        {
+          if ( ImGui::MenuItem( "Dynamic rigid body" ) )
+          {
+            auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
+            auto& transform = scene->getRegistry()->getComponent<core::TransformComponent>( m_selectedEntity );
+            scene->getRegistry()->addComponent<core::RigidbodyComponent>(
+              m_selectedEntity,
+              core::RigidbodyComponent{
+                .data{ .type = physics::RigidbodyType::Dynamic,
+                       .shape = physics::RigidbodyShape::Box,
+                       .layer = Layers::NON_MOVING,
+                       .motionType = JPH::EMotionType::Dynamic,
+                       .activation = JPH::EActivation::Activate },
+                .body = jolt->createRigidBody(
+                  physics::RigidbodyType::Dynamic,
+                  physics::RigidbodyShape::Box,
+                  { transform.translation.x, transform.translation.y, transform.translation.z },
+                  { transform.scale.x,
+                    transform.scale.y,
+                    transform.scale.z }, // TODO(kogayonon) detemrine size somehow, with a bounding box i guess
+                  transform.getOrientation() ) } );
+
+            m_entityMenu = false;
+            m_mouseCoords = { 0.0f, 0.0f };
+          }
+
+          if ( ImGui::MenuItem( "Static rigid body" ) )
+          {
+            auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
+            auto& transform = scene->getRegistry()->getComponent<core::TransformComponent>( m_selectedEntity );
+            scene->getRegistry()->addComponent<core::RigidbodyComponent>(
+              m_selectedEntity,
+              core::RigidbodyComponent{
+                .data{ .type = physics::RigidbodyType::Static,
+                       .shape = physics::RigidbodyShape::Box,
+                       .layer = Layers::NON_MOVING,
+                       .motionType = JPH::EMotionType::Static,
+                       .activation = JPH::EActivation::DontActivate },
+                .body = jolt->createRigidBody(
+                  physics::RigidbodyType::Static,
+                  physics::RigidbodyShape::Box,
+                  { transform.translation.x, transform.translation.y, transform.translation.z },
+                  { transform.scale.x,
+                    transform.scale.y,
+                    transform.scale.z }, // TODO(kogayonon) detemrine size somehow, with a bounding box i guess
+                  transform.getOrientation() ) } );
+
+            m_entityMenu = false;
+            m_mouseCoords = { 0.0f, 0.0f };
+          }
+        }
+        else
+        {
+          RenderDisabled( ImGui::MenuItem( "Dynamic rigid body" ) );
+          RenderDisabled( ImGui::MenuItem( "Static rigid body" ) );
+        }
         ImGui::EndMenu();
       }
     }

@@ -109,6 +109,41 @@ auto physics::JoltPhysics::createRigidBody( const RigidbodyType& type,
 
   switch ( shape )
   {
+  case RigidbodyShape::Sphere: {
+    JPH::SphereShapeSettings shpereSettings{ static_cast<float>( size.x ) };
+
+    JPH::ShapeSettings::ShapeResult shapeResult = shpereSettings.Create();
+    JPH::Ref<JPH::Shape> s = shapeResult.Get();
+
+    uint32_t layer{};
+    EMotionType motionType{};
+    EActivation activation{};
+
+    if ( type == RigidbodyType::Dynamic )
+    {
+      layer = Layers::MOVING;
+      motionType = EMotionType::Dynamic;
+      activation = EActivation::Activate;
+    }
+    else
+    {
+      layer = Layers::NON_MOVING;
+      motionType = EMotionType::Static;
+      activation = EActivation::DontActivate;
+    }
+
+    BodyCreationSettings settings(
+      s, RVec3{ pos.x, pos.y, pos.z }, Quat{ rotation.x, rotation.y, rotation.z, rotation.w }, motionType, layer );
+
+    r = interface.CreateAndAddBody( settings, activation );
+
+    m_deletionQueue.push( [this, r, &interface]() {
+      interface.RemoveBody( r );
+      interface.DestroyBody( r );
+    } );
+
+    break;
+  }
     // Box shape, both static and dynamic
   case RigidbodyShape::Box: {
     JPH::BoxShapeSettings boxSettings{ Vec3{ size.x, size.y, size.z } };
