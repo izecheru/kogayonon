@@ -49,7 +49,6 @@ target_link_libraries(utilities
 	glm::glm-header-only 
 	yaml-cpp::yaml-cpp
 	lua 
-	glad 
 	rapidjson
 	assimp::assimp
 	resources
