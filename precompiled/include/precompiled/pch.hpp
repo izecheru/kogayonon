@@ -1,13 +1,12 @@
 #pragma once
 
-#include <chrono>
-#include <codecvt>
-#include <condition_variable>
-#include <Windows.h>
 #include <algorithm>
 #include <array>
 #include <assert.h>
 #include <atomic>
+#include <chrono>
+#include <codecvt>
+#include <condition_variable>
 #include <filesystem>
 #include <format>
 #include <fstream>
@@ -18,10 +17,12 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <new>
 #include <optional>
 #include <queue>
 #include <set>
 #include <sstream>
+#include <stack>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -29,3 +30,4 @@
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
+#include <ranges>

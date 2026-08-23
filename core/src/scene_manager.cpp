@@ -1,15 +1,22 @@
 #include "core/scene/scene_manager.hpp"
 #include "core/scene/scene.hpp"
 
-namespace core
+core::SceneManager::SceneManager( EventDispatcher* pDispatcher )
+    : m_eventHandler{ std::make_unique<core::SceneEventHandler>( pDispatcher ) }
 {
-void core::SceneManager::addScene( std::shared_ptr<Scene> scene )
-{
-  auto name = scene->getName();
-  m_scenes.emplace( name, std::move( scene ) );
 }
 
-void SceneManager::removeScene( const std::string& name )
+auto core::SceneManager::addScene( std::string_view name ) -> Scene*
+{
+  auto sceneName = name.empty() ? "defaultScene" : std::string{ name };
+  auto scene = std::make_unique<Scene>( sceneName );
+  m_scenes.emplace( name, std::move( scene ) );
+
+  setCurrentScene( sceneName );
+  return m_scenes.at( sceneName ).get();
+}
+
+void core::SceneManager::removeScene( const std::string& name )
 {
   auto it = m_scenes.find( name );
   if ( it != m_scenes.end() )
@@ -18,7 +25,7 @@ void SceneManager::removeScene( const std::string& name )
   }
 }
 
-auto SceneManager::getCurrentScene() -> std::weak_ptr<Scene>
+auto core::SceneManager::getCurrentScene() -> Scene*
 {
   if ( m_scenes.empty() )
     return {};
@@ -26,16 +33,20 @@ auto SceneManager::getCurrentScene() -> std::weak_ptr<Scene>
   if ( !m_scenes.contains( m_currentScene ) )
     return {};
 
-  return std::weak_ptr<Scene>( m_scenes.at( m_currentScene ) );
+  return m_scenes.at( m_currentScene ).get();
 }
 
-auto SceneManager::getScenes() -> std::unordered_map<std::string, std::shared_ptr<Scene>>&
+auto core::SceneManager::getScenes() -> std::unordered_map<std::string, std::unique_ptr<Scene>>&
 {
   return m_scenes;
 }
 
-void SceneManager::setCurrentScene( const std::string& sceneName )
+void core::SceneManager::setCurrentScene( const std::string& sceneName )
 {
   m_currentScene = sceneName;
 }
-} // namespace core
+
+auto core::SceneManager::getEventHandler() -> SceneEventHandler*
+{
+  return m_eventHandler.get();
+}

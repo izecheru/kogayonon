@@ -10,29 +10,17 @@ struct FrameInFlightVulkanDescriptor
   std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> set{};
 };
 
-struct VulkanDescriptor
+struct VulkanDescriptorInfo
 {
-  VkDescriptorSetLayout layout{};
-  VkDescriptorSet set{};
+  VkDescriptorSetLayoutBinding descriptorBinding{};
+  VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags{};
+  VkDescriptorSetLayoutCreateInfo layoutInfo{};
 };
 
-// class VulkanDescriptor
-//{
-// public:
-//   VulkanDescriptor() = default;
-//   explicit VulkanDescriptor( uint32_t descriptorCount );
-//
-//   ~VulkanDescriptor() = default;
-//
-//   auto getLayout() -> VkDescriptorSetLayout&;
-//   auto getSet() -> VkDescriptorSet&;
-//   auto getBufferedSet() -> std::vector<VkDescriptorSet>&;
-//
-// private:
-//   bool m_buffered{ false };
-//   // if we have more than one this is buffered
-//   std::vector<VkDescriptorSet> m_descriptorSets;
-//   VkDescriptorSetLayout m_descriptorLayout;
-// };
+struct VulkanDescriptor
+{
+  VkDescriptorSetLayout layout{ VK_NULL_HANDLE };
+  VkDescriptorSet set{ VK_NULL_HANDLE };
+};
 
 } // namespace graphics

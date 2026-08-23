@@ -1,7 +1,140 @@
 #pragma once
-#include "precompiled/pch.hpp"
-#include <spdlog/spdlog.h>
 #include <vulkan/vulkan.h>
+
+#include "precompiled/pch.hpp"
+#include "utilities/utils/utils.hpp"
+
+inline auto formatSize( VkDeviceSize size ) -> std::string
+{
+  const double KB = 1024.0;
+  const double MB = KB * 1024.0;
+  const double GB = MB * 1024.0;
+
+  std::ostringstream oss;
+  oss << std::fixed << std::setprecision( 2 );
+
+  if ( size >= GB )
+    oss << ( size / GB ) << " GB";
+  else if ( size >= MB )
+    oss << ( size / MB ) << " MB";
+  else if ( size >= KB )
+    oss << ( size / KB ) << " KB";
+  else
+    oss << size << " B";
+
+  return oss.str();
+}
+
+constexpr const char* vkResultToString( VkResult result )
+{
+  switch ( result )
+  {
+  case VK_SUCCESS:
+    return "VK_SUCCESS";
+  case VK_NOT_READY:
+    return "VK_NOT_READY";
+  case VK_TIMEOUT:
+    return "VK_TIMEOUT";
+  case VK_EVENT_SET:
+    return "VK_EVENT_SET";
+  case VK_EVENT_RESET:
+    return "VK_EVENT_RESET";
+  case VK_INCOMPLETE:
+    return "VK_INCOMPLETE";
+  case VK_ERROR_OUT_OF_HOST_MEMORY:
+    return "VK_ERROR_OUT_OF_HOST_MEMORY";
+  case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+    return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+  case VK_ERROR_INITIALIZATION_FAILED:
+    return "VK_ERROR_INITIALIZATION_FAILED";
+  case VK_ERROR_DEVICE_LOST:
+    return "VK_ERROR_DEVICE_LOST";
+  case VK_ERROR_MEMORY_MAP_FAILED:
+    return "VK_ERROR_MEMORY_MAP_FAILED";
+  case VK_ERROR_LAYER_NOT_PRESENT:
+    return "VK_ERROR_LAYER_NOT_PRESENT";
+  case VK_ERROR_EXTENSION_NOT_PRESENT:
+    return "VK_ERROR_EXTENSION_NOT_PRESENT";
+  case VK_ERROR_FEATURE_NOT_PRESENT:
+    return "VK_ERROR_FEATURE_NOT_PRESENT";
+  case VK_ERROR_INCOMPATIBLE_DRIVER:
+    return "VK_ERROR_INCOMPATIBLE_DRIVER";
+  case VK_ERROR_TOO_MANY_OBJECTS:
+    return "VK_ERROR_TOO_MANY_OBJECTS";
+  case VK_ERROR_FORMAT_NOT_SUPPORTED:
+    return "VK_ERROR_FORMAT_NOT_SUPPORTED";
+  case VK_ERROR_FRAGMENTED_POOL:
+    return "VK_ERROR_FRAGMENTED_POOL";
+  case VK_ERROR_UNKNOWN:
+    return "VK_ERROR_UNKNOWN";
+  case VK_ERROR_VALIDATION_FAILED:
+    return "VK_ERROR_VALIDATION_FAILED";
+  case VK_ERROR_OUT_OF_POOL_MEMORY:
+    return "VK_ERROR_OUT_OF_POOL_MEMORY";
+  case VK_ERROR_INVALID_EXTERNAL_HANDLE:
+    return "VK_ERROR_INVALID_EXTERNAL_HANDLE";
+  case VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS:
+    return "VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS";
+  case VK_ERROR_FRAGMENTATION:
+    return "VK_ERROR_FRAGMENTATION";
+  case VK_PIPELINE_COMPILE_REQUIRED:
+    return "VK_PIPELINE_COMPILE_REQUIRED";
+  case VK_ERROR_NOT_PERMITTED:
+    return "VK_ERROR_NOT_PERMITTED";
+  case VK_ERROR_SURFACE_LOST_KHR:
+    return "VK_ERROR_SURFACE_LOST_KHR";
+  case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR:
+    return "VK_ERROR_NATIVE_WINDOW_IN_USE_KHR";
+  case VK_SUBOPTIMAL_KHR:
+    return "VK_SUBOPTIMAL_KHR";
+  case VK_ERROR_OUT_OF_DATE_KHR:
+    return "VK_ERROR_OUT_OF_DATE_KHR";
+  case VK_ERROR_INCOMPATIBLE_DISPLAY_KHR:
+    return "VK_ERROR_INCOMPATIBLE_DISPLAY_KHR";
+  case VK_ERROR_INVALID_SHADER_NV:
+    return "VK_ERROR_INVALID_SHADER_NV";
+  case VK_ERROR_IMAGE_USAGE_NOT_SUPPORTED_KHR:
+    return "VK_ERROR_IMAGE_USAGE_NOT_SUPPORTED_KHR";
+  case VK_ERROR_VIDEO_PICTURE_LAYOUT_NOT_SUPPORTED_KHR:
+    return "VK_ERROR_VIDEO_PICTURE_LAYOUT_NOT_SUPPORTED_KHR";
+  case VK_ERROR_VIDEO_PROFILE_OPERATION_NOT_SUPPORTED_KHR:
+    return "VK_ERROR_VIDEO_PROFILE_OPERATION_NOT_SUPPORTED_KHR";
+  case VK_ERROR_VIDEO_PROFILE_FORMAT_NOT_SUPPORTED_KHR:
+    return "VK_ERROR_VIDEO_PROFILE_FORMAT_NOT_SUPPORTED_KHR";
+  case VK_ERROR_VIDEO_PROFILE_CODEC_NOT_SUPPORTED_KHR:
+    return "VK_ERROR_VIDEO_PROFILE_CODEC_NOT_SUPPORTED_KHR";
+  case VK_ERROR_VIDEO_STD_VERSION_NOT_SUPPORTED_KHR:
+    return "VK_ERROR_VIDEO_STD_VERSION_NOT_SUPPORTED_KHR";
+  case VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT:
+    return "VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT";
+  case VK_ERROR_PRESENT_TIMING_QUEUE_FULL_EXT:
+    return "VK_ERROR_PRESENT_TIMING_QUEUE_FULL_EXT";
+  case VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT:
+    return "VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT";
+  case VK_THREAD_IDLE_KHR:
+    return "VK_THREAD_IDLE_KHR";
+  case VK_THREAD_DONE_KHR:
+    return "VK_THREAD_DONE_KHR";
+  case VK_OPERATION_DEFERRED_KHR:
+    return "VK_OPERATION_DEFERRED_KHR";
+  case VK_OPERATION_NOT_DEFERRED_KHR:
+    return "VK_OPERATION_NOT_DEFERRED_KHR";
+  case VK_ERROR_INVALID_VIDEO_STD_PARAMETERS_KHR:
+    return "VK_ERROR_INVALID_VIDEO_STD_PARAMETERS_KHR";
+  case VK_ERROR_COMPRESSION_EXHAUSTED_EXT:
+    return "VK_ERROR_COMPRESSION_EXHAUSTED_EXT";
+  case VK_INCOMPATIBLE_SHADER_BINARY_EXT:
+    return "VK_INCOMPATIBLE_SHADER_BINARY_EXT";
+  case VK_PIPELINE_BINARY_MISSING_KHR:
+    return "VK_PIPELINE_BINARY_MISSING_KHR";
+  case VK_ERROR_NOT_ENOUGH_SPACE_KHR:
+    return "VK_ERROR_NOT_ENOUGH_SPACE_KHR";
+  case VK_RESULT_MAX_ENUM:
+    return "VK_RESULT_MAX_ENUM";
+  default:
+    return "Unknown VkResult";
+  }
+}
 
 /**
  * @brief Got this from here https://gist.github.com/Pikachuxxxx/1bfb4a5eca2593fbf0dc409953ad9bde
@@ -26,8 +159,8 @@ static std::unordered_map<VkResult, std::string> ErrorDescriptions = {
   { VK_PIPELINE_COMPILE_REQUIRED_EXT,
     "A requested pipeline creation would have required compilation, but the application requested compilation to not "
     "be performed." },
-  { VK_ERROR_OUT_OF_HOST_MEMORY, "A host memory allocation has failed." },
-  { VK_ERROR_OUT_OF_DEVICE_MEMORY, "A device memory allocation has failed." },
+  { VK_ERROR_OUT_OF_HOST_MEMORY, "A host memory vmaAllocation has failed." },
+  { VK_ERROR_OUT_OF_DEVICE_MEMORY, "A device memory vmaAllocation has failed." },
   { VK_ERROR_INITIALIZATION_FAILED,
     "Initialization of an object could not be completed for implementation-specific reasons." },
   { VK_ERROR_DEVICE_LOST, "The logical or physical device has been lost. See Lost Device" },
@@ -41,9 +174,9 @@ static std::unordered_map<VkResult, std::string> ErrorDescriptions = {
   { VK_ERROR_TOO_MANY_OBJECTS, "Too many objects of the type have already been created." },
   { VK_ERROR_FORMAT_NOT_SUPPORTED, "A requested format is not supported on this device." },
   { VK_ERROR_FRAGMENTED_POOL,
-    "A pool allocation has failed due to fragmentation of the pool’s memory. This must only be returned if no attempt "
-    "to allocate host or device memory was made to accommodate the new allocation. This should be returned in "
-    "preference to VK_ERROR_OUT_OF_POOL_MEMORY, but only if the implementation is certain that the pool allocation "
+    "A pool vmaAllocation has failed due to fragmentation of the pool’s memory. This must only be returned if no attempt "
+    "to allocate host or device memory was made to accommodate the new vmaAllocation. This should be returned in "
+    "preference to VK_ERROR_OUT_OF_POOL_MEMORY, but only if the implementation is certain that the pool vmaAllocation "
     "failure was due to fragmentation." },
   { VK_ERROR_SURFACE_LOST_KHR, "A surface is no longer available." },
   { VK_ERROR_NATIVE_WINDOW_IN_USE_KHR,
@@ -54,20 +187,21 @@ static std::unordered_map<VkResult, std::string> ErrorDescriptions = {
     "requests using the swapchain will fail. Applications must query the new surface properties and recreate their "
     "swapchain if they wish to continue presenting to the surface." },
   { VK_ERROR_INCOMPATIBLE_DISPLAY_KHR,
-    "The display used by a swapchain does not use the same presentable image layout, or is incompatible in a way that "
+    "The display used by a swapchain does not use the same presentable image vkLayout, or is incompatible in a way "
+    "that "
     "prevents sharing an image." },
   { VK_ERROR_INVALID_SHADER_NV,
     "One or more shaders failed to compile or link. More details are reported back to the application via "
     "VK_EXT_debug_report if enabled." },
   { VK_ERROR_OUT_OF_POOL_MEMORY,
-    "A pool memory allocation has failed. This must only be returned if no attempt to allocate host or device memory "
-    "was made to accommodate the new allocation. If the failure was definitely due to fragmentation of the pool, "
+    "A pool memory vmaAllocation has failed. This must only be returned if no attempt to allocate host or device memory "
+    "was made to accommodate the new vmaAllocation. If the failure was definitely due to fragmentation of the pool, "
     "VK_ERROR_FRAGMENTED_POOL should be returned instead." },
   { VK_ERROR_INVALID_EXTERNAL_HANDLE, "An external handle is not a valid handle of the specified type." },
   { VK_ERROR_FRAGMENTATION, "A descriptor pool creation has failed due to fragmentation." },
   { VK_ERROR_INVALID_DEVICE_ADDRESS_EXT, "A buffer creation failed because the requested address is not available." },
   { VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS,
-    "A buffer creation or memory allocation failed because the requested address is not available. A shader group "
+    "A buffer creation or memory vmaAllocation failed because the requested address is not available. A shader group "
     "handle assignment failed because the requested shader group handle information is no longer valid." },
   { VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT,
     "An operation on a swapchain created with VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT failed as it did not "
@@ -85,11 +219,14 @@ static bool VulkanCheckErrorStatus( VkResult x, const char* file, int line )
 {
   if ( x != VK_SUCCESS )
   {
-    spdlog::error( "**Vulkan Function Call Error** Description : at Line {} in File: {} ", line, file );
+    auto filePath = std::filesystem::path{ file };
+    K_ERROR( "VK_CALL failed -> {} {} {}", line, filePath.filename().string(), vkResultToString( x ) );
     return true;
   }
   else
+  {
     return false;
+  }
 }
 
 static auto findMemoryType( VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties )
@@ -117,115 +254,11 @@ static auto readFile( const std::string& filePath ) -> std::vector<char>
   {
     throw std::runtime_error( "failed to open shader file!\n" );
   }
-  size_t fileSize = (size_t)file.tellg();
+  size_t fileSize{ static_cast<size_t>( file.tellg() ) };
   std::vector<char> buffer( fileSize );
   file.seekg( 0 );
   file.read( buffer.data(), fileSize );
   file.close();
 
   return buffer;
-}
-
-static auto findSupportedFormat( VkPhysicalDevice* device,
-                                 const std::vector<VkFormat>& candidates,
-                                 VkImageTiling tiling,
-                                 VkFormatFeatureFlags features ) -> VkFormat
-{
-  for ( VkFormat format : candidates )
-  {
-    VkFormatProperties props;
-    vkGetPhysicalDeviceFormatProperties( *device, format, &props );
-
-    if ( tiling == VK_IMAGE_TILING_LINEAR && ( props.linearTilingFeatures & features ) == features )
-    {
-      return format;
-    }
-    else if ( tiling == VK_IMAGE_TILING_OPTIMAL && ( props.optimalTilingFeatures & features ) == features )
-    {
-      return format;
-    }
-  }
-
-  throw std::runtime_error( "failed to find supported format!" );
-}
-
-static auto findDepthFormat( VkPhysicalDevice* device ) -> VkFormat
-{
-  return findSupportedFormat( device,
-                              { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-                              VK_IMAGE_TILING_OPTIMAL,
-                              VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT );
-}
-
-static auto beginSingleTimeCommands( VkCommandPool& pool, VkDevice device ) -> VkCommandBuffer
-{
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandPool = pool;
-  allocInfo.commandBufferCount = 1;
-
-  VkCommandBuffer commandBuffer;
-  VK_CALL( vkAllocateCommandBuffers( device, &allocInfo, &commandBuffer ) );
-
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-  VK_CALL( vkBeginCommandBuffer( commandBuffer, &beginInfo ) );
-
-  return commandBuffer;
-}
-
-static void endSingleTimeCommands( VkCommandBuffer& commandBuffer,
-                                   VkDevice device,
-                                   VkQueue& graphicsQueue,
-                                   VkCommandPool& pool )
-{
-  vkEndCommandBuffer( commandBuffer );
-
-  VkSubmitInfo submitInfo{};
-  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &commandBuffer;
-
-  VK_CALL( vkQueueSubmit( graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE ) );
-  VK_CALL( vkQueueWaitIdle( graphicsQueue ) );
-
-  vkFreeCommandBuffers( device, pool, 1, &commandBuffer );
-}
-
-static void copyBuffer(
-  VkCommandPool& pool, VkDevice device, VkQueue& graphicsQueue, VkBuffer src, VkBuffer dst, VkDeviceSize size )
-{
-  VkCommandBuffer commandBuffer = beginSingleTimeCommands( pool, device );
-
-  VkBufferCopy copyRegion{};
-  copyRegion.size = size;
-  vkCmdCopyBuffer( commandBuffer, src, dst, 1, &copyRegion );
-
-  endSingleTimeCommands( commandBuffer, device, graphicsQueue, pool );
-}
-
-static void createSampler( VkDevice& device, VkPhysicalDevice& physDevice, VkSampler& sampler )
-{
-  VkPhysicalDeviceProperties properties{};
-  vkGetPhysicalDeviceProperties( physDevice, &properties );
-
-  VkSamplerCreateInfo samplerInfo{};
-  samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-  samplerInfo.magFilter = VK_FILTER_LINEAR;
-  samplerInfo.minFilter = VK_FILTER_LINEAR;
-  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.anisotropyEnable = VK_FALSE;
-  samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-  samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-  samplerInfo.unnormalizedCoordinates = VK_FALSE;
-  samplerInfo.compareEnable = VK_TRUE;
-  samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-  samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-  VK_CALL( vkCreateSampler( device, &samplerInfo, nullptr, &sampler ) );
 }

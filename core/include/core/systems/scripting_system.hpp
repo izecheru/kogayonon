@@ -5,6 +5,9 @@ namespace core
 {
 struct MainScriptFuncs
 {
+  MainScriptFuncs() = default;
+  ~MainScriptFuncs() = default;
+
   sol::protected_function init;
   sol::protected_function update;
   sol::protected_function render;

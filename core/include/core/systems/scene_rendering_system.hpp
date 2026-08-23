@@ -69,7 +69,7 @@ public:
   explicit SceneRenderingSystem( graphics::VulkanDevice* pDevice, graphics::VulkanSwapchain* pSwapchain );
   ~SceneRenderingSystem() = default;
 
-  void render( VkCommandBuffer& cmd );
+  void render( VkCommandBuffer cmd );
 
 private:
   void createGraphicsPipeline();

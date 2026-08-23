@@ -11,28 +11,28 @@ public:
   KeyboardState() = delete;
   ~KeyboardState() = default;
 
-  static void updateState()
+  static inline void updateState()
   {
     SDL_PumpEvents();
   }
 
-  static void initState()
+  static inline void initState()
   {
     m_keyboardState = SDL_GetKeyboardState( NULL );
   }
 
-  static bool getKeyState( KeyScanCode code )
+  static inline bool getKeyState( const KeyScanCode& code )
   {
-    return m_keyboardState[code];
+    return m_keyboardState[static_cast<int>( code )];
   }
 
-  static bool getKeyCombinationState( const std::vector<KeyScanCode>& codes )
+  static inline bool getKeyCombinationState( const std::vector<KeyScanCode>& codes )
   {
     bool result = true;
     for ( auto& code : codes )
     {
       // if all are true &=
-      result &= static_cast<bool>( m_keyboardState[code] );
+      result &= static_cast<bool>( m_keyboardState[static_cast<int>( code )] );
     }
     return result;
   }

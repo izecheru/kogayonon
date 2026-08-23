@@ -1,6 +1,5 @@
 #include "core/asset_manager/asset_manager.hpp"
-#include "utilities/utils/utils.hpp"
-#include <spdlog/spdlog.h>
+#include "resources/font.hpp"
 #include <vulkan/vulkan.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "graphics/utils.hpp"
@@ -9,27 +8,60 @@
 #include "graphics/vulkan_swapchain.hpp"
 #include "resources/mesh.hpp"
 #include "resources/texture.hpp"
+#include "utilities/tracy_utils/tracy_utils.hpp"
+#include "utilities/utils/utils.hpp"
 #include <stb_image.h>
+
+core::AssetManager::AssetManager()
+    : m_bindlessTexturesIndex{ 0u }
+    , m_materialIndex{ 0u }
+    , m_samplerIndex{ 0u }
+{
+}
+
+core::AssetManager::~AssetManager()
+{
+  m_vkCtx->device->waitIdle();
+  m_vkCtx->device->destroyBuffer( m_materialsBuffer );
+  m_vkCtx->device->destroySampler( m_textureSampler );
+  m_vkCtx->device->destroyDescriptorSetLayout( m_bindlessTexturesDescriptor.layout );
+  m_vkCtx->device->destroyDescriptorSetLayout( m_materialsDescriptor.layout );
+
+  for ( auto& [p, texture] : m_loadedTextures )
+  {
+    m_vkCtx->device->destroyImageView( texture->getView() );
+    m_vkCtx->device->destroyImage( texture->getImage(), texture->getAllocation() );
+  }
+
+  for ( auto& [p, mesh] : m_loadedMeshes )
+  {
+    m_vkCtx->device->destroyBuffer( mesh->getIndicesBufferObject() );
+    m_vkCtx->device->destroyBuffer( mesh->getVertexBufferObject() );
+  }
+}
 
 auto core::AssetManager::loadTexture( const std::string& textureName, const std::string& texturePath )
   -> resources::Texture*
 {
   assert( std::filesystem::exists( texturePath ) && "texture file MUST EXIST" );
+  ZoneScopedN( "AssetManager::loadTexture" );
 
+  // if we have the texture already loaded
   if ( m_loadedTextures.contains( texturePath ) )
+  {
     return m_loadedTextures.at( texturePath ).get();
+  }
 
   int texWidth, texHeight, texChannels;
   stbi_uc* pixels = stbi_load( texturePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha );
 
   if ( !pixels )
   {
-    spdlog::error( stbi_failure_reason() );
     throw std::runtime_error( "failed to load texture image!" );
   }
 
-  auto texture = std::make_shared<resources::Texture>();
-  VkDeviceSize imageSize = texWidth * texHeight * 4;
+  std::shared_ptr<resources::Texture> texture = std::make_shared<resources::Texture>();
+  VkDeviceSize imageSize = texWidth * texHeight * texChannels;
 
   VkBufferCreateInfo stageBufferInfo{};
   stageBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -40,17 +72,8 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
 
   VmaAllocationCreateInfo stageAllocInfo{};
   stageAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-  // already mapped
-  // stageAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-  auto stageBuffer = m_pVkContext->memoryAllocator->createStagingBuffer( stageBufferInfo, stageAllocInfo );
-
-  void* data;
-  vmaMapMemory( m_pVkContext->memoryAllocator->getAllocator(), stageBuffer.allocation, &data );
-  memcpy( data, pixels, (size_t)imageSize );
-  vmaUnmapMemory( m_pVkContext->memoryAllocator->getAllocator(), stageBuffer.allocation );
-
-  stbi_image_free( pixels );
+  graphics::VulkanBuffer stageBuffer = m_vkCtx->device->createStagingBuffer( stageBufferInfo, stageAllocInfo );
 
   VkImageCreateInfo imageInfo{};
   imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -68,33 +91,42 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
   imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
   VmaAllocationCreateInfo imageAllocInfo{};
-  imageAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+  imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-  m_pVkContext->memoryAllocator->createImage(
-    texture->getImage(), imageInfo, imageAllocInfo, texture->getAllocation() );
+  m_vkCtx->device->createImage( texture->getImage(), imageInfo, imageAllocInfo, texture->getAllocation(), textureName );
 
-  texture->getView() =
-    createImageView( m_pVkContext, texture->getImage(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT );
+  m_vkCtx->device->createImageView(
+    texture->getView(), texture->getImage(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT );
 
-  transitionImageLayout( m_pVkContext,
-                         texture->getImage(),
-                         VK_FORMAT_R8G8B8A8_UNORM,
-                         VK_IMAGE_LAYOUT_UNDEFINED,
-                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL );
+  // transfer barrier
+  m_vkCtx->device->transitionImageLayout( texture->getImage(),
+                                          { .srcStage = VK_PIPELINE_STAGE_2_NONE,
+                                            .currentStage = VK_PIPELINE_STAGE_2_COPY_BIT,
+                                            .srcAccess = VK_ACCESS_2_NONE,
+                                            .currentAccess = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                            .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                            .currentLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL } );
 
-  copyBufferToImage( m_pVkContext,
-                     stageBuffer.vkBuffer,
-                     texture->getImage(),
-                     static_cast<uint32_t>( texWidth ),
-                     static_cast<uint32_t>( texHeight ) );
+  void* data;
+  vmaMapMemory( m_vkCtx->device->getAllocator(), stageBuffer.vmaAllocation, &data );
+  memcpy( data, pixels, static_cast<size_t>( imageSize ) );
+  vmaUnmapMemory( m_vkCtx->device->getAllocator(), stageBuffer.vmaAllocation );
 
-  transitionImageLayout( m_pVkContext,
-                         texture->getImage(),
-                         VK_FORMAT_R8G8B8A8_UNORM,
-                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+  stbi_image_free( pixels );
 
-  vmaDestroyBuffer( m_pVkContext->memoryAllocator->getAllocator(), stageBuffer.vkBuffer, stageBuffer.allocation );
+  // copy and also transition layout
+  m_vkCtx->device->copyBufferToImage( stageBuffer.vkBuffer,
+                                      texture->getImage(),
+                                      static_cast<uint32_t>( texWidth ),
+                                      static_cast<uint32_t>( texHeight ),
+                                      { .srcStage = VK_PIPELINE_STAGE_2_COPY_BIT,
+                                        .currentStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                        .srcAccess = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                        .currentAccess = VK_ACCESS_2_SHADER_READ_BIT,
+                                        .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                        .currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } );
+
+  m_vkCtx->device->destroyBuffer( stageBuffer );
 
   m_loadedTextures.emplace( texturePath, texture );
 
@@ -106,7 +138,7 @@ auto core::AssetManager::getTextureSampler() -> VkSampler&
   return m_textureSampler;
 }
 
-void core::AssetManager::initDescriptors()
+auto core::AssetManager::initDescriptors() -> void
 {
   if ( !m_layoutInit )
   {
@@ -123,9 +155,9 @@ void core::AssetManager::initDescriptors()
   }
 }
 
-void core::AssetManager::setContext( graphics::VulkanContext* ctx )
+auto core::AssetManager::setContext( graphics::VulkanContext* ctx ) -> void
 {
-  m_pVkContext = ctx;
+  m_vkCtx = ctx;
 }
 
 auto core::AssetManager::getTexture( const std::string& texturePath ) -> resources::Texture*
@@ -133,14 +165,16 @@ auto core::AssetManager::getTexture( const std::string& texturePath ) -> resourc
   return m_loadedTextures.at( texturePath ).get();
 }
 
-void core::AssetManager::initSampler()
+auto core::AssetManager::initSampler() -> void
 {
-  createSampler(
-    m_pVkContext->device->getLogicalDevice(), m_pVkContext->device->getPhysicalDevice(), m_textureSampler );
+  m_vkCtx->device->createSampler( m_textureSampler );
+  ++m_samplerIndex;
 }
 
 auto core::AssetManager::loadMesh( const std::string& meshName, const std::string& meshPath ) -> resources::Mesh*
 {
+  ZoneScopedN( "AssetManager::loadMesh" );
+
   if ( m_loadedMeshes.contains( meshPath ) )
     return m_loadedMeshes.at( meshPath ).get();
 
@@ -165,7 +199,7 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
 
     defaultMaterial.diffuseTextureIndex = m_bindlessTexturesIndex;
     auto path = std::filesystem::current_path() / "engine_resources" / "textures" / "default.png";
-    auto texture = loadTexture( "deafult", path.string() );
+    auto texture = loadTexture( "default", path.string() );
     texture->setIndex( m_bindlessTexturesIndex );
     updateBindlessTextures( texture );
     ++m_bindlessTexturesIndex;
@@ -278,9 +312,24 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
   createVertexBuffer( mesh.get() );
   createIndexBuffer( mesh.get() );
 
-  m_loadedMeshes.try_emplace( meshPath, mesh );
-
+  m_loadedMeshes.emplace( meshPath, std::move( mesh ) );
   return m_loadedMeshes.at( meshPath ).get();
+}
+
+auto core::AssetManager::loadFont( const std::string_view path ) -> void
+{
+  K_ASSERT( std::filesystem::exists( path ) && "File does not exist" );
+  ZoneScopedN( "AssetManager::loadFont" );
+  m_fontLoader.generateAtlas( path );
+
+  // now load the textures
+  std::filesystem::path p{ path };
+  auto fontName = p.stem().string();
+
+  m_loadedFonts.emplace( path,
+                         std::make_shared<resources::Font>( fontName,
+                                                            p.parent_path().string() + "/" + fontName + ".json",
+                                                            p.parent_path().string() + "/" + fontName + ".png" ) );
 }
 
 auto core::AssetManager::getMesh( const std::string& path ) -> std::optional<resources::Mesh*>
@@ -294,7 +343,7 @@ auto core::AssetManager::getMesh( const std::string& path ) -> std::optional<res
   return opt;
 }
 
-void core::AssetManager::createIndexBuffer( resources::Mesh* pMesh )
+auto core::AssetManager::createIndexBuffer( resources::Mesh* pMesh ) -> void
 {
   auto& indices = pMesh->getIndices();
   VkDeviceSize bufferSize = sizeof( uint32_t ) * indices.size();
@@ -308,12 +357,12 @@ void core::AssetManager::createIndexBuffer( resources::Mesh* pMesh )
   VmaAllocationCreateInfo stageAllocInfo{};
   stageAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 
-  auto stageBuffer = m_pVkContext->memoryAllocator->createStagingBuffer( stageBufferInfo, stageAllocInfo );
+  auto stageBuffer = m_vkCtx->device->createStagingBuffer( stageBufferInfo, stageAllocInfo );
 
   void* data;
-  vmaMapMemory( m_pVkContext->memoryAllocator->getAllocator(), stageBuffer.allocation, &data );
+  vmaMapMemory( m_vkCtx->device->getAllocator(), stageBuffer.vmaAllocation, &data );
   memcpy( data, indices.data(), (size_t)bufferSize );
-  vmaUnmapMemory( m_pVkContext->memoryAllocator->getAllocator(), stageBuffer.allocation );
+  vmaUnmapMemory( m_vkCtx->device->getAllocator(), stageBuffer.vmaAllocation );
 
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -323,19 +372,16 @@ void core::AssetManager::createIndexBuffer( resources::Mesh* pMesh )
   VmaAllocationCreateInfo vmaAllocInfo{};
   vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
-  m_pVkContext->memoryAllocator->createBuffer( pMesh->getIndicesBufferObject(), bufferInfo, vmaAllocInfo );
+  auto meshPath = std::filesystem::path{ pMesh->getPath() };
+  auto name = std::string{ meshPath.stem().string() + "_indicesBuff" };
+  m_vkCtx->device->createBuffer( pMesh->getIndicesBufferObject(), bufferInfo, vmaAllocInfo, name );
 
-  copyBuffer( m_pVkContext->swapchain->getCommandPool(),
-              m_pVkContext->device->getLogicalDevice(),
-              m_pVkContext->device->getGraphicsQueue().handle,
-              stageBuffer.vkBuffer,
-              pMesh->getIndicesBufferObject().vkBuffer,
-              bufferSize );
+  m_vkCtx->device->copyBuffer( stageBuffer.vkBuffer, pMesh->getIndicesBufferObject().vkBuffer, bufferSize );
 
-  vmaDestroyBuffer( m_pVkContext->memoryAllocator->getAllocator(), stageBuffer.vkBuffer, stageBuffer.allocation );
+  m_vkCtx->device->destroyBuffer( stageBuffer );
 }
 
-void core::AssetManager::createVertexBuffer( resources::Mesh* pMesh )
+auto core::AssetManager::createVertexBuffer( resources::Mesh* pMesh ) -> void
 {
   auto& vertices = pMesh->getVertices();
   VkDeviceSize bufferSize = sizeof( resources::Vertex ) * vertices.size();
@@ -350,12 +396,12 @@ void core::AssetManager::createVertexBuffer( resources::Mesh* pMesh )
   VmaAllocationCreateInfo stageAllocInfo{};
   stageAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 
-  auto stageBuffer = m_pVkContext->memoryAllocator->createStagingBuffer( stageBufferInfo, stageAllocInfo );
+  auto stageBuffer = m_vkCtx->device->createStagingBuffer( stageBufferInfo, stageAllocInfo );
 
   void* data;
-  vmaMapMemory( m_pVkContext->memoryAllocator->getAllocator(), stageBuffer.allocation, &data );
+  vmaMapMemory( m_vkCtx->device->getAllocator(), stageBuffer.vmaAllocation, &data );
   memcpy( data, vertices.data(), (size_t)bufferSize );
-  vmaUnmapMemory( m_pVkContext->memoryAllocator->getAllocator(), stageBuffer.allocation );
+  vmaUnmapMemory( m_vkCtx->device->getAllocator(), stageBuffer.vmaAllocation );
 
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -364,20 +410,18 @@ void core::AssetManager::createVertexBuffer( resources::Mesh* pMesh )
 
   VmaAllocationCreateInfo vmaAllocInfo{};
   vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+  vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-  m_pVkContext->memoryAllocator->createBuffer( pMesh->getVertexBufferObject(), bufferInfo, vmaAllocInfo );
+  auto meshPath = std::filesystem::path{ pMesh->getPath() };
+  auto name = std::string{ meshPath.stem().string() + "_verticesBuff" };
+  m_vkCtx->device->createBuffer( pMesh->getVertexBufferObject(), bufferInfo, vmaAllocInfo, name );
 
-  copyBuffer( m_pVkContext->swapchain->getCommandPool(),
-              m_pVkContext->device->getLogicalDevice(),
-              m_pVkContext->device->getGraphicsQueue().handle,
-              stageBuffer.vkBuffer,
-              pMesh->getVertexBufferObject().vkBuffer,
-              bufferSize );
+  m_vkCtx->device->copyBuffer( stageBuffer.vkBuffer, pMesh->getVertexBufferObject().vkBuffer, bufferSize );
 
-  vmaDestroyBuffer( m_pVkContext->memoryAllocator->getAllocator(), stageBuffer.vkBuffer, stageBuffer.allocation );
+  m_vkCtx->device->destroyBuffer( stageBuffer );
 }
 
-void core::AssetManager::createBindlessDescriptorSetLayout()
+auto core::AssetManager::createBindlessDescriptorSetLayout() -> void
 {
   VkDescriptorSetLayoutBinding samplerLayoutBinding{};
   samplerLayoutBinding.binding = 0;
@@ -404,14 +448,12 @@ void core::AssetManager::createBindlessDescriptorSetLayout()
   layoutInfo.pNext = &bindingFlags;
   layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 
-  VK_CALL( vkCreateDescriptorSetLayout(
-    m_pVkContext->device->getLogicalDevice(), &layoutInfo, nullptr, &m_bindlessTexturesDescriptorSetLayout ) );
+  m_vkCtx->device->createDescriptorSetLayout( m_bindlessTexturesDescriptor.layout, layoutInfo );
 }
 
-void core::AssetManager::allocateBindlessDescriptorSet()
+auto core::AssetManager::allocateBindlessDescriptorSet() -> void
 {
   uint32_t descriptorCount{ MAX_TEXTURE_SUPPORT };
-  std::vector<VkDescriptorSetLayout> layouts{ m_bindlessTexturesDescriptorSetLayout };
 
   VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{};
   variableCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
@@ -422,21 +464,20 @@ void core::AssetManager::allocateBindlessDescriptorSet()
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 
   // this is the global descriptor pool
-  allocInfo.descriptorPool = *m_pDescriptorPool;
-  allocInfo.descriptorSetCount = std::size( layouts );
-  allocInfo.pSetLayouts = layouts.data();
+  allocInfo.descriptorPool = m_pDescriptorPool;
+  allocInfo.descriptorSetCount = 1;
+  allocInfo.pSetLayouts = &m_bindlessTexturesDescriptor.layout;
   allocInfo.pNext = &variableCountInfo;
 
-  VK_CALL(
-    vkAllocateDescriptorSets( m_pVkContext->device->getLogicalDevice(), &allocInfo, &m_bindlessTextureDescriptorSet ) );
+  m_vkCtx->device->allocateDescriptorSet( m_bindlessTexturesDescriptor.set, allocInfo );
 }
 
-void core::AssetManager::setDescriptorPool( VkDescriptorPool* pool )
+auto core::AssetManager::setDescriptorPool( VkDescriptorPool pool ) -> void
 {
   m_pDescriptorPool = pool;
 }
 
-void core::AssetManager::updateBindlessTextures( resources::Texture* pTexture )
+auto core::AssetManager::updateBindlessTextures( resources::Texture* pTexture ) -> void
 {
   VkDescriptorImageInfo imageInfo{};
   imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -444,46 +485,40 @@ void core::AssetManager::updateBindlessTextures( resources::Texture* pTexture )
   imageInfo.sampler = m_textureSampler;
 
   auto bindlessDescriptor = VkWriteDescriptorSet{ .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                                  .dstSet = m_bindlessTextureDescriptorSet,
+                                                  .dstSet = m_bindlessTexturesDescriptor.set,
                                                   .dstBinding = 0,
                                                   .dstArrayElement = m_bindlessTexturesIndex,
                                                   .descriptorCount = 1,
                                                   .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                                                   .pImageInfo = &imageInfo };
 
-  VkWriteDescriptorSet descriptorWrites{ bindlessDescriptor };
-  vkUpdateDescriptorSets( m_pVkContext->device->getLogicalDevice(), 1, &descriptorWrites, 0, nullptr );
+  m_vkCtx->device->updateDescriptorSet( { bindlessDescriptor } );
 }
 
-void core::AssetManager::createMaterialsDescriptorSet()
+auto core::AssetManager::createMaterialsDescriptorSet() -> void
 {
-  for ( auto i = 0u; i < MAX_FRAMES_IN_FLIGHT; i++ )
-  {
-    VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = m_materialsBuffer.buffers.at( i ).vkBuffer;
-    bufferInfo.offset = 0;
-    bufferInfo.range = sizeof( resources::Material );
+  VkDescriptorBufferInfo bufferInfo{};
+  bufferInfo.buffer = m_materialsBuffer.vkBuffer;
+  bufferInfo.offset = 0;
+  bufferInfo.range = sizeof( resources::Material );
 
-    auto shaderStorageBufferDescriptor = VkWriteDescriptorSet{
-      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-      .dstSet = m_materialsDescriptorSets.set[i],
-      .dstBinding = 0,
-      .descriptorCount = 1,
-      .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-      .pBufferInfo = &bufferInfo,
-    };
+  auto shaderStorageBufferDescriptor = VkWriteDescriptorSet{
+    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+    .dstSet = m_materialsDescriptor.set,
+    .dstBinding = 0,
+    .descriptorCount = 1,
+    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    .pBufferInfo = &bufferInfo,
+  };
 
-    VkWriteDescriptorSet descriptorWrites = shaderStorageBufferDescriptor;
-    vkUpdateDescriptorSets( m_pVkContext->device->getLogicalDevice(), 1, &descriptorWrites, 0, nullptr );
-  }
+  m_vkCtx->device->updateDescriptorSet( { shaderStorageBufferDescriptor } );
 }
 
-void core::AssetManager::createMaterialsDescriptorSetLayout()
+auto core::AssetManager::createMaterialsDescriptorSetLayout() -> void
 {
   VkDescriptorSetLayoutBinding materialsBufferBinding{};
   materialsBufferBinding.binding = 0;
   materialsBufferBinding.descriptorCount = 1;
-
   // this is a storage buffer(ssbo)
   materialsBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
   materialsBufferBinding.pImmutableSamplers = nullptr;
@@ -503,26 +538,22 @@ void core::AssetManager::createMaterialsDescriptorSetLayout()
   layoutInfo.pNext = &bindingFlags;
   layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 
-  VK_CALL( vkCreateDescriptorSetLayout(
-    m_pVkContext->device->getLogicalDevice(), &layoutInfo, nullptr, &m_materialsDescriptorSetLayout ) );
+  m_vkCtx->device->createDescriptorSetLayout( m_materialsDescriptor.layout, layoutInfo );
 }
 
-void core::AssetManager::allocateMaterialsDescriptorSet()
+auto core::AssetManager::allocateMaterialsDescriptorSet() -> void
 {
-  std::vector<VkDescriptorSetLayout> layouts( MAX_FRAMES_IN_FLIGHT, m_materialsDescriptorSetLayout );
-
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-  allocInfo.descriptorPool = *m_pDescriptorPool;
-  allocInfo.descriptorSetCount = std::size( layouts );
-  allocInfo.pSetLayouts = layouts.data();
+  allocInfo.descriptorPool = m_pDescriptorPool;
+  allocInfo.descriptorSetCount = 1;
+  allocInfo.pSetLayouts = &m_materialsDescriptor.layout;
   allocInfo.pNext = nullptr;
 
-  VK_CALL( vkAllocateDescriptorSets(
-    m_pVkContext->device->getLogicalDevice(), &allocInfo, m_materialsDescriptorSets.set.data() ) );
+  m_vkCtx->device->allocateDescriptorSet( m_materialsDescriptor.set, allocInfo );
 }
 
-void core::AssetManager::createMaterialsBuffers()
+auto core::AssetManager::createMaterialsBuffers() -> void
 {
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -533,35 +564,44 @@ void core::AssetManager::createMaterialsBuffers()
   vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
   vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-  m_pVkContext->memoryAllocator->createBuffers( m_materialsBuffer, bufferInfo, vmaAllocInfo );
-  m_pVkContext->memoryAllocator->mapBuffer( m_materialsBuffer );
+  m_vkCtx->device->createBuffer( m_materialsBuffer, bufferInfo, vmaAllocInfo, "materialsBuffer" );
 }
 
-void core::AssetManager::updateMaterialsBuffer()
+auto core::AssetManager::updateMaterialsBuffer() -> void
 {
-  vmaCopyMemoryToAllocation( m_pVkContext->memoryAllocator->getAllocator(),
+  vmaCopyMemoryToAllocation( m_vkCtx->device->getAllocator(),
                              m_materials.data(),
-                             m_materialsBuffer.buffers.at( m_pVkContext->swapchain->getCurrentFrameIndex() ).allocation,
+                             m_materialsBuffer.vmaAllocation,
                              0,
                              sizeof( resources::Material ) * m_materials.size() );
 }
 
 auto core::AssetManager::getMaterialsDescriptorLayout() -> VkDescriptorSetLayout&
 {
-  return m_materialsDescriptorSetLayout;
+  return m_materialsDescriptor.layout;
 }
 
 auto core::AssetManager::getMaterialsDescriptorSet() -> VkDescriptorSet&
 {
-  return m_materialsDescriptorSets.set.at( m_pVkContext->swapchain->getCurrentFrameIndex() );
+  return m_materialsDescriptor.set;
 }
 
 auto core::AssetManager::getBindlessDescriptorLayout() -> VkDescriptorSetLayout&
 {
-  return m_bindlessTexturesDescriptorSetLayout;
+  return m_bindlessTexturesDescriptor.layout;
 }
 
 auto core::AssetManager::getBindlessDescriptorSet() -> VkDescriptorSet&
 {
-  return m_bindlessTextureDescriptorSet;
+  return m_bindlessTexturesDescriptor.set;
+}
+
+auto core::AssetManager::getMeshes() -> std::unordered_map<std::string, std::shared_ptr<resources::Mesh>>&
+{
+  return m_loadedMeshes;
+}
+
+auto core::AssetManager::getTextures() -> std::unordered_map<std::string, std::shared_ptr<resources::Texture>>&
+{
+  return m_loadedTextures;
 }

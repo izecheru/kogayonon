@@ -1,4 +1,5 @@
 #pragma once
+#include "graphics/vulkan_image.hpp"
 #include "graphics/vulkan_defines.hpp"
 #include "precompiled/pch.hpp"
 #include <glm/glm.hpp>
@@ -11,22 +12,6 @@ class VulkanDevice;
 
 struct QueueFamilyIndices;
 struct SDL_Window;
-
-struct RectangularExtent
-{
-  glm::vec2 start{ 0.0f };
-  glm::vec2 end{ 0.0f };
-};
-
-struct SwapchainImage
-{
-  VkImage image{ VK_NULL_HANDLE };
-  VkImageView imageView{ VK_NULL_HANDLE };
-
-  VkSemaphore imageAvailable{};
-  VkSemaphore renderingFinished{};
-  VkFence inFlight{ VK_NULL_HANDLE };
-};
 
 struct SwapchainSupportDetails
 {
@@ -48,40 +33,53 @@ public:
    * @brief Get the command buffer at m_currentFrame index
    * @return A VkCommandBuffer to record commands to
    */
-  auto getCurrentCommandBuffer() -> VkCommandBuffer&;
-  void beginCommandBuffer();
-  void endCommandBuffer();
-  bool isRendering() const;
+  auto getCurrentCommandBuffer() -> VkCommandBuffer;
+  auto beginCommandBuffer() -> void;
+  auto endCommandBuffer() const -> void;
 
-  void onUpdate();
+  auto onUpdate() -> void;
+
+  auto prepareAttachment() -> void;
+  auto preparePresent() -> void;
 
   /**
    * @brief Destroy and initialize the swapchain again
    */
-  void recreateSwapchain();
+  auto recreateSwapchain() -> void;
 
   /**
    * @brief Present swapchain image to the surface
    */
   void presentFrame();
 
-  bool beginRendering( const VkRenderingInfo& info );
-  void endRendering();
+  /**
+   * @brief Calls vkCmdBeginRendering on m_currentCmdBuffer
+   * @param info Rendering information
+   * @return
+   */
+  auto beginRendering( const VkRenderingInfo& info ) const -> void;
+
+  /**
+   * @brief Calls vkCmdEndRendering on m_currentCmdBuffer
+   */
+  void endRendering() const;
+
   bool aquireNextImage();
-  void resetFences();
-  void waitForFences();
+  auto resetFences() -> void;
+  auto waitForFences() -> void;
 
   auto getSwapchainImageFormat() -> VkFormat&;
-  auto getCommandPool() -> VkCommandPool&;
+  auto getCommandPool() -> VkCommandPool;
   auto getSwapchainExtent() -> VkExtent2D&;
-  auto getCurrentFrameIndex() const -> uint32_t;
-  auto getCurrentFrame() -> SwapchainImage&;
+  auto getCurrentFrameNumber() const -> uint32_t;
+  auto getAquiredImageIndex() const -> uint32_t;
+  auto getImageAtAquiredIndex() -> VulkanImage&;
 
-  void setupViewport( VkCommandBuffer& cmd );
-  void setupScissors( VkCommandBuffer& cmd );
+  auto setupViewport( VkCommandBuffer cmd ) -> void;
+  auto setupScissors( VkCommandBuffer cmd ) -> void;
 
-  void setupViewport( VkCommandBuffer& cmd, const RectangularExtent& extent );
-  void setupScissors( VkCommandBuffer& cmd, const RectangularExtent& extent );
+  auto setupViewport( VkCommandBuffer cmd, const VkExtent2D& extent ) -> void;
+  auto setupScissors( VkCommandBuffer cmd, const VkExtent2D& extent ) -> void;
 
 private:
   void destroy();
@@ -91,11 +89,11 @@ private:
    */
   void submit();
 
-  void createSwapchain();
-  void createImageViews();
-  void createCommandPool();
-  void createCommandBuffers();
-  void createSyncObjects();
+  auto createSwapchain() -> void;
+  auto createImageViews() -> void;
+  auto createCommandPool() -> void;
+  auto createCommandBuffers() -> void;
+  auto createSyncObjects() -> void;
 
   auto chooseSwapExtent( const VkSurfaceCapabilitiesKHR& capabilities ) -> VkExtent2D;
   auto chooseSwapPresentMode( const std::vector<VkPresentModeKHR>& availablePresentModes ) -> VkPresentModeKHR;
@@ -107,7 +105,7 @@ private:
   bool m_destroyed{ false };
   VulkanDevice* m_pDevice;
   VkSwapchainKHR m_swapchain;
-  std::vector<SwapchainImage> m_swapchainImages;
+  std::vector<VulkanImage> m_swapchainImages;
 
   VkFormat m_swapchainFormat;
   VkExtent2D m_swapchainExtent;
@@ -121,12 +119,10 @@ private:
   std::vector<VkCommandBuffer> m_commandBuffers;
   VkCommandPool m_commandPool;
 
-  /**
-   * @brief I use this just for convenience sake, it's not appealing to do auto& cmd = getCurrentCommandBuffer()
-   * in each function I need
-   */
-  VkCommandBuffer* m_currentCmdBuffer;
+  VkCommandBuffer m_currentCmdBuffer;
 
-  bool m_rendering;
+  std::vector<VkSemaphore> m_imageAvailable;
+  std::vector<VkSemaphore> m_renderingFinished;
+  std::vector<VkFence> m_inFlight;
 };
 } // namespace graphics

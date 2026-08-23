@@ -9,6 +9,7 @@
 #include "core/event/event_dispatcher.hpp"
 #include "core/event/scene_events.hpp"
 #include "core/scene/scene.hpp"
+#include "core/scene/scene_event_handler.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "graphics/vulkan_context.hpp"
 #include "gui/utils/font_keys.hpp"
@@ -16,16 +17,15 @@
 #include "gui/utils/imgui_utils.hpp"
 #include "physics/jolt_physics.hpp"
 #include "utilities/fonts/materialdesign.hpp"
+#include "utilities/task_manager/task_manager.hpp"
 #include "utilities/utils/utils.hpp"
 #include <imgui_stdlib.h>
 
 gui::EntityProperties::EntityProperties( const std::string& name, const EntityPropertiesSpec& spec )
     : ImGuiWindow{ name }
     , m_spec{ spec }
-    , m_selectedEntity{ entt::null }
 {
-  auto& pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
-  pEventDispatcher->addHandler<core::SelectEntityEvent, &EntityProperties::onSelectEntity>( *this );
+  auto pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
 }
 
 void gui::EntityProperties::render()
@@ -33,7 +33,8 @@ void gui::EntityProperties::render()
   if ( !begin() )
     return;
 
-  if ( m_selectedEntity == entt::null )
+  auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
+  if ( sceneManager->getEventHandler()->getCurrentEntityId() == entt::null )
   {
     ImGui::PushFont( m_spec.fonts->at( INTER_I ), 18.0f );
     ImGui::Text( "No entity selected..." );
@@ -53,49 +54,27 @@ void gui::EntityProperties::render()
   ImGui::End();
 }
 
-void gui::EntityProperties::onSelectEntity( const core::SelectEntityEvent& e )
-{
-  // accept event from anywhere BUT itself
-  if ( e.getEventSource() == core::SelectEntityEventSource::Properties_Window )
-    return;
-
-  if ( e.getEntityId() == entt::null && e.getEventSource() != core::SelectEntityEventSource::Properties_Window )
-  {
-    m_selectedEntity = entt::null;
-    KOGAYONON_INFO( "entity was deselected, nothing to show in properties window" );
-  }
-  else
-  {
-    m_selectedEntity = e.getEntityId();
-    KOGAYONON_INFO( "showing properties of entity with id {}", static_cast<uint32_t>( m_selectedEntity ) );
-  }
-}
-
 void gui::EntityProperties::contextMenu()
 {
   ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
   if ( ImGui::BeginCombo( "##", "Add component" ) )
   {
-    auto scene = core::SceneManager::getCurrentScene().lock();
-    auto meshComp = scene->getRegistry()->tryGetComponent<core::MeshComponent>( m_selectedEntity );
-    bool hasCamera = scene->getRegistry()->hasComponent<core::PerspectiveCameraComponent>( m_selectedEntity );
+    auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
+    auto scene = sceneManager->getCurrentScene();
+    auto currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+    auto meshComp = scene->getRegistry()->tryGetComponent<core::MeshComponent>( currentEntity );
 
-    if ( !meshComp && !hasCamera )
+    if ( !meshComp )
     {
       if ( ImGui::MenuItem( "Mesh" ) )
       {
-        auto p =
-          std::filesystem::path{ std::filesystem::absolute( "." ) / "engine_resources\\models\\default_cone.gltf" };
-        auto mesh = core::AssetManager::getInstance().getMesh( p.string() );
-        if ( mesh.has_value() )
-        {
-          scene->getRegistry()->addComponent<core::TransformComponent>( m_selectedEntity, core::TransformComponent{} );
-          scene->getRegistry()->addComponent<core::MeshComponent>( m_selectedEntity,
-                                                                   core::MeshComponent{
-                                                                     .pMesh = nullptr,
-                                                                     .loaded = false,
-                                                                   } );
-        }
+        auto registry = scene->getRegistry();
+        registry->addComponent<core::TransformComponent>( currentEntity, core::TransformComponent{} );
+        registry->addComponent<core::MeshComponent>( currentEntity,
+                                                     core::MeshComponent{
+                                                       .pMesh = nullptr,
+                                                       .loaded = false,
+                                                     } );
       }
     }
     else
@@ -103,15 +82,15 @@ void gui::EntityProperties::contextMenu()
       RenderDisabled( ImGui::MenuItem( "Mesh" ) );
     }
 
-    bool hasRigidBody = scene->getRegistry()->hasComponent<core::RigidbodyComponent>( m_selectedEntity );
+    bool hasRigidBody = scene->getRegistry()->hasComponent<core::RigidbodyComponent>( currentEntity );
     if ( !hasRigidBody && meshComp )
     {
       if ( ImGui::MenuItem( "Dynamic rigid body" ) )
       {
-        auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
-        auto& transform = scene->getRegistry()->getComponent<core::TransformComponent>( m_selectedEntity );
+        auto jolt = core::MainRegistry::getInstance().getJoltPhysics();
+        auto& transform = scene->getRegistry()->getComponent<core::TransformComponent>( currentEntity );
         scene->getRegistry()->addComponent<core::RigidbodyComponent>(
-          m_selectedEntity,
+          currentEntity,
           core::RigidbodyComponent{
             .data{ .type = physics::RigidbodyType::Dynamic,
                    .shape = physics::RigidbodyShape::Box,
@@ -133,10 +112,10 @@ void gui::EntityProperties::contextMenu()
     {
       if ( ImGui::MenuItem( "Static rigid body" ) )
       {
-        auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
-        auto& transform = scene->getRegistry()->getComponent<core::TransformComponent>( m_selectedEntity );
+        auto jolt = core::MainRegistry::getInstance().getJoltPhysics();
+        auto& transform = scene->getRegistry()->getComponent<core::TransformComponent>( currentEntity );
         scene->getRegistry()->addComponent<core::RigidbodyComponent>(
-          m_selectedEntity,
+          currentEntity,
           core::RigidbodyComponent{
             .data{ .type = physics::RigidbodyType::Static,
                    .shape = physics::RigidbodyShape::Box,
@@ -161,11 +140,13 @@ void gui::EntityProperties::contextMenu()
 
 void gui::EntityProperties::renderMesh()
 {
-  if ( m_selectedEntity == entt::null )
+  auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
+  auto currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+  if ( currentEntity == entt::null )
     return;
 
-  auto scene = core::SceneManager::getCurrentScene().lock();
-  auto meshComponent = scene->getRegistry()->tryGetComponent<core::MeshComponent>( m_selectedEntity );
+  auto scene = sceneManager->getCurrentScene();
+  auto meshComponent = scene->getRegistry()->tryGetComponent<core::MeshComponent>( currentEntity );
 
   if ( !meshComponent )
     return;
@@ -175,8 +156,8 @@ void gui::EntityProperties::renderMesh()
   gui_utils::renderWithSizedFont( m_spec.fonts->at( ICON_MDI ), 12.0f, [&]() {
     if ( ImGui::Button( ICON_MDI_DELETE "Remove component" ) )
     {
-      scene->getRegistry()->removeComponent<core::MeshComponent>( m_selectedEntity );
-      scene->getRegistry()->removeComponent<core::TransformComponent>( m_selectedEntity );
+      scene->getRegistry()->removeComponent<core::MeshComponent>( currentEntity );
+      scene->getRegistry()->removeComponent<core::TransformComponent>( currentEntity );
     }
   } );
 
@@ -195,13 +176,12 @@ void gui::EntityProperties::renderMesh()
         return;
       }
 
-      auto data = static_cast<const char*>( payload->Data );
-      std::string dropResult( data, payload->DataSize );
+      std::string dropResult{ static_cast<const char*>( payload->Data ) };
       std::filesystem::path p{ dropResult };
-      auto& assetManager = core::AssetManager::getInstance();
-      auto pMesh = assetManager.loadMesh( p.stem().string(), p.string() );
+      auto assetManager = core::MainRegistry::getInstance().getAssetManager();
+      auto pMesh = assetManager->loadMesh( p.stem().string(), p.string() );
 
-      core::Entity ent{ scene->getRegistry(), m_selectedEntity };
+      core::Entity ent{ scene->getRegistry(), currentEntity };
 
       ent.removeComponent<core::TransformComponent>();
       ent.removeComponent<core::MeshComponent>();
@@ -221,11 +201,14 @@ void gui::EntityProperties::renderMesh()
 
 void gui::EntityProperties::renderCamera()
 {
-  if ( m_selectedEntity == entt::null )
+  auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
+  auto currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+
+  if ( currentEntity == entt::null )
     return;
 
-  auto scene = core::SceneManager::getCurrentScene().lock();
-  auto camera = scene->getRegistry()->tryGetComponent<core::PerspectiveCameraComponent>( m_selectedEntity );
+  auto scene = sceneManager->getCurrentScene();
+  auto camera = scene->getRegistry()->tryGetComponent<core::PerspectiveCameraComponent>( currentEntity );
 
   if ( !camera )
     return;
@@ -263,6 +246,7 @@ void gui::EntityProperties::renderCamera()
   renderCameraFov( camera->props.changed, camera->props.fov );
   renderCameraNear( camera->props.changed, camera->props.nearView );
   renderCameraFar( camera->props.changed, camera->props.farView );
+  camera->updateUbo();
 }
 
 void gui::EntityProperties::renderCameraFov( bool& changed, float& fov )
@@ -288,12 +272,14 @@ void gui::EntityProperties::renderCameraFar( bool& changed, float& camFar )
 
 void gui::EntityProperties::renderRigidbody()
 {
-  if ( m_selectedEntity == entt::null )
+  auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
+  auto currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+  if ( currentEntity == entt::null )
     return;
 
-  auto scene = core::SceneManager::getCurrentScene().lock();
+  auto scene = sceneManager->getCurrentScene();
 
-  auto pRigidbody = scene->getRegistry()->tryGetComponent<core::RigidbodyComponent>( m_selectedEntity );
+  auto pRigidbody = scene->getRegistry()->tryGetComponent<core::RigidbodyComponent>( currentEntity );
 
   if ( !pRigidbody )
     return;
@@ -308,12 +294,15 @@ void gui::EntityProperties::renderRigidbody()
 
 void gui::EntityProperties::renderTransform()
 {
-  if ( m_selectedEntity == entt::null )
+  auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
+  auto currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+
+  if ( currentEntity == entt::null )
     return;
 
-  auto scene = core::SceneManager::getCurrentScene().lock();
+  auto scene = sceneManager->getCurrentScene();
 
-  auto pTransform = scene->getRegistry()->tryGetComponent<core::TransformComponent>( m_selectedEntity );
+  auto pTransform = scene->getRegistry()->tryGetComponent<core::TransformComponent>( currentEntity );
 
   if ( !pTransform )
     return;
@@ -355,6 +344,7 @@ void gui::EntityProperties::renderTransform()
 
   gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 18.0f, []() { ImGui::Text( "Scale" ); } );
   ImGui::SameLine( ImGui::CalcTextSize( "Translation" ).x );
+
   // render scale here
   if ( !scaleLink )
   {
@@ -409,8 +399,8 @@ void gui::EntityProperties::renderTransform()
   {
     pTransform->computeMatrix();
 
-    auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
-    auto pBody = scene->getRegistry()->tryGetComponent<core::RigidbodyComponent>( m_selectedEntity );
+    auto jolt = core::MainRegistry::getInstance().getJoltPhysics();
+    auto pBody = scene->getRegistry()->tryGetComponent<core::RigidbodyComponent>( currentEntity );
     if ( pBody && !jolt->isRunning() )
     {
       // Now set position and rotation for the rigid body
@@ -503,20 +493,25 @@ void gui::EntityProperties::renderRotation( bool& rotationChanged, glm::vec3& ro
 
 void gui::EntityProperties::renderIdentification()
 {
-  if ( m_selectedEntity == entt::null )
+  auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
+  auto currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+
+  if ( currentEntity == entt::null )
     return;
 
-  auto scene = core::SceneManager::getCurrentScene().lock();
+  auto scene = sceneManager->getCurrentScene();
   ImGui::PushFont( m_spec.fonts->at( INTER_I ) );
   ImGui::SeparatorText( "Entity identification" );
   ImGui::PopFont();
 
   ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
-  core::Entity selectedEntity{ scene->getRegistry(), m_selectedEntity };
-  auto& idComp = selectedEntity.getComponent<core::IdentifierComponent>();
-  ImGui::InputText( "##id", &idComp.name );
-  ImGui::Text( "Group: %s", idComp.group.c_str() );
-  ImGui::PopFont();
+  auto idComp = scene->getRegistry()->tryGetComponent<core::IdentifierComponent>( currentEntity );
+  if ( idComp )
+  {
+    ImGui::InputText( "##id", &idComp->name );
+    ImGui::Text( "Group: %s", idComp->group.c_str() );
+    ImGui::PopFont();
+  }
 }
 
 void gui::EntityProperties::renderColoredAxis( const std::string& axis, const ImU32& color )

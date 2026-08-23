@@ -1,6 +1,9 @@
 add_library(
   utilities
+  "include/utilities/tracy_utils/tracy_utils.hpp"
+  "include/utilities/tracy_utils/tracy_vulkan_utils.hpp"
   "include/utilities/task_manager/task_manager.hpp"
+  "include/utilities/task_manager/task.hpp"
   "include/utilities/directory_watcher/directory_watcher.hpp"
   "include/utilities/math/math.hpp"
   "include/utilities/input/keyboard_state.hpp"
@@ -14,7 +17,6 @@ add_library(
   "include/utilities/yaml_serializer/yaml_serializer.hpp"
   "include/utilities/json_serializer/json_serializer.hpp"
   "include/utilities/utils/yaml_utils.hpp"
-  "include/utilities/shader_compiler/shader_compiler.hpp"
 
   "include/utilities/fonts/fontawesome6Pro.hpp"
   "include/utilities/fonts/fontawesome5.hpp"
@@ -34,7 +36,6 @@ add_library(
   "src/script.cpp"
   "src/yaml_serializer.cpp" 
   "src/json_serializer.cpp"
-  "src/shader_compiler.cpp"
  )
 
 target_include_directories(utilities
@@ -44,7 +45,7 @@ target_include_directories(utilities
 target_link_libraries(utilities 
 	PUBLIC 
 	cgltf 
-	spdlog::spdlog_header_only
+	enkiTS::enkiTS
 	PRIVATE
 	glm::glm-header-only 
 	yaml-cpp::yaml-cpp
@@ -55,3 +56,8 @@ target_link_libraries(utilities
 	precompiled
 	slang::gfx slang::slang 
 )
+
+if(KOGAYONON_ENABLE_TRACY)
+	message("tracy is enabled, linking it to utilities")
+	target_link_libraries(utilities PUBLIC Tracy::TracyClient)
+endif()

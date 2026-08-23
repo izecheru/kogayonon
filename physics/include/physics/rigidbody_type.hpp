@@ -35,6 +35,8 @@ inline auto rigidbodyTypeStr( const RigidbodyType& type ) -> std::string
     return "Static";
   case RigidbodyType::Dynamic:
     return "Dynamic";
+  default:
+    return "Not implemented";
   }
 }
 

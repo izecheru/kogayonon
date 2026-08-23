@@ -1,6 +1,6 @@
 #pragma once
-#include <string>
-#include <vector>
+#include "graphics/vulkan_image.hpp"
+#include "precompiled/pch.hpp"
 #include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 
@@ -18,35 +18,31 @@ public:
   // with index for bindless texture buffer
   explicit Texture( const std::string& p, const std::string& name, uint32_t textureIndex );
   explicit Texture( const std::string& p, int w, int h, int n, uint32_t textureIndex );
-  // explicit Texture(
-  //   uint32_t id, const std::string& p, const std::string& name, int w, int h, int n, uint32_t textureIndex );
 
-  std::string getPath() const;
-  std::string getName() const;
-  int getWidth() const;
-  int getHeight() const;
-  bool getLoaded() const;
+  auto getPath() const -> std::string;
+  auto getName() const -> std::string;
+  auto getWidth() const -> int;
+  auto getHeight() const -> int;
+  auto getLoaded() const -> bool;
 
-  void setPath( const std::string& path );
-  void setWidth( int width );
-  void setHeight( int height );
-  void setLoaded( bool value );
+  auto setPath( const std::string& path ) -> void;
+  auto setWidth( int width ) -> void;
+  auto setHeight( int height ) -> void;
+  auto setLoaded( bool value ) -> void;
 
   auto getImage() -> VkImage&;
   auto getView() -> VkImageView&;
   auto getAllocation() -> VmaAllocation&;
 
   auto getIndex() const -> uint32_t;
-  void setIndex( uint32_t index );
+  auto setIndex( uint32_t index ) -> void;
+  auto setSamplerIndex( uint32_t index ) -> void;
 
 private:
-  VkImage m_image;
-  VkImageView m_imageView;
-  VmaAllocation m_imageAllocation;
+  graphics::VulkanImage m_image;
 
-  // when we have the same mesh for two submeshes, we check to see if the texture is already loaded
-  // and then retrieve the index and assign it to the coresponding material member variable
   uint32_t m_textureIndex;
+  uint32_t m_samplerIndex;
 
   std::string m_path;
   std::string m_name;

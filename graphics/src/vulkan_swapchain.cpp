@@ -4,7 +4,6 @@
 #include "precompiled/pch.hpp"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
-#include <spdlog/spdlog.h>
 
 auto graphics::VulkanSwapchain::querySwapchainSupport() -> SwapchainSupportDetails
 {
@@ -40,14 +39,12 @@ auto graphics::VulkanSwapchain::querySwapchainSupport() -> SwapchainSupportDetai
 graphics::VulkanSwapchain::VulkanSwapchain( VulkanDevice* vulkanDevice, SDL_Window* wnd )
     : m_pDevice{ vulkanDevice }
     , m_window{ wnd }
-    , m_rendering{ false }
 {
   createSwapchain();
   createImageViews();
   createCommandPool();
   createCommandBuffers();
   createSyncObjects();
-  m_rendering = true;
 }
 
 graphics::VulkanSwapchain::~VulkanSwapchain()
@@ -55,7 +52,7 @@ graphics::VulkanSwapchain::~VulkanSwapchain()
   destroy();
 }
 
-auto graphics::VulkanSwapchain::getCurrentCommandBuffer() -> VkCommandBuffer&
+auto graphics::VulkanSwapchain::getCurrentCommandBuffer() -> VkCommandBuffer
 {
   return m_commandBuffers.at( m_currentFrame );
 }
@@ -84,36 +81,11 @@ void graphics::VulkanSwapchain::recreateSwapchain()
   createCommandPool();
   createCommandBuffers();
   createSyncObjects();
-  m_rendering = true;
 }
 
 void graphics::VulkanSwapchain::presentFrame()
 {
-  VkImageMemoryBarrier swapchainToPresent{};
-  swapchainToPresent.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  swapchainToPresent.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-  swapchainToPresent.dstAccessMask = 0;
-  swapchainToPresent.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  swapchainToPresent.subresourceRange.baseMipLevel = 0;
-  swapchainToPresent.subresourceRange.levelCount = 1;
-  swapchainToPresent.subresourceRange.baseArrayLayer = 0;
-  swapchainToPresent.subresourceRange.layerCount = 1;
-
-  swapchainToPresent.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-  swapchainToPresent.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-  swapchainToPresent.image = m_swapchainImages.at( m_imageIndex ).image;
-
-  vkCmdPipelineBarrier( *m_currentCmdBuffer,
-                        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                        VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                        0,
-                        0,
-                        nullptr,
-                        0,
-                        nullptr,
-                        1,
-                        &swapchainToPresent );
-
+  preparePresent();
   // get the command buffer out of the recording state
   endCommandBuffer();
 
@@ -124,7 +96,7 @@ void graphics::VulkanSwapchain::presentFrame()
   VkPresentInfoKHR presentInfo{
     .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
     .waitSemaphoreCount = 1,
-    .pWaitSemaphores = &m_swapchainImages.at( m_imageIndex ).renderingFinished,
+    .pWaitSemaphores = &m_renderingFinished.at( m_currentFrame ),
     .swapchainCount = 1,
     .pSwapchains = &m_swapchain,
     .pImageIndices = &m_imageIndex,
@@ -140,25 +112,24 @@ void graphics::VulkanSwapchain::presentFrame()
     throw std::runtime_error( "failed to present swap chain image!" );
   }
 
-  m_currentFrame = ( m_currentFrame + 1 ) % MAX_FRAMES_IN_FLIGHT;
+  onUpdate();
 }
 
 void graphics::VulkanSwapchain::beginCommandBuffer()
 {
-  m_currentCmdBuffer = &getCurrentCommandBuffer();
+  m_currentCmdBuffer = getCurrentCommandBuffer();
   VkCommandBufferBeginInfo begin{ .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-  vkBeginCommandBuffer( *m_currentCmdBuffer, &begin );
+  vkBeginCommandBuffer( m_currentCmdBuffer, &begin );
 }
 
-bool graphics::VulkanSwapchain::beginRendering( const VkRenderingInfo& info )
+auto graphics::VulkanSwapchain::beginRendering( const VkRenderingInfo& info ) const -> void
 {
-  vkCmdBeginRendering( *m_currentCmdBuffer, &info );
-  return true;
+  vkCmdBeginRendering( m_currentCmdBuffer, &info );
 }
 
-void graphics::VulkanSwapchain::endRendering()
+void graphics::VulkanSwapchain::endRendering() const
 {
-  vkCmdEndRendering( *m_currentCmdBuffer );
+  vkCmdEndRendering( m_currentCmdBuffer );
 }
 
 auto graphics::VulkanSwapchain::getSwapchainImageFormat() -> VkFormat&
@@ -166,46 +137,52 @@ auto graphics::VulkanSwapchain::getSwapchainImageFormat() -> VkFormat&
   return m_swapchainFormat;
 }
 
-void graphics::VulkanSwapchain::setupViewport( VkCommandBuffer& cmd )
+void graphics::VulkanSwapchain::setupViewport( VkCommandBuffer cmd )
 {
   VkViewport viewport{ 0, 0, (float)m_swapchainExtent.width, (float)m_swapchainExtent.height, 0.0f, 1.0f };
   vkCmdSetViewport( cmd, 0, 1, &viewport );
 }
 
-void graphics::VulkanSwapchain::setupViewport( VkCommandBuffer& cmd, const RectangularExtent& extent )
+void graphics::VulkanSwapchain::setupViewport( VkCommandBuffer cmd, const VkExtent2D& extent )
 {
-  VkViewport viewport{ extent.start.x,
-                       extent.start.y,
-                       static_cast<float>( extent.end.x - extent.start.x ),
-                       static_cast<float>( extent.end.y - extent.start.y ),
-                       0.0f,
-                       1.0f };
+  VkViewport viewport{ 0, 0, static_cast<float>( extent.width ), static_cast<float>( extent.height ), 0.0f, 1.0f };
   vkCmdSetViewport( cmd, 0, 1, &viewport );
 }
 
-void graphics::VulkanSwapchain::setupScissors( VkCommandBuffer& cmd )
+void graphics::VulkanSwapchain::setupScissors( VkCommandBuffer cmd )
 {
   VkRect2D scissor{ { 0, 0 }, m_swapchainExtent };
   vkCmdSetScissor( cmd, 0, 1, &scissor );
 }
 
-void graphics::VulkanSwapchain::setupScissors( VkCommandBuffer& cmd, const RectangularExtent& extent )
+void graphics::VulkanSwapchain::setupScissors( VkCommandBuffer cmd, const VkExtent2D& extent )
 {
-  VkRect2D scissor{ { extent.start.x, extent.start.y }, { extent.end.x, extent.end.y } };
+  VkRect2D scissor{ { static_cast<int32_t>( 0 ), static_cast<int32_t>( 0 ) },
+                    { static_cast<uint32_t>( extent.width ), static_cast<uint32_t>( extent.height ) } };
   vkCmdSetScissor( cmd, 0, 1, &scissor );
 }
 
 void graphics::VulkanSwapchain::destroy()
 {
+  m_pDevice->waitIdle();
+
+  m_commandBuffers.clear();
+
   for ( auto& entry : m_swapchainImages )
   {
-    vkDestroySemaphore( m_pDevice->getLogicalDevice(), entry.imageAvailable, nullptr );
-    vkDestroySemaphore( m_pDevice->getLogicalDevice(), entry.renderingFinished, nullptr );
-    vkDestroyFence( m_pDevice->getLogicalDevice(), entry.inFlight, nullptr );
-    vkDestroyImageView( m_pDevice->getLogicalDevice(), entry.imageView, nullptr );
+    m_pDevice->destroyImageView( entry.vkImageView );
   }
 
-  vkDestroySwapchainKHR( m_pDevice->getLogicalDevice(), m_swapchain, nullptr );
+  m_pDevice->destroyCommandPool( m_commandPool );
+
+  for ( auto i = 0u; i < MAX_FRAMES_IN_FLIGHT; ++i )
+  {
+    m_pDevice->destroySemaphore( m_imageAvailable.at( i ) );
+    m_pDevice->destroySemaphore( m_renderingFinished.at( i ) );
+    m_pDevice->destroyFence( m_inFlight.at( i ) );
+  }
+
+  m_pDevice->destroySwapchain( m_swapchain );
 }
 
 void graphics::VulkanSwapchain::submit()
@@ -215,15 +192,14 @@ void graphics::VulkanSwapchain::submit()
 
   VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
   submitInfo.waitSemaphoreCount = 1;
-  submitInfo.pSignalSemaphores = &m_swapchainImages.at( m_imageIndex ).renderingFinished;
-  submitInfo.pWaitSemaphores = &m_swapchainImages.at( m_currentFrame ).imageAvailable;
+  submitInfo.pSignalSemaphores = &m_renderingFinished.at( m_currentFrame );
+  submitInfo.pWaitSemaphores = &m_imageAvailable.at( m_currentFrame );
   submitInfo.pCommandBuffers = &m_commandBuffers.at( m_currentFrame );
   submitInfo.pWaitDstStageMask = waitStages;
   submitInfo.commandBufferCount = 1;
   submitInfo.signalSemaphoreCount = 1;
 
-  VK_CALL( vkQueueSubmit(
-    m_pDevice->getGraphicsQueue().handle, 1, &submitInfo, m_swapchainImages.at( m_currentFrame ).inFlight ) );
+  VK_CALL( vkQueueSubmit( m_pDevice->getGraphicsQueue().handle, 1, &submitInfo, m_inFlight.at( m_currentFrame ) ) );
 }
 
 void graphics::VulkanSwapchain::createSwapchain()
@@ -274,15 +250,8 @@ void graphics::VulkanSwapchain::createSwapchain()
 
   createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-  VK_CALL( vkCreateSwapchainKHR( m_pDevice->getLogicalDevice(), &createInfo, nullptr, &m_swapchain ) );
-  VK_CALL( vkGetSwapchainImagesKHR( m_pDevice->getLogicalDevice(), m_swapchain, &m_imageCount, nullptr ) );
-  std::vector<VkImage> images( m_imageCount );
-  m_swapchainImages.resize( m_imageCount );
-  VK_CALL( vkGetSwapchainImagesKHR( m_pDevice->getLogicalDevice(), m_swapchain, &m_imageCount, images.data() ) );
-  for ( auto i = 0u; i < m_imageCount; i++ )
-  {
-    m_swapchainImages.at( i ).image = images.at( i );
-  }
+  m_pDevice->createSwapchain( createInfo, &m_swapchain );
+  m_pDevice->getSwapchainImagesKHR( m_swapchainImages, m_swapchain, m_imageCount );
 
   m_swapchainFormat = surfaceFormat.format;
   m_swapchainExtent = extent;
@@ -294,7 +263,7 @@ void graphics::VulkanSwapchain::createImageViews()
   {
     VkImageViewCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    createInfo.image = m_swapchainImages[i].image;
+    createInfo.image = m_swapchainImages[i].vkImage;
     createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     createInfo.format = m_swapchainFormat;
     createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -307,8 +276,8 @@ void graphics::VulkanSwapchain::createImageViews()
     createInfo.subresourceRange.baseArrayLayer = 0;
     createInfo.subresourceRange.layerCount = 1;
 
-    VK_CALL(
-      vkCreateImageView( m_pDevice->getLogicalDevice(), &createInfo, nullptr, &m_swapchainImages.at( i ).imageView ) );
+    VK_CALL( vkCreateImageView(
+      m_pDevice->getLogicalDevice(), &createInfo, nullptr, &m_swapchainImages.at( i ).vkImageView ) );
   }
 }
 
@@ -318,7 +287,7 @@ void graphics::VulkanSwapchain::createCommandPool()
   poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
   poolInfo.queueFamilyIndex = m_pDevice->getGraphicsQueue().familyIndex;
-  VK_CALL( vkCreateCommandPool( m_pDevice->getLogicalDevice(), &poolInfo, nullptr, &m_commandPool ) );
+  m_pDevice->createCommandPool( poolInfo, m_commandPool );
 }
 
 void graphics::VulkanSwapchain::createCommandBuffers()
@@ -338,6 +307,10 @@ void graphics::VulkanSwapchain::createCommandBuffers()
 
 void graphics::VulkanSwapchain::createSyncObjects()
 {
+  m_imageAvailable.resize( MAX_FRAMES_IN_FLIGHT );
+  m_inFlight.resize( MAX_FRAMES_IN_FLIGHT );
+  m_renderingFinished.resize( MAX_FRAMES_IN_FLIGHT );
+
   for ( auto i = 0u; i < m_imageCount; i++ )
   {
     VkSemaphoreCreateInfo semaphoreInfo{};
@@ -347,13 +320,12 @@ void graphics::VulkanSwapchain::createSyncObjects()
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    VK_CALL( vkCreateSemaphore(
-      m_pDevice->getLogicalDevice(), &semaphoreInfo, nullptr, &m_swapchainImages.at( i ).imageAvailable ) );
+    VK_CALL( vkCreateSemaphore( m_pDevice->getLogicalDevice(), &semaphoreInfo, nullptr, &m_imageAvailable.at( i ) ) );
 
-    VK_CALL( vkCreateSemaphore(
-      m_pDevice->getLogicalDevice(), &semaphoreInfo, nullptr, &m_swapchainImages.at( i ).renderingFinished ) );
+    VK_CALL(
+      vkCreateSemaphore( m_pDevice->getLogicalDevice(), &semaphoreInfo, nullptr, &m_renderingFinished.at( i ) ) );
 
-    VK_CALL( vkCreateFence( m_pDevice->getLogicalDevice(), &fenceInfo, nullptr, &m_swapchainImages.at( i ).inFlight ) );
+    VK_CALL( vkCreateFence( m_pDevice->getLogicalDevice(), &fenceInfo, nullptr, &m_inFlight.at( i ) ) );
   }
 }
 
@@ -408,7 +380,7 @@ auto graphics::VulkanSwapchain::chooseSwapSurfaceFormat( const std::vector<VkSur
   return availableFormats[0];
 }
 
-auto graphics::VulkanSwapchain::getCommandPool() -> VkCommandPool&
+auto graphics::VulkanSwapchain::getCommandPool() -> VkCommandPool
 {
   return m_commandPool;
 }
@@ -418,7 +390,7 @@ auto graphics::VulkanSwapchain::getSwapchainExtent() -> VkExtent2D&
   return m_swapchainExtent;
 }
 
-auto graphics::VulkanSwapchain::getCurrentFrameIndex() const -> uint32_t
+auto graphics::VulkanSwapchain::getAquiredImageIndex() const -> uint32_t
 {
   return m_imageIndex;
 }
@@ -428,14 +400,13 @@ bool graphics::VulkanSwapchain::aquireNextImage()
   auto result = vkAcquireNextImageKHR( m_pDevice->getLogicalDevice(),
                                        m_swapchain,
                                        UINT64_MAX,
-                                       m_swapchainImages.at( m_currentFrame ).imageAvailable,
+                                       m_imageAvailable.at( m_currentFrame ),
                                        VK_NULL_HANDLE,
                                        &m_imageIndex );
 
   if ( result == VK_ERROR_OUT_OF_DATE_KHR )
   {
     recreateSwapchain();
-    m_rendering = false;
     return false;
   }
   else if ( result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR )
@@ -447,26 +418,65 @@ bool graphics::VulkanSwapchain::aquireNextImage()
 
 void graphics::VulkanSwapchain::resetFences()
 {
-  vkResetFences( m_pDevice->getLogicalDevice(), 1, &m_swapchainImages.at( m_currentFrame ).inFlight );
+  vkResetFences( m_pDevice->getLogicalDevice(), 1, &m_inFlight.at( m_currentFrame ) );
 }
 
 void graphics::VulkanSwapchain::waitForFences()
 {
-  vkWaitForFences(
-    m_pDevice->getLogicalDevice(), 1, &m_swapchainImages.at( m_currentFrame ).inFlight, VK_TRUE, UINT64_MAX );
+  vkWaitForFences( m_pDevice->getLogicalDevice(), 1, &m_inFlight.at( m_currentFrame ), VK_TRUE, UINT64_MAX );
 }
 
-auto graphics::VulkanSwapchain::getCurrentFrame() -> SwapchainImage&
+auto graphics::VulkanSwapchain::getImageAtAquiredIndex() -> VulkanImage&
 {
-  return m_swapchainImages.at( m_currentFrame );
+  return m_swapchainImages.at( m_imageIndex );
 }
 
-void graphics::VulkanSwapchain::endCommandBuffer()
+void graphics::VulkanSwapchain::endCommandBuffer() const
 {
-  vkEndCommandBuffer( *m_currentCmdBuffer );
+  vkEndCommandBuffer( m_currentCmdBuffer );
 }
 
-bool graphics::VulkanSwapchain::isRendering() const
+auto graphics::VulkanSwapchain::preparePresent() -> void
 {
-  return m_rendering;
+  VulkanImage& currentImage = getImageAtAquiredIndex();
+
+  ImageTransitionData newTransition{};
+  newTransition.srcAccess = currentImage.transition.currentAccess;
+  newTransition.currentAccess = VK_ACCESS_2_NONE;
+  newTransition.srcStage = currentImage.transition.currentStage;
+  newTransition.currentStage = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+  newTransition.oldLayout = currentImage.transition.currentLayout;
+  newTransition.currentLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+  currentImage.transition = newTransition;
+  m_pDevice->transitionImageLayout( currentImage, m_currentCmdBuffer, currentImage.transition );
+}
+
+auto graphics::VulkanSwapchain::prepareAttachment() -> void
+{
+  VulkanImage& currentImage = getImageAtAquiredIndex();
+  ImageTransitionData newTransition{};
+
+  if ( currentImage.transition.currentLayout == VK_IMAGE_LAYOUT_UNDEFINED )
+  {
+    newTransition.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  }
+  else if ( currentImage.transition.currentLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR )
+  {
+    newTransition.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  }
+
+  newTransition.srcAccess = VK_ACCESS_2_NONE;
+  newTransition.currentAccess = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+  newTransition.currentStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+  newTransition.currentLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+  currentImage.transition = newTransition;
+
+  m_pDevice->transitionImageLayout( currentImage, m_currentCmdBuffer, currentImage.transition );
+}
+
+auto graphics::VulkanSwapchain::getCurrentFrameNumber() const -> uint32_t
+{
+  return m_currentFrame;
 }

@@ -19,7 +19,6 @@ target_link_libraries(
   editor
   PRIVATE 
 	  SDL2::SDL2main
-	  spdlog::spdlog_header_only
 	  SDL2::SDL2
 	  utilities
 	  resources
@@ -30,4 +29,23 @@ target_link_libraries(
 	  imgui
 	  core
 	  gui
+)
+
+if(KOGAYONON_ENABLE_TRACY)
+	message("tracy is enabled, linking it to editor")
+	target_link_libraries(editor PRIVATE Tracy::TracyClient)
+	add_custom_command(TARGET editor POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		$<TARGET_FILE:Tracy::TracyClient>
+		$<TARGET_FILE_DIR:editor>
+	)
+endif()
+
+
+add_custom_command(
+    TARGET editor POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/engine_resources"
+        "$<TARGET_FILE_DIR:editor>/engine_resources"
+    COMMENT "Copying engine resources"
 )

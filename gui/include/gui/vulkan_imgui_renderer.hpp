@@ -14,6 +14,11 @@ class VulkanDevice;
 class VulkanSwapchain;
 } // namespace graphics
 
+namespace core
+{
+class KeyPressedEvent;
+}
+
 namespace utilities
 {
 struct ColorConfig;
@@ -34,12 +39,14 @@ enum class ImGuiWindowName
 namespace gui
 {
 class ImGuiWindow;
+class IWidget;
 
 struct Popups
 {
   bool colorChangerPopup{ false };
   bool imguiVariablesPopup{ false };
   bool configPopup{ false };
+  bool deviceDetailsPopup{ false };
 };
 } // namespace gui
 
@@ -52,43 +59,47 @@ public:
   explicit VulkanImguiRenderer( SDL_Window* wnd, graphics::VulkanDevice* device, graphics::VulkanSwapchain* swapchain );
   ~VulkanImguiRenderer();
 
-  void render();
-  void present( VkCommandBuffer& buffer );
+  auto initImgui( SDL_Window* wnd, graphics::VulkanDevice* device, graphics::VulkanSwapchain* swapchain ) -> void;
+  auto render() -> void;
+  auto present( VkCommandBuffer& buffer ) -> void;
 
   auto getImGuiWindows() -> std::unordered_map<ImGuiWindowName, std::unique_ptr<ImGuiWindow>>&;
 
   // Used to pass the rendered output to a texture and display it in the viewport window
-  void setViewport( VkImageView& viewportView );
+  auto setViewport( VkImageView viewportView ) -> void;
+  auto getViewportSize() -> VkExtent2D;
 
 private:
-  void initImgui( SDL_Window* wnd, graphics::VulkanDevice* device, graphics::VulkanSwapchain* swapchain );
-  void createIconSampler( graphics::VulkanDevice* device );
-  void initWindows();
-  void mainMenu();
+  auto createIconSampler( graphics::VulkanDevice* device ) -> void;
+  auto initWindows() -> void;
+  auto mainMenu() -> void;
 
   // MODALS
-  void configChanger();
-  void configModal();
+  auto configChanger() -> void;
+  auto configModal() -> void;
 
-  void colorChanger();
-  void changeColorConfig();
-  void colorModal();
+  auto colorChanger() -> void;
+  auto changeColorConfig() -> void;
+  auto colorModal() -> void;
 
-  void imguiChanger();
-  void imguiModal();
+  auto imguiChanger() -> void;
+  auto imguiModal() -> void;
+
+  auto showDeviceProperties() -> void;
+  auto deviceModal() -> void;
+
   // ------------
 
-  void setColorPallete( const utilities::ColorConfig& cfg );
+  auto setColorPallete( const utilities::ColorConfig& cfg ) -> void;
 
-  void setupDockspace( ImGuiViewport* viewport );
+  auto setupDockspace( ImGuiViewport* viewport ) -> void;
 
-  void begin();
-  void end();
+  auto begin() -> void;
+  auto end() -> void;
 
 private:
   // this gets passed to the viewport
   VkImageView m_viewportView;
-
   VkDescriptorPool m_descriptorPool;
   graphics::VulkanDevice* m_device;
   std::unordered_map<ImGuiWindowName, std::unique_ptr<ImGuiWindow>> m_windows;

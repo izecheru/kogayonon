@@ -43,4 +43,31 @@ private:
   SelectEntityEventSource m_source;
 };
 
+class DeleteEntityEvent : public IEvent
+{
+public:
+  explicit DeleteEntityEvent( const entt::entity& entityId );
+  DeleteEntityEvent() = default;
+
+private:
+  entt::entity m_entityId{ entt::null };
+};
+
+class AddEntityEvent : public IEvent
+{
+public:
+  AddEntityEvent()
+  {
+    m_name = "Default";
+  }
+
+  explicit AddEntityEvent( const std::string_view name )
+      : m_name{ name }
+  {
+  }
+
+private:
+  std::string m_name;
+};
+
 } // namespace core

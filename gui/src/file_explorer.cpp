@@ -1,4 +1,5 @@
 #include "gui/imgui_windows/file_explorer.hpp"
+#include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
 #include "core/event/file_events.hpp"
@@ -9,9 +10,12 @@
 #include "utilities/config_manager/config_manager.hpp"
 #include "utilities/directory_watcher/directory_watcher.hpp"
 #include "utilities/fonts/materialdesign.hpp"
+#include "utilities/task_manager/task.hpp"
+#include "utilities/task_manager/task_manager.hpp"
 #include <imgui_impl_vulkan.h>
 #include <imgui_stdlib.h>
-#include <spdlog/spdlog.h>
+
+#include "utilities/utils/utils.hpp"
 
 using namespace core;
 using namespace utilities;
@@ -66,7 +70,7 @@ void FileExplorerWindow::onFileEvent( FileEvent& e )
   case FileEventType::Modify: {
     if ( e.getPath().find( "glsl" ) != std::string::npos )
     {
-      auto& pShaderManager = MainRegistry::getInstance().getShaderManager();
+      // auto pShaderManager = MainRegistry::getInstance().getShaderManager();
     }
     if ( e.getPath().find( "config" ) != std::string::npos )
     {
@@ -85,7 +89,7 @@ void FileExplorerWindow::onFileEvent( FileEvent& e )
   }
   break;
   default:
-    spdlog::error( "something went wrong, enum FileEventType does not support this value" );
+    K_ERROR( "something went wrong, enum FileEventType does not support this value" );
     break;
   }
 
@@ -138,10 +142,22 @@ void FileExplorerWindow::drawFileContextMenu( const File_& file, const std::stri
 {
   if ( ImGui::BeginPopupContextItem( id.c_str() ) )
   {
+    if ( file.path.extension().string() == ".ttf" )
+    {
+      if ( ImGui::MenuItem( "Load font" ) )
+      {
+        auto assetManager = core::MainRegistry::getInstance().getAssetManager();
+        auto taskManager = core::MainRegistry::getInstance().getTaskManager();
+
+        auto callback = [assetManager, file]() { assetManager->loadFont( file.path.string() ); };
+        auto loadFontTask = taskManager->addTask<utilities::CallbackTask>( callback );
+        taskManager->addTaskSetToPipe( loadFontTask->taskPtr.get() );
+      }
+    }
     if ( ImGui::MenuItem( "Delete file" ) )
     {
       std::filesystem::remove( file.path );
-      spdlog::info( "removed {}", file.path.string() );
+      K_INFO( "removed {}", file.path.string() );
     }
     ImGui::EndPopup();
   }

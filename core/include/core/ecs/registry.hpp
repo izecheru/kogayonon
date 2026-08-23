@@ -10,7 +10,7 @@ class Registry
 {
 public:
   Registry()
-      : m_pRegistry{ std::make_shared<entt::registry>() }
+      : m_pRegistry{ std::make_unique<entt::registry>() }
   {
   }
 
@@ -79,9 +79,9 @@ public:
   }
 
   template <typename TContext>
-  inline auto addToContext( TContext context ) -> TContext&
+  inline auto addToContext( TContext context ) -> void
   {
-    return m_pRegistry->ctx().emplace<TContext>( context );
+    m_pRegistry->ctx().emplace<TContext>( context );
   }
 
   template <typename TContext>
@@ -104,7 +104,7 @@ public:
   static void createLuaBindings( sol::state& lua );
 
 private:
-  std::shared_ptr<entt::registry> m_pRegistry;
+  std::unique_ptr<entt::registry> m_pRegistry;
 };
 
 } // namespace core

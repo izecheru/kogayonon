@@ -3,8 +3,8 @@
 
 namespace utilities
 {
-enum KeyScanCode
-{ // Printable keys
+enum class KeyScanCode
+{
   None,
   Space = SDL_SCANCODE_SPACE,
   Apostrophe = SDL_SCANCODE_APOSTROPHE,

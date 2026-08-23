@@ -3,12 +3,12 @@
 #include "graphics/utils.hpp"
 #include "utilities/utils/utils.hpp"
 
-graphics::VulkanMemoryAllocator::VulkanMemoryAllocator( VkDevice& device,
-                                                        VkInstance& instance,
-                                                        VkPhysicalDevice& physicalDevice )
+graphics::VulkanMemoryAllocator::VulkanMemoryAllocator( VkDevice device,
+                                                        VkInstance instance,
+                                                        VkPhysicalDevice physicalDevice )
     : m_vulkanFunctions{}
     , m_allocator{}
-    , m_pDevice{ &device }
+    , m_device{ device }
 {
   m_vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
   m_vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
@@ -25,36 +25,31 @@ graphics::VulkanMemoryAllocator::VulkanMemoryAllocator( VkDevice& device,
 
 graphics::VulkanMemoryAllocator::~VulkanMemoryAllocator()
 {
+  deallocate();
+#ifdef PRINT_LEAKS
+  printLeaks();
+#endif
   vmaDestroyAllocator( m_allocator );
 }
 
 void graphics::VulkanMemoryAllocator::createBuffer( VulkanBuffer& vulkanBuffer,
                                                     VkBufferCreateInfo& createInfo,
-                                                    VmaAllocationCreateInfo& usage )
+                                                    VmaAllocationCreateInfo& usage,
+                                                    std::string_view bufferName )
 {
   VK_CALL(
     vmaCreateBuffer( m_allocator, &createInfo, &usage, &vulkanBuffer.vkBuffer, &vulkanBuffer.allocation, nullptr ) );
 
-  if ( vulkanBuffer.stagingBuffer )
+  if ( !bufferName.empty() )
   {
-    KOGAYONON_INFO( "Allocating staging buffer: {}", formatSize( static_cast<double>( createInfo.size ) ) );
-    return;
+    K_INFO( "[BUFF_ALLOC] {} {}", bufferName, formatSize( static_cast<double>( createInfo.size ) ) );
+    setName( bufferName, vulkanBuffer.allocation );
   }
+  else
+  {
 
-  KOGAYONON_INFO( "Allocating buffer: {}", formatSize( static_cast<double>( createInfo.size ) ) );
-  m_deleteQueue.emplace( [&]() {
-    if ( vulkanBuffer.deallocated )
-      return;
-
-    // unmap memory before deleting
-    if ( vulkanBuffer.persistent )
-    {
-      vmaUnmapMemory( m_allocator, vulkanBuffer.allocation );
-    }
-    vmaDestroyBuffer( m_allocator, vulkanBuffer.vkBuffer, vulkanBuffer.allocation );
-    KOGAYONON_INFO( "Deallocating buffer: {}",
-                    formatSize( static_cast<double>( vulkanBuffer.allocation->GetSize() ) ) );
-  } );
+    K_INFO( "[BUFF_ALLOC] {}", formatSize( static_cast<double>( createInfo.size ) ) );
+  }
 }
 
 void graphics::VulkanMemoryAllocator::createBuffers( FrameInFlightVulkanBuffer& vulkanBuffer,
@@ -70,14 +65,20 @@ void graphics::VulkanMemoryAllocator::createBuffers( FrameInFlightVulkanBuffer& 
 void graphics::VulkanMemoryAllocator::createImage( VkImage& image,
                                                    VkImageCreateInfo& imageCreateInfo,
                                                    VmaAllocationCreateInfo& usage,
-                                                   VmaAllocation& allocation )
+                                                   VmaAllocation& allocation,
+                                                   std::string_view imageName )
 {
   VK_CALL( vmaCreateImage( m_allocator, &imageCreateInfo, &usage, &image, &allocation, nullptr ) );
-  KOGAYONON_INFO( "Allocating image: {}", formatSize( static_cast<double>( allocation->GetSize() ) ) );
-  m_deleteQueue.emplace( [&]() {
-    KOGAYONON_INFO( "Dellocating image: {}", formatSize( static_cast<double>( allocation->GetSize() ) ) );
-    vmaDestroyImage( m_allocator, image, allocation );
-  } );
+
+  if ( !imageName.empty() )
+  {
+    K_INFO( "[IMG_ALLOC] {} size {}", imageName, formatSize( static_cast<double>( allocation->GetSize() ) ) );
+    setName( imageName, allocation );
+  }
+  else
+  {
+    K_INFO( "[IMG_ALLOC] size {}", formatSize( static_cast<double>( allocation->GetSize() ) ) );
+  }
 }
 
 auto graphics::VulkanMemoryAllocator::getAllocator() -> VmaAllocator&
@@ -88,21 +89,9 @@ auto graphics::VulkanMemoryAllocator::getAllocator() -> VmaAllocator&
 auto graphics::VulkanMemoryAllocator::createStagingBuffer( VkBufferCreateInfo& createInfo,
                                                            VmaAllocationCreateInfo& usage ) -> VulkanBuffer
 {
-  VulkanBuffer stageBuffer{ .persistent = false, .stagingBuffer = true };
+  VulkanBuffer stageBuffer{};
   createBuffer( stageBuffer, createInfo, usage );
   return stageBuffer;
-}
-
-void graphics::VulkanMemoryAllocator::deallocate()
-{
-  // wait for everything to complete
-  VK_CALL( vkDeviceWaitIdle( *m_pDevice ) );
-
-  while ( !m_deleteQueue.empty() )
-  {
-    m_deleteQueue.front()();
-    m_deleteQueue.pop();
-  }
 }
 
 auto graphics::VulkanMemoryAllocator::formatSize( VkDeviceSize size ) -> std::string
@@ -128,23 +117,31 @@ auto graphics::VulkanMemoryAllocator::formatSize( VkDeviceSize size ) -> std::st
 
 void graphics::VulkanMemoryAllocator::mapBuffer( VulkanBuffer& vulkanBuffer ) const
 {
-  vmaMapMemory( m_allocator, vulkanBuffer.allocation, &vulkanBuffer.mappedData );
-  vulkanBuffer.persistent = true;
+  auto info = getAllocInfo( vulkanBuffer.allocation );
+  if ( info.pName )
+  {
+    K_INFO( "Buffer {} mapped", info.pName );
+  }
+  vmaMapMemory( m_allocator, vulkanBuffer.allocation, &vulkanBuffer.mapped );
+  vulkanBuffer.flags |= Persistent | Mapped;
 }
 
 void graphics::VulkanMemoryAllocator::mapBuffer( FrameInFlightVulkanBuffer& vulkanBuffer ) const
 {
   for ( auto& buff : vulkanBuffer.buffers )
   {
-    vmaMapMemory( m_allocator, buff.allocation, &buff.mappedData );
-    buff.persistent = true;
+    vmaMapMemory( m_allocator, buff.allocation, &buff.mapped );
   }
 }
 
 void graphics::VulkanMemoryAllocator::unmapBuffer( VulkanBuffer& vulkanBuffer ) const
 {
+  auto info = getAllocInfo( vulkanBuffer.allocation );
+  if ( info.pName )
+  {
+    K_INFO( "Unmapping buffer {}", info.pName );
+  }
   vmaUnmapMemory( m_allocator, vulkanBuffer.allocation );
-  vulkanBuffer.persistent = false;
 }
 
 void graphics::VulkanMemoryAllocator::unmapBuffer( FrameInFlightVulkanBuffer& vulkanBuffer ) const
@@ -152,6 +149,75 @@ void graphics::VulkanMemoryAllocator::unmapBuffer( FrameInFlightVulkanBuffer& vu
   for ( auto& buff : vulkanBuffer.buffers )
   {
     vmaUnmapMemory( m_allocator, buff.allocation );
-    buff.persistent = false;
   }
+}
+
+auto graphics::VulkanMemoryAllocator::destroyImage( VkImage& image, VmaAllocation& allocation ) -> void
+{
+  if ( image == VK_NULL_HANDLE )
+    return;
+
+  auto info = getAllocInfo( allocation );
+  if ( info.pName )
+  {
+    K_INFO( "[IMG_DEALLOC] {}, size {}", info.pName, formatSize( info.size ) );
+  }
+
+  vmaDestroyImage( m_allocator, image, allocation );
+}
+
+auto graphics::VulkanMemoryAllocator::destroyImages(
+  const std::initializer_list<std::tuple<VkImage&, VmaAllocation&>>& images ) -> void
+{
+  for ( auto& [image, alloc] : images )
+  {
+    destroyImage( image, alloc );
+  }
+}
+
+auto graphics::VulkanMemoryAllocator::printLeaks() const -> void
+{
+  char* statsString = nullptr;
+  VmaAllocatorCreateInfo info{};
+  vmaBuildStatsString( m_allocator, &statsString, VK_TRUE );
+  printf_s( "%s", statsString );
+  // K_INFO( statsString );
+  vmaFreeStatsString( m_allocator, statsString );
+}
+
+auto graphics::VulkanMemoryAllocator::setName( std::string_view name, VmaAllocation& allocation ) const -> void
+{
+#ifndef _DEBUG
+  return;
+#endif
+
+  auto allocName = std::string{ name };
+  vmaSetAllocationName( m_allocator, allocation, allocName.c_str() );
+}
+
+auto graphics::VulkanMemoryAllocator::destroyBuffer( VulkanBuffer& buff ) -> void
+{
+  auto info = getAllocInfo( buff.allocation );
+
+  if ( info.pName )
+  {
+    K_INFO( "[BUFF_DEALLOC] {}, size {}", info.pName, formatSize( info.size ) );
+  }
+
+  vmaDestroyBuffer( m_allocator, buff.vkBuffer, buff.allocation );
+}
+
+auto graphics::VulkanMemoryAllocator::destroyBuffer( FrameInFlightVulkanBuffer& buff ) -> void
+{
+  for ( auto& buff : buff.buffers )
+  {
+    destroyBuffer( buff );
+  }
+}
+
+auto graphics::VulkanMemoryAllocator::getAllocInfo( VmaAllocation allocation ) const -> VmaAllocationInfo
+{
+  VmaAllocationInfo info{};
+  vmaGetAllocationInfo( m_allocator, allocation, &info );
+  return info;
 }

@@ -6,19 +6,18 @@
 namespace graphics
 {
 
-// with this we change how we provide the vertex input in the spec struct
-#define VERTEX_PROVIDED
-
 enum PipelineType
 {
-  GEOMETRY_BASIC,
-  PICKING
+  geometry,
+  picking,
+  wireframe,
+  text
 };
 
 enum VulkanAttachmentType
 {
-  DEPTH,
-  COLOR
+  depth,
+  color
 };
 
 /**
@@ -44,7 +43,7 @@ struct VulkanPipelineSpec
   VulkanPipelineOptions options;
   std::vector<VkDescriptorSetLayout> descriptorLayout;
 
-  VkFormat colorAttachmentFormat;
+  std::vector<VkFormat> colorAttachmentFormat;
 
   VkShaderModule vertexModule;
   VkShaderModule fragmentModule;
@@ -55,34 +54,34 @@ struct VulkanPipelineSpec
   uint32_t pushConstantSize{ 0u };
   VkShaderStageFlags pushConstantVisibility;
 
+  uint32_t colorAttachmentCount{ 0u };
+
 #ifdef VERTEX_PROVIDED
   VkVertexInputBindingDescription vertexBindingDescription;
   std::vector<VkVertexInputAttributeDescription> vertexAttributesDescription;
 #endif
-
-  // Color and depth attachments
-  std::vector<VkRenderingAttachmentInfo> colorAttachment;
-  std::vector<VkRenderingAttachmentInfo> depthAttachment;
 };
 
 class VulkanPipeline
 {
 public:
   explicit VulkanPipeline( const VulkanPipelineSpec& spec, VulkanContext* pContext );
+  VulkanPipeline() = default;
   ~VulkanPipeline() = default;
 
   /**
    * @brief Bind the pipeline
    * @param cmd Current VkCommandBuffer that we register commands on
    */
-  void bind( VkCommandBuffer& cmd, VkPipelineBindPoint bindPoint ) const;
-
-  auto getLayout() -> VkPipelineLayout&;
+  auto bind( VkCommandBuffer& cmd, VkPipelineBindPoint bindPoint ) const -> void;
+  auto create( const VulkanPipelineSpec& spec, VulkanContext* pContext ) -> void;
+  auto getLayout() const -> VkPipelineLayout;
+  auto getPipeline() const -> VkPipeline;
 
 private:
   VulkanPipelineSpec m_spec;
   VkPipeline m_pipeline;
   VkPipelineLayout m_layout;
-  VulkanContext* m_pVkContext;
+  VulkanContext* m_vkCtx;
 };
 } // namespace graphics

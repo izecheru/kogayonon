@@ -18,7 +18,7 @@ public:
   void loadMesh( const std::string& path, resources::Mesh* m, std::vector<aiMaterial*>& materials );
 
 private:
-  auto readFile( const std::string& path ) -> const aiScene*;
+  const aiScene* readFile( const std::string& path );
   void releaseScene();
 
 private:

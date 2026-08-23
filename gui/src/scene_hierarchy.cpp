@@ -7,6 +7,7 @@
 #include "core/event/event_dispatcher.hpp"
 #include "core/event/scene_events.hpp"
 #include "core/scene/scene.hpp"
+#include "core/scene/scene_event_handler.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "gui/utils/font_keys.hpp"
 #include "utilities/utils/utils.hpp"
@@ -16,10 +17,7 @@ using namespace core;
 gui::SceneHierarchy::SceneHierarchy( const std::string& name, const SceneHierarchySpec& spec )
     : ImGuiWindow{ name }
     , m_spec{ spec }
-    , m_selectedEntity{ entt::null }
 {
-  auto& peventDispatcher = MainRegistry::getInstance().getEventDispatcher();
-  peventDispatcher->addHandler<SelectEntityEvent, &SceneHierarchy::onEntitySelect>( *this );
 }
 
 void gui::SceneHierarchy::render()
@@ -27,11 +25,12 @@ void gui::SceneHierarchy::render()
   if ( !begin() )
     return;
 
-  const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+  const auto pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
 
   updateProps();
 
-  auto scene = SceneManager::getCurrentScene().lock();
+  auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
+  auto scene = sceneManager->getCurrentScene();
 
   ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
   // if there is no scene to render return
@@ -70,7 +69,7 @@ void gui::SceneHierarchy::render()
 
       ImGui::BeginGroup();
 
-      bool selected = m_selectedEntity == entityId;
+      bool selected = sceneManager->getEventHandler()->getCurrentEntityId() == entityId;
       auto hoverColor = ImGui::GetStyle().Colors[ImGuiCol_HeaderHovered];
       auto normalColor = ImGui::GetStyle().Colors[ImGuiCol_Header];
 
@@ -78,8 +77,6 @@ void gui::SceneHierarchy::render()
 
       if ( ImGui::Selectable( selectableId.c_str(), selected, ImGuiSelectableFlags_SpanAllColumns ) )
       {
-        m_selectedEntity = entityId;
-        Entity entity{ scene->getRegistry(), entityId };
         pEventDispatcher->dispatchEvent( SelectEntityEvent{ entityId, SelectEntityEventSource::Hierarchy_Window } );
       }
       ImGui::PopStyleColor();
@@ -129,7 +126,8 @@ void gui::SceneHierarchy::render()
 
 void gui::SceneHierarchy::drawItemContexMenu( const std::string& itemId, entt::entity ent )
 {
-  auto scene = SceneManager::getCurrentScene().lock();
+  auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
+  auto scene = sceneManager->getCurrentScene();
   Entity entity{ scene->getRegistry(), ent };
   const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
   if ( ImGui::BeginPopupContextItem( itemId.c_str() ) )
@@ -137,34 +135,20 @@ void gui::SceneHierarchy::drawItemContexMenu( const std::string& itemId, entt::e
 
     if ( ImGui::MenuItem( "Delete entity" ) )
     {
-      // first deselect entity
-      auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
-      pEventDispatcher->dispatchEvent<SelectEntityEvent>(
-        SelectEntityEvent{ SelectEntityEventSource::Hierarchy_Window } );
-
-      scene->removeEntity( entity.getEntityId() );
+      auto pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+      pEventDispatcher->dispatchEvent( core::DeleteEntityEvent{ entity.getEntityId() } );
     }
 
     ImGui::EndPopup();
   }
 }
 
-void gui::SceneHierarchy::onEntitySelect( const core::SelectEntityEvent& e )
-{
-  if ( e.getEntityId() == m_selectedEntity || e.getEventSource() == SelectEntityEventSource::Hierarchy_Window )
-    return;
-
-  if ( e.getEventSource() == SelectEntityEventSource::None )
-    m_selectedEntity = entt::null;
-
-  m_selectedEntity = e.getEntityId();
-}
-
 void gui::SceneHierarchy::drawContextMenu()
 {
-  const auto& pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
-  const auto scene = SceneManager::getCurrentScene().lock();
-  auto& assetManager = AssetManager::getInstance();
+  const auto pEventDispatcher = MainRegistry::getInstance().getEventDispatcher();
+  auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
+  const auto scene = sceneManager->getCurrentScene();
+  auto assetManager = core::MainRegistry::getInstance().getAssetManager();
 
   if ( ImGui::BeginPopupContextWindow( "##SceneHierarchyContext",
                                        ImGuiPopupFlags_NoOpenOverItems | ImGuiPopupFlags_MouseButtonRight ) )
@@ -175,8 +159,6 @@ void gui::SceneHierarchy::drawContextMenu()
 
       pEventDispatcher->dispatchEvent<SelectEntityEvent>(
         SelectEntityEvent{ ent.getEntityId(), SelectEntityEventSource::Hierarchy_Window } );
-
-      m_selectedEntity = ent.getEntityId();
     }
 
     if ( ImGui::MenuItem( "Create object" ) )
@@ -187,12 +169,10 @@ void gui::SceneHierarchy::drawContextMenu()
 
       ent.addComponent<TransformComponent>( TransformComponent{} );
       ent.addComponent<MeshComponent>(
-        MeshComponent{ .pMesh = assetManager.loadMesh( "test", p.string() ), .loaded = true } );
+        MeshComponent{ .pMesh = assetManager->loadMesh( "test", p.string() ), .loaded = true } );
 
       pEventDispatcher->dispatchEvent<SelectEntityEvent>(
         SelectEntityEvent{ ent.getEntityId(), SelectEntityEventSource::Hierarchy_Window } );
-
-      m_selectedEntity = ent.getEntityId();
     }
 
     ImGui::EndPopup();

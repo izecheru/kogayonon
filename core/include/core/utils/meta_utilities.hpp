@@ -1,8 +1,8 @@
 #pragma once
+#include "core/ecs/registry.hpp"
+#include "utilities/utils/utils.hpp"
 #include <entt/entt.hpp>
 #include <sol/sol.hpp>
-#include <spdlog/spdlog.h>
-#include "core/ecs/registry.hpp"
 
 // many thanks to this man on github https://github.com/skaarj1989/entt-meets-sol2
 // he defined those functions and i just had to understand them and from there try to implement my own
@@ -93,7 +93,7 @@ static inline auto invokeMetaFunc( entt::meta_type metaType, entt::id_type funcI
 {
   if ( !metaType )
   {
-    spdlog::error( "meta type is not registered in entt::meta" );
+    K_ERROR( "meta type is not registered in entt::meta" );
   }
   else
   {

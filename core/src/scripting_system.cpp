@@ -12,11 +12,11 @@
 #include "core/ecs/registry.hpp"
 #include "core/event/event_dispatcher.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
-#include "window/window.hpp"
+#include "utilities/utils/utils.hpp"
 #include <filesystem>
 #include <fstream>
 #include <sol/sol.hpp>
-#include <spdlog/spdlog.h>
+#include "window/window.hpp"
 
 using namespace utilities;
 using namespace window;
@@ -28,22 +28,22 @@ ScriptingSystem::ScriptingSystem()
     : m_luaState{ sol::state{} }
     , m_init{ false }
 {
-  // make the main script object and add it to the registry
-  auto mainScript = std::make_shared<MainScriptFuncs>();
+  //// make the main script object and add it to the registry
+  // auto mainScript = std::make_unique<MainScriptFuncs>();
 
-  // move to main registry
-  MainRegistry::getInstance().addToContext<std::shared_ptr<MainScriptFuncs>>( std::move( mainScript ) );
+  //// move to main registry
+  ////MainRegistry::getInstance().addToContext<std::unique_ptr<MainScriptFuncs>>( std::move( mainScript ) );
 
-  auto currentPath = std::filesystem::absolute( "." ) / "resources\\scripts\\main.lua";
-  spdlog::info( currentPath.string() );
-  assert( fs::exists( currentPath ) == true && "main.lua MUST exist in the resources/scripts folder" );
-  m_luaState.open_libraries( sol::lib::base, sol::lib::package, sol::lib::string );
+  // auto currentPath = std::filesystem::absolute( "." ) / "resources\\scripts\\main.lua";
+  // K_INFO( "{}", currentPath.string() );
+  // assert( fs::exists( currentPath ) == true && "main.lua MUST exist in the resources/scripts folder" );
+  // m_luaState.open_libraries( sol::lib::base, sol::lib::package, sol::lib::string );
 
-  // register all usretypes and expose them to lua
-  registerBindings( m_luaState );
+  //// register all usretypes and expose them to lua
+  // registerBindings( m_luaState );
 
-  // load the script
-  loadMainScript( currentPath.string() );
+  //// load the script
+  // loadMainScript( currentPath.string() );
 }
 
 void ScriptingSystem::registerBindings( sol::state& lua )

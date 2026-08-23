@@ -1,5 +1,6 @@
 #pragma once
 #include "precompiled/pch.hpp"
+#include <cstdint>
 #include <imgui.h>
 
 namespace gui
@@ -9,8 +10,8 @@ struct ImGuiProps
   std::string name;
   double x{ 0.0 };
   double y{ 0.0 };
-  int width{ 0 };
-  int height{ 0 };
+  uint32_t width{ 0u };
+  uint32_t height{ 0u };
   bool canMove{ true };
   bool visible{ true };
   bool docked{ false };

@@ -1,8 +1,9 @@
 #include "physics/jolt_physics.hpp"
+#include <cstdarg>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include <spdlog/spdlog.h>
+#include <iostream>
 using namespace JPH;
 
 static void TraceImpl( const char* inFMT, ... )
@@ -13,12 +14,12 @@ static void TraceImpl( const char* inFMT, ... )
   vsnprintf( buffer, sizeof( buffer ), inFMT, list );
   va_end( list );
 
-  spdlog::error( buffer );
+  printf_s( buffer );
 }
 
 physics::JoltPhysics::JoltPhysics()
     : m_deltaUpdate( 1.0f / 60.0f )
-    , m_isRunning{ true }
+    , m_isRunning{ false }
     , m_timeAccumulator{ 0.0f }
 {
   RegisterDefaultAllocator();
@@ -64,7 +65,7 @@ physics::JoltPhysics::~JoltPhysics()
   Factory::sInstance = nullptr;
 }
 
-void physics::JoltPhysics::update( float delta )
+void physics::JoltPhysics::onUpdate( float delta )
 {
   if ( !m_isRunning )
     return;

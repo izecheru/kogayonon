@@ -1,8 +1,8 @@
-#include "utilities/shader_compiler/shader_compiler.hpp"
+#include "graphics/shader_compiler.hpp"
+#include "precompiled/pch.hpp"
 #include "utilities/utils/utils.hpp"
-#include <spdlog/spdlog.h>
 
-utilities::ShaderCompiler::ShaderCompiler( VkDevice d )
+graphics::ShaderCompiler::ShaderCompiler( VkDevice d )
     : m_pDevice{ d }
     , m_globalSession{ nullptr }
 {
@@ -16,12 +16,12 @@ utilities::ShaderCompiler::ShaderCompiler( VkDevice d )
   assert( res == 0 && "could not initialize shader compiler" );
 }
 
-utilities::ShaderCompiler::~ShaderCompiler()
+graphics::ShaderCompiler::~ShaderCompiler()
 {
 }
 
-auto utilities::ShaderCompiler::compileShaderFromSource( const std::string& shaderName,
-                                                         const std::string& shaderEntryFunc ) -> ShaderObject
+auto graphics::ShaderCompiler::compileShaderFromSource( const std::string& shaderName,
+                                                        const std::string& shaderEntryFunc ) -> ShaderObject
 {
   ShaderObject obj{};
   auto slangTargets{ std::to_array<slang::TargetDesc>(
@@ -33,7 +33,7 @@ auto utilities::ShaderCompiler::compileShaderFromSource( const std::string& shad
       { slang::CompilerOptionName::MatrixLayoutRow, { slang::CompilerOptionValueKind::Int, 0 } },
       { slang::CompilerOptionName::EmitSpirvDirectly, { slang::CompilerOptionValueKind::Int, 1 } } } ) };
 
-  const auto shaderPath = ( std::filesystem::absolute( "." ) / "engine_resources" / "shaders" ).string();
+  const auto shaderPath = ( std::filesystem::current_path() / "engine_resources" / "shaders" ).string();
 
   const char* searchPaths[] = { shaderPath.c_str() };
 
@@ -51,7 +51,7 @@ auto utilities::ShaderCompiler::compileShaderFromSource( const std::string& shad
 
   if ( SLANG_FAILED( res ) )
   {
-    KOGAYONON_ERR( "Failed to create Slang session" );
+    K_ERROR( "Failed to create Slang session" );
     return obj;
   }
 
@@ -62,7 +62,8 @@ auto utilities::ShaderCompiler::compileShaderFromSource( const std::string& shad
 
     if ( !slangModule )
     {
-      KOGAYONON_ERR( (const char*)diagnosticsBlob->getBufferPointer() );
+      const char* diagMsg = (const char*)diagnosticsBlob->getBufferPointer();
+      K_ERROR( "Failed to load module: {}", diagMsg );
       throw std::runtime_error( "Could not load slang module" );
     }
   }
@@ -72,7 +73,7 @@ auto utilities::ShaderCompiler::compileShaderFromSource( const std::string& shad
 
   if ( SLANG_FAILED( res ) || !entryPoint )
   {
-    KOGAYONON_ERR( "Entry point not found: {}", shaderEntryFunc );
+    K_ERROR( "Entry point not found: {}", shaderEntryFunc );
     throw std::runtime_error( "Entry point lookup failed" );
   }
 
@@ -94,15 +95,16 @@ auto utilities::ShaderCompiler::compileShaderFromSource( const std::string& shad
   {
     if ( diagnosticsBlob )
     {
-      KOGAYONON_ERR( (const char*)diagnosticsBlob->getBufferPointer() );
+      const char* diagMsg = (const char*)diagnosticsBlob->getBufferPointer();
+      K_ERROR( "Failed to load module: {}", diagMsg );
+      throw std::runtime_error( "Failed to compile entry point to SPIR-V" );
     }
-    throw std::runtime_error( "Failed to compile entry point to SPIR-V" );
   }
 
   return obj;
 }
 
-auto utilities::ShaderCompiler::readFile( const std::string& filePath ) -> std::vector<char>
+auto graphics::ShaderCompiler::readFile( const std::string& filePath ) -> std::vector<char>
 {
   std::ifstream file( filePath, std::ios::ate | std::ios::binary );
 
@@ -119,7 +121,7 @@ auto utilities::ShaderCompiler::readFile( const std::string& filePath ) -> std::
   return buffer;
 }
 
-auto utilities::ShaderCompiler::createShaderModule( const std::string& shaderName, const std::string& shaderEntryFunc )
+auto graphics::ShaderCompiler::createShaderModule( const std::string& shaderName, const std::string& shaderEntryFunc )
   -> VkShaderModule
 {
   auto obj = compileShaderFromSource( shaderName, shaderEntryFunc );

@@ -2,4 +2,8 @@
 
 namespace core
 {
+MainRegistry::~MainRegistry()
+{
+  getContext<std::shared_ptr<AssetManager>>().reset();
+}
 } // namespace core

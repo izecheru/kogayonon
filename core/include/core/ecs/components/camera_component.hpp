@@ -6,11 +6,11 @@ namespace core
 {
 struct CameraProps
 {
-  glm::vec3 eye{ 5.0f, 5.0f, 10.0f };
+  glm::vec3 eye{ 0.0f, 2.0f, 10.0f };
   glm::vec3 center{ 0.0f, 0.0f, 0.0f };
   glm::vec3 up{ 0.0f, 1.0f, 0.0f };
-  glm::vec2 extent;
   float fov{ 45.0f };
+  glm::ivec2 extent;
   float nearView{ 0.01f };
   float farView{ 1000.0f };
 

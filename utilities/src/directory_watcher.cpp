@@ -1,5 +1,7 @@
 #include "utilities/directory_watcher/directory_watcher.hpp"
-#include <spdlog/spdlog.h>
+#include "utilities/utils/utils.hpp"
+#include <stdexcept>
+
 
 namespace utilities
 {
@@ -69,7 +71,7 @@ void DirectoryWatcher::run( std::filesystem::path root )
 
     if ( !success )
     {
-      spdlog::error( "ReadDirectoryChangesW failed" );
+      K_ERROR( "ReadDirectoryChangesW failed" );
       break;
     }
 
@@ -82,7 +84,7 @@ void DirectoryWatcher::run( std::filesystem::path root )
       DWORD bytesTransferred = 0;
       if ( !GetOverlappedResult( m_dirHandle, &m_overlapped, &bytesTransferred, FALSE ) )
       {
-        spdlog::error( "GetOverlappedResult failed {}", GetLastError() );
+        K_ERROR( "GetOverlappedResult failed {}", GetLastError() );
         break;
       }
 
@@ -117,7 +119,7 @@ void DirectoryWatcher::run( std::filesystem::path root )
           m_eventCallbackFunc( relativePath.string(), nameOnly, core::FileEventType( 1 << 3 ) );
           break;
         default:
-          spdlog::info( "Unknown action!" );
+          K_ERROR( "Unknown action!" );
           break;
         }
 

@@ -22,8 +22,9 @@ public:
 
   void update( const std::string& key );
   void start( const std::string& key );
+  void restart( const std::string& key );
   auto getDuration( const std::string& key ) -> duration;
-  auto getDurationInSeconds( const std::string& key ) -> float;
+  float getDurationInSeconds( const std::string& key );
 
   static void createLuaBindings( sol::state& lua );
 

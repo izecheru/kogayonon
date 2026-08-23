@@ -5,30 +5,43 @@
 
 namespace graphics
 {
+enum VulkanBufferFlags : uint32_t
+{
+  None = 0,
+  Mapped = 1 << 0,
+  Staging = 1 << 1,
+  Persistent = 1 << 2,
+  Deallocated = 1 << 3
+};
+
+inline auto operator|( VulkanBufferFlags a, VulkanBufferFlags b ) -> VulkanBufferFlags
+{
+  return static_cast<VulkanBufferFlags>( static_cast<int>( a ) | static_cast<int>( b ) );
+}
+
+inline auto operator|=( VulkanBufferFlags& a, VulkanBufferFlags b ) -> VulkanBufferFlags&
+{
+  a = static_cast<VulkanBufferFlags>( static_cast<uint32_t>( a ) | static_cast<uint32_t>( b ) );
+  return a;
+}
+
+inline auto operator~( VulkanBufferFlags flag ) -> VulkanBufferFlags
+{
+  return static_cast<VulkanBufferFlags>( ~static_cast<uint32_t>( flag ) );
+}
+
+inline VulkanBufferFlags& operator&=( VulkanBufferFlags& a, VulkanBufferFlags b )
+{
+  a = static_cast<VulkanBufferFlags>( static_cast<uint32_t>( a ) & static_cast<uint32_t>( b ) );
+  return a;
+}
+
 struct VulkanBuffer
 {
   VkBuffer vkBuffer{ VK_NULL_HANDLE };
-  VmaAllocation allocation{ nullptr };
-
-  /**
-   * @brief Is the buffer remaining mapped to memory untill the verry end?
-   */
-  bool persistent{ false };
-
-  /**
-   * @brief Prevents a second deallocation in the lambda queue in VulkanMemoryAllocator
-   */
-  bool deallocated{ false };
-
-  /**
-   * @brief If the buffer is persistent, we need to store the pData here
-   */
-  void* mappedData{ nullptr };
-
-  /**
-   * @brief Is this buffer a staging buffer? If yes we manually vmaDestroyBuffer at the end of current scope
-   */
-  bool stagingBuffer{ false };
+  VmaAllocation vmaAllocation{ nullptr };
+  VulkanBufferFlags flags{ VulkanBufferFlags::None };
+  void* mapped;
 };
 
 /**
@@ -39,6 +52,24 @@ struct VulkanBuffer
 struct FrameInFlightVulkanBuffer
 {
   std::array<VulkanBuffer, MAX_FRAMES_IN_FLIGHT> buffers;
+
+  // this is for conveniently calling the setDebugName function when we want the buffer to also
+  // hold a name for easier debugging experience
+  auto each( std::function<void( VulkanBuffer&, uint32_t index )>&& func ) -> void
+  {
+    for ( auto i = 0; i < buffers.size(); ++i )
+    {
+      func( buffers.at( i ), i );
+    }
+  }
+
+  auto each( std::function<void( VulkanBuffer& )>&& func ) -> void
+  {
+    for ( auto i = 0; i < buffers.size(); ++i )
+    {
+      func( buffers.at( i ) );
+    }
+  }
 };
 
 } // namespace graphics

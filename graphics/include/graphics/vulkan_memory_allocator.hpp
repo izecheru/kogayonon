@@ -2,7 +2,9 @@
 #define VMA_STATIC_VULKAN_FUNCTIONS 1
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
 #define VMA_VULKAN_VERSION 1004000
+
 #include "graphics/vulkan_buffer.hpp"
+#include "graphics/vulkan_image.hpp"
 #include "precompiled/pch.hpp"
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
@@ -13,10 +15,14 @@ namespace graphics
 class VulkanMemoryAllocator
 {
 public:
-  explicit VulkanMemoryAllocator( VkDevice& device, VkInstance& instance, VkPhysicalDevice& physicalDevice );
+  explicit VulkanMemoryAllocator( VkDevice device, VkInstance instance, VkPhysicalDevice physicalDevice );
   ~VulkanMemoryAllocator();
 
-  void createBuffer( VulkanBuffer& vulkanBuffer, VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& usage );
+  auto printLeaks() const -> void;
+  void createBuffer( VulkanBuffer& vulkanBuffer,
+                     VkBufferCreateInfo& createInfo,
+                     VmaAllocationCreateInfo& usage,
+                     std::string_view bufferName = "" );
 
   void createBuffers( FrameInFlightVulkanBuffer& vulkanBuffer,
                       VkBufferCreateInfo& createInfo,
@@ -32,21 +38,24 @@ public:
   void createImage( VkImage& image,
                     VkImageCreateInfo& imageCreateInfo,
                     VmaAllocationCreateInfo& usage,
-                    VmaAllocation& allocation );
+                    VmaAllocation& allocation,
+                    std::string_view imageName = "" );
 
+  auto destroyImage( VkImage& image, VmaAllocation& allocation ) -> void;
+  auto destroyImages( const std::initializer_list<std::tuple<VkImage&, VmaAllocation&>>& images ) -> void;
+  auto destroyBuffer( VulkanBuffer& buff ) -> void;
+  auto destroyBuffer( FrameInFlightVulkanBuffer& buff ) -> void;
   auto getAllocator() -> VmaAllocator&;
 
-  void deallocate();
+  auto setName( std::string_view name, VmaAllocation& allocation ) const -> void;
 
-private: // Funcs
+private:
   auto formatSize( VkDeviceSize size ) -> std::string;
+  auto getAllocInfo( VmaAllocation allocation ) const -> VmaAllocationInfo;
 
 private:
   VmaVulkanFunctions m_vulkanFunctions;
   VmaAllocator m_allocator;
-  // TODO(kogayonon) this should probably hold a queue of things that should be destroyed by the allocator
-  // and this would just store lambdas for deleting resources allocated using VMA
-  std::queue<std::function<void()>> m_deleteQueue;
-  VkDevice* m_pDevice;
+  VkDevice m_device;
 };
 } // namespace graphics

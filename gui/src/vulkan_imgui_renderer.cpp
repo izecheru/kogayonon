@@ -1,5 +1,9 @@
 #include "gui/vulkan_imgui_renderer.hpp"
 #include "core/asset_manager/asset_manager.hpp"
+#include "core/ecs/main_registry.hpp"
+#include "core/event/event_dispatcher.hpp"
+#include "core/event/scene_events.hpp"
+#include "core/input/keyboard_events.hpp"
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_device.hpp"
 #include "graphics/vulkan_swapchain.hpp"
@@ -12,6 +16,7 @@
 #include "resources/texture.hpp"
 #include "utilities/config_manager/config_manager.hpp"
 #include "utilities/fonts/materialdesign.hpp"
+#include "utilities/input/keyboard_state.hpp"
 #include <SDL2/SDL.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
@@ -35,16 +40,17 @@ gui::VulkanImguiRenderer::VulkanImguiRenderer( SDL_Window* wnd,
 
 void gui::VulkanImguiRenderer::createIconSampler( graphics::VulkanDevice* device )
 {
-  createSampler( device->getLogicalDevice(), device->getPhysicalDevice(), m_iconSampler );
+  device->createSampler( m_iconSampler );
 }
 
 gui::VulkanImguiRenderer::~VulkanImguiRenderer()
 {
-  vkDeviceWaitIdle( m_device->getLogicalDevice() );
   ImGui_ImplVulkan_Shutdown();
   ImGui_ImplSDL2_Shutdown();
   ImGui::DestroyContext();
-  vkDestroyDescriptorPool( m_device->getLogicalDevice(), m_descriptorPool, nullptr );
+
+  m_device->destroyDescriptorPool( m_descriptorPool );
+  m_device->destroySampler( m_iconSampler );
 }
 
 void gui::VulkanImguiRenderer::begin()
@@ -99,6 +105,7 @@ void gui::VulkanImguiRenderer::render()
   colorModal();
   imguiModal();
   configModal();
+  deviceModal();
 
   for ( auto& window : m_windows )
   {
@@ -246,16 +253,16 @@ void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
 
 void gui::VulkanImguiRenderer::initWindows()
 {
-  auto& assetManager = core::AssetManager::getInstance();
+  auto assetManager = core::MainRegistry::getInstance().getAssetManager();
 
   auto folderPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\folder.png";
-  auto folderTexture = assetManager.loadTexture( "logo.png", folderPath.string() );
+  auto folderTexture = assetManager->loadTexture( "logo.png", folderPath.string() );
 
   auto filePath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\file.png";
-  auto fileTexture = assetManager.loadTexture( "logo.png", filePath.string() );
+  auto fileTexture = assetManager->loadTexture( "logo.png", filePath.string() );
 
   auto gltfIconPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\gltf_file.png";
-  auto gltfTexture = assetManager.loadTexture( "gltf_file.png", gltfIconPath.string() );
+  auto gltfTexture = assetManager->loadTexture( "gltf_file.png", gltfIconPath.string() );
 
   auto folder =
     ImGui_ImplVulkan_AddTexture( m_iconSampler, folderTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
@@ -276,13 +283,13 @@ void gui::VulkanImguiRenderer::initWindows()
                                                             .fileIcons = { { ".gltf", gltfFile } } } ) );
 
   auto playPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\play.png";
-  auto playTexture = assetManager.loadTexture( "play.png", playPath.string() );
+  auto playTexture = assetManager->loadTexture( "play.png", playPath.string() );
 
   auto stopPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\stop.png";
-  auto stopTexture = assetManager.loadTexture( "stop.png", stopPath.string() );
+  auto stopTexture = assetManager->loadTexture( "stop.png", stopPath.string() );
 
   auto renderModePath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\render_mode_icon.png";
-  auto renderModeTexture = assetManager.loadTexture( "render_mode_icon.png", renderModePath.string() );
+  auto renderModeTexture = assetManager->loadTexture( "render_mode_icon.png", renderModePath.string() );
 
   auto play =
     ImGui_ImplVulkan_AddTexture( m_iconSampler, playTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
@@ -304,7 +311,7 @@ void gui::VulkanImguiRenderer::initWindows()
                                                                .sampler = m_iconSampler } ) );
 
   auto hierarchyCubeIcon = std::filesystem::absolute( "." ) / "engine_resources\\textures\\3d-cube.png";
-  auto hierarchyCubeIconTexture = assetManager.loadTexture( "3d-cube.png", hierarchyCubeIcon.string() );
+  auto hierarchyCubeIconTexture = assetManager->loadTexture( "3d-cube.png", hierarchyCubeIcon.string() );
 
   auto cubeIcon = ImGui_ImplVulkan_AddTexture(
     m_iconSampler, hierarchyCubeIconTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
@@ -328,6 +335,12 @@ void gui::VulkanImguiRenderer::mainMenu()
       if ( ImGui::MenuItem( ICON_MDI_CLOSE "Close" ) )
       {
       }
+
+      if ( ImGui::MenuItem( "Device properties" ) )
+      {
+        m_popups.deviceDetailsPopup = true;
+      }
+
       ImGui::EndMenu();
     }
     if ( ImGui::BeginMenu( "Settings" ) )
@@ -338,12 +351,10 @@ void gui::VulkanImguiRenderer::mainMenu()
       }
       if ( ImGui::MenuItem( "Edit colors" ) )
       {
-        ImGui::OpenPopup( "Color edit" );
         m_popups.colorChangerPopup = true;
       }
       if ( ImGui::MenuItem( "Edit imgui variables" ) )
       {
-        ImGui::OpenPopup( "Edit imgui" );
         m_popups.imguiVariablesPopup = true;
       }
 
@@ -360,6 +371,9 @@ void gui::VulkanImguiRenderer::mainMenu()
 
   if ( m_popups.configPopup )
     ImGui::OpenPopup( "Engine config" );
+
+  if ( m_popups.deviceDetailsPopup )
+    ImGui::OpenPopup( "GPU properties" );
 }
 
 void gui::VulkanImguiRenderer::colorChanger()
@@ -663,7 +677,7 @@ void gui::VulkanImguiRenderer::configModal()
   }
 }
 
-void gui::VulkanImguiRenderer::setColorPallete( const utilities::ColorConfig& cfg )
+auto gui::VulkanImguiRenderer::setColorPallete( const utilities::ColorConfig& cfg ) -> void
 {
   auto& style = ImGui::GetStyle();
 
@@ -1032,19 +1046,55 @@ void gui::VulkanImguiRenderer::changeColorConfig()
                                                         style.Colors[ImGuiCol_ResizeGripActive].z,
                                                         style.Colors[ImGuiCol_ResizeGripActive].w };
 
-  //.ImGuiCol_PlotLinesHovered = { 1.00f, 0.43f, 0.35f, 1.00f }, .ImGuiCol_PlotHistogram = { 0.90f, 0.70f,
-  // 0.00f, 1.00f
-  //}; .ImGuiCol_PlotHistogramHovered = { 1.00f, 0.60f, 0.00f, 1.00f }; .ImGuiCol_TextSelectedBg = { 0.18431373f,
-  // 0.39607847f, 0.79215693f, 0.90f };
   utilities::EditorConfigManager::writeColorConfig();
 }
 
-void gui::VulkanImguiRenderer::setViewport( VkImageView& viewportView )
+void gui::VulkanImguiRenderer::setViewport( VkImageView viewportView )
 {
   m_viewportView = viewportView;
+  ImGuiWindow* viewport = m_windows.at( gui::ImGuiWindowName::Viewport ).get();
+  dynamic_cast<gui::Viewport*>( viewport )->setViewport( viewportView );
 }
 
 auto gui::VulkanImguiRenderer::getImGuiWindows() -> std::unordered_map<ImGuiWindowName, std::unique_ptr<ImGuiWindow>>&
 {
   return m_windows;
+}
+
+auto gui::VulkanImguiRenderer::getViewportSize() -> VkExtent2D
+{
+  const auto& props = m_windows.at( gui::ImGuiWindowName::Viewport )->getProps();
+  return VkExtent2D{ .width = props->width, .height = props->height };
+}
+
+auto gui::VulkanImguiRenderer::showDeviceProperties() -> void
+{
+  auto properties = m_device->getDeviceProperties();
+  auto memoryProperties = m_device->getDeviceMemoryProperties();
+
+  static std::string name{ properties.deviceName };
+  ImGui::Text( "GPU: %s", name.c_str() );
+  ImGui::Text( "API version: %d", properties.apiVersion );
+  ImGui::Text( "Device ID: %d", properties.deviceID );
+}
+
+auto gui::VulkanImguiRenderer::deviceModal() -> void
+{
+  static int w{ 0 };
+  static int h{ 0 };
+  SDL_GetWindowSize( m_wnd, &w, &h );
+
+  gui_utils::centerPopup( { static_cast<float>( w ), static_cast<float>( h ) }, { 600.0f, 600.0f } );
+  if ( ImGui::BeginPopupModal(
+         "GPU properties", nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize ) )
+  {
+    showDeviceProperties();
+    if ( ImGui::Button( ICON_MDI_CLOSE "Close" ) )
+    {
+      m_popups.deviceDetailsPopup = false;
+      ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::EndPopup();
+  }
 }

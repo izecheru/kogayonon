@@ -23,7 +23,8 @@ namespace core
 {
 // this struct holds the main lua functions
 struct MainScriptFuncs;
-
+class AssetManager;
+class SceneManager;
 class EventEmitter;
 class EventDispatcher;
 class ScriptingSystem;
@@ -49,65 +50,75 @@ public:
   }
 
   template <typename TContext>
-  auto addToContext( TContext context ) -> TContext&
+  void addToContext( TContext context )
   {
-    return m_pRegistry->addToContext<TContext>( context );
+    m_pRegistry->addToContext<TContext>( context );
   }
 
   template <typename TContext>
-  auto getContext() -> TContext&
+  TContext& getContext()
   {
     return m_pRegistry->getContext<TContext>();
   }
 
-  auto getJoltPhysics() -> std::shared_ptr<physics::JoltPhysics>&
+  SceneManager* getSceneManager()
   {
-    return getContext<std::shared_ptr<physics::JoltPhysics>>();
+    return getContext<std::shared_ptr<SceneManager>>().get();
   }
 
-  auto getVulkanContext() -> std::shared_ptr<graphics::VulkanContext>&
+  physics::JoltPhysics* getJoltPhysics()
   {
-    return getContext<std::shared_ptr<graphics::VulkanContext>>();
+    return getContext<std::shared_ptr<physics::JoltPhysics>>().get();
   }
 
-  auto getMainScriptFuncs() -> std::shared_ptr<core::MainScriptFuncs>&
+  graphics::VulkanContext* getVulkanContext()
   {
-    return getContext<std::shared_ptr<core::MainScriptFuncs>>();
+    return getContext<std::shared_ptr<graphics::VulkanContext>>().get();
   }
 
-  auto getEventEmitter() -> std::shared_ptr<core::EventEmitter>&
+  MainScriptFuncs* getMainScriptFuncs()
   {
-    return getContext<std::shared_ptr<core::EventEmitter>>();
+    return getContext<std::shared_ptr<MainScriptFuncs>>().get();
   }
 
-  auto getEventDispatcher() -> std::shared_ptr<core::EventDispatcher>&
+  EventEmitter* getEventEmitter()
   {
-    return getContext<std::shared_ptr<core::EventDispatcher>>();
+    return getContext<std::shared_ptr<EventEmitter>>().get();
   }
 
-  auto getTaskManager() -> std::shared_ptr<utilities::TaskManager>&
+  EventDispatcher* getEventDispatcher()
   {
-    return getContext<std::shared_ptr<utilities::TaskManager>>();
+    return getContext<std::shared_ptr<EventDispatcher>>().get();
   }
 
-  auto getTimeTracker() -> std::shared_ptr<utilities::TimeTracker>&
+  utilities::TimeTracker* getTimeTracker()
   {
-    return getContext<std::shared_ptr<utilities::TimeTracker>>();
+    return getContext<std::shared_ptr<utilities::TimeTracker>>().get();
   }
 
-  auto getShaderManager() -> std::shared_ptr<utilities::ShaderCompiler>&
+  utilities::TaskManager* getTaskManager()
   {
-    return getContext<std::shared_ptr<utilities::ShaderCompiler>>();
+    return getContext<std::shared_ptr<utilities::TaskManager>>().get();
   }
 
-  auto getScriptingSystem() -> std::shared_ptr<core::ScriptingSystem>&
+  utilities::ShaderCompiler* getShaderManager()
   {
-    return getContext<std::shared_ptr<core::ScriptingSystem>>();
+    return getContext<std::shared_ptr<utilities::ShaderCompiler>>().get();
+  }
+
+  ScriptingSystem* getScriptingSystem()
+  {
+    return getContext<std::shared_ptr<ScriptingSystem>>().get();
+  }
+
+  AssetManager* getAssetManager()
+  {
+    return getContext<std::shared_ptr<AssetManager>>().get();
   }
 
 private:
   MainRegistry() = default;
-  ~MainRegistry() = default;
+  ~MainRegistry();
   MainRegistry( const MainRegistry& ) = delete;
   MainRegistry& operator=( const MainRegistry& ) = delete;
 

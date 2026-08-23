@@ -1,0 +1,71 @@
+#pragma once
+#include "glm/glm.hpp"
+#include "graphics/vulkan_buffer.hpp"
+#include "graphics/vulkan_image.hpp"
+#include "graphics/vulkan_pipeline.hpp"
+#include "renderer/frame_graph.hpp"
+#include "renderer/modules/module_descriptor.hpp"
+#include "renderer/modules/module_rendering_info.hpp"
+
+namespace gui
+{
+class VulkanImguiRenderer;
+}
+
+namespace core
+{
+class MouseClickedEvent;
+}
+
+namespace rendering
+{
+class FrameGraph;
+
+namespace passId
+{
+inline constexpr const char* Picking = "pickingPass";
+inline constexpr const char* PickingReadback = "pickingReadbackPass";
+inline constexpr const char* PickingEntityRead = "pickingEntityReadPass";
+} // namespace passId
+
+struct PickingModuleData
+{
+  FGResource* color{ VK_NULL_HANDLE };
+  graphics::VulkanPipeline pickingPipeline{};
+  graphics::VulkanBuffer pickingbuffer;
+  ModuleRenderingInfo renderingInfo;
+};
+
+class PickingModule
+{
+public:
+  explicit PickingModule( graphics::VulkanContext* vkCtx,
+                          FrameGraph* graph,
+                          gui::VulkanImguiRenderer* imguiRenderer,
+                          VkExtent2D extent,
+                          ModuleDescriptorData descriptorData );
+  ~PickingModule();
+
+  auto registerPasses() -> void;
+  auto setCoords( glm::ivec2 coords ) -> void;
+
+private:
+  auto registerPickingPass() -> void;
+  auto registerPickingReadbackPass() -> void;
+  auto registerPickingEntityReadPass() -> void;
+  auto createModuleResources() -> void;
+
+  auto onMouseClicked( const core::MouseClickedEvent& e ) -> void;
+
+private:
+  glm::ivec2 m_mouseCoords;
+  uint32_t m_frameCounter;
+  bool m_readyToCopyImage;
+  bool m_readyToRead;
+  FrameGraph* m_graph;
+  graphics::VulkanContext* m_vkCtx;
+  ModuleDescriptorData m_moduleDescriptorData;
+  VkExtent2D m_extent;
+  gui::VulkanImguiRenderer* m_imguiRenderer;
+};
+} // namespace rendering

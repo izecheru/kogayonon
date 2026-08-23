@@ -1,9 +1,10 @@
 #pragma once
 #include <slang-com-ptr.h>
+#include <string>
 #include <unordered_map>
 #include <vulkan/vulkan.h>
 
-namespace utilities
+namespace graphics
 {
 struct ShaderObject
 {
@@ -28,4 +29,4 @@ private:
 
   VkDevice m_pDevice;
 };
-} // namespace utilities
+} // namespace graphics

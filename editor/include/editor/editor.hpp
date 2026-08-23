@@ -1,6 +1,6 @@
 #pragma once
-#include <vulkan/vulkan.h>
 #include "precompiled/pch.hpp"
+#include <vulkan/vulkan.h>
 
 namespace window
 {
@@ -22,6 +22,11 @@ namespace rendering
 class VulkanRenderer;
 }
 
+namespace graphics
+{
+struct VulkanContext;
+}
+
 namespace editor
 {
 class Editor
@@ -33,6 +38,8 @@ public:
   void pollEvents();
   void run();
 
+  auto onUpdate() -> void;
+
   bool initMainRegistry();
   bool initMainWindow();
   bool initRenderer();
@@ -41,11 +48,10 @@ public:
   bool initSDL();
   bool init();
 
-private: // funcs
+private:
   void createDescriptorPool();
 
 private:
-  // EVENTS
   void onWindowClose( const core::WindowCloseEvent& e );
 
 private:

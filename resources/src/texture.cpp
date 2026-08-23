@@ -85,17 +85,17 @@ void resources::Texture::setLoaded( bool value )
 
 auto resources::Texture::getImage() -> VkImage&
 {
-  return m_image;
+  return m_image.vkImage;
 }
 
 auto resources::Texture::getView() -> VkImageView&
 {
-  return m_imageView;
+  return m_image.vkImageView;
 }
 
 auto resources::Texture::getAllocation() -> VmaAllocation&
 {
-  return m_imageAllocation;
+  return m_image.vmaAllocation;
 }
 
 auto resources::Texture::getIndex() const -> uint32_t
@@ -106,4 +106,9 @@ auto resources::Texture::getIndex() const -> uint32_t
 void resources::Texture::setIndex( uint32_t index )
 {
   m_textureIndex = index;
+}
+
+auto resources::Texture::setSamplerIndex( uint32_t index ) -> void
+{
+  m_samplerIndex = index;
 }

@@ -1,19 +1,24 @@
 #pragma once
 #include "graphics/vulkan_buffer.hpp"
 #include "graphics/vulkan_descriptor.hpp"
+#include "graphics/vulkan_image.hpp"
 #include "graphics/vulkan_pipeline.hpp"
 #include "precompiled/pch.hpp"
-#include "utilities/shader_compiler/shader_compiler.hpp"
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
-#include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 
 #define MAX_TEXTURE_NUM 1000
 
-#define PICKING_ENABLED_
-
 struct SDL_Window;
+
+namespace rendering
+{
+class FrameGraph;
+class GeometryModule;
+class ImGuiModule;
+class PickingModule;
+} // namespace rendering
 
 enum DescriptorSetNum
 {
@@ -28,12 +33,13 @@ class Entity;
 
 class MouseClickedEvent;
 class SelectEntityEvent;
+class ImGuiWindowResizeEvent;
 } // namespace core
 
 namespace graphics
 {
 struct VulkanContext;
-}
+} // namespace graphics
 
 namespace gui
 {
@@ -43,73 +49,39 @@ class VulkanImguiRenderer;
 namespace rendering
 {
 
-struct VulkanViewport
-{
-  VkImage image;
-  VkImageView imageView;
-  VmaAllocation allocation;
-
-  VkImage depthImage;
-  VkImageView depthView;
-  VmaAllocation depthAllocation;
-};
-
 class VulkanRenderer
 {
 public:
   explicit VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Window* window );
-
   ~VulkanRenderer();
 
-  /**
-   * @brief Rendering function, passes should be different functions
-   */
-  void render();
-
-  auto getViewport() -> VulkanViewport&;
+  auto render() -> void;
 
   /**
    * @brief Initialize ImGui UI renderer
    */
-  void initImgui();
+  auto initImgui() -> void;
 
-private: // Events
-  void onMouseClicked( core::MouseClickedEvent& e );
-  void onEntitySelect( core::SelectEntityEvent& e );
-
-private: // funcs
-  void initViewports();
-
-  void geometryPass( VkCommandBuffer& cmd );
-  void pickingPass( VkCommandBuffer& cmd );
-  void imguiPass( VkCommandBuffer& cmd );
-
-  void createViewport( uint32_t width, uint32_t height );
-  void createPickingViewport( uint32_t width, uint32_t height );
-
-  void createPickingBuffers();
-
-  void createCameraBuffers();
-  void updateCameraBuffer();
-  void createCameraDescriptorSetLayout();
-  void createCameraDescriptorSet();
-
-  void createPipeline( const graphics::VulkanPipelineSpec& spec );
+protected:
+  auto onMouseClicked( const core::MouseClickedEvent& e ) -> void;
 
 private:
+  auto createCameraBuffers() -> void;
+  auto updateCameraBuffer() -> void;
+  auto createCameraDescriptorSetLayout() -> void;
+  auto createCameraDescriptorSet() -> void;
+
+private:
+  graphics::VulkanContext* m_vkCtx{ nullptr };
+  std::unique_ptr<FrameGraph> m_frameGraph;
   graphics::FrameInFlightVulkanBuffer m_cameraBuffers;
-  graphics::FrameInFlightVulkanDescriptor m_cameraDescriptor;
-  std::map<graphics::PipelineType, graphics::VulkanPipeline> m_pipelines;
-  graphics::VulkanContext* m_pVkContext{ nullptr };
+  graphics::VulkanDescriptor m_cameraDescriptor;
   std::shared_ptr<gui::VulkanImguiRenderer> m_pImguiRenderer;
 
-  VulkanViewport m_viewport;
-  VulkanViewport m_pickingViewport;
-
-  graphics::FrameInFlightVulkanBuffer m_pickingBuffer;
   SDL_Window* m_wnd;
-  utilities::ShaderCompiler m_shaderCompiler;
-  glm::ivec2 m_mouseCoord;
-  entt::entity m_selectedEntity;
+
+  std::unique_ptr<rendering::GeometryModule> m_geometryModule;
+  std::unique_ptr<rendering::ImGuiModule> m_imguiModule;
+  std::unique_ptr<rendering::PickingModule> m_pickingModule;
 };
 } // namespace rendering

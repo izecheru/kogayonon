@@ -1,9 +1,9 @@
 #pragma once
-#include <entt/entt.hpp>
-#include <sol/sol.hpp>
-#include <spdlog/spdlog.h>
 #include "core/event/event.hpp"
 #include "precompiled/pch.hpp"
+#include "utilities/utils/utils.hpp"
+#include <entt/entt.hpp>
+#include <sol/sol.hpp>
 
 namespace core
 {
@@ -116,7 +116,7 @@ auto add_handler( EventDispatcher& dispatcher, const sol::object& func )
 {
   if ( !func.valid() )
   {
-    spdlog::error( "Invalid func!!!" );
+    K_INFO( "Invalid func!!!" );
     return;
   }
 
@@ -129,7 +129,7 @@ auto remove_handler( EventDispatcher& dispatcher, const sol::object& func )
 {
   if ( !func.valid() )
   {
-    spdlog::error( "Invalid func!!!" );
+    K_ERROR( "Invalid func!!!" );
     return;
   }
 

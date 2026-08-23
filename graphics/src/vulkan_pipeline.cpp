@@ -5,9 +5,24 @@
 
 graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, VulkanContext* pContext )
     : m_spec{ spec }
-    , m_pVkContext{ pContext }
+    , m_vkCtx{ pContext }
+    , m_pipeline{ VK_NULL_HANDLE }
 {
+  create( spec, pContext );
+}
 
+void graphics::VulkanPipeline::bind( VkCommandBuffer& cmd, VkPipelineBindPoint bindPoint ) const
+{
+  vkCmdBindPipeline( cmd, bindPoint, m_pipeline );
+}
+
+auto graphics::VulkanPipeline::getLayout() const -> VkPipelineLayout
+{
+  return m_layout;
+}
+
+auto graphics::VulkanPipeline::create( const VulkanPipelineSpec& spec, VulkanContext* vkCtx ) -> void
+{
   VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
   vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -22,15 +37,12 @@ graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, Vulkan
 
   VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
-  auto bindingDesc = resources::Vertex::getBindingDescription();
-  auto attribDesc = resources::Vertex::getAttributeDescriptions();
-
   VkPipelineVertexInputStateCreateInfo vertexInputInfo{
     .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
     .vertexBindingDescriptionCount = 1,
-    .pVertexBindingDescriptions = &bindingDesc,
-    .vertexAttributeDescriptionCount = static_cast<uint32_t>( attribDesc.size() ),
-    .pVertexAttributeDescriptions = attribDesc.data(),
+    .pVertexBindingDescriptions = &spec.vertexBindingDescription,
+    .vertexAttributeDescriptionCount = static_cast<uint32_t>( spec.vertexAttributesDescription.size() ),
+    .pVertexAttributeDescriptions = spec.vertexAttributesDescription.data(),
   };
 
   VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
@@ -47,11 +59,11 @@ graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, Vulkan
     .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
     .depthClampEnable = VK_FALSE,
     .rasterizerDiscardEnable = VK_FALSE,
-    .polygonMode = m_spec.options.polyMode,
-    .cullMode = m_spec.options.cullMode,
+    .polygonMode = spec.options.polyMode,
+    .cullMode = spec.options.cullMode,
     .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
     .depthBiasEnable = VK_FALSE,
-    .lineWidth = 5.0f,
+    .lineWidth = spec.options.lineWidth,
   };
 
   VkPipelineMultisampleStateCreateInfo multisampling{};
@@ -79,7 +91,7 @@ graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, Vulkan
 
   // If we have a line width bigger than 1 and the pipeline is a wireframe one, we add the dynamic state line width to
   // the dynamicStates
-  if ( m_spec.options.lineWidth > 1.0f )
+  if ( spec.options.lineWidth > 1.0f )
   {
     dynamicStates.push_back( VK_DYNAMIC_STATE_LINE_WIDTH );
   }
@@ -94,7 +106,7 @@ graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, Vulkan
   pipelineLayoutInfo.setLayoutCount = std::size( spec.descriptorLayout );
   pipelineLayoutInfo.pSetLayouts = spec.descriptorLayout.data();
 
-  if ( m_spec.pushConstantSize != 0u )
+  if ( spec.pushConstantSize != 0u )
   {
     // create the mesh constants here
     VkPushConstantRange pushConstant{};
@@ -111,21 +123,30 @@ graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, Vulkan
     pipelineLayoutInfo.pPushConstantRanges = nullptr;
   }
 
-  VK_CALL(
-    vkCreatePipelineLayout( m_pVkContext->device->getLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_layout ) );
+  vkCtx->device->createPipelineLayout( pipelineLayoutInfo, m_layout );
 
   VkPipelineRenderingCreateInfo renderingInfo{};
   renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-  renderingInfo.colorAttachmentCount = 1;
-  renderingInfo.pColorAttachmentFormats = &m_spec.colorAttachmentFormat;
-  renderingInfo.depthAttachmentFormat = findDepthFormat( &m_pVkContext->device->getPhysicalDevice() );
+  if ( spec.colorAttachmentCount == 0u )
+  {
+    renderingInfo.colorAttachmentCount = 0;
+    renderingInfo.pColorAttachmentFormats = VK_NULL_HANDLE;
+  }
+  else
+  {
+    renderingInfo.colorAttachmentCount = spec.colorAttachmentCount;
+    renderingInfo.pColorAttachmentFormats = spec.colorAttachmentFormat.data();
+  }
+
+  // TODO change the format to come from the spec
+  renderingInfo.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
   renderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
   VkPipelineDepthStencilStateCreateInfo depthStencil{ .sType =
                                                         VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-                                                      .depthTestEnable = m_spec.options.depthTestEnable,
-                                                      .depthWriteEnable = m_spec.options.depthWriteEnable,
-                                                      .depthCompareOp = m_spec.options.depthCompareOp,
+                                                      .depthTestEnable = spec.options.depthTestEnable,
+                                                      .depthWriteEnable = spec.options.depthWriteEnable,
+                                                      .depthCompareOp = spec.options.depthCompareOp,
                                                       .depthBoundsTestEnable = VK_FALSE,
                                                       .stencilTestEnable = VK_FALSE };
 
@@ -147,17 +168,10 @@ graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, Vulkan
     .subpass = 0,
     .basePipelineHandle = VK_NULL_HANDLE,
   };
-
-  VK_CALL( vkCreateGraphicsPipelines(
-    m_pVkContext->device->getLogicalDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline ) );
+  vkCtx->device->createGraphicsPipeline( m_pipeline, pipelineInfo );
 }
 
-void graphics::VulkanPipeline::bind( VkCommandBuffer& cmd, VkPipelineBindPoint bindPoint ) const
+auto graphics::VulkanPipeline::getPipeline() const -> VkPipeline
 {
-  vkCmdBindPipeline( cmd, bindPoint, m_pipeline );
-}
-
-auto graphics::VulkanPipeline::getLayout() -> VkPipelineLayout&
-{
-  return m_layout;
+  return m_pipeline;
 }

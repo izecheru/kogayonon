@@ -14,7 +14,7 @@ core::SceneRenderingSystem::SceneRenderingSystem( graphics::VulkanDevice* pDevic
   createGraphicsPipeline();
 }
 
-void core::SceneRenderingSystem::render( VkCommandBuffer& cmd )
+void core::SceneRenderingSystem::render( VkCommandBuffer cmd )
 {
   // TODO(kogayonon) render entities from the current scene
   VkBuffer vertexBuffers[] = { m_vertexBuffer };
@@ -55,6 +55,6 @@ void core::SceneRenderingSystem::createDescriptorSetLayout()
   if ( vkCreateDescriptorSetLayout( m_pDevice->getLogicalDevice(), &layoutInfo, nullptr, &m_descriptorSetLayout ) !=
        VK_SUCCESS )
   {
-    throw std::runtime_error( "failed to create descriptor set layout!" );
+    throw std::runtime_error( "failed to create descriptor set vkLayout!" );
   }
 }

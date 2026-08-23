@@ -70,14 +70,19 @@ public:
 
   void render() override;
 
-private: // funcs
+  /**
+   * @brief Removes the current viewport descriptor and assigns it to imageView
+   * @param imageView The image view of the texture we rendered the scene to
+   * @return void
+   */
+  auto setViewport( VkImageView imageView ) -> void;
+
+private:
   void drawToolbar();
   void drawEntityMenu();
   auto getGuizmoOp() -> ImGuizmo::OPERATION;
 
 private:
-  // Events
-  void onEntitySelect( const core::SelectEntityEvent& e );
   // void onMouseMoved( const kogayonon_core::MouseMovedEvent& e );
   // void onMouseClicked( const core::MouseClickedEvent& e );
   void onKeyPressed( const core::KeyPressedEvent& e );
@@ -86,13 +91,12 @@ private:
 private:
   SDL_Window* m_mainWindow;
   ViewportSpec m_spec;
-  entt::entity m_selectedEntity;
 
   ImGuizmo::OPERATION m_guizmoOp;
   bool m_guizmoEnabled;
   GuizmoMode m_guizmoMode;
   AxisLock m_guizmoAxisLock;
-  VkDescriptorSet m_viewportDescriptor;
+  VkDescriptorSet m_viewportDescriptor{ VK_NULL_HANDLE };
 
   glm::vec2 m_mouseCoords;
   bool m_entityMenu;

@@ -2,8 +2,8 @@
 #include "resources/mesh.hpp"
 #include "resources/skeleton.hpp"
 #include "resources/texture.hpp"
+#include "utilities/utils/utils.hpp"
 #include <glm/gtc/type_ptr.hpp>
-#include <spdlog/spdlog.h>
 
 using namespace resources;
 
@@ -113,21 +113,21 @@ auto core::CgltfLoader::readFile( const std::string& path ) -> cgltf_data*
   // Parse GLTF
   if ( cgltf_parse_file( &options, path.c_str(), &data ) != cgltf_result_success )
   {
-    spdlog::error( "Failed to parse GLTF {} ", path );
+    K_ERROR( "Failed to parse GLTF {} ", path );
     cgltf_free( data );
     return {};
   }
 
   if ( cgltf_load_buffers( &options, data, path.c_str() ) != cgltf_result_success )
   {
-    spdlog::error( "Failed to load GLTF buffers {} ", path );
+    K_ERROR( "Failed to load GLTF buffers {} ", path );
     cgltf_free( data );
     return {};
   }
 
   if ( cgltf_validate( data ) != cgltf_result_success )
   {
-    spdlog::error( "GLTF validation failed {} ", path );
+    K_ERROR( "GLTF validation failed {} ", path );
     cgltf_free( data );
     return {};
   }
@@ -211,7 +211,7 @@ void core::CgltfLoader::parseAnimations( cgltf_data* data, Skeleton& s )
   for ( auto i = 0u; i < data->animations_count; i++ )
   {
     auto& animation = data->animations[i];
-    spdlog::info( "animation name {}", animation.name );
+    K_INFO( "animation name {}", animation.name );
     for ( auto j = 0u; j < animation.channels_count; j++ )
     {
 
@@ -271,33 +271,33 @@ void core::CgltfLoader::parseAnimations( cgltf_data* data, Skeleton& s )
         }
         break;
       case cgltf_animation_path_type_weights:
-        spdlog::error( "weights are not implemented" );
+        K_ERROR( "weights are not implemented" );
         break;
       default:
-        spdlog::error( "something went wrong" );
+        K_ERROR( "something went wrong" );
       }
     }
   }
 
 #ifdef _DEBUG
   // printing the data
-  spdlog::info( "Printing animation data--- size {}", anims.size() );
+  K_INFO( "Printing animation data--- size {}", anims.size() );
   for ( auto& joint : s.joints )
   {
-    spdlog::info( "Data for node {}", joint.name );
+    K_INFO( "Data for node {}", joint.name );
     for ( auto& a : joint.animationData.translation )
     {
-      spdlog::info( "[t]time {} value {} {} {}", a.time, a.data.x, a.data.y, a.data.z );
+      K_INFO( "[t]time {} value {} {} {}", a.time, a.data.x, a.data.y, a.data.z );
     }
 
     for ( auto& a : joint.animationData.rotation )
     {
-      spdlog::info( "[r]time {} value {} {} {}", a.time, a.data.x, a.data.y, a.data.z, a.data.w );
+      K_INFO( "[r]time {} value {} {} {}", a.time, a.data.x, a.data.y, a.data.z, a.data.w );
     }
 
     for ( auto& a : joint.animationData.scale )
     {
-      spdlog::info( "[s]time {} value {} {} {}", a.time, a.data.x, a.data.y, a.data.z );
+      K_INFO( "[s]time {} value {} {} {}", a.time, a.data.x, a.data.y, a.data.z );
     }
   }
 #endif
@@ -358,7 +358,7 @@ auto core::CgltfLoader::calculateGlobalMatrix( Skeleton& s )
 void core::CgltfLoader::printChildren( Joint* joint, uint32_t level )
 {
   std::string indent( level * 2, ' ' );
-  spdlog::info( "{}{}", indent, joint->name );
+  K_INFO( "{}{}", indent, joint->name );
 
   for ( auto& child : joint->children )
   {
@@ -418,8 +418,8 @@ auto core::CgltfLoader::loadSkeleton( cgltf_data* data, cgltf_skin* skin ) -> re
   }
 
 #ifdef _DEBUG
-  spdlog::info( "__________PRINTING JOINTS_________" );
-  spdlog::info( "joints array size {}", skeleton.joints.size() );
+  K_INFO( "__________PRINTING JOINTS_________" );
+  K_INFO( "joints array size {}", skeleton.joints.size() );
   printChildren( &skeleton.joints.at( 0 ), 0 );
 #endif
 

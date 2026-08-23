@@ -31,4 +31,9 @@ auto SelectEntityEvent::getEventSource() const -> SelectEntityEventSource
   return m_source;
 }
 
+DeleteEntityEvent::DeleteEntityEvent( const entt::entity& entityId )
+    : m_entityId{ entityId }
+{
+}
+
 } // namespace core

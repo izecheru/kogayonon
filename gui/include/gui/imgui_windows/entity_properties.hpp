@@ -25,11 +25,6 @@ public:
   void render();
 
 private:
-  // EVENTS
-  void onSelectEntity( const core::SelectEntityEvent& e );
-  //------------------
-
-private:
   void contextMenu();
 
   void renderMesh();
@@ -63,7 +58,6 @@ private:
   void renderColoredAxis( const std::string& axis, const ImU32& color );
 
 private:
-  entt::entity m_selectedEntity;
   EntityPropertiesSpec m_spec;
 };
 } // namespace gui

@@ -12,7 +12,6 @@ private:
 };
 
 class WindowResizeEvent : public IEvent
-
 {
 public:
   WindowResizeEvent( int width, int height )

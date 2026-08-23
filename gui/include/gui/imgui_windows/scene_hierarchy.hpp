@@ -1,6 +1,6 @@
+#include "gui/imgui_windows/imgui_base.hpp"
 #include <entt/entt.hpp>
 #include <vulkan/vulkan.h>
-#include "gui/imgui_windows/imgui_base.hpp"
 
 namespace core
 {
@@ -8,6 +8,7 @@ class Scene;
 class Entity;
 
 class SelectEntityEvent;
+class DeleteEntityEvent;
 class KeyPressedEvent;
 class MouseClickedEvent;
 } // namespace core
@@ -39,13 +40,9 @@ private:
    */
   void drawItemContexMenu( const std::string& itemId, entt::entity ent );
 
-  void onEntitySelect( const core::SelectEntityEvent& e );
-  void onKeyPressed( const core::KeyPressedEvent& e );
-
-  void duplicateEntity( core::Entity& ent );
+  auto onKeyPressed( const core::KeyPressedEvent& e ) -> void;
 
 private:
-  entt::entity m_selectedEntity;
   SceneHierarchySpec m_spec;
 };
 } // namespace gui

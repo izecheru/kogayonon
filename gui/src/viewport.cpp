@@ -1,4 +1,6 @@
 #include "gui/imgui_windows/viewport.hpp"
+#include "ImOGuizmo.hpp"
+#include "SDL2/SDL.h"
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
@@ -6,21 +8,24 @@
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
+#include "core/event/imgui_event.hpp"
 #include "core/event/scene_events.hpp"
 #include "core/input/keyboard_events.hpp"
 #include "core/scene/scene.hpp"
+#include "core/scene/scene_event_handler.hpp"
 #include "core/scene/scene_manager.hpp"
+#include "graphics/vulkan_context.hpp"
+#include "graphics/vulkan_device.hpp"
 #include "gui/utils/font_keys.hpp"
 #include "gui/utils/imgui_utils.hpp"
+#include "imgui.h"
+#include "imgui_impl_vulkan.h"
+#include "imgui_internal.h"
 #include "physics/jolt_physics.hpp"
 #include "utilities/fonts/materialdesign.hpp"
 #include "utilities/input/keyboard_state.hpp"
 #include "utilities/utils/utils.hpp"
-#include <ImOGuizmo.hpp>
-#include <SDL2/SDL.h>
-#include <imgui.h>
-#include <imgui_impl_vulkan.h>
-#include <imgui_internal.h>
+#include <cmath>
 
 gui::Viewport::Viewport( SDL_Window* mainWindow, const std::string& name, const ViewportSpec& spec )
     : ImGuiWindow{ name, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar }
@@ -28,15 +33,13 @@ gui::Viewport::Viewport( SDL_Window* mainWindow, const std::string& name, const 
     , m_mainWindow{ mainWindow }
     , m_guizmoMode{ GuizmoMode::SCALE }
     , m_guizmoAxisLock{ AxisLock::NONE }
-    , m_selectedEntity{ entt::null }
     , m_guizmoOp{ ImGuizmo::SCALE }
-    , m_guizmoEnabled{ false }
+    , m_guizmoEnabled{ true }
     , m_entityMenu{ false }
     , m_viewportDescriptor{ VK_NULL_HANDLE }
     , m_mouseCoords{ 0.0f, 0.0f }
 {
-  auto& pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
-  pEventDispatcher->addHandler<core::SelectEntityEvent, &Viewport::onEntitySelect>( *this );
+  core::EventDispatcher* pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
   pEventDispatcher->addHandler<core::KeyPressedEvent, &Viewport::onKeyPressed>( *this );
   // pEventDispatcher->addHandler<core::MouseClickedEvent, &Viewport::onMouseClicked>( *this );
 }
@@ -51,33 +54,33 @@ void gui::Viewport::render()
   if ( !begin() )
     return;
 
-  auto viewportPanelSize = ImGui::GetContentRegionAvail();
-  static bool first{ true };
-
-  if ( first )
+  if ( !m_viewportDescriptor )
   {
-    m_viewportDescriptor =
-      ImGui_ImplVulkan_AddTexture( m_spec.sampler, m_spec.viewportTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
-    first = false;
+    end();
+    return;
   }
 
-  // For the click to go to the guizmo
+  ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+
   ImGui::SetNextItemAllowOverlap();
   ImGui::Image( m_viewportDescriptor, viewportPanelSize );
-  auto min = ImGui::GetItemRectMin();
-  auto max = ImGui::GetItemRectMax();
+
+  ImVec2 min = ImGui::GetItemRectMin();
+  ImVec2 max = ImGui::GetItemRectMax();
 
   drawToolbar();
   drawEntityMenu();
 
-  auto scene = core::SceneManager::getCurrentScene().lock();
+  core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+  core::Scene* scene = sceneManager->getCurrentScene();
   auto view = scene->getEnttRegistry().view<core::PerspectiveCameraComponent>();
+
   view.each( [&]( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComp ) {
     if ( cameraComp.isUsed )
     {
       ImOGuizmo::SetDrawList( ImGui::GetWindowDrawList() );
       ImOGuizmo::SetRect( max.x - 110.0f, min.y + 10.0f, 100.0f );
-      gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, [&]() {
+      gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 11.0f, [&]() {
         if ( ImOGuizmo::DrawGizmo(
                glm::value_ptr( cameraComp.ubo.view ), glm::value_ptr( cameraComp.ubo.projection ), 0.1f ) )
         {
@@ -86,11 +89,13 @@ void gui::Viewport::render()
     }
   } );
 
-  auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
-  if ( m_selectedEntity != entt::null && m_guizmoEnabled && !jolt->isRunning() )
+  physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
+  entt::entity currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+  if ( currentEntity != entt::null && m_guizmoEnabled && !jolt->isRunning() )
   {
     ImGuizmo::Enable( true );
-    auto transformComp = scene->getRegistry()->tryGetComponent<core::TransformComponent>( m_selectedEntity );
+    core::TransformComponent* transformComp =
+      scene->getRegistry()->tryGetComponent<core::TransformComponent>( currentEntity );
     if ( transformComp )
     {
       ImGuizmo::SetOrthographic( false );
@@ -107,15 +112,16 @@ void gui::Viewport::render()
         }
       } );
 
-      auto& cameraComponent = scene->getRegistry()->getComponent<core::PerspectiveCameraComponent>( cameraEntity );
-      auto projection = cameraComponent.ubo.projection;
+      core::PerspectiveCameraComponent& cameraComponent =
+        scene->getRegistry()->getComponent<core::PerspectiveCameraComponent>( cameraEntity );
+      glm::mat4 projection = cameraComponent.ubo.projection;
 
       // Unflip the projection
       projection[1][1] *= -1;
       ImGuizmo::Manipulate( glm::value_ptr( cameraComponent.ubo.view ),
                             glm::value_ptr( projection ),
                             getGuizmoOp(),
-                            ImGuizmo::LOCAL,
+                            ImGuizmo::WORLD,
                             glm::value_ptr( transformComp->getMatrix() ) );
 
       if ( ImGuizmo::IsUsing() )
@@ -125,8 +131,37 @@ void gui::Viewport::render()
                                                glm::value_ptr( transformComp->rotation ),
                                                glm::value_ptr( transformComp->scale ) );
 
+        // core::MeshComponent& mesh = scene->getRegistry()->getComponent<core::MeshComponent>( currentEntity );
+        // std::vector<resources::Vertex>& vertices = mesh.pMesh->getVertices();
+
+        // bool updated{ false };
+        // for ( auto& vertex : vertices )
+        //{
+        //   if ( transformComp->scale.x < 2 )
+        //     break;
+
+        //  float v = vertex.uv.y;
+        //  float s = transformComp->scale.x;
+        //  if ( v / s == 1 && std::remainder( v, s ) == 0 )
+        //  {
+        //    break;
+        //  }
+
+        //  if ( !updated )
+        //    updated = true;
+
+        //  vertex.uv.y *= transformComp->scale.x;
+        //}
+
+        // if ( updated )
+        //{
+        //   graphics::VulkanContext* vkCtx = core::MainRegistry::getInstance().getVulkanContext();
+        //   vkCtx->device->updateBuffer( vertices, mesh.pMesh->getVerticesAllocation() );
+        // }
+
         // If the entity has a rigid body then update the position and rotation of that too
-        if ( auto pBody = scene->getRegistry()->tryGetComponent<core::RigidbodyComponent>( m_selectedEntity ) )
+        if ( core::RigidbodyComponent* pBody =
+               scene->getRegistry()->tryGetComponent<core::RigidbodyComponent>( currentEntity ) )
         {
           // Now set position and rotation for the rigid body
           auto& bodyInterface = jolt->getPhysicsSystem().GetBodyInterface();
@@ -140,12 +175,22 @@ void gui::Viewport::render()
       }
     }
   }
-  ImGui::End();
+  end();
+}
+
+auto gui::Viewport::setViewport( VkImageView imageView ) -> void
+{
+  assert( imageView );
+  ImGui_ImplVulkan_RemoveTexture( m_viewportDescriptor );
+
+  m_viewportDescriptor =
+    ImGui_ImplVulkan_AddTexture( m_spec.sampler, imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 }
 
 void gui::Viewport::drawToolbar()
 {
   auto& style = ImGui::GetStyle();
+  auto jolt = core::MainRegistry::getInstance().getJoltPhysics();
 
   ImGui::SetCursorPos( { 20.0f, 20.0f } );
 
@@ -153,13 +198,13 @@ void gui::Viewport::drawToolbar()
   ImGui::PushStyleVar( ImGuiStyleVar_ChildRounding, 10.0f );
   ImGui::PushStyleColor( ImGuiCol_ChildBg, { 0.15f, 0.15f, 0.15f, 0.75f } );
 
-  uint32_t buttonCount = m_guizmoEnabled ? 5u : 2u;
+  uint32_t buttonCount = 4u;
   float toolbarWidth =
     style.WindowPadding.x * 2.0f + ( 14.0f * buttonCount ) + ( style.ItemSpacing.x * buttonCount ) + ( 2.0f * 5.0f );
 
   ImGui::BeginGroup();
   if ( ImGui::BeginChild( "Toolbar",
-                          { toolbarWidth, 30.0f },
+                          { toolbarWidth, 70.0f },
                           false,
                           ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse ) )
   {
@@ -168,7 +213,7 @@ void gui::Viewport::drawToolbar()
     ImGui::PushStyleColor( ImGuiCol_Border, { 0.0f, 0.0f, 0.0f, 0.0f } );
 
     ImGui::SetCursorPos( { 5.0f, 5.5f } );
-    auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
+    auto jolt = core::MainRegistry::getInstance().getJoltPhysics();
 
     if ( ImGui::ImageButton( "##stopButton", m_spec.stopIcon, { 14.0f, 14.0f } ) )
     {
@@ -181,42 +226,56 @@ void gui::Viewport::drawToolbar()
       jolt->start();
     }
 
+    using enum AxisLock;
+    auto currentPos = ImGui::GetCursorPos();
+    ImGui::SetCursorPos( { currentPos.x + 5.0f, currentPos.y } );
+    gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::Text( "Axis lock" ); } );
     ImGui::SameLine();
-    if ( m_guizmoEnabled )
+    if ( m_guizmoAxisLock == X )
     {
-      if ( m_guizmoAxisLock == AxisLock::X )
-      {
-        gui_utils::renderWithSizedFont(
-          m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "X" ); } );
-      }
-      else
-      {
-        gui_utils::renderWithSizedFont(
-          m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "X" ); } );
-      }
-      ImGui::SameLine();
-      if ( m_guizmoAxisLock == AxisLock::Y )
-      {
-        gui_utils::renderWithSizedFont(
-          m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "Y" ); } );
-      }
-      else
-      {
-        gui_utils::renderWithSizedFont(
-          m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "Y" ); } );
-      }
-      ImGui::SameLine();
-      if ( m_guizmoAxisLock == AxisLock::Z )
-      {
-        gui_utils::renderWithSizedFont(
-          m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "Z" ); } );
-      }
-      else
-      {
-        gui_utils::renderWithSizedFont(
-          m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "Z" ); } );
-      }
+      gui_utils::renderWithSizedFont(
+        m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "X" ); } );
     }
+    else
+    {
+      gui_utils::renderWithSizedFont(
+        m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "X" ); } );
+    }
+    ImGui::SameLine();
+    if ( m_guizmoAxisLock == Y )
+    {
+      gui_utils::renderWithSizedFont(
+        m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "Y" ); } );
+    }
+    else
+    {
+      gui_utils::renderWithSizedFont(
+        m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "Y" ); } );
+    }
+    ImGui::SameLine();
+    if ( m_guizmoAxisLock == Z )
+    {
+      gui_utils::renderWithSizedFont(
+        m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "Z" ); } );
+    }
+    else
+    {
+      gui_utils::renderWithSizedFont(
+        m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "Z" ); } );
+    }
+
+    currentPos = ImGui::GetCursorPos();
+    ImGui::SetCursorPos( { currentPos.x + 5.0f, currentPos.y } );
+    gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, [&]() {
+      if ( jolt->isRunning() )
+      {
+        ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "Physics ON" );
+      }
+      else
+      {
+        ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "Physics OFF" );
+      }
+    } );
   }
 
   ImGui::PopStyleColor( 2 );
@@ -268,9 +327,10 @@ void gui::Viewport::drawEntityMenu()
 
     ImGui::PushItemWidth( 130.0f / 2.0f );
 
-    auto scene = core::SceneManager::getCurrentScene().lock();
-    auto& pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
-    auto& assetManager = core::AssetManager::getInstance();
+    auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
+    auto scene = sceneManager->getCurrentScene();
+    auto pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
+    auto assetManager = core::MainRegistry::getInstance().getAssetManager();
 
     ImGui::PushFont( m_spec.fonts->at( INTER ), 14.0f );
     if ( ImGui::BeginMenu( "Add object" ) )
@@ -329,30 +389,29 @@ void gui::Viewport::drawEntityMenu()
 
         ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
         ent.addComponent<core::MeshComponent>(
-          core::MeshComponent{ .pMesh = assetManager.loadMesh( "test", p.string() ), .loaded = true } );
+          core::MeshComponent{ .pMesh = assetManager->loadMesh( "test", p.string() ), .loaded = true } );
 
         pEventDispatcher->dispatchEvent<core::SelectEntityEvent>(
           core::SelectEntityEvent{ ent.getEntityId(), core::SelectEntityEventSource::Viewport_Window } );
-
-        m_selectedEntity = ent.getEntityId();
 
         m_entityMenu = false;
         m_mouseCoords = { 0.0f, 0.0f };
       }
       ImGui::EndMenu();
     }
-    if ( m_selectedEntity != entt::null )
+    auto currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+    if ( currentEntity != entt::null )
     {
       if ( ImGui::BeginMenu( "Add component" ) )
       {
-        if ( !scene->getRegistry()->hasComponent<core::RigidbodyComponent>( m_selectedEntity ) )
+        if ( !scene->getRegistry()->hasComponent<core::RigidbodyComponent>( currentEntity ) )
         {
           if ( ImGui::MenuItem( "Dynamic rigid body" ) )
           {
-            auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
-            auto& transform = scene->getRegistry()->getComponent<core::TransformComponent>( m_selectedEntity );
+            auto jolt = core::MainRegistry::getInstance().getJoltPhysics();
+            auto& transform = scene->getRegistry()->getComponent<core::TransformComponent>( currentEntity );
             scene->getRegistry()->addComponent<core::RigidbodyComponent>(
-              m_selectedEntity,
+              currentEntity,
               core::RigidbodyComponent{
                 .data{ .type = physics::RigidbodyType::Dynamic,
                        .shape = physics::RigidbodyShape::Box,
@@ -374,10 +433,10 @@ void gui::Viewport::drawEntityMenu()
 
           if ( ImGui::MenuItem( "Static rigid body" ) )
           {
-            auto& jolt = core::MainRegistry::getInstance().getJoltPhysics();
-            auto& transform = scene->getRegistry()->getComponent<core::TransformComponent>( m_selectedEntity );
+            auto jolt = core::MainRegistry::getInstance().getJoltPhysics();
+            auto& transform = scene->getRegistry()->getComponent<core::TransformComponent>( currentEntity );
             scene->getRegistry()->addComponent<core::RigidbodyComponent>(
-              m_selectedEntity,
+              currentEntity,
               core::RigidbodyComponent{
                 .data{ .type = physics::RigidbodyType::Static,
                        .shape = physics::RigidbodyShape::Box,
@@ -422,77 +481,76 @@ void gui::Viewport::drawEntityMenu()
 
 auto gui::Viewport::getGuizmoOp() -> ImGuizmo::OPERATION
 {
+  using enum GuizmoMode;
+  using enum AxisLock;
   switch ( m_guizmoMode )
   {
-  case GuizmoMode::SCALE: {
+  case SCALE: {
     switch ( m_guizmoAxisLock )
     {
-    case AxisLock::NONE:
+    case NONE:
       return ImGuizmo::SCALE;
-    case AxisLock::X:
+    case X:
       return ImGuizmo::SCALE_X;
-    case AxisLock::Y:
+    case Y:
       return ImGuizmo::SCALE_Y;
-    case AxisLock::Z:
+    case Z:
       return ImGuizmo::SCALE_Z;
     }
     break;
   }
 
-  case GuizmoMode::ROTATE: {
+  case ROTATE: {
     switch ( m_guizmoAxisLock )
     {
-    case AxisLock::NONE:
+    case NONE:
       return ImGuizmo::ROTATE;
-    case AxisLock::X:
+    case X:
       return ImGuizmo::ROTATE_X;
-    case AxisLock::Y:
+    case Y:
       return ImGuizmo::ROTATE_Y;
-    case AxisLock::Z:
+    case Z:
       return ImGuizmo::ROTATE_Z;
     }
     break;
   }
 
-  case GuizmoMode::TRANSLATE: {
+  case TRANSLATE: {
     switch ( m_guizmoAxisLock )
     {
-    case AxisLock::NONE:
+    case NONE:
       return ImGuizmo::TRANSLATE;
-    case AxisLock::X:
+    case X:
       return ImGuizmo::TRANSLATE_X;
-    case AxisLock::Y:
+    case Y:
       return ImGuizmo::TRANSLATE_Y;
-    case AxisLock::Z:
+    case Z:
       return ImGuizmo::TRANSLATE_Z;
     }
     break;
   }
   }
-}
 
-void gui::Viewport::onEntitySelect( const core::SelectEntityEvent& e )
-{
-  if ( e.getEntityId() == m_selectedEntity )
-    return;
-
-  if ( e.getEntityId() == entt::null && e.getEventSource() == core::SelectEntityEventSource::None )
-  {
-    m_selectedEntity = entt::null;
-    return;
-  }
-
-  m_selectedEntity = e.getEntityId();
+  return ImGuizmo::TRANSLATE;
 }
 
 void gui::Viewport::onKeyPressed( const core::KeyPressedEvent& e )
 {
-  auto& pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
+  auto pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
+
+  // Deactivate the Shift + A menu if Escape is pressed
+  if ( e.getKeyScanCode() == KeyScanCode::Escape && m_entityMenu )
+  {
+    m_entityMenu = false;
+  }
+
+  // Enable/ Disable Guizmo
   if ( KeyboardState::getKeyCombinationState( { KeyScanCode::LeftShift, KeyScanCode::G } ) )
   {
     m_guizmoEnabled = !m_guizmoEnabled;
   }
 
+  // Open the Shift + A quick menu
   if ( KeyboardState::getKeyCombinationState( { KeyScanCode::LeftShift, KeyScanCode::A } ) )
   {
     if ( m_entityMenu )
@@ -504,40 +562,42 @@ void gui::Viewport::onKeyPressed( const core::KeyPressedEvent& e )
   if ( KeyboardState::getKeyState( KeyScanCode::Escape ) )
   {
     pEventDispatcher->dispatchEvent<core::SelectEntityEvent>( core::SelectEntityEvent{} );
-    m_selectedEntity = entt::null;
   }
 
-  // Guizmo op down
+  // If guizmo is enabled we also have some hotkeys for it like axis lock
   if ( !m_guizmoEnabled )
     return;
+
+  using enum GuizmoMode;
+  using enum AxisLock;
 
   if ( e.getKeyModifier() == KeyScanCode::LeftShift )
   {
     switch ( e.getKeyScanCode() )
     {
     case KeyScanCode::T: {
-      m_guizmoMode = GuizmoMode::TRANSLATE;
+      m_guizmoMode = TRANSLATE;
       break;
     }
     case KeyScanCode::R: {
-      m_guizmoMode = GuizmoMode::ROTATE;
+      m_guizmoMode = ROTATE;
       break;
     }
     case KeyScanCode::S: {
-      m_guizmoMode = GuizmoMode::SCALE;
+      m_guizmoMode = SCALE;
       break;
     }
 
     case KeyScanCode::X: {
-      m_guizmoAxisLock = ( m_guizmoAxisLock == AxisLock::X ) ? AxisLock::NONE : AxisLock::X;
+      m_guizmoAxisLock = ( m_guizmoAxisLock == X ) ? NONE : X;
       break;
     }
     case KeyScanCode::Y: {
-      m_guizmoAxisLock = ( m_guizmoAxisLock == AxisLock::Y ) ? AxisLock::NONE : AxisLock::Y;
+      m_guizmoAxisLock = ( m_guizmoAxisLock == Y ) ? NONE : Y;
       break;
     }
     case KeyScanCode::Z: {
-      m_guizmoAxisLock = ( m_guizmoAxisLock == AxisLock::Z ) ? AxisLock::NONE : AxisLock::Z;
+      m_guizmoAxisLock = ( m_guizmoAxisLock == Z ) ? NONE : Z;
       break;
     }
     }

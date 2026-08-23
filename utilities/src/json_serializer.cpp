@@ -7,8 +7,7 @@ namespace utilities
 
 JsonSerializer::JsonSerializer( const std::string& path )
     : m_fileStream{ path, std::ios::out }
-    , m_buffer{} //, m_os{ FileWriteStream( fopen( path.c_str(), "wb" ), m_writeBuffer, sizeof( m_writeBuffer ) ) }
-                 //, m_writer{ std::make_unique<Writer<FileWriteStream>>( m_os ) }
+    , m_buffer{}
     , m_writer{ std::make_unique<PrettyWriter<StringBuffer>>( m_buffer ) }
 {
 }

@@ -1,30 +1,33 @@
 #pragma once
-#include <entt/entt.hpp>
+#include "core/scene/scene_event_handler.hpp"
 #include "precompiled/pch.hpp"
+#include <entt/entt.hpp>
 
 namespace core
 {
 class Scene;
-}
+class EventDispatcher;
+} // namespace core
 
 namespace core
 {
 class SceneManager
 {
 public:
-  static void addScene( std::shared_ptr<Scene> scene );
-  static void removeScene( const std::string& name );
-  static auto getCurrentScene() -> std::weak_ptr<Scene>;
-  static auto getScenes() -> std::unordered_map<std::string, std::shared_ptr<Scene>>&;
-  static void setCurrentScene( const std::string& sceneName );
+  SceneManager( EventDispatcher* pDispatcher );
+  ~SceneManager() = default;
+
+  auto addScene( std::string_view name = "" ) -> Scene*;
+  auto removeScene( const std::string& name ) -> void;
+  auto getCurrentScene() -> Scene*;
+  auto getScenes() -> std::unordered_map<std::string, std::unique_ptr<Scene>>&;
+  auto setCurrentScene( const std::string& sceneName ) -> void;
+
+  auto getEventHandler() -> SceneEventHandler*;
 
 private:
-  SceneManager() = delete;
-  ~SceneManager() = delete;
-  SceneManager operator=( const SceneManager& ) = delete;
-
-private:
-  static inline std::unordered_map<std::string, std::shared_ptr<Scene>> m_scenes;
-  static inline std::string m_currentScene{ "none" };
+  std::unordered_map<std::string, std::unique_ptr<Scene>> m_scenes;
+  std::string m_currentScene{ "none" };
+  std::unique_ptr<SceneEventHandler> m_eventHandler;
 };
 } // namespace core

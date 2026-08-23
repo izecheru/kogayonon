@@ -1,8 +1,5 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "core/scene/scene.hpp"
-#include <glad/glad.h>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/matrix_decompose.hpp>
 #include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/index_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
@@ -15,6 +12,8 @@
 #include "resources/light_types.hpp"
 #include "resources/pointlight.hpp"
 #include "utilities/math/math.hpp"
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 using namespace utilities;
 
 core::Scene::Scene( const std::string& name )
@@ -47,7 +46,8 @@ void core::Scene::changeName( const std::string& name )
 
 void core::Scene::removeEntity( entt::entity ent )
 {
-  // then destroy the entity
+  m_pRegistry->removeComponent<IdentifierComponent>( ent );
+
   if ( m_pRegistry->getRegistry().valid( ent ) )
     m_pRegistry->getRegistry().destroy( ent );
 
@@ -83,4 +83,3 @@ void core::Scene::removeMeshFromEntity( entt::entity entity )
   ent.removeComponent<IndexComponent>();
   ent.removeComponent<TransformComponent>();
 }
-

@@ -1,8 +1,9 @@
 #include "core/asset_manager/assimp_loader.hpp"
+#include "precompiled/pch.hpp"
 #include "resources/mesh.hpp"
 #include "utilities/utils/utils.hpp"
 #include <assimp/postprocess.h>
-#include <spdlog/spdlog.h>
+#include <assimp/vector3.h>
 
 core::AssimpLoader::AssimpLoader()
     : m_importer{}
@@ -14,7 +15,7 @@ core::AssimpLoader::~AssimpLoader()
   m_importer.FreeScene();
 }
 
-auto core::AssimpLoader::readFile( const std::string& path ) -> const aiScene*
+const aiScene* core::AssimpLoader::readFile( const std::string& path )
 {
   if ( m_importer.GetScene() )
     releaseScene();
@@ -26,7 +27,7 @@ auto core::AssimpLoader::readFile( const std::string& path ) -> const aiScene*
 
   if ( !scene )
   {
-    spdlog::error( "Assimp error: {}", m_importer.GetErrorString() );
+    K_INFO( "Assimp error: {}", m_importer.GetErrorString() );
     return nullptr;
   }
   return scene;
@@ -44,89 +45,59 @@ void core::AssimpLoader::loadMesh( const std::string& path, resources::Mesh* m, 
   auto& submeshes = m->getSubmeshes();
   auto scene = readFile( path );
 
-  if ( scene->HasMeshes() )
+  for ( auto i = 0u; i < scene->mNumMeshes; i++ )
   {
-    for ( auto i = 0u; i < scene->mNumMeshes; i++ )
-    {
-      auto& mesh = scene->mMeshes[i];
+    auto& mesh = scene->mMeshes[i];
 
-      // check for textures
-      if ( mesh->mMaterialIndex >= 0 )
+    // check for textures
+    if ( mesh->mMaterialIndex >= 0 )
+    {
+      auto material = scene->mMaterials[mesh->mMaterialIndex];
+      materials.push_back( material );
+    }
+  }
+
+  for ( auto i = 0u; i < scene->mNumMeshes; i++ )
+  {
+    auto& mesh = scene->mMeshes[i];
+
+    std::vector<resources::Vertex> localVertices;
+    std::vector<uint32_t> localIndices;
+    std::vector<resources::Submesh> localSubmeshes;
+
+    localVertices.reserve( mesh->mNumVertices );
+
+    for ( unsigned j = 0; j < mesh->mNumVertices; j++ )
+    {
+      aiVector3D v = mesh->mVertices[j];
+      aiVector3D n = mesh->mNormals[j];
+      aiVector3D uv = mesh->mTextureCoords[0] ? mesh->mTextureCoords[0][j] : aiVector3D{ 0, 1, 0 };
+      localVertices.emplace_back(
+        resources::Vertex{ .translation = { v.x, v.y, v.z }, .normal = { n.x, n.y, n.z }, .uv = { uv.x, uv.y } } );
+    }
+    for ( auto j = 0u; j < mesh->mNumFaces; j++ )
+    {
+      auto& face = mesh->mFaces[j];
+      for ( auto x = 0u; x < face.mNumIndices; x++ )
       {
-        auto material = scene->mMaterials[mesh->mMaterialIndex];
-        materials.push_back( material );
+        localIndices.emplace_back( face.mIndices[x] );
       }
     }
 
-    for ( auto i = 0u; i < scene->mNumMeshes; i++ )
-    {
-      auto& mesh = scene->mMeshes[i];
+    uint32_t indexOffset = static_cast<uint32_t>( indices.size() );
+    uint32_t vertexOffset = static_cast<uint32_t>( vertices.size() );
 
-      std::vector<glm::vec3> localPositions;
-      std::vector<glm::vec3> localNormals;
-      std::vector<glm::vec2> localTextureCoords;
-      std::vector<uint32_t> localIndices;
-      std::vector<resources::Submesh> localSubmeshes;
-      // std::vector<glm::ivec4> localJointIndices;
-      // std::vector<glm::vec4> localWeights;
-      std::vector<resources::Vertex> localVertices;
+    localSubmeshes.emplace_back( resources::Submesh{ .vertexOffset = vertexOffset,
+                                                     .indexOffset = indexOffset,
+                                                     .indexCount = static_cast<uint32_t>( localIndices.size() ) } );
 
-      for ( unsigned j = 0; j < mesh->mNumVertices; j++ )
-      {
-        aiVector3D v = mesh->mVertices[j];
-        localPositions.emplace_back( v.x, v.y, v.z );
+    // for ( auto& idx : localIndices )
+    //{
+    //   idx += vertexOffset;
+    // }
 
-        if ( mesh->HasNormals() )
-        {
-          aiVector3D n = mesh->mNormals[j];
-          localNormals.emplace_back( n.x, n.y, n.z );
-        }
-        else
-        {
-          localNormals.emplace_back( 0.0f );
-        }
-
-        if ( mesh->HasTextureCoords( 0 ) )
-        {
-          aiVector3D uv = mesh->mTextureCoords[0][j];
-          localTextureCoords.emplace_back( uv.x, uv.y );
-        }
-        else
-        {
-          localTextureCoords.emplace_back( 0.0f );
-        }
-      }
-      for ( auto j = 0u; j < mesh->mNumFaces; j++ )
-      {
-        auto& face = mesh->mFaces[j];
-        for ( auto x = 0u; x < face.mNumIndices; x++ )
-        {
-          localIndices.emplace_back( face.mIndices[x] );
-        }
-      }
-
-      for ( auto j = 0u; j < localPositions.size(); j++ )
-      {
-        localVertices.emplace_back(
-          resources::Vertex{ .translation = localPositions[j],
-                             .normal = ( j < localNormals.size() ) ? localNormals[j] : glm::vec3{ 0.0f },
-                             .uv = { localTextureCoords[j].x, localTextureCoords[j].y } } );
-      }
-      uint32_t indexOffset = static_cast<uint32_t>( indices.size() );
-      uint32_t vertexOffset = static_cast<uint32_t>( vertices.size() );
-
-      localSubmeshes.emplace_back( resources::Submesh{ .vertexOffset = vertexOffset,
-                                                       .indexOffset = indexOffset,
-                                                       .indexCount = static_cast<uint32_t>( localIndices.size() ) } );
-
-      for ( auto& idx : localIndices )
-      {
-        idx += vertexOffset;
-      }
-
-      vertices.insert( vertices.end(), localVertices.begin(), localVertices.end() );
-      indices.insert( indices.end(), localIndices.begin(), localIndices.end() );
-      submeshes.insert( submeshes.end(), localSubmeshes.begin(), localSubmeshes.end() );
-    }
+    vertices.insert( vertices.end(), localVertices.begin(), localVertices.end() );
+    indices.insert( indices.end(), localIndices.begin(), localIndices.end() );
+    submeshes.insert( submeshes.end(), localSubmeshes.begin(), localSubmeshes.end() );
   }
 }

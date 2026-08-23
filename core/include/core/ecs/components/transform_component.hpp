@@ -22,7 +22,7 @@ struct TransformComponent
    * @brief Get a quaternion from the vec3 rotation
    * @return
    */
-  inline auto getOrientation() const -> glm::quat
+  [[nodiscard]] inline auto getOrientation() const -> glm::quat
   {
     return glm::quat{ glm::radians( rotation ) };
   }

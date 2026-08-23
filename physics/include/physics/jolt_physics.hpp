@@ -5,7 +5,6 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include <queue>
-#include <spdlog/spdlog.h>
 
 #include <Jolt/Jolt.h>
 
@@ -166,7 +165,7 @@ public:
   JoltPhysics();
   ~JoltPhysics();
 
-  void update( float delta );
+  void onUpdate( float delta );
 
   bool isRunning() const;
   auto getPhysicsSystem() -> JPH::PhysicsSystem&;
