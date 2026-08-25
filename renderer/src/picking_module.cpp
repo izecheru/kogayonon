@@ -26,25 +26,22 @@ rendering::PickingModule::PickingModule( graphics::VulkanContext* vkCtx,
     : m_graph{ graph }
     , m_vkCtx{ vkCtx }
     , m_extent{ extent }
+    , m_pickRequested{ false }
+    , m_readyToCopy{ false }
     , m_mouseCoords{ -1, -1 }
-    , m_frameCounter{ 0u }
-    , m_readyToCopyImage{ false }
-    , m_readyToRead{ false }
     , m_imguiRenderer{ imguiRenderer }
     , m_moduleDescriptorData{ descriptorData }
+    , m_lastFrameIndex{ -1 }
 {
   createModuleResources();
   registerPasses();
-
-  core::EventDispatcher* eventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
-  eventDispatcher->addHandler<core::MouseClickedEvent, &PickingModule::onMouseClicked>( *this );
 }
 
 rendering::PickingModule::~PickingModule()
 {
   PickingModuleData& pickingData = m_graph->getBlackboard()->get<PickingModuleData>();
 
-  m_vkCtx->device->destroyBuffer( pickingData.pickingbuffer );
+  m_vkCtx->device->destroyBuffer( pickingData.pickingBuffer );
   m_vkCtx->device->destroyImageView( pickingData.color->vulkanImage.vkImageView );
   m_vkCtx->device->destroyImage( pickingData.color->vulkanImage.vkImage, pickingData.color->vulkanImage.vmaAllocation );
   m_vkCtx->device->destroyPipelineLayout( pickingData.pickingPipeline.getLayout() );
@@ -60,6 +57,9 @@ auto rendering::PickingModule::registerPasses() -> void
 
 auto rendering::PickingModule::setCoords( glm::ivec2 coords ) -> void
 {
+  if ( m_pickRequested == true || m_readyToCopy == true )
+    return;
+
   m_mouseCoords = coords;
 }
 
@@ -99,10 +99,14 @@ auto rendering::PickingModule::registerPickingPass() -> void
       b.write( pickingData.color, FGResourceType::Color );
       b.read( geometryData.depth, FGResourceType::Depth );
     },
-    [=, coords = &m_mouseCoords, readyToCopyImage = &m_readyToCopyImage, frameCounter = &m_frameCounter](
+    [=, coords = &m_mouseCoords, readyToCopy = &m_readyToCopy, pickRequested = &m_pickRequested](
       VkCommandBuffer buffer ) {
-      if ( ( coords->x == -1 && coords->y == -1 ) || *readyToCopyImage == true )
+      if ( ( coords->x == -1 && coords->y == -1 ) || *readyToCopy == true )
+      {
         return;
+      }
+
+      *pickRequested = true;
 
       Blackboard* blackboard = m_graph->getBlackboard();
       PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
@@ -164,8 +168,8 @@ auto rendering::PickingModule::registerPickingPass() -> void
         vkCmdBindIndexBuffer( buffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
         for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
         {
-          auto push = resources::EntityPickingPushConstant{ .modelMatrix = transform.getMatrix(),
-                                                            .entityId = static_cast<int>( entityId ) };
+          resources::EntityPickingPushConstant push{ .modelMatrix = transform.getMatrix(),
+                                                     .entityId = static_cast<int>( entityId ) };
 
           vkCmdPushConstants( buffer,
                               pickingPipeline.getLayout(),
@@ -192,43 +196,27 @@ auto rendering::PickingModule::registerPickingReadbackPass() -> void
       b.read( pickingData.color, FGResourceType::ColorTransfer );
     },
     [=,
+     lastFrameIndex = &m_lastFrameIndex,
      coords = &m_mouseCoords,
-     readyToCopyImage = &m_readyToCopyImage,
-     readyToCopyData = &m_readyToRead,
-     frameCounter = &m_frameCounter]( VkCommandBuffer buffer ) {
+     pickRequested = &m_pickRequested,
+     readyToCopy = &m_readyToCopy]( VkCommandBuffer buffer ) {
       Blackboard* blackboard = m_graph->getBlackboard();
       PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
 
-      if ( coords->x == -1 && coords->y == -1 )
+      if ( !*pickRequested || *readyToCopy )
         return;
 
-      if ( *frameCounter < 1 )
-      {
-        ++( *frameCounter );
-        return;
-      }
+      uint32_t frameNumber = m_vkCtx->swapchain->getCurrentFrameNumber();
+      m_vkCtx->device->copyImageToBuffer( pickingData.color->vulkanImage.vkImage,
+                                          buffer,
+                                          pickingData.pickingBuffer.buffers.at( frameNumber ).vkBuffer,
+                                          { coords->x, coords->y, 0 },
+                                          { 1, 1, 1 },
+                                          false );
 
-      VkBufferImageCopy region{};
-      region.bufferOffset = 0;
-      region.bufferRowLength = 0;
-      region.bufferImageHeight = 0;
-      region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-      region.imageSubresource.mipLevel = 0;
-      region.imageSubresource.baseArrayLayer = 0;
-      region.imageSubresource.layerCount = 1;
-      region.imageOffset = { coords->x, coords->y, 0 };
-      region.imageExtent = { 1, 1, 1 };
-
-      vkCmdCopyImageToBuffer( buffer,
-                              pickingData.color->vulkanImage.vkImage,
-                              VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                              pickingData.pickingbuffer.vkBuffer,
-                              1,
-                              &region );
-      coords->x = -1;
-      coords->y = -1;
-      *frameCounter = 0;
-      *readyToCopyData = true;
+      *lastFrameIndex = frameNumber;
+      *readyToCopy = true;
+      *pickRequested = false;
     } );
 }
 
@@ -241,33 +229,53 @@ auto rendering::PickingModule::registerPickingEntityReadPass() -> void
       PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
       b.read( pickingData.color, FGResourceType::ColorTransfer );
     },
-    [=, coords = &m_mouseCoords, readyToCopyData = &m_readyToRead, frameCounter = &m_frameCounter](
-      VkCommandBuffer buffer ) {
-      if ( *readyToCopyData == false )
+    [=,
+     lastFrameIndex = &m_lastFrameIndex,
+     coords = &m_mouseCoords,
+     pickRequested = &m_pickRequested,
+     readyToCopy = &m_readyToCopy]( VkCommandBuffer buffer ) {
+      if ( *lastFrameIndex == -1 )
+      {
+        *lastFrameIndex = m_vkCtx->swapchain->getCurrentFrameNumber();
+        return;
+      }
+
+      if ( !*readyToCopy )
+        return;
+
+      if ( *lastFrameIndex == m_vkCtx->swapchain->getCurrentFrameNumber() )
         return;
 
       Blackboard* blackboard = m_graph->getBlackboard();
       PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
-
       core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
       core::Scene* scene = sceneManager->getCurrentScene();
 
-      void* data{ nullptr };
-      vmaMapMemory( m_vkCtx->device->getAllocator(), pickingData.pickingbuffer.vmaAllocation, &data );
-
       int32_t id{ -1 };
-      std::memcpy( &id, data, sizeof( int32_t ) );
-      auto entity = static_cast<entt::entity>( id );
-      K_INFO( "ENTITY ID {}", static_cast<uint32_t>( entity ) );
-      if ( scene->getEnttRegistry().valid( entity ) && id > -1 )
+      m_vkCtx->device->copyBufferData( id, pickingData.pickingBuffer.buffers.at( *lastFrameIndex ), sizeof( int32_t ) );
+      K_INFO( "id {}", id );
+
+      if ( id != -1 )
       {
-        core::EventDispatcher* eventDispathcer = core::MainRegistry::getInstance().getEventDispatcher();
-        eventDispathcer->dispatchEvent<core::SelectEntityEvent>(
-          core::SelectEntityEvent{ entity, core::SelectEntityEventSource::Viewport_Window } );
+        entt::entity entity = static_cast<entt::entity>( id );
+        entt::entity currentEntity =
+          core::MainRegistry::getInstance().getSceneManager()->getEventHandler()->getCurrentEntityId();
+        if ( scene->getRegistry()->isValid( entity ) && currentEntity == entt::null )
+        {
+          core::EventDispatcher* eventDispathcer = core::MainRegistry::getInstance().getEventDispatcher();
+          eventDispathcer->dispatchEvent<core::SelectEntityEvent>(
+            core::SelectEntityEvent{ entity, core::SelectEntityEventSource::Viewport_Window } );
+        }
       }
 
-      vmaUnmapMemory( m_vkCtx->device->getAllocator(), pickingData.pickingbuffer.vmaAllocation );
-      *readyToCopyData = false;
+      int32_t clearValue{ -1 };
+      m_vkCtx->device->copyDataToBuffer(
+        clearValue, pickingData.pickingBuffer.buffers.at( *lastFrameIndex ), sizeof( int32_t ) );
+
+      *lastFrameIndex = m_vkCtx->swapchain->getCurrentFrameNumber();
+      coords->x = -1;
+      coords->y = -1;
+      *readyToCopy = false;
     } );
 }
 
@@ -280,14 +288,13 @@ auto rendering::PickingModule::createModuleResources() -> void
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   bufferInfo.size = sizeof( uint32_t );
-  bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+  bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
   VmaAllocationCreateInfo vmaAllocInfo{};
   vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-  vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+  vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-  m_vkCtx->device->createBuffer( pickingData.pickingbuffer, bufferInfo, vmaAllocInfo );
-  m_vkCtx->device->setName( std::string{ "pickingBuffer" }, pickingData.pickingbuffer.vmaAllocation );
+  m_vkCtx->device->createBuffer( pickingData.pickingBuffer, bufferInfo, vmaAllocInfo );
 
   VkImageCreateInfo pickingColorInfo{
     .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -311,33 +318,4 @@ auto rendering::PickingModule::createModuleResources() -> void
   VmaAllocationCreateInfo pickingColorAllocInfo{ .usage = VMA_MEMORY_USAGE_AUTO };
 
   pickingData.color = m_graph->createResource( "pickingColor", pickingColorInfo, pickingColorAllocInfo );
-}
-
-auto rendering::PickingModule::onMouseClicked( const core::MouseClickedEvent& e ) -> void
-{
-  core::SceneEventHandler* sceneHandler = core::MainRegistry::getInstance().getSceneManager()->getEventHandler();
-  entt::entity currentEntity = sceneHandler->getCurrentEntityId();
-
-  if ( currentEntity != entt::null )
-    return;
-
-  int mouseX, mouseY;
-  SDL_GetMouseState( &mouseX, &mouseY );
-
-  gui::Viewport* viewport =
-    dynamic_cast<gui::Viewport*>( m_imguiRenderer->getImGuiWindows().at( gui::ImGuiWindowName::Viewport ).get() );
-
-  gui::ImGuiProps* props = viewport->getProps();
-
-  VkExtent2D extent = m_vkCtx->swapchain->getSwapchainExtent();
-
-  float localX = ( mouseX - props->x ) / props->width;
-  float localY = ( mouseY - props->y ) / props->height;
-
-  if ( localX >= 0.0f && localX <= 1.0f && localY >= 0.0f && localY <= 1.0f )
-  {
-    m_mouseCoords.x = static_cast<int>( localX * extent.width );
-    m_mouseCoords.y = static_cast<int>( localY * extent.height );
-    K_INFO( "Mouse coords {} {}", m_mouseCoords.x, m_mouseCoords.y );
-  }
 }

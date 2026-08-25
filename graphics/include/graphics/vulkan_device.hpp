@@ -1,5 +1,6 @@
 #pragma once
 
+#include "graphics/vulkan_buffer.hpp"
 #include "precompiled/pch.hpp"
 #include <vulkan/vulkan.h>
 
@@ -98,6 +99,14 @@ public:
    */
   auto createStagingBuffer( VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& usage ) -> VulkanBuffer;
 
+  template <typename T>
+  auto copyBufferData( T& data, VulkanBuffer& buffer, VkDeviceSize size ) -> void;
+
+  template <typename T>
+  auto copyDataToBuffer( T& data, VulkanBuffer& buffer, VkDeviceSize size ) -> void;
+
+  auto invalidateAllocation( VulkanBuffer& vulkanBuffer, VkDeviceSize offset, VkDeviceSize size ) const -> void;
+
   /**
    * @brief Map buffer
    * @param vulkanBuffer
@@ -179,11 +188,21 @@ public:
                           VkExtent3D extent,
                           bool applyBarrier = true ) -> void;
 
-  auto endSingleTimeCommands( VkCommandBuffer commandBuffer, VkQueue graphicsQueue, VkCommandPool pool ) const -> void;
+  auto endSingleTimeCommands( VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool ) const -> void;
+
+  auto endSingleTimeCommands( VkCommandBuffer commandBuffer,
+                              VkQueue queue,
+                              VkSubmitInfo submitInfo,
+                              VkCommandPool pool ) const -> void;
+
   auto beginSingleTimeCommands( VkCommandPool pool ) const -> VkCommandBuffer;
+  auto beginSingleTimeCommands() const -> VkCommandBuffer;
 
   auto destroyDescriptorSetLayout( VkDescriptorSetLayout layout ) const -> void;
   auto destroyDescriptorPool( VkDescriptorPool pool ) const -> void;
+
+  auto getCommandPool() -> VkCommandPool;
+  auto getTransferCommandPool() -> VkCommandPool;
 
   /**
    * @brief Deallocate image and destroy it
@@ -379,6 +398,12 @@ public:
    * @return
    */
   auto getLimits() -> VkPhysicalDeviceLimits&;
+
+  auto createFence( VkFence& fence, VkFenceCreateInfo info ) const -> void;
+
+  auto createTimelineSemaphore( VkSemaphore& timeline,
+                                VkSemaphoreTypeCreateInfo info,
+                                VkSemaphoreCreateInfo createInfo ) const -> void;
 
   auto createShaderModule( const std::string& shaderName, const std::string& shaderEntryFunc ) -> VkShaderModule;
   auto destroyShaderModule( VkShaderModule module ) -> void;

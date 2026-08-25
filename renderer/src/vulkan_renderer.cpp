@@ -28,13 +28,13 @@
 rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Window* window )
     : m_vkCtx{ pCtx }
     , m_wnd{ window }
+    , m_mouseCoords{ -1, -1 }
 {
   core::EventDispatcher* eventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
   core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
   utilities::TimeTracker* timeTracker = core::MainRegistry::getInstance().getTimeTracker();
 
   timeTracker->start( "resize" );
-
   eventDispatcher->addHandler<core::MouseClickedEvent, &VulkanRenderer::onMouseClicked>( *this );
 
   createCameraDescriptorSetLayout();
@@ -132,12 +132,16 @@ auto rendering::VulkanRenderer::updateCameraBuffer() -> void
         cameraComp.updateUbo();
       }
 
-      vmaCopyMemoryToAllocation(
-        m_vkCtx->device->getAllocator(),
-        &cameraComp.ubo,
-        m_cameraBuffers.buffers.at( m_vkCtx->swapchain->getCurrentFrameNumber() ).vmaAllocation,
-        0,
-        sizeof( core::CameraUbo ) );
+      m_vkCtx->device->copyDataToBuffer( cameraComp.ubo,
+                                         m_cameraBuffers.buffers.at( m_vkCtx->swapchain->getCurrentFrameNumber() ),
+                                         sizeof( core::CameraUbo ) );
+
+      // vmaCopyMemoryToAllocation(
+      //   m_vkCtx->device->getAllocator(),
+      //   &cameraComp.ubo,
+      //   m_cameraBuffers.buffers.at( m_vkCtx->swapchain->getCurrentFrameNumber() ).vmaAllocation,
+      //   0,
+      //   sizeof( core::CameraUbo ) );
     }
   } );
 }
@@ -209,6 +213,28 @@ auto rendering::VulkanRenderer::initImgui() -> void
     std::make_shared<gui::VulkanImguiRenderer>( m_wnd, m_vkCtx->device.get(), m_vkCtx->swapchain.get() );
 }
 
-void rendering::VulkanRenderer::onMouseClicked( const core::MouseClickedEvent& e )
+auto rendering::VulkanRenderer::onMouseClicked( const core::MouseClickedEvent& e ) -> void
 {
+  core::SceneEventHandler* sceneHandler = core::MainRegistry::getInstance().getSceneManager()->getEventHandler();
+  entt::entity currentEntity = sceneHandler->getCurrentEntityId();
+
+  int mouseX, mouseY;
+  SDL_GetMouseState( &mouseX, &mouseY );
+
+  gui::Viewport* viewport =
+    dynamic_cast<gui::Viewport*>( m_pImguiRenderer->getImGuiWindows().at( gui::ImGuiWindowName::Viewport ).get() );
+
+  gui::ImGuiProps* props = viewport->getProps();
+
+  VkExtent2D extent = m_vkCtx->swapchain->getSwapchainExtent();
+
+  float localX = ( mouseX - props->x ) / props->width;
+  float localY = ( mouseY - props->y ) / props->height;
+
+  if ( localX >= 0.0f && localX <= 1.0f && localY >= 0.0f && localY <= 1.0f )
+  {
+    m_mouseCoords.x = static_cast<int>( localX * extent.width );
+    m_mouseCoords.y = static_cast<int>( localY * extent.height );
+    m_pickingModule->setCoords( m_mouseCoords );
+  }
 }

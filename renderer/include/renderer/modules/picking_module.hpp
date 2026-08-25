@@ -32,7 +32,7 @@ struct PickingModuleData
 {
   FGResource* color{ VK_NULL_HANDLE };
   graphics::VulkanPipeline pickingPipeline{};
-  graphics::VulkanBuffer pickingbuffer;
+  graphics::FrameInFlightVulkanBuffer pickingBuffer;
   ModuleRenderingInfo renderingInfo;
 };
 
@@ -55,17 +55,15 @@ private:
   auto registerPickingEntityReadPass() -> void;
   auto createModuleResources() -> void;
 
-  auto onMouseClicked( const core::MouseClickedEvent& e ) -> void;
-
 private:
   glm::ivec2 m_mouseCoords;
-  uint32_t m_frameCounter;
-  bool m_readyToCopyImage;
-  bool m_readyToRead;
+  bool m_pickRequested;
+  bool m_readyToCopy;
   FrameGraph* m_graph;
   graphics::VulkanContext* m_vkCtx;
   ModuleDescriptorData m_moduleDescriptorData;
   VkExtent2D m_extent;
   gui::VulkanImguiRenderer* m_imguiRenderer;
+  int32_t m_lastFrameIndex;
 };
 } // namespace rendering

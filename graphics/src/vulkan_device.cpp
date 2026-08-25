@@ -488,6 +488,7 @@ void graphics::VulkanDevice::createLogicalDevice()
   features12.descriptorBindingVariableDescriptorCount = VK_TRUE;
 
   features12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+  features12.timelineSemaphore = VK_TRUE;
   features12.bufferDeviceAddress = VK_TRUE;
 
   VkPhysicalDeviceVulkan13Features features13{};
@@ -582,6 +583,11 @@ void graphics::VulkanDevice::createBuffer( VulkanBuffer& vulkanBuffer,
   VK_CALL(
     vmaCreateBuffer( m_allocator, &createInfo, &usage, &vulkanBuffer.vkBuffer, &vulkanBuffer.vmaAllocation, nullptr ) );
 
+  if ( usage.flags & VMA_ALLOCATION_CREATE_MAPPED_BIT )
+  {
+    mapBuffer( vulkanBuffer );
+  }
+
   if ( !bufferName.empty() )
   {
     K_INFO( "[BUFF_ALLOC] {} {}", bufferName, formatSize( static_cast<double>( createInfo.size ) ) );
@@ -674,26 +680,32 @@ auto graphics::VulkanDevice::formatSize( VkDeviceSize size ) -> std::string
   return oss.str();
 }
 
-void graphics::VulkanDevice::mapBuffer( VulkanBuffer& vulkanBuffer ) const
+auto graphics::VulkanDevice::invalidateAllocation( VulkanBuffer& vulkanBuffer,
+                                                   VkDeviceSize offset,
+                                                   VkDeviceSize size ) const -> void
+{
+  vmaInvalidateAllocation( m_allocator, vulkanBuffer.vmaAllocation, offset, size );
+}
+
+auto graphics::VulkanDevice::mapBuffer( VulkanBuffer& vulkanBuffer ) const -> void
 {
   auto info = getAllocInfo( vulkanBuffer.vmaAllocation );
   if ( info.pName )
   {
-    K_INFO( "Buffer {} mapped", info.pName );
+    K_INFO( "Buffer {} mappedData", info.pName );
   }
-  vmaMapMemory( m_allocator, vulkanBuffer.vmaAllocation, &vulkanBuffer.mapped );
-  vulkanBuffer.flags |= Persistent | Mapped;
+  vmaMapMemory( m_allocator, vulkanBuffer.vmaAllocation, &vulkanBuffer.mappedData );
 }
 
-void graphics::VulkanDevice::mapBuffer( FrameInFlightVulkanBuffer& vulkanBuffer ) const
+auto graphics::VulkanDevice::mapBuffer( FrameInFlightVulkanBuffer& vulkanBuffer ) const -> void
 {
   for ( auto& buff : vulkanBuffer.buffers )
   {
-    vmaMapMemory( m_allocator, buff.vmaAllocation, &buff.mapped );
+    vmaMapMemory( m_allocator, buff.vmaAllocation, &buff.mappedData );
   }
 }
 
-void graphics::VulkanDevice::unmapBuffer( VulkanBuffer& vulkanBuffer ) const
+auto graphics::VulkanDevice::unmapBuffer( VulkanBuffer& vulkanBuffer ) const -> void
 {
   auto info = getAllocInfo( vulkanBuffer.vmaAllocation );
   if ( info.pName )
@@ -703,7 +715,7 @@ void graphics::VulkanDevice::unmapBuffer( VulkanBuffer& vulkanBuffer ) const
   vmaUnmapMemory( m_allocator, vulkanBuffer.vmaAllocation );
 }
 
-void graphics::VulkanDevice::unmapBuffer( FrameInFlightVulkanBuffer& vulkanBuffer ) const
+auto graphics::VulkanDevice::unmapBuffer( FrameInFlightVulkanBuffer& vulkanBuffer ) const -> void
 {
   for ( auto& buff : vulkanBuffer.buffers )
   {
@@ -765,6 +777,11 @@ auto graphics::VulkanDevice::destroyBuffer( VulkanBuffer& buff ) -> void
   else
   {
     K_INFO( "[BUFF_DEALLOC] size {}", formatSize( info.size ) );
+  }
+
+  if ( buff.mappedData )
+  {
+    unmapBuffer( buff );
   }
 
   vmaDestroyBuffer( m_allocator, buff.vkBuffer, buff.vmaAllocation );
@@ -867,6 +884,26 @@ auto graphics::VulkanDevice::getSwapchainImagesKHR( std::vector<VulkanImage>& sw
   }
 }
 
+auto graphics::VulkanDevice::beginSingleTimeCommands() const -> VkCommandBuffer
+{
+  VkCommandBufferAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  allocInfo.commandPool = m_commandPool;
+  allocInfo.commandBufferCount = 1;
+
+  VkCommandBuffer commandBuffer;
+  VK_CALL( vkAllocateCommandBuffers( m_platform.device, &allocInfo, &commandBuffer ) );
+
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+  VK_CALL( vkBeginCommandBuffer( commandBuffer, &beginInfo ) );
+
+  return commandBuffer;
+}
+
 auto graphics::VulkanDevice::beginSingleTimeCommands( VkCommandPool pool ) const -> VkCommandBuffer
 {
   VkCommandBufferAllocateInfo allocInfo{};
@@ -885,6 +922,53 @@ auto graphics::VulkanDevice::beginSingleTimeCommands( VkCommandPool pool ) const
   VK_CALL( vkBeginCommandBuffer( commandBuffer, &beginInfo ) );
 
   return commandBuffer;
+}
+
+auto graphics::VulkanDevice::createFence( VkFence& fence, VkFenceCreateInfo info ) const -> void
+{
+  VK_CALL( vkCreateFence( m_platform.device, &info, nullptr, &fence ) );
+}
+
+// auto graphics::VulkanDevice::endSingleTimeCommands( VkCommandBuffer commandBuffer, VkQueue queue, VkFence fence )
+// const
+//   -> void
+//{
+//   vkEndCommandBuffer( commandBuffer );
+//
+//   VkSubmitInfo submitInfo{};
+//   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+//   submitInfo.commandBufferCount = 1;
+//   submitInfo.pCommandBuffers = &commandBuffer;
+//
+//   VK_CALL( vkQueueSubmit( queue, 1, &submitInfo, fence ) );
+//
+//   vkWaitForFences( m_platform.device, 1, &fence, VK_TRUE, UINT64_MAX );
+//   vkResetFences( m_platform.device, 1, &fence );
+//
+//   vkFreeCommandBuffers( m_platform.device, m_commandPool, 1, &commandBuffer );
+// }
+
+auto graphics::VulkanDevice::getCommandPool() -> VkCommandPool
+{
+  return m_commandPool;
+}
+
+auto graphics::VulkanDevice::getTransferCommandPool() -> VkCommandPool
+{
+  return m_transferCommandPool;
+}
+
+auto graphics::VulkanDevice::endSingleTimeCommands( VkCommandBuffer commandBuffer,
+                                                    VkQueue queue,
+                                                    VkSubmitInfo submitInfo,
+                                                    VkCommandPool pool ) const -> void
+{
+  vkEndCommandBuffer( commandBuffer );
+
+  VK_CALL( vkQueueSubmit( queue, 1, &submitInfo, VK_NULL_HANDLE ) );
+  VK_CALL( vkQueueWaitIdle( queue ) );
+
+  vkFreeCommandBuffers( m_platform.device, pool, 1, &commandBuffer );
 }
 
 auto graphics::VulkanDevice::endSingleTimeCommands( VkCommandBuffer commandBuffer,
@@ -1243,4 +1327,12 @@ auto graphics::VulkanDevice::getDeviceProperties() const -> VkPhysicalDeviceProp
 auto graphics::VulkanDevice::getDeviceMemoryProperties() const -> VkPhysicalDeviceMemoryProperties
 {
   return m_physicalDeviceMemoryProps;
+}
+
+auto graphics::VulkanDevice::createTimelineSemaphore( VkSemaphore& timeline,
+                                                      VkSemaphoreTypeCreateInfo info,
+                                                      VkSemaphoreCreateInfo createInfo ) const -> void
+{
+
+  VK_CALL( vkCreateSemaphore( m_platform.device, &createInfo, NULL, &timeline ) );
 }

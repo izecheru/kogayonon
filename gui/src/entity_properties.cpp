@@ -504,10 +504,10 @@ void gui::EntityProperties::renderIdentification()
   ImGui::SeparatorText( "Entity identification" );
   ImGui::PopFont();
 
-  ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
   auto idComp = scene->getRegistry()->tryGetComponent<core::IdentifierComponent>( currentEntity );
   if ( idComp )
   {
+    ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
     ImGui::InputText( "##id", &idComp->name );
     ImGui::Text( "Group: %s", idComp->group.c_str() );
     ImGui::PopFont();

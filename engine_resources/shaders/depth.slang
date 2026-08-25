@@ -71,19 +71,9 @@ VertexOutput vertexMain( VertexInput input )
 [shader( "fragment" )]
 FragmentOutput fragmentMain( VertexOutput input )
 {
+  // depth is automatically written here
   FragmentOutput output;
-
-  MaterialDescription material = getMaterial( push.materialIndex );
-
-  float4 diffuseColor = float4( 0.3, 0.3, 0.3, 1.0 );
-  float3 normalColor = float3( 0.5, 0.5, 1.0 );
-
-  if ( material.diffuseIndex != -1 )
-  {
-    diffuseColor = bindlessTextures[NonUniformResourceIndex( material.diffuseIndex )].Sample( input.fragTexCoord );
-  }
-
-  output.outColor = diffuseColor;
+  output.outColor = float4( 0, 0, 0, 0 );
   return output;
 }
 

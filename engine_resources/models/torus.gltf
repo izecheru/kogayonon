@@ -15,7 +15,12 @@
 	"nodes":[
 		{
 			"mesh":0,
-			"name":"Torus"
+			"name":"Torus",
+			"scale":[
+				3.7098844051361084,
+				3.7098844051361084,
+				3.7098844051361084
+			]
 		}
 	],
 	"meshes":[
@@ -98,7 +103,7 @@
 	"buffers":[
 		{
 			"byteLength":80640,
-			"uri":"gorus.bin"
+			"uri":"torus.bin"
 		}
 	]
 }

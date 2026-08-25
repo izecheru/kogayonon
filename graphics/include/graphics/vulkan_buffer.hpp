@@ -5,43 +5,12 @@
 
 namespace graphics
 {
-enum VulkanBufferFlags : uint32_t
-{
-  None = 0,
-  Mapped = 1 << 0,
-  Staging = 1 << 1,
-  Persistent = 1 << 2,
-  Deallocated = 1 << 3
-};
-
-inline auto operator|( VulkanBufferFlags a, VulkanBufferFlags b ) -> VulkanBufferFlags
-{
-  return static_cast<VulkanBufferFlags>( static_cast<int>( a ) | static_cast<int>( b ) );
-}
-
-inline auto operator|=( VulkanBufferFlags& a, VulkanBufferFlags b ) -> VulkanBufferFlags&
-{
-  a = static_cast<VulkanBufferFlags>( static_cast<uint32_t>( a ) | static_cast<uint32_t>( b ) );
-  return a;
-}
-
-inline auto operator~( VulkanBufferFlags flag ) -> VulkanBufferFlags
-{
-  return static_cast<VulkanBufferFlags>( ~static_cast<uint32_t>( flag ) );
-}
-
-inline VulkanBufferFlags& operator&=( VulkanBufferFlags& a, VulkanBufferFlags b )
-{
-  a = static_cast<VulkanBufferFlags>( static_cast<uint32_t>( a ) & static_cast<uint32_t>( b ) );
-  return a;
-}
 
 struct VulkanBuffer
 {
   VkBuffer vkBuffer{ VK_NULL_HANDLE };
   VmaAllocation vmaAllocation{ nullptr };
-  VulkanBufferFlags flags{ VulkanBufferFlags::None };
-  void* mapped;
+  void* mappedData;
 };
 
 /**

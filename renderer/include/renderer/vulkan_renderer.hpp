@@ -77,6 +77,7 @@ private:
   graphics::FrameInFlightVulkanBuffer m_cameraBuffers;
   graphics::VulkanDescriptor m_cameraDescriptor;
   std::shared_ptr<gui::VulkanImguiRenderer> m_pImguiRenderer;
+  glm::ivec2 m_mouseCoords;
 
   SDL_Window* m_wnd;
 

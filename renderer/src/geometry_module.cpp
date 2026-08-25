@@ -45,6 +45,9 @@ rendering::GeometryModule::~GeometryModule()
   m_vkCtx->device->destroyPipelineLayout( geometryModuleData.basePipeline.getLayout() );
   m_vkCtx->device->destroyPipeline( geometryModuleData.basePipeline.getPipeline() );
 
+  m_vkCtx->device->destroyPipelineLayout( geometryModuleData.depthPipeline.getLayout() );
+  m_vkCtx->device->destroyPipeline( geometryModuleData.depthPipeline.getPipeline() );
+
   m_vkCtx->device->destroyPipelineLayout( geometryModuleData.wireframePipeline.getLayout() );
   m_vkCtx->device->destroyPipeline( geometryModuleData.wireframePipeline.getPipeline() );
 
@@ -243,7 +246,7 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
       b.read( geometryModule.depth, rendering::FGResourceType::Depth );
     },
     [=]( VkCommandBuffer buffer ) {
-      TracyVkZone( m_vkCtx->tracyContext->getCtx(), buffer, passId::Geometry );
+      // TracyVkZone( m_vkCtx->tracyContext->getCtx(), buffer, passId::Geometry );
       Blackboard* blackboard{ m_graph->getBlackboard() };
       GeometryModuleData& geometryModule{ blackboard->get<GeometryModuleData>() };
 
