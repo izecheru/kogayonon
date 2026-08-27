@@ -19,6 +19,8 @@ endif()
 
 option(KOGAYONON_ENABLE_TRACY "Enable Tracy profiler" OFF)
 
+add_compile_definitions(MAX_FRAMES_IN_FLIGHT=3)
+
 if(KOGAYONON_ENABLE_TRACY)
 add_compile_definitions(
     TRACY_ENABLE 

@@ -104,9 +104,9 @@ auto rendering::VulkanRenderer::createCameraBuffers() -> void
   vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
   vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-  m_vkCtx->device->createBuffer( m_cameraBuffers, bufferInfo, vmaAllocInfo );
+  m_vkCtx->device->createBuffer( m_cameraBuffers, bufferInfo, vmaAllocInfo, "cameraBuffer" );
 
-  for ( auto i = 0u; i < 3; ++i )
+  for ( auto i = 0u; i < MAX_FRAMES_IN_FLIGHT; ++i )
   {
     m_vkCtx->device->setName( std::string{ "cameraBuffer_" + std::to_string( i ) },
                               m_cameraBuffers.buffers.at( i ).vmaAllocation );

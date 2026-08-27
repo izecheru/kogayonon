@@ -294,7 +294,7 @@ auto rendering::PickingModule::createModuleResources() -> void
   vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
   vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-  m_vkCtx->device->createBuffer( pickingData.pickingBuffer, bufferInfo, vmaAllocInfo );
+  m_vkCtx->device->createBuffer( pickingData.pickingBuffer, bufferInfo, vmaAllocInfo, "pickingBuffer" );
 
   VkImageCreateInfo pickingColorInfo{
     .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,

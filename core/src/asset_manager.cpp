@@ -14,7 +14,7 @@
 
 core::AssetManager::AssetManager()
     : m_bindlessTexturesIndex{ 0u }
-    , m_materialIndex{ 0u }
+    , m_bindlessMaterialIndex{ 0u }
     , m_samplerIndex{ 0u }
 {
 }
@@ -27,13 +27,13 @@ core::AssetManager::~AssetManager()
   m_vkCtx->device->destroyDescriptorSetLayout( m_bindlessTexturesDescriptor.layout );
   m_vkCtx->device->destroyDescriptorSetLayout( m_materialsDescriptor.layout );
 
-  for ( auto& [p, texture] : m_loadedTextures )
+  for ( auto& [path, texture] : m_loadedTextures )
   {
     m_vkCtx->device->destroyImageView( texture->getView() );
     m_vkCtx->device->destroyImage( texture->getImage(), texture->getAllocation() );
   }
 
-  for ( auto& [p, mesh] : m_loadedMeshes )
+  for ( auto& [path, mesh] : m_loadedMeshes )
   {
     m_vkCtx->device->destroyBuffer( mesh->getIndicesBufferObject() );
     m_vkCtx->device->destroyBuffer( mesh->getVertexBufferObject() );
@@ -46,11 +46,8 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
   assert( std::filesystem::exists( texturePath ) && "texture file MUST EXIST" );
   ZoneScopedN( "AssetManager::loadTexture" );
 
-  // if we have the texture already loaded
   if ( m_loadedTextures.contains( texturePath ) )
-  {
-    return m_loadedTextures.at( texturePath ).get();
-  }
+    return m_loadedTextures[texturePath].get();
 
   int texWidth, texHeight, texChannels;
   stbi_uc* pixels = stbi_load( texturePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha );
@@ -60,8 +57,8 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
     throw std::runtime_error( "failed to load texture image!" );
   }
 
-  std::shared_ptr<resources::Texture> texture = std::make_shared<resources::Texture>();
-  VkDeviceSize imageSize = texWidth * texHeight * texChannels;
+  std::unique_ptr<resources::Texture> texture = std::make_unique<resources::Texture>();
+  VkDeviceSize imageSize = texWidth * texHeight * 4;
 
   VkBufferCreateInfo stageBufferInfo{};
   stageBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -128,9 +125,11 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
 
   m_vkCtx->device->destroyBuffer( stageBuffer );
 
-  m_loadedTextures.emplace( texturePath, texture );
+  texture->setPath( texturePath );
 
-  return m_loadedTextures.at( texturePath ).get();
+  m_loadedTextures.emplace( texturePath, std::move( texture ) );
+
+  return m_loadedTextures[texturePath].get();
 }
 
 auto core::AssetManager::getTextureSampler() -> VkSampler&
@@ -146,10 +145,9 @@ auto core::AssetManager::initDescriptors() -> void
     allocateBindlessDescriptorSet();
 
     // materials
-    createMaterialsBuffers();
+    createMaterialsBuffers( sizeof( resources::Material ) );
     createMaterialsDescriptorSetLayout();
     allocateMaterialsDescriptorSet();
-    createMaterialsDescriptorSet();
 
     m_layoutInit = true;
   }
@@ -162,7 +160,12 @@ auto core::AssetManager::setContext( graphics::VulkanContext* ctx ) -> void
 
 auto core::AssetManager::getTexture( const std::string& texturePath ) -> resources::Texture*
 {
-  return m_loadedTextures.at( texturePath ).get();
+  std::filesystem::path p{ texturePath };
+
+  if ( m_loadedTextures.contains( texturePath ) )
+    return m_loadedTextures[texturePath].get();
+
+  return loadTexture( p.filename().string(), texturePath );
 }
 
 auto core::AssetManager::initSampler() -> void
@@ -174,35 +177,34 @@ auto core::AssetManager::initSampler() -> void
 auto core::AssetManager::loadMesh( const std::string& meshName, const std::string& meshPath ) -> resources::Mesh*
 {
   ZoneScopedN( "AssetManager::loadMesh" );
+  assert( std::filesystem::exists( meshPath ) && "mesh file does not exist" );
 
   if ( m_loadedMeshes.contains( meshPath ) )
-    return m_loadedMeshes.at( meshPath ).get();
+    return m_loadedMeshes[meshPath].get();
 
-  assert( std::filesystem::exists( meshPath ) && "mesh file does not exist" );
-  auto mesh = std::make_shared<resources::Mesh>();
+  std::unique_ptr<resources::Mesh> mesh = std::make_unique<resources::Mesh>();
 
-  mesh->getPath() = meshPath;
+  mesh->setPath( meshPath );
   std::filesystem::path p{ meshPath };
 
   std::vector<aiMaterial*> materials{};
-  // m_cgltfLoader.loadMesh( meshPath, mesh.get(), meshes );
-  //  for now we use assimp for the broader spectrum of supported model file formats
-
-  // we store the texture type and path for it
   m_assimpLoader.loadMesh( meshPath, mesh.get(), materials );
-  auto& submeshes = mesh->getSubmeshes();
+  std::vector<resources::Submesh>& submeshes = mesh->getSubmeshes();
 
-  // If we don't have any material, just use the default one
   if ( m_materials.empty() )
   {
     resources::Material defaultMaterial{};
 
-    defaultMaterial.diffuseTextureIndex = m_bindlessTexturesIndex;
-    auto path = std::filesystem::current_path() / "engine_resources" / "textures" / "default.png";
-    auto texture = loadTexture( "default", path.string() );
-    texture->setIndex( m_bindlessTexturesIndex );
-    updateBindlessTextures( texture );
-    ++m_bindlessTexturesIndex;
+    std::filesystem::path path = std::filesystem::current_path() / "engine_resources" / "textures" / "default.png";
+
+    if ( std::filesystem::exists( path ) && !m_loadedTextures.contains( meshPath ) )
+    {
+      auto texture = loadTexture( "default", path.string() );
+      texture->setIndex( m_bindlessTexturesIndex );
+      defaultMaterial.diffuseTextureIndex = m_bindlessTexturesIndex;
+      updateBindlessTextures( texture );
+    }
+
     m_materials.push_back( defaultMaterial );
     updateMaterialsBuffer();
   }
@@ -211,23 +213,24 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
   {
 
     resources::Material mat{};
+    aiMaterial* material = materials.at( i );
 
-    if ( materials.at( i )->GetTextureCount( aiTextureType_SPECULAR ) > 0 )
+    if ( material->GetTextureCount( aiTextureType_SPECULAR ) > 0 )
     {
       aiString str;
-      materials.at( i )->GetTexture( aiTextureType_SPECULAR, 0, &str );
+      material->GetTexture( aiTextureType_SPECULAR, 0, &str );
 
-      auto path = std::filesystem::absolute( "." ) / ( "engine_resources\\" + std::string( str.C_Str() ) );
+      std::filesystem::path path =
+        std::filesystem::absolute( "." ) / ( "engine_resources\\" + std::string( str.C_Str() ) );
 
-      auto key = std::filesystem::weakly_canonical( path ).string();
-
+      std::string key = std::filesystem::weakly_canonical( path ).string();
       if ( !m_loadedTextures.contains( key ) )
       {
+        K_INFO( "tex {} index {}", key, m_bindlessTexturesIndex );
         mat.specularTextureIndex = m_bindlessTexturesIndex;
         auto texture = loadTexture( path.stem().string(), key );
         texture->setIndex( m_bindlessTexturesIndex );
         updateBindlessTextures( texture );
-        ++m_bindlessTexturesIndex;
       }
       else
       {
@@ -235,22 +238,23 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
       }
     }
 
-    if ( materials.at( i )->GetTextureCount( aiTextureType_NORMALS ) > 0 )
+    if ( material->GetTextureCount( aiTextureType_NORMALS ) > 0 )
     {
       aiString str;
-      materials.at( i )->GetTexture( aiTextureType_NORMALS, 0, &str );
+      material->GetTexture( aiTextureType_NORMALS, 0, &str );
 
-      auto path = std::filesystem::absolute( "." ) / ( "engine_resources\\" + std::string( str.C_Str() ) );
+      std::filesystem::path path =
+        std::filesystem::absolute( "." ) / ( "engine_resources\\" + std::string( str.C_Str() ) );
 
-      auto key = std::filesystem::weakly_canonical( path ).string();
+      std::string key = std::filesystem::weakly_canonical( path ).string();
 
       if ( !m_loadedTextures.contains( key ) )
       {
+        K_INFO( "tex {} index {}", key, m_bindlessTexturesIndex );
         mat.normalTextureIndex = m_bindlessTexturesIndex;
         auto texture = loadTexture( path.stem().string(), key );
         texture->setIndex( m_bindlessTexturesIndex );
         updateBindlessTextures( texture );
-        ++m_bindlessTexturesIndex;
       }
       else
       {
@@ -258,54 +262,55 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
       }
     }
 
-    if ( materials.at( i )->GetTextureCount( aiTextureType_DIFFUSE ) > 0 )
+    if ( material->GetTextureCount( aiTextureType_DIFFUSE ) > 0 )
     {
       aiString str;
-      materials.at( i )->GetTexture( aiTextureType_DIFFUSE, 0, &str );
+      material->GetTexture( aiTextureType_DIFFUSE, 0, &str );
 
-      auto path = std::filesystem::absolute( "." ) / ( "engine_resources\\" + std::string( str.C_Str() ) );
+      std::filesystem::path path =
+        std::filesystem::absolute( "." ) / ( "engine_resources\\" + std::string( str.C_Str() ) );
 
-      auto key = std::filesystem::weakly_canonical( path ).string();
-
+      std::string key = std::filesystem::weakly_canonical( path ).string();
       if ( !m_loadedTextures.contains( key ) )
       {
+        K_INFO( "tex {} index {}", key, m_bindlessTexturesIndex );
         mat.diffuseTextureIndex = m_bindlessTexturesIndex;
         auto texture = loadTexture( path.stem().string(), key );
         texture->setIndex( m_bindlessTexturesIndex );
         updateBindlessTextures( texture );
-        ++m_bindlessTexturesIndex;
       }
       else
       {
         mat.diffuseTextureIndex = getTexture( key )->getIndex();
       }
     }
-    // now check if the material built is in the vector
-    bool found = false;
 
-    for ( auto& existing : m_materials )
+    int32_t foundIndex{ -1 };
+    for ( auto j = 0u; j < m_materials.size(); ++j )
     {
-      if ( existing.diffuseTextureIndex == mat.diffuseTextureIndex &&
-           existing.normalTextureIndex == mat.normalTextureIndex &&
-           existing.specularTextureIndex == mat.specularTextureIndex )
+      resources::Material& material = m_materials.at( j );
+      if ( material.diffuseTextureIndex == mat.diffuseTextureIndex &&
+           material.normalTextureIndex == mat.normalTextureIndex &&
+           material.specularTextureIndex == mat.specularTextureIndex )
       {
-        found = true;
-        break;
+        if ( material.diffuseTextureIndex != -1 && material.specularTextureIndex != -1 &&
+             material.normalTextureIndex != -1 )
+        {
+          foundIndex = j;
+          break;
+        }
       }
     }
 
-    if ( !found )
+    if ( foundIndex == -1 )
     {
-      if ( mat.diffuseTextureIndex == -1 && mat.normalTextureIndex == -1 && mat.specularTextureIndex == -1 )
-      {
-        submeshes[i].submeshMaterial = m_materials.at( 0 );
-      }
-      else
-      {
-        m_materials.push_back( mat );
-        submeshes[i].submeshMaterial = mat;
-        updateMaterialsBuffer();
-      }
+      m_materials.push_back( mat );
+      submeshes[i].materialIndex = m_materials.size() - 1;
+      updateMaterialsBuffer();
+    }
+    else
+    {
+      submeshes[i].materialIndex = foundIndex;
     }
   }
 
@@ -313,7 +318,7 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
   createIndexBuffer( mesh.get() );
 
   m_loadedMeshes.emplace( meshPath, std::move( mesh ) );
-  return m_loadedMeshes.at( meshPath ).get();
+  return m_loadedMeshes[meshPath].get();
 }
 
 auto core::AssetManager::loadFont( const std::string_view path ) -> void
@@ -325,22 +330,18 @@ auto core::AssetManager::loadFont( const std::string_view path ) -> void
   // now load the textures
   std::filesystem::path p{ path };
   auto fontName = p.stem().string();
-
-  m_loadedFonts.emplace( path,
-                         std::make_shared<resources::Font>( fontName,
-                                                            p.parent_path().string() + "/" + fontName + ".json",
-                                                            p.parent_path().string() + "/" + fontName + ".png" ) );
+  std::unique_ptr<resources::Font> font = std::make_unique<resources::Font>(
+    fontName, p.parent_path().string() + "/" + fontName + ".json", p.parent_path().string() + "/" + fontName + ".png" );
+  m_loadedFonts.emplace( p.parent_path().string(), std::move( font ) );
 }
 
-auto core::AssetManager::getMesh( const std::string& path ) -> std::optional<resources::Mesh*>
+auto core::AssetManager::getMesh( const std::string& path ) -> resources::Mesh*
 {
+  std::filesystem::path p = std::filesystem::path{ path };
   if ( m_loadedMeshes.contains( path ) )
-    return std::optional<resources::Mesh*>( m_loadedMeshes.at( path ).get() );
+    return m_loadedMeshes[path].get();
 
-  auto p = std::filesystem::path{ path };
-  auto opt = std::optional<resources::Mesh*>{ loadMesh( p.stem().string(), p.string() ) };
-
-  return opt;
+  return loadMesh( p.stem().string(), p.string() );
 }
 
 auto core::AssetManager::createIndexBuffer( resources::Mesh* pMesh ) -> void
@@ -463,7 +464,6 @@ auto core::AssetManager::allocateBindlessDescriptorSet() -> void
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 
-  // this is the global descriptor pool
   allocInfo.descriptorPool = m_pDescriptorPool;
   allocInfo.descriptorSetCount = 1;
   allocInfo.pSetLayouts = &m_bindlessTexturesDescriptor.layout;
@@ -492,39 +492,42 @@ auto core::AssetManager::updateBindlessTextures( resources::Texture* pTexture ) 
                                                   .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                                                   .pImageInfo = &imageInfo };
 
+  ++m_bindlessTexturesIndex;
+
   m_vkCtx->device->updateDescriptorSet( { bindlessDescriptor } );
 }
 
 auto core::AssetManager::createMaterialsDescriptorSet() -> void
 {
-  VkDescriptorBufferInfo bufferInfo{};
-  bufferInfo.buffer = m_materialsBuffer.vkBuffer;
-  bufferInfo.offset = 0;
-  bufferInfo.range = sizeof( resources::Material );
+  uint32_t descriptorCount{ 500 };
 
-  auto shaderStorageBufferDescriptor = VkWriteDescriptorSet{
-    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-    .dstSet = m_materialsDescriptor.set,
-    .dstBinding = 0,
-    .descriptorCount = 1,
-    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-    .pBufferInfo = &bufferInfo,
-  };
+  VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{};
+  variableCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
+  variableCountInfo.descriptorSetCount = 1;
+  variableCountInfo.pDescriptorCounts = &descriptorCount;
 
-  m_vkCtx->device->updateDescriptorSet( { shaderStorageBufferDescriptor } );
+  VkDescriptorSetAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+
+  allocInfo.descriptorPool = m_pDescriptorPool;
+  allocInfo.descriptorSetCount = 1;
+  allocInfo.pSetLayouts = &m_materialsDescriptor.layout;
+  allocInfo.pNext = &variableCountInfo;
+
+  m_vkCtx->device->allocateDescriptorSet( m_materialsDescriptor.set, allocInfo );
 }
 
 auto core::AssetManager::createMaterialsDescriptorSetLayout() -> void
 {
-  VkDescriptorSetLayoutBinding materialsBufferBinding{};
-  materialsBufferBinding.binding = 0;
-  materialsBufferBinding.descriptorCount = 1;
-  // this is a storage buffer(ssbo)
-  materialsBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  materialsBufferBinding.pImmutableSamplers = nullptr;
-  materialsBufferBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  VkDescriptorSetLayoutBinding bufferLayoutBinding{};
+  bufferLayoutBinding.binding = 0;
+  bufferLayoutBinding.descriptorCount = 500;
+  bufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+  bufferLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-  VkDescriptorBindingFlags flags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+  VkDescriptorBindingFlags flags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+                                   VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+                                   VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
 
   VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags{};
   bindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
@@ -534,7 +537,7 @@ auto core::AssetManager::createMaterialsDescriptorSetLayout() -> void
   VkDescriptorSetLayoutCreateInfo layoutInfo{};
   layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   layoutInfo.bindingCount = 1;
-  layoutInfo.pBindings = &materialsBufferBinding;
+  layoutInfo.pBindings = &bufferLayoutBinding;
   layoutInfo.pNext = &bindingFlags;
   layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 
@@ -543,21 +546,29 @@ auto core::AssetManager::createMaterialsDescriptorSetLayout() -> void
 
 auto core::AssetManager::allocateMaterialsDescriptorSet() -> void
 {
+  uint32_t descriptorCount{ 500 };
+
+  VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{};
+  variableCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
+  variableCountInfo.descriptorSetCount = 1;
+  variableCountInfo.pDescriptorCounts = &descriptorCount;
+
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+
   allocInfo.descriptorPool = m_pDescriptorPool;
   allocInfo.descriptorSetCount = 1;
   allocInfo.pSetLayouts = &m_materialsDescriptor.layout;
-  allocInfo.pNext = nullptr;
+  allocInfo.pNext = &variableCountInfo;
 
   m_vkCtx->device->allocateDescriptorSet( m_materialsDescriptor.set, allocInfo );
 }
 
-auto core::AssetManager::createMaterialsBuffers() -> void
+auto core::AssetManager::createMaterialsBuffers( VkDeviceSize size ) -> void
 {
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  bufferInfo.size = sizeof( resources::Material );
+  bufferInfo.size = size;
   bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
   VmaAllocationCreateInfo vmaAllocInfo{};
@@ -569,11 +580,31 @@ auto core::AssetManager::createMaterialsBuffers() -> void
 
 auto core::AssetManager::updateMaterialsBuffer() -> void
 {
-  vmaCopyMemoryToAllocation( m_vkCtx->device->getAllocator(),
-                             m_materials.data(),
-                             m_materialsBuffer.vmaAllocation,
-                             0,
-                             sizeof( resources::Material ) * m_materials.size() );
+
+  m_vkCtx->device->destroyBuffer( m_materialsBuffer );
+
+  VkDeviceSize totalSize = m_materials.size() * sizeof( resources::Material );
+
+  createMaterialsBuffers( totalSize );
+
+  VkDescriptorBufferInfo buffInfo{};
+  buffInfo.buffer = m_materialsBuffer.vkBuffer;
+  buffInfo.offset = 0;
+  buffInfo.range = VK_WHOLE_SIZE;
+
+  auto bindlessDescriptor = VkWriteDescriptorSet{
+    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+    .dstSet = m_materialsDescriptor.set,
+    .dstBinding = 0,
+    .dstArrayElement = 0,
+    .descriptorCount = 1,
+    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    .pBufferInfo = &buffInfo,
+  };
+
+  ++m_bindlessMaterialIndex;
+  m_vkCtx->device->copyDataToBuffer( m_materials, m_materialsBuffer, totalSize );
+  m_vkCtx->device->updateDescriptorSet( { bindlessDescriptor } );
 }
 
 auto core::AssetManager::getMaterialsDescriptorLayout() -> VkDescriptorSetLayout&
@@ -596,12 +627,12 @@ auto core::AssetManager::getBindlessDescriptorSet() -> VkDescriptorSet&
   return m_bindlessTexturesDescriptor.set;
 }
 
-auto core::AssetManager::getMeshes() -> std::unordered_map<std::string, std::shared_ptr<resources::Mesh>>&
+auto core::AssetManager::getMeshes() -> std::unordered_map<std::string, std::unique_ptr<resources::Mesh>>&
 {
   return m_loadedMeshes;
 }
 
-auto core::AssetManager::getTextures() -> std::unordered_map<std::string, std::shared_ptr<resources::Texture>>&
+auto core::AssetManager::getTextures() -> std::unordered_map<std::string, std::unique_ptr<resources::Texture>>&
 {
   return m_loadedTextures;
 }

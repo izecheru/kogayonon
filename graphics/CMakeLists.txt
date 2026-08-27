@@ -7,7 +7,6 @@ set(HEADER_FILES
 	"include/graphics/vulkan_context.hpp"
 	"include/graphics/vulkan_buffer.hpp"
 	"include/graphics/vulkan_descriptor.hpp"
-	"include/graphics/vulkan_defines.hpp"
 	"include/graphics/vulkan_image.hpp"
 	"include/graphics/shader_compiler.hpp"
 	"include/graphics/utils.hpp"
@@ -31,8 +30,7 @@ if(KOGAYONON_ENABLE_TRACY)
 endif()
 
 add_library(graphics ${HEADER_FILES} ${SOURCE_FILES})
-# this tells the engine that we must provide the binding description for vertex
-# in pipeline creation
+
 target_compile_definitions(graphics PUBLIC VERTEX_PROVIDED)
 
 target_include_directories(graphics PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")

@@ -40,26 +40,25 @@ void core::AssimpLoader::releaseScene()
 
 void core::AssimpLoader::loadMesh( const std::string& path, resources::Mesh* m, std::vector<aiMaterial*>& materials )
 {
-  auto& vertices = m->getVertices();
-  auto& indices = m->getIndices();
-  auto& submeshes = m->getSubmeshes();
-  auto scene = readFile( path );
+  std::vector<resources::Vertex>& vertices = m->getVertices();
+  std::vector<uint32_t>& indices = m->getIndices();
+  std::vector<resources::Submesh>& submeshes = m->getSubmeshes();
+  const aiScene* scene = readFile( path );
 
   for ( auto i = 0u; i < scene->mNumMeshes; i++ )
   {
-    auto& mesh = scene->mMeshes[i];
+    aiMesh* mesh = scene->mMeshes[i];
 
-    // check for textures
     if ( mesh->mMaterialIndex >= 0 )
     {
-      auto material = scene->mMaterials[mesh->mMaterialIndex];
+      aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
       materials.push_back( material );
     }
   }
 
   for ( auto i = 0u; i < scene->mNumMeshes; i++ )
   {
-    auto& mesh = scene->mMeshes[i];
+    aiMesh* mesh = scene->mMeshes[i];
 
     std::vector<resources::Vertex> localVertices;
     std::vector<uint32_t> localIndices;
@@ -77,7 +76,7 @@ void core::AssimpLoader::loadMesh( const std::string& path, resources::Mesh* m, 
     }
     for ( auto j = 0u; j < mesh->mNumFaces; j++ )
     {
-      auto& face = mesh->mFaces[j];
+      aiFace& face = mesh->mFaces[j];
       for ( auto x = 0u; x < face.mNumIndices; x++ )
       {
         localIndices.emplace_back( face.mIndices[x] );
@@ -90,11 +89,6 @@ void core::AssimpLoader::loadMesh( const std::string& path, resources::Mesh* m, 
     localSubmeshes.emplace_back( resources::Submesh{ .vertexOffset = vertexOffset,
                                                      .indexOffset = indexOffset,
                                                      .indexCount = static_cast<uint32_t>( localIndices.size() ) } );
-
-    // for ( auto& idx : localIndices )
-    //{
-    //   idx += vertexOffset;
-    // }
 
     vertices.insert( vertices.end(), localVertices.begin(), localVertices.end() );
     indices.insert( indices.end(), localIndices.begin(), localIndices.end() );

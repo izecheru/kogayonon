@@ -37,21 +37,16 @@ struct PushConstant
 [[vk::binding( 0, 0 )]]
 ConstantBuffer<Camera> camera;
 
-// descriptor 0 set 2
+// descriptor 0 set 1
 [[vk::binding( 0, 1 )]]
 Sampler2D bindlessTextures[];
 
-// descriptor 0 set 3
+// descriptor 0 set 2
 [[vk::binding( 0, 2 )]]
-StructuredBuffer<MaterialDescription, ScalarDataLayout> materials;
+StructuredBuffer<MaterialDescription> materials;
 
 [[vk::push_constant]]
 PushConstant push;
-
-MaterialDescription getMaterial( int materialIndex )
-{
-  return materials[materialIndex];
-}
 
 // VERTEX
 [shader( "vertex" )]
@@ -73,17 +68,25 @@ FragmentOutput fragmentMain( VertexOutput input )
 {
   FragmentOutput output;
 
-  MaterialDescription material = getMaterial( push.materialIndex );
+  // If no texture, use a bright magenta to make it obvious
+  float4 diffuseColor = float4( 1.0, 0.0, 1.0, 1.0 );
 
-  float4 diffuseColor = float4( 0.3, 0.3, 0.3, 1.0 );
-  float3 normalColor = float3( 0.5, 0.5, 1.0 );
+  int diffuseIndex = materials[push.materialIndex].diffuseIndex;
+  int specularIndex = materials[push.materialIndex].specularIndex;
+  int normalIndex = materials[push.materialIndex].normalIndex;
 
-  if ( material.diffuseIndex != -1 )
+  if ( diffuseIndex != -1 )
   {
-    diffuseColor = bindlessTextures[NonUniformResourceIndex( material.diffuseIndex )].Sample( input.fragTexCoord );
+    diffuseColor = bindlessTextures[NonUniformResourceIndex( diffuseIndex )].Sample( input.fragTexCoord );
+  }
+  else if ( diffuseIndex == -1 && normalIndex == -1 && specularIndex == -1 )
+  {
+    // use the default material
+    diffuseColor = bindlessTextures[NonUniformResourceIndex( 0 )].Sample( input.fragTexCoord );
   }
 
   output.outColor = diffuseColor;
+
   return output;
 }
 

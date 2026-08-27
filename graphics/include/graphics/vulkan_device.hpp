@@ -76,10 +76,10 @@ public:
    * @param usage
    * @param bufferName
    */
-  void createBuffer( VulkanBuffer& vulkanBuffer,
+  auto createBuffer( VulkanBuffer& vulkanBuffer,
                      VkBufferCreateInfo& createInfo,
                      VmaAllocationCreateInfo& usage,
-                     std::string_view bufferName = "" );
+                     std::string_view bufferName = "" ) -> void;
 
   /**
    * @brief Create frame in flight buffer
@@ -87,9 +87,10 @@ public:
    * @param createInfo
    * @param usage
    */
-  void createBuffer( FrameInFlightVulkanBuffer& vulkanBuffer,
+  auto createBuffer( FrameInFlightVulkanBuffer& vulkanBuffer,
                      VkBufferCreateInfo& createInfo,
-                     VmaAllocationCreateInfo& usage );
+                     VmaAllocationCreateInfo& usage,
+                     std::string_view name ) -> void;
 
   /**
    * @brief Create staging buffer, used primarely for small operations like copying data into other buffers
@@ -105,32 +106,10 @@ public:
   template <typename T>
   auto copyDataToBuffer( T& data, VulkanBuffer& buffer, VkDeviceSize size ) -> void;
 
+  template <typename T>
+  auto copyDataToBuffer( const std::vector<T> data, VulkanBuffer& buffer, VkDeviceSize size ) -> void;
+
   auto invalidateAllocation( VulkanBuffer& vulkanBuffer, VkDeviceSize offset, VkDeviceSize size ) const -> void;
-
-  /**
-   * @brief Map buffer
-   * @param vulkanBuffer
-   */
-  void mapBuffer( VulkanBuffer& vulkanBuffer ) const;
-  void mapBuffer( VulkanBuffer& vulkanBuffer, void* data ) const;
-
-  /**
-   * @brief Map frame in flight buffer
-   * @param vulkanBuffer
-   */
-  void mapBuffer( FrameInFlightVulkanBuffer& vulkanBuffer ) const;
-
-  /**
-   * @brief Unmap buffer
-   * @param vulkanBuffer
-   */
-  void unmapBuffer( VulkanBuffer& vulkanBuffer ) const;
-
-  /**
-   * @brief Unmap frame in flight buffer
-   * @param vulkanBuffer
-   */
-  void unmapBuffer( FrameInFlightVulkanBuffer& vulkanBuffer ) const;
 
   /**
    * @brief Create image

@@ -583,11 +583,6 @@ void graphics::VulkanDevice::createBuffer( VulkanBuffer& vulkanBuffer,
   VK_CALL(
     vmaCreateBuffer( m_allocator, &createInfo, &usage, &vulkanBuffer.vkBuffer, &vulkanBuffer.vmaAllocation, nullptr ) );
 
-  if ( usage.flags & VMA_ALLOCATION_CREATE_MAPPED_BIT )
-  {
-    mapBuffer( vulkanBuffer );
-  }
-
   if ( !bufferName.empty() )
   {
     K_INFO( "[BUFF_ALLOC] {} {}", bufferName, formatSize( static_cast<double>( createInfo.size ) ) );
@@ -603,11 +598,14 @@ void graphics::VulkanDevice::createBuffer( VulkanBuffer& vulkanBuffer,
 
 void graphics::VulkanDevice::createBuffer( FrameInFlightVulkanBuffer& vulkanBuffer,
                                            VkBufferCreateInfo& createInfo,
-                                           VmaAllocationCreateInfo& usage )
+                                           VmaAllocationCreateInfo& usage,
+                                           std::string_view name )
 {
+  uint32_t index{ 0u };
   for ( auto& buffer : vulkanBuffer.buffers )
   {
-    createBuffer( buffer, createInfo, usage );
+    std::string buffName = std::string{ name } + std::to_string( index++ );
+    createBuffer( buffer, createInfo, usage, buffName );
   }
 }
 
@@ -687,42 +685,6 @@ auto graphics::VulkanDevice::invalidateAllocation( VulkanBuffer& vulkanBuffer,
   vmaInvalidateAllocation( m_allocator, vulkanBuffer.vmaAllocation, offset, size );
 }
 
-auto graphics::VulkanDevice::mapBuffer( VulkanBuffer& vulkanBuffer ) const -> void
-{
-  auto info = getAllocInfo( vulkanBuffer.vmaAllocation );
-  if ( info.pName )
-  {
-    K_INFO( "Buffer {} mappedData", info.pName );
-  }
-  vmaMapMemory( m_allocator, vulkanBuffer.vmaAllocation, &vulkanBuffer.mappedData );
-}
-
-auto graphics::VulkanDevice::mapBuffer( FrameInFlightVulkanBuffer& vulkanBuffer ) const -> void
-{
-  for ( auto& buff : vulkanBuffer.buffers )
-  {
-    vmaMapMemory( m_allocator, buff.vmaAllocation, &buff.mappedData );
-  }
-}
-
-auto graphics::VulkanDevice::unmapBuffer( VulkanBuffer& vulkanBuffer ) const -> void
-{
-  auto info = getAllocInfo( vulkanBuffer.vmaAllocation );
-  if ( info.pName )
-  {
-    K_INFO( "Unmapping buffer {}", info.pName );
-  }
-  vmaUnmapMemory( m_allocator, vulkanBuffer.vmaAllocation );
-}
-
-auto graphics::VulkanDevice::unmapBuffer( FrameInFlightVulkanBuffer& vulkanBuffer ) const -> void
-{
-  for ( auto& buff : vulkanBuffer.buffers )
-  {
-    vmaUnmapMemory( m_allocator, buff.vmaAllocation );
-  }
-}
-
 auto graphics::VulkanDevice::destroyImage( VkImage& image, VmaAllocation& allocation ) -> void
 {
   if ( image == VK_NULL_HANDLE )
@@ -777,11 +739,6 @@ auto graphics::VulkanDevice::destroyBuffer( VulkanBuffer& buff ) -> void
   else
   {
     K_INFO( "[BUFF_DEALLOC] size {}", formatSize( info.size ) );
-  }
-
-  if ( buff.mappedData )
-  {
-    unmapBuffer( buff );
   }
 
   vmaDestroyBuffer( m_allocator, buff.vkBuffer, buff.vmaAllocation );
@@ -1093,7 +1050,6 @@ auto graphics::VulkanDevice::transitionImageLayout( VkImage image,
                                                     VkCommandBuffer cmdBuffer,
                                                     ImageTransitionData transitionData ) -> void
 {
-
   VkImageMemoryBarrier2 transferBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                                          .srcStageMask = transitionData.srcStage,
                                          .srcAccessMask = transitionData.srcAccess,
@@ -1218,7 +1174,6 @@ auto graphics::VulkanDevice::copyImageToBuffer(
   VkImage image, VkCommandBuffer cmdBuffer, VkBuffer buffer, VkOffset3D offset, VkExtent3D extent, bool applyBarrier )
   -> void
 {
-
   VkBufferImageCopy region{};
   region.bufferOffset = 0;
   region.bufferRowLength = 0;
@@ -1333,6 +1288,5 @@ auto graphics::VulkanDevice::createTimelineSemaphore( VkSemaphore& timeline,
                                                       VkSemaphoreTypeCreateInfo info,
                                                       VkSemaphoreCreateInfo createInfo ) const -> void
 {
-
   VK_CALL( vkCreateSemaphore( m_platform.device, &createInfo, NULL, &timeline ) );
 }

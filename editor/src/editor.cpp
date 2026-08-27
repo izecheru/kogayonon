@@ -344,6 +344,8 @@ bool editor::Editor::initMainRegistry()
 
   auto cameraComponent = core::PerspectiveCameraComponent{};
 
+  cameraComponent.props.farView = 3000.0f;
+
   cameraComponent.ubo.view =
     glm::lookAt( cameraComponent.props.eye, cameraComponent.props.center, cameraComponent.props.up );
 
@@ -364,8 +366,8 @@ bool editor::Editor::initMainRegistry()
 void editor::Editor::createDescriptorPool()
 {
   std::vector<VkDescriptorPoolSize> poolSizes{
-    { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_FRAMES_IN_FLIGHT },
-    { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, MAX_FRAMES_IN_FLIGHT },
+    { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 500 },
+    { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 500 },
     { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_TEXTURE_NUM },
   };
 

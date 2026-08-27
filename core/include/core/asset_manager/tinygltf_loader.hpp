@@ -5,15 +5,15 @@ namespace core
 {
 class TinyGltfLoader
 {
-  public:
-	TinyGltfLoader() = default;
-	~TinyGltfLoader() = default;
+public:
+  TinyGltfLoader() = default;
+  ~TinyGltfLoader() = default;
 
-	auto loadModel( std::string_view path ) -> void;
+  auto loadModel( std::string_view path ) -> void;
 
-  private:
-	tg3_parse_options m_opts;
-	tg3_error_stack m_errors;
-	tg3_model m_model;
+private:
+  tg3_parse_options m_opts;
+  tg3_error_stack m_errors;
+  tg3_model m_model;
 };
 } // namespace core

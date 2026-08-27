@@ -9,8 +9,7 @@ namespace graphics
 struct VulkanBuffer
 {
   VkBuffer vkBuffer{ VK_NULL_HANDLE };
-  VmaAllocation vmaAllocation{ nullptr };
-  void* mappedData;
+  VmaAllocation vmaAllocation{ VK_NULL_HANDLE };
 };
 
 /**

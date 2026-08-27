@@ -60,6 +60,11 @@ public:
     return m_path;
   }
 
+  inline auto setPath( const std::string& path ) -> void
+  {
+    m_path = path;
+  }
+
 private:
   std::vector<Texture*> m_textures;
   std::vector<Vertex> m_vertices;

@@ -107,11 +107,22 @@ inline auto graphics::VulkanDevice::updateBuffer( std::vector<T>& vectorData,
 template <typename T>
 inline auto graphics::VulkanDevice::copyBufferData( T& data, VulkanBuffer& buffer, VkDeviceSize size ) -> void
 {
-  std::memcpy( &data, buffer.mappedData, size );
+  VmaAllocationInfo info = getAllocInfo( buffer.vmaAllocation );
+  std::memcpy( &data, info.pMappedData, size );
 }
 
 template <typename T>
 inline auto graphics::VulkanDevice::copyDataToBuffer( T& data, VulkanBuffer& buffer, VkDeviceSize size ) -> void
 {
-  std::memcpy( buffer.mappedData, &data, size );
+  VmaAllocationInfo info = getAllocInfo( buffer.vmaAllocation );
+  std::memcpy( info.pMappedData, &data, size );
+}
+
+template <typename T>
+inline auto graphics::VulkanDevice::copyDataToBuffer( const std::vector<T> data,
+                                                      VulkanBuffer& buffer,
+                                                      VkDeviceSize size ) -> void
+{
+  VmaAllocationInfo info = getAllocInfo( buffer.vmaAllocation );
+  std::memcpy( info.pMappedData, data.data(), size );
 }

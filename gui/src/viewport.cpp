@@ -346,7 +346,7 @@ void gui::Viewport::drawEntityMenu()
 
       if ( ImGui::MenuItem( "Cube" ) )
       {
-        filename = "cub";
+        filename = "cube";
         selected = true;
       }
 

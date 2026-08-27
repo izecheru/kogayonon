@@ -285,7 +285,6 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
 
       geometryPipeline.bind( buffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
 
-      // camera descriptor, this is tripple buffered to ensure operations are not overwritten by cpu/ gpu
       vkCmdBindDescriptorSets( buffer,
                                VK_PIPELINE_BIND_POINT_GRAPHICS,
                                geometryPipeline.getLayout(),
@@ -295,7 +294,6 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
                                0,
                                nullptr );
 
-      // this is the bindless texture set
       vkCmdBindDescriptorSets( buffer,
                                VK_PIPELINE_BIND_POINT_GRAPHICS,
                                geometryPipeline.getLayout(),

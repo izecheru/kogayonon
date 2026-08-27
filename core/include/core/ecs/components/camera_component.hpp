@@ -51,7 +51,7 @@ struct OrthoCameraProps
   float zoom{ 1.0f };
   float aspect{ 1.0f };
   float nearView{ 0.1f };
-  float farView{ 1000.0f };
+  float farView{ 3000.0f };
 };
 
 struct OrthoUbo
