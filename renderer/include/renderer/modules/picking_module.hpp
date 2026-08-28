@@ -4,6 +4,7 @@
 #include "graphics/vulkan_image.hpp"
 #include "graphics/vulkan_pipeline.hpp"
 #include "renderer/frame_graph.hpp"
+#include "renderer/modules/module_base.hpp"
 #include "renderer/modules/module_descriptor.hpp"
 #include "renderer/modules/module_rendering_info.hpp"
 
@@ -36,7 +37,7 @@ struct PickingModuleData
   ModuleRenderingInfo renderingInfo;
 };
 
-class PickingModule
+class PickingModule : public BaseModule
 {
 public:
   explicit PickingModule( graphics::VulkanContext* vkCtx,
@@ -46,14 +47,16 @@ public:
                           ModuleDescriptorData descriptorData );
   ~PickingModule();
 
-  auto registerPasses() -> void;
+  auto registerPasses() -> void override;
   auto setCoords( glm::ivec2 coords ) -> void;
 
 private:
+  auto createModuleResources( VkExtent2D extent ) -> void override;
+  auto destroyModuleResources() -> void override;
+
   auto registerPickingPass() -> void;
   auto registerPickingReadbackPass() -> void;
   auto registerPickingEntityReadPass() -> void;
-  auto createModuleResources() -> void;
 
 private:
   glm::ivec2 m_mouseCoords;

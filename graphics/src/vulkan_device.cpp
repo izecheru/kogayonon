@@ -983,7 +983,8 @@ auto graphics::VulkanDevice::createSampler( VkSampler& sampler ) const -> void
 auto graphics::VulkanDevice::createImageView( VkImageView& imageView,
                                               VkImage& image,
                                               VkFormat format,
-                                              VkImageAspectFlags aspectFlags ) const -> void
+                                              VkImageAspectFlags aspectFlags,
+                                              std::string_view imageViewName ) -> void
 {
   VkImageViewCreateInfo viewInfo{};
   viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -997,13 +998,8 @@ auto graphics::VulkanDevice::createImageView( VkImageView& imageView,
   viewInfo.subresourceRange.layerCount = 1;
 
   VK_CALL( vkCreateImageView( m_platform.device, &viewInfo, nullptr, &imageView ) );
-}
 
-auto graphics::VulkanDevice::createImageView( VulkanImage& image,
-                                              VkFormat format,
-                                              VkImageAspectFlags aspectFlags ) const -> void
-{
-  createImageView( image.vkImageView, image.vkImage, format, aspectFlags );
+  setDebugName( vulkanTypeToObject<VkImageView>(), reinterpret_cast<uint64_t>( imageView ), imageViewName );
 }
 
 auto graphics::VulkanDevice::transitionImageLayout( VkImage image, ImageTransitionData transitionData ) -> void

@@ -1,5 +1,5 @@
 #pragma once
-#include "graphics/vulkan_defines.hpp"
+
 #include "graphics/vulkan_image.hpp"
 #include "precompiled/pch.hpp"
 #include <glm/glm.hpp>

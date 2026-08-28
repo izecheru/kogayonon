@@ -33,7 +33,11 @@ auto rendering::FrameGraph::createResource( std::string_view name,
   }
 
   m_device->createImage( res->vulkanImage, imageInfo, imageAllocInfo, resName );
-  m_device->createImageView( res->vulkanImage, imageInfo.format, aspect );
+  m_device->createImageView( res->vulkanImage.vkImageView,
+                             res->vulkanImage.vkImage,
+                             imageInfo.format,
+                             aspect,
+                             std::string{ resName + "_imageView" } );
 
   return m_container.resources.back().get();
 }

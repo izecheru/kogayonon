@@ -13,7 +13,7 @@
 #include "gui/vulkan_imgui_renderer.hpp"
 #include "renderer/blackboard.hpp"
 #include "renderer/frame_graph.hpp"
-#include "renderer/modules/geometry_module.hpp"
+#include "renderer/modules/prepass_module.hpp"
 #include "resources/mesh_push_constant.hpp"
 #include "resources/vertex.hpp"
 #include "utilities/tracy_utils/tracy_utils.hpp"
@@ -33,19 +33,13 @@ rendering::PickingModule::PickingModule( graphics::VulkanContext* vkCtx,
     , m_moduleDescriptorData{ descriptorData }
     , m_lastFrameIndex{ -1 }
 {
-  createModuleResources();
+  createModuleResources( extent );
   registerPasses();
 }
 
 rendering::PickingModule::~PickingModule()
 {
-  PickingModuleData& pickingData = m_graph->getBlackboard()->get<PickingModuleData>();
-
-  m_vkCtx->device->destroyBuffer( pickingData.pickingBuffer );
-  m_vkCtx->device->destroyImageView( pickingData.color->vulkanImage.vkImageView );
-  m_vkCtx->device->destroyImage( pickingData.color->vulkanImage.vkImage, pickingData.color->vulkanImage.vmaAllocation );
-  m_vkCtx->device->destroyPipelineLayout( pickingData.pickingPipeline.getLayout() );
-  m_vkCtx->device->destroyPipeline( pickingData.pickingPipeline.getPipeline() );
+  destroyModuleResources();
 }
 
 auto rendering::PickingModule::registerPasses() -> void
@@ -94,10 +88,10 @@ auto rendering::PickingModule::registerPickingPass() -> void
     std::string{ passId::Picking },
     []( NodeBuilder& b, Blackboard* blackboard ) {
       PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
-      GeometryModuleData& geometryData = blackboard->get<GeometryModuleData>();
+      PrepassModuleData& prepassData = blackboard->get<PrepassModuleData>();
 
       b.write( pickingData.color, FGResourceType::Color );
-      b.read( geometryData.depth, FGResourceType::Depth );
+      b.read( prepassData.depth, FGResourceType::Depth );
     },
     [=, coords = &m_mouseCoords, readyToCopy = &m_readyToCopy, pickRequested = &m_pickRequested](
       VkCommandBuffer buffer ) {
@@ -110,7 +104,7 @@ auto rendering::PickingModule::registerPickingPass() -> void
 
       Blackboard* blackboard = m_graph->getBlackboard();
       PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
-      GeometryModuleData& geometryData = blackboard->get<GeometryModuleData>();
+      PrepassModuleData& prepassData = blackboard->get<PrepassModuleData>();
 
       pickingData.renderingInfo.colorAttachmentInfo =
         VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -122,7 +116,7 @@ auto rendering::PickingModule::registerPickingPass() -> void
 
       pickingData.renderingInfo.depthAttachmentInfo =
         VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                                   .imageView = geometryData.depth->vulkanImage.vkImageView,
+                                   .imageView = prepassData.depth->vulkanImage.vkImageView,
                                    .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
                                    .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
                                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -279,7 +273,7 @@ auto rendering::PickingModule::registerPickingEntityReadPass() -> void
     } );
 }
 
-auto rendering::PickingModule::createModuleResources() -> void
+auto rendering::PickingModule::createModuleResources( VkExtent2D extent ) -> void
 {
   m_graph->getBlackboard()->addToStorage<PickingModuleData>();
 
@@ -302,8 +296,8 @@ auto rendering::PickingModule::createModuleResources() -> void
     .format = VK_FORMAT_R32_SINT,
     .extent =
       {
-        .width = m_extent.width,
-        .height = m_extent.height,
+        .width = extent.width,
+        .height = extent.height,
         .depth = 1,
       },
     .mipLevels = 1,
@@ -318,4 +312,15 @@ auto rendering::PickingModule::createModuleResources() -> void
   VmaAllocationCreateInfo pickingColorAllocInfo{ .usage = VMA_MEMORY_USAGE_AUTO };
 
   pickingData.color = m_graph->createResource( "pickingColor", pickingColorInfo, pickingColorAllocInfo );
+}
+
+auto rendering::PickingModule::destroyModuleResources() -> void
+{
+  PickingModuleData& pickingData = m_graph->getBlackboard()->get<PickingModuleData>();
+
+  m_vkCtx->device->destroyBuffer( pickingData.pickingBuffer );
+  m_vkCtx->device->destroyImageView( pickingData.color->vulkanImage.vkImageView );
+  m_vkCtx->device->destroyImage( pickingData.color->vulkanImage.vkImage, pickingData.color->vulkanImage.vmaAllocation );
+  m_vkCtx->device->destroyPipelineLayout( pickingData.pickingPipeline.getLayout() );
+  m_vkCtx->device->destroyPipeline( pickingData.pickingPipeline.getPipeline() );
 }

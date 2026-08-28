@@ -71,6 +71,7 @@ auto graphics::VulkanPipeline::create( const VulkanPipelineSpec& spec, VulkanCon
   multisampling.sampleShadingEnable = VK_FALSE;
   multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
+  // TODO edit this color blend attachment if we want transparent bg for pngs that have it
   VkPipelineColorBlendAttachmentState colorBlendAttachment{};
   colorBlendAttachment.colorWriteMask =
     VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -82,10 +83,10 @@ auto graphics::VulkanPipeline::create( const VulkanPipelineSpec& spec, VulkanCon
   colorBlending.logicOp = VK_LOGIC_OP_COPY;
   colorBlending.attachmentCount = 1;
   colorBlending.pAttachments = &colorBlendAttachment;
-  colorBlending.blendConstants[0] = 0.0f;
-  colorBlending.blendConstants[1] = 0.0f;
-  colorBlending.blendConstants[2] = 0.0f;
-  colorBlending.blendConstants[3] = 0.0f;
+  colorBlending.blendConstants[0] = 1.0f;
+  colorBlending.blendConstants[1] = 1.0f;
+  colorBlending.blendConstants[2] = 1.0f;
+  colorBlending.blendConstants[3] = 1.0f;
 
   std::vector<VkDynamicState> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 

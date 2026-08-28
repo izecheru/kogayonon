@@ -1,5 +1,5 @@
 #pragma once
-#include "graphics/vulkan_defines.hpp"
+
 #include <vulkan/vulkan.h>
 
 namespace graphics

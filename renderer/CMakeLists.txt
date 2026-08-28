@@ -1,8 +1,10 @@
 # Define headers
 set(MODULE_HEADERS
     "include/renderer/modules/geometry_module.hpp"
+    "include/renderer/modules/prepass_module.hpp"
     "include/renderer/modules/picking_module.hpp"
     "include/renderer/modules/imgui_module.hpp"
+    "include/renderer/modules/module_base.hpp"
     "include/renderer/modules/module_descriptor.hpp"
     "include/renderer/modules/module_rendering_info.hpp"
 )
@@ -24,6 +26,7 @@ target_sources(renderer PRIVATE
     "src/frame_graph.cpp"
     "src/geometry_module.cpp"
     "src/imgui_module.cpp"
+    "src/prepass_module.cpp"
     "src/picking_module.cpp"
 )
 

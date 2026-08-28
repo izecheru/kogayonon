@@ -19,6 +19,7 @@
 #include "renderer/modules/geometry_module.hpp"
 #include "renderer/modules/imgui_module.hpp"
 #include "renderer/modules/picking_module.hpp"
+#include "renderer/modules/prepass_module.hpp"
 #include "resources/mesh_push_constant.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
 #include "utilities/tracy_utils/tracy_vulkan_utils.hpp"
@@ -46,6 +47,17 @@ rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Wi
   m_frameGraph = std::make_unique<FrameGraph>( m_vkCtx->device.get() );
 
   VkExtent2D extent = m_vkCtx->swapchain->getSwapchainExtent();
+
+  m_prepassModule = std::make_unique<PrepassModule>( m_frameGraph.get(),
+                                                     m_vkCtx,
+                                                     extent,
+                                                     ModuleDescriptorData{ .descriptorSetLayouts =
+                                                                             {
+                                                                               m_cameraDescriptor.layout,
+                                                                             },
+                                                                           .descriptorSets = {
+                                                                             m_cameraDescriptor.set,
+                                                                           } } );
 
   m_geometryModule = std::make_unique<GeometryModule>(
     m_frameGraph.get(),
@@ -97,7 +109,7 @@ auto rendering::VulkanRenderer::createCameraBuffers() -> void
 {
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  bufferInfo.size = sizeof( core::CameraUbo ) + 2;
+  bufferInfo.size = sizeof( core::CameraUbo );
   bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
   VmaAllocationCreateInfo vmaAllocInfo{};

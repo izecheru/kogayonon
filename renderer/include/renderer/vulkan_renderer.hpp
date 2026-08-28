@@ -18,6 +18,7 @@ class FrameGraph;
 class GeometryModule;
 class ImGuiModule;
 class PickingModule;
+class PrepassModule;
 } // namespace rendering
 
 enum DescriptorSetNum
@@ -84,5 +85,6 @@ private:
   std::unique_ptr<rendering::GeometryModule> m_geometryModule;
   std::unique_ptr<rendering::ImGuiModule> m_imguiModule;
   std::unique_ptr<rendering::PickingModule> m_pickingModule;
+  std::unique_ptr<rendering::PrepassModule> m_prepassModule;
 };
 } // namespace rendering

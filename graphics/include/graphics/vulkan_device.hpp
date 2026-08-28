@@ -132,7 +132,11 @@ public:
 
   auto createImageView( VkImageView& imageView, VkImage& image, VkFormat format, VkImageAspectFlags aspectFlags ) const
     -> void;
-  auto createImageView( VulkanImage& image, VkFormat format, VkImageAspectFlags aspectFlags ) const -> void;
+  auto createImageView( VkImageView& imageView,
+                        VkImage& image,
+                        VkFormat format,
+                        VkImageAspectFlags aspectFlags,
+                        std::string_view imageViewName = "" ) -> void;
 
   /**
    * @brief Transition image layout with a newly allocated one-time-use VkCommandBuffer
