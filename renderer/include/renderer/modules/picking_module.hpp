@@ -40,15 +40,14 @@ struct PickingModuleData
 class PickingModule : public BaseModule
 {
 public:
-  explicit PickingModule( graphics::VulkanContext* vkCtx,
-                          FrameGraph* graph,
-                          gui::VulkanImguiRenderer* imguiRenderer,
-                          VkExtent2D extent,
-                          ModuleDescriptorData descriptorData );
+  explicit PickingModule(
+    FrameGraph* graph, graphics::VulkanContext* vkCtx, gui::VulkanImguiRenderer* imguiRenderer, VkExtent2D extent, ModuleDescriptorData descriptorData );
   ~PickingModule();
 
   auto registerPasses() -> void override;
   auto setCoords( glm::ivec2 coords ) -> void;
+  auto setExtent( VkExtent2D extent ) -> void override;
+  auto recreate( VkExtent2D extent ) -> void override;
 
 private:
   auto createModuleResources( VkExtent2D extent ) -> void override;

@@ -62,6 +62,9 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
       b.write( prepassData.depth, FGResourceType::Depth );
     },
     [=]( VkCommandBuffer cmdBuffer ) {
+      if ( m_extent.width == 0 || m_extent.height == 0 )
+        return;
+
       PrepassModuleData& prepassData = m_graph->getBlackboard()->get<PrepassModuleData>();
 
       prepassData.renderingInfo.depthAttachmentInfo =
@@ -170,4 +173,16 @@ auto rendering::PrepassModule::destroyModuleResources() -> void
 
   m_vkCtx->device->destroyPipelineLayout( prepassData.depthPrepassPipeline.getLayout() );
   m_vkCtx->device->destroyPipeline( prepassData.depthPrepassPipeline.getPipeline() );
+}
+
+auto rendering::PrepassModule::setExtent( VkExtent2D extent ) -> void
+{
+  m_extent = extent;
+}
+
+auto rendering::PrepassModule::recreate( VkExtent2D extent ) -> void
+{
+  destroyModuleResources();
+  createModuleResources( extent );
+  registerPasses();
 }

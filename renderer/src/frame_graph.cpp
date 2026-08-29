@@ -68,6 +68,7 @@ auto rendering::FrameGraph::clearGraph() -> void
 
   for ( std::unique_ptr<FGResource>& resource : m_container.resources )
   {
+    resource->currentState = FGResourceState{ .type = FGResourceType::None, .accessType = FGResourceAccessType::None };
     resource->readerNodes.clear();
     resource->writerNodes.clear();
   }
@@ -101,6 +102,7 @@ auto rendering::FrameGraph::execute( VkCommandBuffer cmdBuff ) -> void
     {
       m_device->transitionImageLayout( resource->vulkanImage, cmdBuff, transition );
     }
+
     node->executeFunction( cmdBuff );
   }
 }

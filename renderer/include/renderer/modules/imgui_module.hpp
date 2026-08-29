@@ -18,8 +18,6 @@ class VulkanImguiRenderer;
 
 namespace rendering
 {
-// This should draw directly to the swapchain image and retrieve the
-// other drawn images like geometry and what not to set the viewport
 struct ImGuiModuleData
 {
   VkRenderingAttachmentInfo renderingAttachment{};
@@ -34,13 +32,14 @@ inline constexpr const char* ImGui = "imguiPass";
 class ImGuiModule
 {
 public:
-  explicit ImGuiModule( graphics::VulkanContext* vkCtx, FrameGraph* graph, gui::VulkanImguiRenderer* imguiRenderer );
+  explicit ImGuiModule( FrameGraph* graph, graphics::VulkanContext* vkCtx, gui::VulkanImguiRenderer* imguiRenderer );
   ~ImGuiModule();
 
-  void registerPasses();
+  auto registerPasses() -> void;
+  auto setViewport() -> void;
 
 private:
-  void registerImGuiPass();
+  auto registerImGuiPass() -> void;
 
 private:
   graphics::VulkanContext* m_vkCtx;

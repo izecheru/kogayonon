@@ -101,13 +101,13 @@ public:
   auto createStagingBuffer( VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& usage ) -> VulkanBuffer;
 
   template <typename T>
-  auto copyBufferData( T& data, VulkanBuffer& buffer, VkDeviceSize size ) -> void;
+  auto copyFromBuffer( T& data, VulkanBuffer& buffer ) -> void;
 
   template <typename T>
-  auto copyDataToBuffer( T& data, VulkanBuffer& buffer, VkDeviceSize size ) -> void;
+  auto copyToBuffer( T& data, VulkanBuffer& buffer ) -> void;
 
   template <typename T>
-  auto copyDataToBuffer( const std::vector<T> data, VulkanBuffer& buffer, VkDeviceSize size ) -> void;
+  auto copyToBuffer( std::vector<T>& data, VulkanBuffer& buffer ) -> void;
 
   auto invalidateAllocation( VulkanBuffer& vulkanBuffer, VkDeviceSize offset, VkDeviceSize size ) const -> void;
 
@@ -130,8 +130,6 @@ public:
                     VmaAllocationCreateInfo& usage,
                     std::string_view imageName = "" );
 
-  auto createImageView( VkImageView& imageView, VkImage& image, VkFormat format, VkImageAspectFlags aspectFlags ) const
-    -> void;
   auto createImageView( VkImageView& imageView,
                         VkImage& image,
                         VkFormat format,
@@ -161,9 +159,12 @@ public:
 
   auto createSampler( VkSampler& sampler ) const -> void;
   auto copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size ) const -> void;
+
   auto copyBufferToImage(
     VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, ImageTransitionData transitionData ) -> void;
+
   auto copyImageToBuffer( VkImage image, VkBuffer buffer, VkOffset3D offset, VkExtent3D extent ) -> void;
+
   auto copyImageToBuffer( VkImage image,
                           VkCommandBuffer cmdBuffer,
                           VkBuffer buffer,
@@ -395,6 +396,7 @@ public:
                             const std::vector<VkFormat>& candidates,
                             VkImageTiling tiling,
                             VkFormatFeatureFlags features ) -> VkFormat;
+
   auto findDepthFormat( VkPhysicalDevice device ) -> VkFormat;
 
   auto getDeviceProperties() const -> VkPhysicalDeviceProperties;

@@ -12,5 +12,6 @@ struct Material
   int normalTextureIndex{ -1 };
   int specularTextureIndex{ -1 };
   int diffuseTextureIndex{ -1 };
+  int emissiveTextureIndex{ -1 };
 };
 } // namespace resources

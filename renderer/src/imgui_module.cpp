@@ -7,8 +7,8 @@
 // TODO maybe move module data structs to a separate file each
 #include "renderer/modules/geometry_module.hpp"
 
-rendering::ImGuiModule::ImGuiModule( graphics::VulkanContext* vkCtx,
-                                     FrameGraph* graph,
+rendering::ImGuiModule::ImGuiModule( FrameGraph* graph,
+                                     graphics::VulkanContext* vkCtx,
                                      gui::VulkanImguiRenderer* imguiRenderer )
     : m_vkCtx{ vkCtx }
     , m_imguiRenderer{ imguiRenderer }
@@ -43,7 +43,6 @@ void rendering::ImGuiModule::registerImGuiPass()
         VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
                                    .imageView = m_vkCtx->swapchain->getImageAtAquiredIndex().vkImageView,
                                    .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                   // this clears the swapchain image
                                    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
                                    .clearValue = { { 1.f, 1.f, 1.f, 1.0f } } };
@@ -59,15 +58,15 @@ void rendering::ImGuiModule::registerImGuiPass()
 
       rendering::GeometryModuleData& geometryData{ m_graph->getBlackboard()->get<GeometryModuleData>() };
 
-      static bool first{ true };
-      if ( first )
-        m_imguiRenderer->setViewport( geometryData.color->vulkanImage.vkImageView );
-
-      first = false;
-
       m_vkCtx->swapchain->beginRendering( imguiData.renderingInfo );
       m_imguiRenderer->render();
       m_imguiRenderer->present( buffer );
       m_vkCtx->swapchain->endRendering();
     } );
+}
+
+auto rendering::ImGuiModule::setViewport() -> void
+{
+  GeometryModuleData& geometryData = m_graph->getBlackboard()->get<GeometryModuleData>();
+  m_imguiRenderer->setViewport( geometryData.color->vulkanImage.vkImageView );
 }

@@ -18,11 +18,8 @@
 #include "resources/vertex.hpp"
 #include "utilities/tracy_utils/tracy_utils.hpp"
 
-rendering::PickingModule::PickingModule( graphics::VulkanContext* vkCtx,
-                                         FrameGraph* graph,
-                                         gui::VulkanImguiRenderer* imguiRenderer,
-                                         VkExtent2D extent,
-                                         ModuleDescriptorData descriptorData )
+rendering::PickingModule::PickingModule(
+  FrameGraph* graph, graphics::VulkanContext* vkCtx, gui::VulkanImguiRenderer* imguiRenderer, VkExtent2D extent, ModuleDescriptorData descriptorData )
     : m_graph{ graph }
     , m_vkCtx{ vkCtx }
     , m_extent{ extent }
@@ -57,6 +54,18 @@ auto rendering::PickingModule::setCoords( glm::ivec2 coords ) -> void
   m_mouseCoords = coords;
 }
 
+auto rendering::PickingModule::setExtent( VkExtent2D extent ) -> void
+{
+  m_extent = extent;
+}
+
+auto rendering::PickingModule::recreate( VkExtent2D extent ) -> void
+{
+  destroyModuleResources();
+  createModuleResources( extent );
+  registerPasses();
+}
+
 auto rendering::PickingModule::registerPickingPass() -> void
 {
   Blackboard* blackboard = m_graph->getBlackboard();
@@ -66,18 +75,17 @@ auto rendering::PickingModule::registerPickingPass() -> void
   VkShaderModule vertex = m_vkCtx->device->createShaderModule( "picking", "vertexMain" );
   VkShaderModule fragment = m_vkCtx->device->createShaderModule( "picking", "fragmentMain" );
 
-  graphics::VulkanPipelineSpec defaultPipelineSpec{
-    .type = graphics::PipelineType::geometry,
-    .options = { .cullMode = VK_CULL_MODE_BACK_BIT, .polyMode = VK_POLYGON_MODE_FILL },
-    .descriptorLayout = m_moduleDescriptorData.descriptorSetLayouts,
-    .colorAttachmentFormat = { VK_FORMAT_R32_SINT },
-    .vertexModule = vertex,
-    .fragmentModule = fragment,
-    .pushConstantSize = sizeof( resources::EntityPickingPushConstant ),
-    .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-    .colorAttachmentCount = 1,
-    .vertexBindingDescription = resources::Vertex::getBindingDescription(),
-    .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions() };
+  graphics::VulkanPipelineSpec defaultPipelineSpec{ .type = graphics::PipelineType::geometry,
+                                                    .options = { .cullMode = VK_CULL_MODE_BACK_BIT, .polyMode = VK_POLYGON_MODE_FILL },
+                                                    .descriptorLayout = m_moduleDescriptorData.descriptorSetLayouts,
+                                                    .colorAttachmentFormat = { VK_FORMAT_R32_SINT },
+                                                    .vertexModule = vertex,
+                                                    .fragmentModule = fragment,
+                                                    .pushConstantSize = sizeof( resources::EntityPickingPushConstant ),
+                                                    .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                                    .colorAttachmentCount = 1,
+                                                    .vertexBindingDescription = resources::Vertex::getBindingDescription(),
+                                                    .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions() };
 
   pickingData.pickingPipeline.create( defaultPipelineSpec, m_vkCtx );
 
@@ -93,12 +101,14 @@ auto rendering::PickingModule::registerPickingPass() -> void
       b.write( pickingData.color, FGResourceType::Color );
       b.read( prepassData.depth, FGResourceType::Depth );
     },
-    [=, coords = &m_mouseCoords, readyToCopy = &m_readyToCopy, pickRequested = &m_pickRequested](
-      VkCommandBuffer buffer ) {
+    [=, coords = &m_mouseCoords, readyToCopy = &m_readyToCopy, pickRequested = &m_pickRequested]( VkCommandBuffer buffer ) {
       if ( ( coords->x == -1 && coords->y == -1 ) || *readyToCopy == true )
       {
         return;
       }
+
+      if ( m_extent.width == 0 || m_extent.height == 0 )
+        return;
 
       *pickRequested = true;
 
@@ -106,21 +116,19 @@ auto rendering::PickingModule::registerPickingPass() -> void
       PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
       PrepassModuleData& prepassData = blackboard->get<PrepassModuleData>();
 
-      pickingData.renderingInfo.colorAttachmentInfo =
-        VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                                   .imageView = pickingData.color->vulkanImage.vkImageView,
-                                   .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                   .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                                   .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                                   .clearValue = { { -1.0f, -1.0f, -1.0f, -1.0f } } };
+      pickingData.renderingInfo.colorAttachmentInfo = VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                                                                                 .imageView = pickingData.color->vulkanImage.vkImageView,
+                                                                                 .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                                                                 .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                                                                 .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                                                                                 .clearValue = { { -1.0f, -1.0f, -1.0f, -1.0f } } };
 
-      pickingData.renderingInfo.depthAttachmentInfo =
-        VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                                   .imageView = prepassData.depth->vulkanImage.vkImageView,
-                                   .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-                                   .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
-                                   .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                                   .clearValue = { .depthStencil = { 1.f, 0 } } };
+      pickingData.renderingInfo.depthAttachmentInfo = VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                                                                                 .imageView = prepassData.depth->vulkanImage.vkImageView,
+                                                                                 .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                                                                                 .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+                                                                                 .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                                                                                 .clearValue = { .depthStencil = { 1.f, 0 } } };
 
       pickingData.renderingInfo.vkRenderingInfo = VkRenderingInfo{
         .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
@@ -138,21 +146,13 @@ auto rendering::PickingModule::registerPickingPass() -> void
       graphics::VulkanPipeline& pickingPipeline = pickingData.pickingPipeline;
       pickingPipeline.bind( buffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
 
-      vkCmdBindDescriptorSets( buffer,
-                               VK_PIPELINE_BIND_POINT_GRAPHICS,
-                               pickingPipeline.getLayout(),
-                               0,
-                               1,
-                               &m_moduleDescriptorData.descriptorSets.at( 0 ),
-                               0,
-                               nullptr );
+      vkCmdBindDescriptorSets(
+        buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pickingPipeline.getLayout(), 0, 1, &m_moduleDescriptorData.descriptorSets.at( 0 ), 0, nullptr );
 
       core::Scene* scene = core::MainRegistry::getInstance().getSceneManager()->getCurrentScene();
 
       auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
-      view.each( [&]( const entt::entity& entityId,
-                      core::MeshComponent& meshComponent,
-                      core::TransformComponent& transform ) {
+      view.each( [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
         if ( !meshComponent.loaded )
           return;
 
@@ -162,8 +162,7 @@ auto rendering::PickingModule::registerPickingPass() -> void
         vkCmdBindIndexBuffer( buffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
         for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
         {
-          resources::EntityPickingPushConstant push{ .modelMatrix = transform.getMatrix(),
-                                                     .entityId = static_cast<int>( entityId ) };
+          resources::EntityPickingPushConstant push{ .modelMatrix = transform.getMatrix(), .entityId = static_cast<int>( entityId ) };
 
           vkCmdPushConstants( buffer,
                               pickingPipeline.getLayout(),
@@ -189,11 +188,10 @@ auto rendering::PickingModule::registerPickingReadbackPass() -> void
       PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
       b.read( pickingData.color, FGResourceType::ColorTransfer );
     },
-    [=,
-     lastFrameIndex = &m_lastFrameIndex,
-     coords = &m_mouseCoords,
-     pickRequested = &m_pickRequested,
-     readyToCopy = &m_readyToCopy]( VkCommandBuffer buffer ) {
+    [=, lastFrameIndex = &m_lastFrameIndex, coords = &m_mouseCoords, pickRequested = &m_pickRequested, readyToCopy = &m_readyToCopy]( VkCommandBuffer buffer ) {
+      if ( m_extent.width == 0 || m_extent.height == 0 )
+        return;
+
       Blackboard* blackboard = m_graph->getBlackboard();
       PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
 
@@ -223,11 +221,10 @@ auto rendering::PickingModule::registerPickingEntityReadPass() -> void
       PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
       b.read( pickingData.color, FGResourceType::ColorTransfer );
     },
-    [=,
-     lastFrameIndex = &m_lastFrameIndex,
-     coords = &m_mouseCoords,
-     pickRequested = &m_pickRequested,
-     readyToCopy = &m_readyToCopy]( VkCommandBuffer buffer ) {
+    [=, lastFrameIndex = &m_lastFrameIndex, coords = &m_mouseCoords, pickRequested = &m_pickRequested, readyToCopy = &m_readyToCopy]( VkCommandBuffer buffer ) {
+      if ( m_extent.width == 0 || m_extent.height == 0 )
+        return;
+
       if ( *lastFrameIndex == -1 )
       {
         *lastFrameIndex = m_vkCtx->swapchain->getCurrentFrameNumber();
@@ -240,31 +237,34 @@ auto rendering::PickingModule::registerPickingEntityReadPass() -> void
       if ( *lastFrameIndex == m_vkCtx->swapchain->getCurrentFrameNumber() )
         return;
 
+      entt::entity currentEntity = core::MainRegistry::getInstance().getSceneManager()->getEventHandler()->getCurrentEntityId();
+
+      if ( currentEntity != entt::null )
+      {
+        return;
+      }
+
       Blackboard* blackboard = m_graph->getBlackboard();
       PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
       core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
       core::Scene* scene = sceneManager->getCurrentScene();
 
       int32_t id{ -1 };
-      m_vkCtx->device->copyBufferData( id, pickingData.pickingBuffer.buffers.at( *lastFrameIndex ), sizeof( int32_t ) );
+      m_vkCtx->device->copyFromBuffer( id, pickingData.pickingBuffer.buffers.at( *lastFrameIndex ) );
       K_INFO( "id {}", id );
 
       if ( id != -1 )
       {
         entt::entity entity = static_cast<entt::entity>( id );
-        entt::entity currentEntity =
-          core::MainRegistry::getInstance().getSceneManager()->getEventHandler()->getCurrentEntityId();
-        if ( scene->getRegistry()->isValid( entity ) && currentEntity == entt::null )
+        if ( scene->getRegistry()->isValid( entity ) )
         {
           core::EventDispatcher* eventDispathcer = core::MainRegistry::getInstance().getEventDispatcher();
-          eventDispathcer->dispatchEvent<core::SelectEntityEvent>(
-            core::SelectEntityEvent{ entity, core::SelectEntityEventSource::Viewport_Window } );
+          eventDispathcer->dispatchEvent<core::SelectEntityEvent>( core::SelectEntityEvent{ entity, core::SelectEntityEventSource::Viewport_Window } );
         }
       }
 
       int32_t clearValue{ -1 };
-      m_vkCtx->device->copyDataToBuffer(
-        clearValue, pickingData.pickingBuffer.buffers.at( *lastFrameIndex ), sizeof( int32_t ) );
+      m_vkCtx->device->copyToBuffer( clearValue, pickingData.pickingBuffer.buffers.at( *lastFrameIndex ) );
 
       *lastFrameIndex = m_vkCtx->swapchain->getCurrentFrameNumber();
       coords->x = -1;

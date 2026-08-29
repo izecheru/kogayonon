@@ -58,12 +58,13 @@ public:
 
   auto render() -> void;
 
+protected:
   /**
    * @brief Initialize ImGui UI renderer
    */
   auto initImgui() -> void;
+  auto initModules() -> void;
 
-protected:
   auto onMouseClicked( const core::MouseClickedEvent& e ) -> void;
 
 private:
@@ -79,6 +80,7 @@ private:
   graphics::VulkanDescriptor m_cameraDescriptor;
   std::shared_ptr<gui::VulkanImguiRenderer> m_pImguiRenderer;
   glm::ivec2 m_mouseCoords;
+  VkExtent2D m_extent;
 
   SDL_Window* m_wnd;
 

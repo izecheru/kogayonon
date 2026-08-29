@@ -25,6 +25,7 @@ struct MaterialDescription
   int normalIndex;
   int specularIndex;
   int diffuseIndex;
+  int emissiveIndex;
 };
 
 struct PushConstant
@@ -74,6 +75,7 @@ FragmentOutput fragmentMain( VertexOutput input )
   int diffuseIndex = materials[push.materialIndex].diffuseIndex;
   int specularIndex = materials[push.materialIndex].specularIndex;
   int normalIndex = materials[push.materialIndex].normalIndex;
+  int emissiveIndex = materials[push.materialIndex].emissiveIndex;
 
   if ( diffuseIndex != -1 )
   {

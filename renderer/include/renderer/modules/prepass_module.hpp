@@ -36,6 +36,8 @@ public:
   ~PrepassModule();
 
   auto registerPasses() -> void override;
+  auto recreate( VkExtent2D extent ) -> void override;
+  auto setExtent( VkExtent2D extent ) -> void override;
 
 protected:
   auto createModuleResources( VkExtent2D extent ) -> void override;

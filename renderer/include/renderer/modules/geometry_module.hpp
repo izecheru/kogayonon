@@ -48,6 +48,7 @@ public:
   ~GeometryModule();
 
   auto setClearColor( glm::vec4 clearColor ) -> void;
+  auto setExtent( VkExtent2D extent ) -> void override;
 
   /**
    * @brief Create the pipelines from the module data and register
@@ -65,6 +66,8 @@ public:
 
   auto enableWireframe() -> void;
   auto disableWireframe() -> void;
+
+  auto recreate( VkExtent2D extent ) -> void override;
 
 protected:
   auto destroyModuleResources() -> void override;

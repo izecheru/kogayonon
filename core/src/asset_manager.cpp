@@ -215,6 +215,29 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
     resources::Material mat{};
     aiMaterial* material = materials.at( i );
 
+    if ( material->GetTextureCount( aiTextureType_EMISSIVE ) > 0 )
+    {
+      aiString str;
+      material->GetTexture( aiTextureType_EMISSIVE, 0, &str );
+
+      std::filesystem::path path =
+        std::filesystem::absolute( "." ) / ( "engine_resources\\" + std::string( str.C_Str() ) );
+
+      std::string key = std::filesystem::weakly_canonical( path ).string();
+      if ( !m_loadedTextures.contains( key ) )
+      {
+        K_INFO( "tex {} index {}", key, m_bindlessTexturesIndex );
+        mat.emissiveTextureIndex = m_bindlessTexturesIndex;
+        auto texture = loadTexture( path.stem().string(), key );
+        texture->setIndex( m_bindlessTexturesIndex );
+        updateBindlessTextures( texture );
+      }
+      else
+      {
+        mat.emissiveTextureIndex = getTexture( key )->getIndex();
+      }
+    }
+
     if ( material->GetTextureCount( aiTextureType_SPECULAR ) > 0 )
     {
       aiString str;
@@ -603,7 +626,7 @@ auto core::AssetManager::updateMaterialsBuffer() -> void
   };
 
   ++m_bindlessMaterialIndex;
-  m_vkCtx->device->copyDataToBuffer( m_materials, m_materialsBuffer, totalSize );
+  m_vkCtx->device->copyToBuffer( m_materials, m_materialsBuffer );
   m_vkCtx->device->updateDescriptorSet( { bindlessDescriptor } );
 }
 

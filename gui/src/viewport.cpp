@@ -81,8 +81,7 @@ void gui::Viewport::render()
       ImOGuizmo::SetDrawList( ImGui::GetWindowDrawList() );
       ImOGuizmo::SetRect( max.x - 110.0f, min.y + 10.0f, 100.0f );
       gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 11.0f, [&]() {
-        if ( ImOGuizmo::DrawGizmo(
-               glm::value_ptr( cameraComp.ubo.view ), glm::value_ptr( cameraComp.ubo.projection ), 0.1f ) )
+        if ( ImOGuizmo::DrawGizmo( glm::value_ptr( cameraComp.ubo.view ), glm::value_ptr( cameraComp.ubo.projection ), 0.1f ) )
         {
         }
       } );
@@ -94,8 +93,7 @@ void gui::Viewport::render()
   if ( currentEntity != entt::null && m_guizmoEnabled && !jolt->isRunning() )
   {
     ImGuizmo::Enable( true );
-    core::TransformComponent* transformComp =
-      scene->getRegistry()->tryGetComponent<core::TransformComponent>( currentEntity );
+    core::TransformComponent* transformComp = scene->getRegistry()->tryGetComponent<core::TransformComponent>( currentEntity );
     if ( transformComp )
     {
       ImGuizmo::SetOrthographic( false );
@@ -112,8 +110,7 @@ void gui::Viewport::render()
         }
       } );
 
-      core::PerspectiveCameraComponent& cameraComponent =
-        scene->getRegistry()->getComponent<core::PerspectiveCameraComponent>( cameraEntity );
+      core::PerspectiveCameraComponent& cameraComponent = scene->getRegistry()->getComponent<core::PerspectiveCameraComponent>( cameraEntity );
       glm::mat4 projection = cameraComponent.ubo.projection;
 
       // Unflip the projection
@@ -160,17 +157,15 @@ void gui::Viewport::render()
         // }
 
         // If the entity has a rigid body then update the position and rotation of that too
-        if ( core::RigidbodyComponent* pBody =
-               scene->getRegistry()->tryGetComponent<core::RigidbodyComponent>( currentEntity ) )
+        if ( core::RigidbodyComponent* pBody = scene->getRegistry()->tryGetComponent<core::RigidbodyComponent>( currentEntity ) )
         {
           // Now set position and rotation for the rigid body
           auto& bodyInterface = jolt->getPhysicsSystem().GetBodyInterface();
           auto quat = transformComp->getOrientation();
-          bodyInterface.SetPositionAndRotation(
-            pBody->body,
-            { transformComp->translation.x, transformComp->translation.y, transformComp->translation.z },
-            JPH::Quat{ quat.x, quat.y, quat.z, quat.w },
-            pBody->data.activation );
+          bodyInterface.SetPositionAndRotation( pBody->body,
+                                                { transformComp->translation.x, transformComp->translation.y, transformComp->translation.z },
+                                                JPH::Quat{ quat.x, quat.y, quat.z, quat.w },
+                                                pBody->data.activation );
         }
       }
     }
@@ -180,11 +175,10 @@ void gui::Viewport::render()
 
 auto gui::Viewport::setViewport( VkImageView imageView ) -> void
 {
-  assert( imageView );
-  ImGui_ImplVulkan_RemoveTexture( m_viewportDescriptor );
+  if ( m_viewportDescriptor != VK_NULL_HANDLE )
+    ImGui_ImplVulkan_RemoveTexture( m_viewportDescriptor );
 
-  m_viewportDescriptor =
-    ImGui_ImplVulkan_AddTexture( m_spec.sampler, imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+  m_viewportDescriptor = ImGui_ImplVulkan_AddTexture( m_spec.sampler, imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 }
 
 void gui::Viewport::drawToolbar()
@@ -199,14 +193,10 @@ void gui::Viewport::drawToolbar()
   ImGui::PushStyleColor( ImGuiCol_ChildBg, { 0.15f, 0.15f, 0.15f, 0.75f } );
 
   uint32_t buttonCount = 4u;
-  float toolbarWidth =
-    style.WindowPadding.x * 2.0f + ( 14.0f * buttonCount ) + ( style.ItemSpacing.x * buttonCount ) + ( 2.0f * 5.0f );
+  float toolbarWidth = style.WindowPadding.x * 2.0f + ( 14.0f * buttonCount ) + ( style.ItemSpacing.x * buttonCount ) + ( 2.0f * 5.0f );
 
   ImGui::BeginGroup();
-  if ( ImGui::BeginChild( "Toolbar",
-                          { toolbarWidth, 70.0f },
-                          false,
-                          ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse ) )
+  if ( ImGui::BeginChild( "Toolbar", { toolbarWidth, 70.0f }, false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse ) )
   {
 
     ImGui::PushStyleColor( ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f } );
@@ -233,35 +223,29 @@ void gui::Viewport::drawToolbar()
     ImGui::SameLine();
     if ( m_guizmoAxisLock == X )
     {
-      gui_utils::renderWithSizedFont(
-        m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "X" ); } );
+      gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "X" ); } );
     }
     else
     {
-      gui_utils::renderWithSizedFont(
-        m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "X" ); } );
+      gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "X" ); } );
     }
     ImGui::SameLine();
     if ( m_guizmoAxisLock == Y )
     {
-      gui_utils::renderWithSizedFont(
-        m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "Y" ); } );
+      gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "Y" ); } );
     }
     else
     {
-      gui_utils::renderWithSizedFont(
-        m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "Y" ); } );
+      gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "Y" ); } );
     }
     ImGui::SameLine();
     if ( m_guizmoAxisLock == Z )
     {
-      gui_utils::renderWithSizedFont(
-        m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "Z" ); } );
+      gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "Z" ); } );
     }
     else
     {
-      gui_utils::renderWithSizedFont(
-        m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "Z" ); } );
+      gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "Z" ); } );
     }
 
     currentPos = ImGui::GetCursorPos();
@@ -314,12 +298,10 @@ void gui::Viewport::drawEntityMenu()
   ImGui::PushStyleVar( ImGuiStyleVar_ChildRounding, 10.0f );
   ImGui::PushStyleColor( ImGuiCol_ChildBg, { 0.15f, 0.15f, 0.15f, 0.75f } );
 
-  if ( ImGui::Begin(
-         "##quickMenu", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove ) )
+  if ( ImGui::Begin( "##quickMenu", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove ) )
   {
     // Close the menu if we the mouse does not hover over the window but we detect a click
-    if ( !ImGui::IsWindowHovered( ImGuiHoveredFlags_RootAndChildWindows ) &&
-         ImGui::IsMouseClicked( ImGuiMouseButton_Left ) )
+    if ( !ImGui::IsWindowHovered( ImGuiHoveredFlags_RootAndChildWindows ) && ImGui::IsMouseClicked( ImGuiMouseButton_Left ) )
     {
       m_entityMenu = false;
       m_mouseCoords = { 0.0f, 0.0f };
@@ -388,8 +370,7 @@ void gui::Viewport::drawEntityMenu()
         core::Entity ent{ scene->getRegistry(), "object" };
 
         ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
-        ent.addComponent<core::MeshComponent>(
-          core::MeshComponent{ .pMesh = assetManager->loadMesh( "test", p.string() ), .loaded = true } );
+        ent.addComponent<core::MeshComponent>( core::MeshComponent{ .pMesh = assetManager->loadMesh( "test", p.string() ), .loaded = true } );
 
         pEventDispatcher->dispatchEvent<core::SelectEntityEvent>(
           core::SelectEntityEvent{ ent.getEntityId(), core::SelectEntityEventSource::Viewport_Window } );
@@ -422,9 +403,7 @@ void gui::Viewport::drawEntityMenu()
                   physics::RigidbodyType::Dynamic,
                   physics::RigidbodyShape::Box,
                   { transform.translation.x, transform.translation.y, transform.translation.z },
-                  { transform.scale.x,
-                    transform.scale.y,
-                    transform.scale.z }, // TODO(kogayonon) detemrine size somehow, with a bounding box i guess
+                  { transform.scale.x, transform.scale.y, transform.scale.z }, // TODO(kogayonon) detemrine size somehow, with a bounding box i guess
                   transform.getOrientation() ) } );
 
             m_entityMenu = false;
@@ -447,9 +426,7 @@ void gui::Viewport::drawEntityMenu()
                   physics::RigidbodyType::Static,
                   physics::RigidbodyShape::Box,
                   { transform.translation.x, transform.translation.y, transform.translation.z },
-                  { transform.scale.x,
-                    transform.scale.y,
-                    transform.scale.z }, // TODO(kogayonon) detemrine size somehow, with a bounding box i guess
+                  { transform.scale.x, transform.scale.y, transform.scale.z }, // TODO(kogayonon) detemrine size somehow, with a bounding box i guess
                   transform.getOrientation() ) } );
 
             m_entityMenu = false;

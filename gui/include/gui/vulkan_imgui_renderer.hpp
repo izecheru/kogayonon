@@ -98,7 +98,6 @@ private:
   auto end() -> void;
 
 private:
-  // this gets passed to the viewport
   VkImageView m_viewportView;
   VkDescriptorPool m_descriptorPool;
   graphics::VulkanDevice* m_device;
