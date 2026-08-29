@@ -1,11 +1,12 @@
-# Kogayonon 3D Game Engine
+# Kogayonon 3D Game Engin
 
-Hello, this is a game engine that I've been working on for quite some time.
+Currently the engine is undergoing major changes due to renderer backend port to Vulkan from OpenGL.
 
-I used c++ 20 and OpenGL as main building blocks as well as many wonderful libraries for various tasks.
+### Commit legend
+```dependency``` - something related to engine dependencies has been changed/ updated
 
-Documentation can be found here - [Kogayonon 3D Game Engine Docs](https://izecheru.github.io/kogayonon-engine-docs/)
+```feat``` - feature being added
 
-## Authors
+```fix``` - bugfix 
 
-Just me :P
+```refactor``` - refactored the code but the functionality is more or less the same

@@ -5,6 +5,8 @@
 
 .vscode/
 .idea/
+html/
+latex/
 
 # User-specific files
 *.rsuser
@@ -430,3 +432,8 @@ resources/models/spheres.bin
 resources/models/spheres.gltf
 .projectile
 compile_commands.json
+engine_resources/fonts/fontawesome/Font Awesome 6 Sharp-Thin-100.otf
+engine_resources/fonts/fontawesome/Font Awesome 6 Sharp-Solid-900.otf
+engine_resources/fonts/fontawesome/Font Awesome 6 Sharp-Regular-400.otf
+engine_resources/fonts/fontawesome/Font Awesome 6 Sharp-Light-300.otf
+engine_resources/fonts/fontawesome/Font Awesome 6 Pro-Thin-100.otf

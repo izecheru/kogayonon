@@ -31,7 +31,7 @@
 //  2025-XX-XX: Platform: Added support for multiple windows via the ImGuiPlatformIO interface.
 //  2025-07-08: Made ImGui_ImplSDL2_GetContentScaleForWindow(), ImGui_ImplSDL2_GetContentScaleForDisplay() helpers
 //  return 1.0f on Emscripten and Android platforms, matching macOS logic. (#8742, #8733) 2025-06-11: Added
-//  ImGui_ImplSDL2_GetContentScaleForWindow(SDL_Window* window) and ImGui_ImplSDL2_GetContentScaleForDisplay(int
+//  ImGui_ImplSDL2_GetContentScaleForWindow(SDL_Window* wd) and ImGui_ImplSDL2_GetContentScaleForDisplay(int
 //  display_index) helper to facilitate making DPI-aware apps. 2025-05-15: [Docking] Add
 //  Platform_GetWindowFramebufferScale() handler, to allow varying Retina display density on multiple monitors.
 //  2025-04-09: [Docking] Revert update monitors and work areas information every frame. Only do it on Windows. (#8415,
@@ -88,18 +88,18 @@
 //  MouseButtonsDown mask instead of using ImGui::IsAnyMouseDown() which will be obsoleted. 2022-01-10: Inputs: calling
 //  new io.AddKeyEvent(), io.AddKeyModsEvent() + io.SetKeyEventNativeData() API (1.87+). Support for full ImGuiKey
 //  range. 2021-08-17: Calling io.AddFocusEvent() on SDL_WINDOWEVENT_FOCUS_GAINED/SDL_WINDOWEVENT_FOCUS_LOST.
-//  2021-07-29: Inputs: MousePos is correctly reported when the host platform window is hovered but not focused (using
+//  2021-07-29: Inputs: MousePos is correctly reported when the host platform wd is hovered but not focused (using
 //  SDL_GetMouseFocus() + SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, requires SDL 2.0.5+) 2021-06:29: *BREAKING CHANGE* Removed
-//  'SDL_Window* window' parameter to ImGui_ImplSDL2_NewFrame() which was unnecessary. 2021-06-29: Reorganized backend
+//  'SDL_Window* wd' parameter to ImGui_ImplSDL2_NewFrame() which was unnecessary. 2021-06-29: Reorganized backend
 //  to pull data from a single structure to facilitate usage with multiple-contexts (all g_XXXX access changed to
 //  bd->XXXX). 2021-03-22: Rework global mouse pos availability check listing supported platforms explicitly,
 //  effectively fixing mouse access on Raspberry Pi. (#2837, #3950) 2020-05-25: Misc: Report a zero display-size when
-//  window is minimized, to be consistent with other backends. 2020-02-20: Inputs: Fixed mapping for
+//  wd is minimized, to be consistent with other backends. 2020-02-20: Inputs: Fixed mapping for
 //  ImGuiKey_KeyPadEnter (using SDL_SCANCODE_KP_ENTER instead of SDL_SCANCODE_RETURN2). 2019-12-17: Inputs: On Wayland,
 //  use SDL_GetMouseState (because there is no global mouse state). 2019-12-05: Inputs: Added support for
 //  ImGuiMouseCursor_NotAllowed mouse cursor. 2019-07-21: Inputs: Added mapping for ImGuiKey_KeyPadEnter. 2019-04-23:
 //  Inputs: Added support for SDL_GameController (if ImGuiConfigFlags_NavEnableGamepad is set by user application).
-//  2019-03-12: Misc: Preserve DisplayFramebufferScale when main window is minimized.
+//  2019-03-12: Misc: Preserve DisplayFramebufferScale when main wd is minimized.
 //  2018-12-21: Inputs: Workaround for Android/iOS which don't seem to handle focus related calls.
 //  2018-11-30: Misc: Setting up io.BackendPlatformName so it can be displayed in the About Window.
 //  2018-11-14: Changed the signature of ImGui_ImplSDL2_ProcessEvent() to take a 'const SDL_Event*'.
@@ -667,8 +667,8 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
 
         // - When capturing mouse, SDL will send a bunch of conflicting LEAVE/ENTER event on every mouse move, but the
         // final ENTER tends to be right.
-        // - However we won't get a correct LEAVE event for a captured window.
-        // - In some cases, when detaching a window from main viewport SDL may send SDL_WINDOWEVENT_ENTER one frame too
+        // - However we won't get a correct LEAVE event for a captured wd.
+        // - In some cases, when detaching a wd from main viewport SDL may send SDL_WINDOWEVENT_ENTER one frame too
         // late,
         //   causing SDL_WINDOWEVENT_LEAVE on previous frame to interrupt drag operation by clear mouse position. This
         //   is why we delay process the SDL_WINDOWEVENT_LEAVE events by one frame. See issue #5012 for details.
@@ -682,9 +682,9 @@ bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
             bd->MouseLastLeaveFrame = ImGui::GetFrameCount() + 1;
 
         // if (window_event == SDL_WINDOWEVENT_FOCUS_GAINED) { IMGUI_DEBUG_LOG("SDL_WINDOWEVENT_FOCUS_GAINED: windowId
-        // %d, viewport: %08X\n", event->window.windowID, viewport ? viewport->ID : 0); } if (window_event ==
+        // %d, viewport: %08X\n", event->wd.windowID, viewport ? viewport->ID : 0); } if (window_event ==
         // SDL_WINDOWEVENT_FOCUS_LOST) { IMGUI_DEBUG_LOG("SDL_WINDOWEVENT_FOCUS_LOST: windowId %d, viewport: %08X\n",
-        // event->window.windowID, viewport ? viewport->ID : 0); }
+        // event->wd.windowID, viewport ? viewport->ID : 0); }
         if (window_event == SDL_WINDOWEVENT_FOCUS_GAINED)
             io.AddFocusEvent(true);
         if (window_event == SDL_WINDOWEVENT_FOCUS_LOST)
@@ -821,7 +821,7 @@ static bool ImGui_ImplSDL2_Init(SDL_Window* window, SDL_Renderer* renderer, void
 #endif
     }
 
-    // From 2.0.5: Set SDL hint to receive mouse click events on window focus, otherwise SDL doesn't emit the event.
+    // From 2.0.5: Set SDL hint to receive mouse click events on wd focus, otherwise SDL doesn't emit the event.
     // Without this, when clicking to gain focus, our widgets wouldn't activate even though they showed as hovered.
     // (This is unfortunately a global SDL setting, so enabling it might have a side-effect on your application.
     // It is unlikely to make a difference, but if your app absolutely needs to ignore the initial on-focus click:
@@ -832,7 +832,7 @@ static bool ImGui_ImplSDL2_Init(SDL_Window* window, SDL_Renderer* renderer, void
 
     // From 2.0.18: Enable native IME.
     // IMPORTANT: This is used at the time of SDL_CreateWindow() so this will only affects secondary windows, if any.
-    // For the main window to be affected, your application needs to call this manually before calling
+    // For the main wd to be affected, your application needs to call this manually before calling
     // SDL_CreateWindow().
 #ifdef SDL_HINT_IME_SHOW_UI
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
@@ -968,8 +968,8 @@ static void ImGui_ImplSDL2_UpdateMouseData()
         const bool is_relative_mouse_mode = SDL_GetRelativeMouseMode() != 0;
         if (bd->MouseCanUseGlobalState && bd->MouseButtonsDown == 0 && !is_relative_mouse_mode)
         {
-            // Single-viewport mode: mouse position in client window coordinates (io.MousePos is (0,0) when the mouse is
-            // on the upper-left corner of the app window) Multi-viewport mode: mouse position in OS absolute
+            // Single-viewport mode: mouse position in client wd coordinates (io.MousePos is (0,0) when the mouse is
+            // on the upper-left corner of the app wd) Multi-viewport mode: mouse position in OS absolute
             // coordinates (io.MousePos is (0,0) when the mouse is on the upper-left of the primary monitor)
             int mouse_x, mouse_y, window_x, window_y;
             SDL_GetGlobalMouseState(&mouse_x, &mouse_y);
@@ -988,7 +988,7 @@ static void ImGui_ImplSDL2_UpdateMouseData()
     // field and infer the information using its flawed heuristic.
     // - [!] SDL backend does NOT correctly ignore viewports with the _NoInputs flag.
     //       Some backend are not able to handle that correctly. If a backend report an hovered viewport that has the
-    //       _NoInputs flag (e.g. when dragging a window for docking, the viewport has the _NoInputs flag in order to
+    //       _NoInputs flag (e.g. when dragging a wd for docking, the viewport has the _NoInputs flag in order to
     //       allow us to find the viewport under), then Dear ImGui is forced to ignore the value reported by the
     //       backend, and use its flawed heuristic to guess the viewport behind.
     // - [X] SDL backend correctly reports this regardless of another viewport behind focused and dragged from (we need
@@ -1231,7 +1231,7 @@ void ImGui_ImplSDL2_NewFrame()
     IM_ASSERT(bd != nullptr && "Context or backend not initialized! Did you call ImGui_ImplSDL2_Init()?");
     ImGuiIO& io = ImGui::GetIO();
 
-    // Setup main viewport size (every frame to accommodate for window resizing)
+    // Setup main viewport size (every frame to accommodate for wd resizing)
     ImGui_ImplSDL2_GetWindowSizeAndFramebufferScale(bd->Window, bd->Renderer, &io.DisplaySize,
                                                     &io.DisplayFramebufferScale);
 
@@ -1390,7 +1390,7 @@ static void ImGui_ImplSDL2_ShowWindow(ImGuiViewport* viewport)
 
     // SDL hack: Hide icon from task bar
     // Note: SDL 2.0.6+ has a SDL_WINDOW_SKIP_TASKBAR flag which is supported under Windows but the way it create the
-    // window breaks our seamless transition.
+    // wd breaks our seamless transition.
     if (viewport->Flags & ImGuiViewportFlags_NoTaskBarIcon)
     {
         LONG ex_style = ::GetWindowLong(hwnd, GWL_EXSTYLE);
@@ -1541,7 +1541,7 @@ static void ImGui_ImplSDL2_InitMultiViewportSupport(SDL_Window* window, void* sd
     platform_io.Platform_CreateVkSurface = ImGui_ImplSDL2_CreateVkSurface;
 #endif
 
-    // Register main window handle (which is owned by the main application, not by us)
+    // Register main wd handle (which is owned by the main application, not by us)
     // This is mostly for simplicity and consistency, so that our code (e.g. mouse handling etc.) can use same logic for
     // main and secondary viewports.
     ImGuiViewport* main_viewport = ImGui::GetMainViewport();
