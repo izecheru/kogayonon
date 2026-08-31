@@ -237,13 +237,6 @@ auto rendering::PickingModule::registerPickingEntityReadPass() -> void
       if ( *lastFrameIndex == m_vkCtx->swapchain->getCurrentFrameNumber() )
         return;
 
-      entt::entity currentEntity = core::MainRegistry::getInstance().getSceneManager()->getEventHandler()->getCurrentEntityId();
-
-      if ( currentEntity != entt::null )
-      {
-        return;
-      }
-
       Blackboard* blackboard = m_graph->getBlackboard();
       PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
       core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
@@ -294,12 +287,11 @@ auto rendering::PickingModule::createModuleResources( VkExtent2D extent ) -> voi
     .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
     .imageType = VK_IMAGE_TYPE_2D,
     .format = VK_FORMAT_R32_SINT,
-    .extent =
-      {
-        .width = extent.width,
-        .height = extent.height,
-        .depth = 1,
-      },
+    .extent = {
+      .width = extent.width,
+      .height = extent.height,
+      .depth = 1,
+    },
     .mipLevels = 1,
     .arrayLayers = 1,
     .samples = VK_SAMPLE_COUNT_1_BIT,
