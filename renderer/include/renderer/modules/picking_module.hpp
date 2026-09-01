@@ -40,8 +40,12 @@ struct PickingModuleData
 class PickingModule : public BaseModule
 {
 public:
-  explicit PickingModule(
-    FrameGraph* graph, graphics::VulkanContext* vkCtx, gui::VulkanImguiRenderer* imguiRenderer, VkExtent2D extent, ModuleDescriptorData descriptorData );
+  explicit PickingModule( FrameGraph* graph,
+                          graphics::VulkanContext* vkCtx,
+                          gui::VulkanImguiRenderer* imguiRenderer,
+                          VkExtent2D extent,
+                          ModuleDescriptorData descriptorData );
+
   ~PickingModule();
 
   auto registerPasses() -> void override;

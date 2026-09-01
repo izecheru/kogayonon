@@ -1015,10 +1015,10 @@ auto graphics::VulkanDevice::transitionImageLayout( VkImage image, ImageTransiti
   VkImageMemoryBarrier2 transferBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                                          .srcStageMask = transitionData.srcStage,
                                          .srcAccessMask = transitionData.srcAccess,
-                                         .dstStageMask = transitionData.currentStage,
-                                         .dstAccessMask = transitionData.currentAccess,
+                                         .dstStageMask = transitionData.newStage,
+                                         .dstAccessMask = transitionData.newAccess,
                                          .oldLayout = transitionData.oldLayout,
-                                         .newLayout = transitionData.currentLayout,
+                                         .newLayout = transitionData.newLayout,
                                          .image = image,
                                          .subresourceRange{
                                            .aspectMask = aspect,
@@ -1049,10 +1049,10 @@ auto graphics::VulkanDevice::transitionImageLayout( VkImage image,
   VkImageMemoryBarrier2 transferBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                                          .srcStageMask = transitionData.srcStage,
                                          .srcAccessMask = transitionData.srcAccess,
-                                         .dstStageMask = transitionData.currentStage,
-                                         .dstAccessMask = transitionData.currentAccess,
+                                         .dstStageMask = transitionData.newStage,
+                                         .dstAccessMask = transitionData.newAccess,
                                          .oldLayout = transitionData.oldLayout,
-                                         .newLayout = transitionData.currentLayout,
+                                         .newLayout = transitionData.newLayout,
                                          .image = image,
                                          .subresourceRange{
                                            .aspectMask = transitionData.aspect,
@@ -1097,10 +1097,10 @@ auto graphics::VulkanDevice::copyBufferToImage(
   VkImageMemoryBarrier2 textureToColor{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                                         .srcStageMask = transitionData.srcStage,
                                         .srcAccessMask = transitionData.srcAccess,
-                                        .dstStageMask = transitionData.currentStage,
-                                        .dstAccessMask = transitionData.currentAccess,
+                                        .dstStageMask = transitionData.newStage,
+                                        .dstAccessMask = transitionData.newAccess,
                                         .oldLayout = transitionData.oldLayout,
-                                        .newLayout = transitionData.currentLayout,
+                                        .newLayout = transitionData.newLayout,
                                         .image = image,
                                         .subresourceRange = {
                                           .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -1285,4 +1285,9 @@ auto graphics::VulkanDevice::createTimelineSemaphore( VkSemaphore& timeline,
                                                       VkSemaphoreCreateInfo createInfo ) const -> void
 {
   VK_CALL( vkCreateSemaphore( m_platform.device, &createInfo, NULL, &timeline ) );
+}
+
+auto graphics::VulkanDevice::cmdPipelineBarrier2( VkCommandBuffer cmdBuffer, VkDependencyInfo dependencyInfo ) -> void
+{
+  vkCmdPipelineBarrier2( cmdBuffer, &dependencyInfo );
 }

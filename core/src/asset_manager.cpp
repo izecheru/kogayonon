@@ -98,11 +98,11 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
   // transfer barrier
   m_vkCtx->device->transitionImageLayout( texture->getImage(),
                                           { .srcStage = VK_PIPELINE_STAGE_2_NONE,
-                                            .currentStage = VK_PIPELINE_STAGE_2_COPY_BIT,
+                                            .newStage = VK_PIPELINE_STAGE_2_COPY_BIT,
                                             .srcAccess = VK_ACCESS_2_NONE,
-                                            .currentAccess = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                            .newAccess = VK_ACCESS_2_TRANSFER_WRITE_BIT,
                                             .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                                            .currentLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL } );
+                                            .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL } );
 
   void* data;
   vmaMapMemory( m_vkCtx->device->getAllocator(), stageBuffer.vmaAllocation, &data );
@@ -117,11 +117,11 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
                                       static_cast<uint32_t>( texWidth ),
                                       static_cast<uint32_t>( texHeight ),
                                       { .srcStage = VK_PIPELINE_STAGE_2_COPY_BIT,
-                                        .currentStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                        .newStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
                                         .srcAccess = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                                        .currentAccess = VK_ACCESS_2_SHADER_READ_BIT,
+                                        .newAccess = VK_ACCESS_2_SHADER_READ_BIT,
                                         .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                        .currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } );
+                                        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } );
 
   m_vkCtx->device->destroyBuffer( stageBuffer );
 

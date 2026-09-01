@@ -27,7 +27,9 @@
 
 #include <ImGuizmo.h>
 
-gui::VulkanImguiRenderer::VulkanImguiRenderer( SDL_Window* wnd, graphics::VulkanDevice* device, graphics::VulkanSwapchain* swapchain )
+gui::VulkanImguiRenderer::VulkanImguiRenderer( SDL_Window* wnd,
+                                               graphics::VulkanDevice* device,
+                                               graphics::VulkanSwapchain* swapchain )
     : m_device{ device }
     , m_wnd{ wnd }
 {
@@ -77,8 +79,8 @@ void gui::VulkanImguiRenderer::setupDockspace( ImGuiViewport* viewport )
     ImGui::DockBuilderAddNode( dockSpaceId );
 
     ImGuiDockNode* node = ImGui::DockBuilderGetNode( dockSpaceId );
-    node->LocalFlags |=
-      ImGuiDockNodeFlags_NoWindowMenuButton | ImGuiDockNodeFlags_NoCloseButton | ImGuiDockNodeFlags_AutoHideTabBar | ImGuiDockNodeFlags_NoTabBar;
+    node->LocalFlags |= ImGuiDockNodeFlags_NoWindowMenuButton | ImGuiDockNodeFlags_NoCloseButton |
+                        ImGuiDockNodeFlags_AutoHideTabBar | ImGuiDockNodeFlags_NoTabBar;
 
     auto centerNodeId = dockSpaceId;
     auto leftNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Left, 0.30f, nullptr, &centerNodeId );
@@ -128,7 +130,9 @@ void gui::VulkanImguiRenderer::present( VkCommandBuffer& buffer )
   }
 }
 
-void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd, graphics::VulkanDevice* device, graphics::VulkanSwapchain* swapchain )
+void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
+                                          graphics::VulkanDevice* device,
+                                          graphics::VulkanSwapchain* swapchain )
 {
   VkDescriptorPoolSize poolSizes[] = {
     { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, IMGUI_VULKAN_MAX_DESCRIPTORS },
@@ -180,25 +184,35 @@ void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd, graphics::VulkanDevic
   materialdesignConfig.MergeMode = true;
   materialdesignConfig.PixelSnapH = true;
 
-  m_fonts.emplace( "inter", io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-Medium.ttf", baseFontSize, &cfg ) );
+  m_fonts.emplace( "inter",
+                   io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-Medium.ttf", baseFontSize, &cfg ) );
 
   io.FontDefault = m_fonts.at( "inter" );
 
   m_fonts.emplace( "materialdesign",
-                   io.Fonts->AddFontFromFileTTF(
-                     "engine_resources/fonts/materialdesignicons-webfont.ttf", baseFontSize - 5.0f, &materialdesignConfig, materialdesignRanges ) );
+                   io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/materialdesignicons-webfont.ttf",
+                                                 baseFontSize - 5.0f,
+                                                 &materialdesignConfig,
+                                                 materialdesignRanges ) );
 
-  m_fonts.emplace( "inter-light", io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-Light.ttf", 18.0f, &cfg ) );
+  m_fonts.emplace( "inter-light",
+                   io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-Light.ttf", 18.0f, &cfg ) );
 
-  m_fonts.emplace( "inter-italic", io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-Italic.ttf", 18.0f, &cfg ) );
+  m_fonts.emplace( "inter-italic",
+                   io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-Italic.ttf", 18.0f, &cfg ) );
 
-  m_fonts.emplace( "inter-bold", io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-Bold.ttf", 18.0f, &cfg ) );
+  m_fonts.emplace( "inter-bold",
+                   io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-Bold.ttf", 18.0f, &cfg ) );
 
-  m_fonts.emplace( "inter-bold-italic", io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-BoldItalic.ttf", 18.0f, &cfg ) );
+  m_fonts.emplace( "inter-bold-italic",
+                   io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-BoldItalic.ttf", 18.0f, &cfg ) );
 
-  m_fonts.emplace( "inter-extrabold", io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-ExtraBold.ttf", 18.0f, &cfg ) );
+  m_fonts.emplace( "inter-extrabold",
+                   io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-ExtraBold.ttf", 18.0f, &cfg ) );
 
-  m_fonts.emplace( "inter-extrabold-italic", io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-ExtraBoldItalic.ttf", 18.0f, &cfg ) );
+  m_fonts.emplace(
+    "inter-extrabold-italic",
+    io.Fonts->AddFontFromFileTTF( "engine_resources/fonts/Inter_18pt-ExtraBoldItalic.ttf", 18.0f, &cfg ) );
 
   // change the style
   ImGuiStyle& style = ImGui::GetStyle();
@@ -250,19 +264,23 @@ void gui::VulkanImguiRenderer::initWindows()
   auto gltfIconPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\gltf_file.png";
   auto gltfTexture = assetManager->loadTexture( "gltf_file.png", gltfIconPath.string() );
 
-  auto folder = ImGui_ImplVulkan_AddTexture( m_iconSampler, folderTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+  auto folder =
+    ImGui_ImplVulkan_AddTexture( m_iconSampler, folderTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
-  auto file = ImGui_ImplVulkan_AddTexture( m_iconSampler, fileTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+  auto file =
+    ImGui_ImplVulkan_AddTexture( m_iconSampler, fileTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
-  auto gltfFile = ImGui_ImplVulkan_AddTexture( m_iconSampler, gltfTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+  auto gltfFile =
+    ImGui_ImplVulkan_AddTexture( m_iconSampler, gltfTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
-  m_windows.emplace( ImGuiWindowName::File_Explorer,
-                     std::make_unique<FileExplorerWindow>( ICON_MDI_FOLDER_SEARCH "File explorer",
-                                                           FileExplorerSpec{ .fonts = &m_fonts,
-                                                                             .iconGenericFolder = std::move( folder ),
-                                                                             .genericFileIcon = std::move( file ),
-                                                                             // this is an unordered map
-                                                                             .fileIcons = { { ".gltf", gltfFile } } } ) );
+  m_windows.emplace(
+    ImGuiWindowName::File_Explorer,
+    std::make_unique<FileExplorerWindow>( ICON_MDI_FOLDER_SEARCH "File explorer",
+                                          FileExplorerSpec{ .fonts = &m_fonts,
+                                                            .iconGenericFolder = std::move( folder ),
+                                                            .genericFileIcon = std::move( file ),
+                                                            // this is an unordered map
+                                                            .fileIcons = { { ".gltf", gltfFile } } } ) );
 
   auto playPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\play.png";
   auto playTexture = assetManager->loadTexture( "play.png", playPath.string() );
@@ -273,11 +291,14 @@ void gui::VulkanImguiRenderer::initWindows()
   auto renderModePath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\render_mode_icon.png";
   auto renderModeTexture = assetManager->loadTexture( "render_mode_icon.png", renderModePath.string() );
 
-  auto play = ImGui_ImplVulkan_AddTexture( m_iconSampler, playTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+  auto play =
+    ImGui_ImplVulkan_AddTexture( m_iconSampler, playTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
-  auto stop = ImGui_ImplVulkan_AddTexture( m_iconSampler, stopTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+  auto stop =
+    ImGui_ImplVulkan_AddTexture( m_iconSampler, stopTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
-  auto renderMode = ImGui_ImplVulkan_AddTexture( m_iconSampler, renderModeTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+  auto renderMode = ImGui_ImplVulkan_AddTexture(
+    m_iconSampler, renderModeTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
   m_windows.emplace( ImGuiWindowName::Viewport,
                      std::make_unique<Viewport>( m_wnd,
@@ -292,14 +313,17 @@ void gui::VulkanImguiRenderer::initWindows()
   auto hierarchyCubeIcon = std::filesystem::absolute( "." ) / "engine_resources\\textures\\3d-cube.png";
   auto hierarchyCubeIconTexture = assetManager->loadTexture( "3d-cube.png", hierarchyCubeIcon.string() );
 
-  auto cubeIcon = ImGui_ImplVulkan_AddTexture( m_iconSampler, hierarchyCubeIconTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+  auto cubeIcon = ImGui_ImplVulkan_AddTexture(
+    m_iconSampler, hierarchyCubeIconTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
   m_windows.emplace(
     ImGuiWindowName::Scene_Hierarchy,
-    std::make_unique<SceneHierarchy>( ICON_MDI_LIST_BOX "Hierarchy", SceneHierarchySpec{ .fonts = &m_fonts, .cubeIcon = std::move( cubeIcon ) } ) );
+    std::make_unique<SceneHierarchy>( ICON_MDI_LIST_BOX "Hierarchy",
+                                      SceneHierarchySpec{ .fonts = &m_fonts, .cubeIcon = std::move( cubeIcon ) } ) );
 
-  m_windows.emplace( ImGuiWindowName::Entity_Properties,
-                     std::make_unique<EntityProperties>( ICON_MDI_ADJUST "Properties", EntityPropertiesSpec{ .fonts = &m_fonts } ) );
+  m_windows.emplace(
+    ImGuiWindowName::Entity_Properties,
+    std::make_unique<EntityProperties>( ICON_MDI_ADJUST "Properties", EntityPropertiesSpec{ .fonts = &m_fonts } ) );
 }
 
 void gui::VulkanImguiRenderer::mainMenu()
@@ -372,18 +396,22 @@ void gui::VulkanImguiRenderer::colorChanger()
 
   ImGui::SeparatorText( "Title" );
   ImGui::ColorEdit4( "Title bg", (float*)&style.Colors[ImGuiCol_TitleBg], ImGuiColorEditFlags_NoInputs );
-  ImGui::ColorEdit4( "Title bg collapsed", (float*)&style.Colors[ImGuiCol_TitleBgCollapsed], ImGuiColorEditFlags_NoInputs );
+  ImGui::ColorEdit4(
+    "Title bg collapsed", (float*)&style.Colors[ImGuiCol_TitleBgCollapsed], ImGuiColorEditFlags_NoInputs );
   ImGui::ColorEdit4( "Title bg active", (float*)&style.Colors[ImGuiCol_TitleBgActive], ImGuiColorEditFlags_NoInputs );
 
   ImGui::SeparatorText( "Scroll bar" );
   ImGui::ColorEdit4( "Scroll bar bg", (float*)&style.Colors[ImGuiCol_ScrollbarBg], ImGuiColorEditFlags_NoInputs );
   ImGui::ColorEdit4( "Scroll bar grab", (float*)&style.Colors[ImGuiCol_ScrollbarGrab], ImGuiColorEditFlags_NoInputs );
-  ImGui::ColorEdit4( "Scroll bar grab hovered", (float*)&style.Colors[ImGuiCol_ScrollbarGrabHovered], ImGuiColorEditFlags_NoInputs );
-  ImGui::ColorEdit4( "Scroll bar grab active", (float*)&style.Colors[ImGuiCol_ScrollbarGrabActive], ImGuiColorEditFlags_NoInputs );
+  ImGui::ColorEdit4(
+    "Scroll bar grab hovered", (float*)&style.Colors[ImGuiCol_ScrollbarGrabHovered], ImGuiColorEditFlags_NoInputs );
+  ImGui::ColorEdit4(
+    "Scroll bar grab active", (float*)&style.Colors[ImGuiCol_ScrollbarGrabActive], ImGuiColorEditFlags_NoInputs );
 
   ImGui::SeparatorText( "Slider" );
   ImGui::ColorEdit4( "Slider grab", (float*)&style.Colors[ImGuiCol_SliderGrab], ImGuiColorEditFlags_NoInputs );
-  ImGui::ColorEdit4( "Slider grab active", (float*)&style.Colors[ImGuiCol_SliderGrabActive], ImGuiColorEditFlags_NoInputs );
+  ImGui::ColorEdit4(
+    "Slider grab active", (float*)&style.Colors[ImGuiCol_SliderGrabActive], ImGuiColorEditFlags_NoInputs );
 
   ImGui::SeparatorText( "Button" );
   ImGui::ColorEdit4( "Button", (float*)&style.Colors[ImGuiCol_Button], ImGuiColorEditFlags_NoInputs );
@@ -397,19 +425,25 @@ void gui::VulkanImguiRenderer::colorChanger()
 
   ImGui::SeparatorText( "Separator" );
   ImGui::ColorEdit4( "Separator", (float*)&style.Colors[ImGuiCol_Separator], ImGuiColorEditFlags_NoInputs );
-  ImGui::ColorEdit4( "Separator hovered", (float*)&style.Colors[ImGuiCol_SeparatorHovered], ImGuiColorEditFlags_NoInputs );
-  ImGui::ColorEdit4( "Separator active", (float*)&style.Colors[ImGuiCol_SeparatorActive], ImGuiColorEditFlags_NoInputs );
+  ImGui::ColorEdit4(
+    "Separator hovered", (float*)&style.Colors[ImGuiCol_SeparatorHovered], ImGuiColorEditFlags_NoInputs );
+  ImGui::ColorEdit4(
+    "Separator active", (float*)&style.Colors[ImGuiCol_SeparatorActive], ImGuiColorEditFlags_NoInputs );
 
   ImGui::SeparatorText( "Resize" );
   ImGui::ColorEdit4( "Resize grip", (float*)&style.Colors[ImGuiCol_ResizeGrip], ImGuiColorEditFlags_NoInputs );
-  ImGui::ColorEdit4( "Resize grip hovered", (float*)&style.Colors[ImGuiCol_ResizeGripHovered], ImGuiColorEditFlags_NoInputs );
-  ImGui::ColorEdit4( "Resize grip active", (float*)&style.Colors[ImGuiCol_ResizeGripActive], ImGuiColorEditFlags_NoInputs );
+  ImGui::ColorEdit4(
+    "Resize grip hovered", (float*)&style.Colors[ImGuiCol_ResizeGripHovered], ImGuiColorEditFlags_NoInputs );
+  ImGui::ColorEdit4(
+    "Resize grip active", (float*)&style.Colors[ImGuiCol_ResizeGripActive], ImGuiColorEditFlags_NoInputs );
 
   ImGui::SeparatorText( "Plots" );
   ImGui::ColorEdit4( "Plot lines", (float*)&style.Colors[ImGuiCol_PlotLines], ImGuiColorEditFlags_NoInputs );
-  ImGui::ColorEdit4( "Plot lines hovered", (float*)&style.Colors[ImGuiCol_PlotLinesHovered], ImGuiColorEditFlags_NoInputs );
+  ImGui::ColorEdit4(
+    "Plot lines hovered", (float*)&style.Colors[ImGuiCol_PlotLinesHovered], ImGuiColorEditFlags_NoInputs );
   ImGui::ColorEdit4( "Plot histogram", (float*)&style.Colors[ImGuiCol_PlotHistogram], ImGuiColorEditFlags_NoInputs );
-  ImGui::ColorEdit4( "Plot histogram hovered", (float*)&style.Colors[ImGuiCol_PlotHistogramHovered], ImGuiColorEditFlags_NoInputs );
+  ImGui::ColorEdit4(
+    "Plot histogram hovered", (float*)&style.Colors[ImGuiCol_PlotHistogramHovered], ImGuiColorEditFlags_NoInputs );
 
   ImGui::SeparatorText( "Text" );
   ImGui::ColorEdit4( "Text", (float*)&style.Colors[ImGuiCol_Text], ImGuiColorEditFlags_NoInputs );
@@ -421,8 +455,11 @@ void gui::VulkanImguiRenderer::colorChanger()
   ImGui::ColorEdit4( "Tab hovered", (float*)&style.Colors[ImGuiCol_TabHovered], ImGuiColorEditFlags_NoInputs );
   ImGui::ColorEdit4( "Tab active", (float*)&style.Colors[ImGuiCol_TabActive], ImGuiColorEditFlags_NoInputs );
   ImGui::ColorEdit4( "Tab dimmed", (float*)&style.Colors[ImGuiCol_TabDimmed], ImGuiColorEditFlags_NoInputs );
-  ImGui::ColorEdit4( "Tab dimmed selected", (float*)&style.Colors[ImGuiCol_TabDimmedSelected], ImGuiColorEditFlags_NoInputs );
-  ImGui::ColorEdit4( "Tab dimmed selected overline", (float*)&style.Colors[ImGuiCol_TabDimmedSelectedOverline], ImGuiColorEditFlags_NoInputs );
+  ImGui::ColorEdit4(
+    "Tab dimmed selected", (float*)&style.Colors[ImGuiCol_TabDimmedSelected], ImGuiColorEditFlags_NoInputs );
+  ImGui::ColorEdit4( "Tab dimmed selected overline",
+                     (float*)&style.Colors[ImGuiCol_TabDimmedSelectedOverline],
+                     ImGuiColorEditFlags_NoInputs );
 }
 
 void gui::VulkanImguiRenderer::colorModal()
@@ -432,7 +469,10 @@ void gui::VulkanImguiRenderer::colorModal()
   SDL_GetWindowSize( m_wnd, &w, &h );
   gui_utils::centerPopup( { static_cast<float>( w ), static_cast<float>( h ) }, { 600.0f, 600.0f } );
 
-  if ( ImGui::BeginPopupModal( "Color settings", nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize ) )
+  if ( ImGui::BeginPopupModal( "Color settings",
+                               nullptr,
+                               ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoDecoration |
+                                 ImGuiWindowFlags_AlwaysAutoResize ) )
   {
     ImGui::BeginGroup();
     gui_utils::moveTextToCenter( "Are you sure you want to save the color theme?" );
@@ -442,7 +482,8 @@ void gui::VulkanImguiRenderer::colorModal()
       m_popups.colorChangerPopup = false;
       ImGui::CloseCurrentPopup();
     }
-    ImGui::SameLine( ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize( "Save" ).x - 2.0f * ImGui::GetStyle().FramePadding.x );
+    ImGui::SameLine( ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize( "Save" ).x -
+                     2.0f * ImGui::GetStyle().FramePadding.x );
     if ( ImGui::Button( "Save" ) )
     {
       // save config
@@ -543,7 +584,8 @@ void gui::VulkanImguiRenderer::imguiModal()
 
   gui_utils::centerPopup( { static_cast<float>( w ), static_cast<float>( h ) }, { 600.0f, 600.0f } );
 
-  if ( ImGui::BeginPopupModal( "Edit imgui", nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize ) )
+  if ( ImGui::BeginPopupModal(
+         "Edit imgui", nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize ) )
   {
     imguiChanger();
 
@@ -610,7 +652,8 @@ void gui::VulkanImguiRenderer::configModal()
   SDL_GetWindowSize( m_wnd, &w, &h );
 
   gui_utils::centerPopup( { static_cast<float>( w ), static_cast<float>( h ) }, { 600.0f, 600.0f } );
-  if ( ImGui::BeginPopupModal( "Engine config", nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize ) )
+  if ( ImGui::BeginPopupModal(
+         "Engine config", nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize ) )
   {
     configChanger();
     if ( ImGui::Button( ICON_MDI_CLOSE "Close" ) )
@@ -618,7 +661,8 @@ void gui::VulkanImguiRenderer::configModal()
       m_popups.configPopup = false;
       ImGui::CloseCurrentPopup();
     }
-    ImGui::SameLine( ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize( ICON_MDI_FILE_EDIT "Save" ).x - 2.0f * ImGui::GetStyle().FramePadding.x );
+    ImGui::SameLine( ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize( ICON_MDI_FILE_EDIT "Save" ).x -
+                     2.0f * ImGui::GetStyle().FramePadding.x );
 
     if ( ImGui::Button( ICON_MDI_FILE_EDIT "Save" ) )
     {
@@ -637,120 +681,194 @@ auto gui::VulkanImguiRenderer::setColorPallete( const utilities::ColorConfig& cf
 {
   auto& style = ImGui::GetStyle();
 
-  style.Colors[ImGuiCol_Text] = { cfg.ImGuiCol_Text.r, cfg.ImGuiCol_Text.g, cfg.ImGuiCol_Text.b, cfg.ImGuiCol_Text.alpha };
+  style.Colors[ImGuiCol_Text] = {
+    cfg.ImGuiCol_Text.r, cfg.ImGuiCol_Text.g, cfg.ImGuiCol_Text.b, cfg.ImGuiCol_Text.alpha };
 
-  style.Colors[ImGuiCol_ModalWindowDimBg] = {
-    cfg.ImGuiCol_ModalWindowDimBg.r, cfg.ImGuiCol_ModalWindowDimBg.g, cfg.ImGuiCol_ModalWindowDimBg.b, cfg.ImGuiCol_ModalWindowDimBg.alpha };
+  style.Colors[ImGuiCol_ModalWindowDimBg] = { cfg.ImGuiCol_ModalWindowDimBg.r,
+                                              cfg.ImGuiCol_ModalWindowDimBg.g,
+                                              cfg.ImGuiCol_ModalWindowDimBg.b,
+                                              cfg.ImGuiCol_ModalWindowDimBg.alpha };
 
-  style.Colors[ImGuiCol_TextDisabled] = {
-    cfg.ImGuiCol_TextDisabled.r, cfg.ImGuiCol_TextDisabled.g, cfg.ImGuiCol_TextDisabled.b, cfg.ImGuiCol_TextDisabled.alpha };
+  style.Colors[ImGuiCol_TextDisabled] = { cfg.ImGuiCol_TextDisabled.r,
+                                          cfg.ImGuiCol_TextDisabled.g,
+                                          cfg.ImGuiCol_TextDisabled.b,
+                                          cfg.ImGuiCol_TextDisabled.alpha };
 
-  style.Colors[ImGuiCol_WindowBg] = { cfg.ImGuiCol_WindowBg.r, cfg.ImGuiCol_WindowBg.g, cfg.ImGuiCol_WindowBg.b, cfg.ImGuiCol_WindowBg.alpha };
+  style.Colors[ImGuiCol_WindowBg] = {
+    cfg.ImGuiCol_WindowBg.r, cfg.ImGuiCol_WindowBg.g, cfg.ImGuiCol_WindowBg.b, cfg.ImGuiCol_WindowBg.alpha };
 
-  style.Colors[ImGuiCol_ChildBg] = { cfg.ImGuiCol_ChildBg.r, cfg.ImGuiCol_ChildBg.g, cfg.ImGuiCol_ChildBg.b, cfg.ImGuiCol_ChildBg.alpha };
+  style.Colors[ImGuiCol_ChildBg] = {
+    cfg.ImGuiCol_ChildBg.r, cfg.ImGuiCol_ChildBg.g, cfg.ImGuiCol_ChildBg.b, cfg.ImGuiCol_ChildBg.alpha };
 
-  style.Colors[ImGuiCol_PopupBg] = { cfg.ImGuiCol_PopupBg.r, cfg.ImGuiCol_PopupBg.g, cfg.ImGuiCol_PopupBg.b, cfg.ImGuiCol_PopupBg.alpha };
+  style.Colors[ImGuiCol_PopupBg] = {
+    cfg.ImGuiCol_PopupBg.r, cfg.ImGuiCol_PopupBg.g, cfg.ImGuiCol_PopupBg.b, cfg.ImGuiCol_PopupBg.alpha };
 
-  style.Colors[ImGuiCol_Border] = { cfg.ImGuiCol_Border.r, cfg.ImGuiCol_Border.g, cfg.ImGuiCol_Border.b, cfg.ImGuiCol_Border.alpha };
+  style.Colors[ImGuiCol_Border] = {
+    cfg.ImGuiCol_Border.r, cfg.ImGuiCol_Border.g, cfg.ImGuiCol_Border.b, cfg.ImGuiCol_Border.alpha };
 
-  style.Colors[ImGuiCol_BorderShadow] = {
-    cfg.ImGuiCol_BorderShadow.r, cfg.ImGuiCol_BorderShadow.g, cfg.ImGuiCol_BorderShadow.b, cfg.ImGuiCol_BorderShadow.alpha };
+  style.Colors[ImGuiCol_BorderShadow] = { cfg.ImGuiCol_BorderShadow.r,
+                                          cfg.ImGuiCol_BorderShadow.g,
+                                          cfg.ImGuiCol_BorderShadow.b,
+                                          cfg.ImGuiCol_BorderShadow.alpha };
 
-  style.Colors[ImGuiCol_TabHovered] = { cfg.ImGuiCol_TabHovered.r, cfg.ImGuiCol_TabHovered.g, cfg.ImGuiCol_TabHovered.b, cfg.ImGuiCol_TabHovered.alpha };
+  style.Colors[ImGuiCol_TabHovered] = {
+    cfg.ImGuiCol_TabHovered.r, cfg.ImGuiCol_TabHovered.g, cfg.ImGuiCol_TabHovered.b, cfg.ImGuiCol_TabHovered.alpha };
 
-  style.Colors[ImGuiCol_TabActive] = { cfg.ImGuiCol_TabActive.r, cfg.ImGuiCol_TabActive.g, cfg.ImGuiCol_TabActive.b, cfg.ImGuiCol_TabActive.alpha };
+  style.Colors[ImGuiCol_TabActive] = {
+    cfg.ImGuiCol_TabActive.r, cfg.ImGuiCol_TabActive.g, cfg.ImGuiCol_TabActive.b, cfg.ImGuiCol_TabActive.alpha };
 
-  style.Colors[ImGuiCol_TabSelected] = { cfg.ImGuiCol_TabSelected.r, cfg.ImGuiCol_TabSelected.g, cfg.ImGuiCol_TabSelected.b, cfg.ImGuiCol_TabSelected.alpha };
+  style.Colors[ImGuiCol_TabSelected] = { cfg.ImGuiCol_TabSelected.r,
+                                         cfg.ImGuiCol_TabSelected.g,
+                                         cfg.ImGuiCol_TabSelected.b,
+                                         cfg.ImGuiCol_TabSelected.alpha };
 
-  style.Colors[ImGuiCol_TabSelectedOverline] = {
-    cfg.ImGuiCol_TabSelectedOverline.r, cfg.ImGuiCol_TabSelectedOverline.g, cfg.ImGuiCol_TabSelectedOverline.b, cfg.ImGuiCol_TabSelectedOverline.alpha };
+  style.Colors[ImGuiCol_TabSelectedOverline] = { cfg.ImGuiCol_TabSelectedOverline.r,
+                                                 cfg.ImGuiCol_TabSelectedOverline.g,
+                                                 cfg.ImGuiCol_TabSelectedOverline.b,
+                                                 cfg.ImGuiCol_TabSelectedOverline.alpha };
 
-  style.Colors[ImGuiCol_TabDimmed] = { cfg.ImGuiCol_TabDimmed.r, cfg.ImGuiCol_TabDimmed.g, cfg.ImGuiCol_TabDimmed.b, cfg.ImGuiCol_TabDimmed.alpha };
+  style.Colors[ImGuiCol_TabDimmed] = {
+    cfg.ImGuiCol_TabDimmed.r, cfg.ImGuiCol_TabDimmed.g, cfg.ImGuiCol_TabDimmed.b, cfg.ImGuiCol_TabDimmed.alpha };
 
-  style.Colors[ImGuiCol_TabDimmedSelected] = {
-    cfg.ImGuiCol_TabDimmedSelected.r, cfg.ImGuiCol_TabDimmedSelected.g, cfg.ImGuiCol_TabDimmedSelected.b, cfg.ImGuiCol_TabDimmedSelected.alpha };
+  style.Colors[ImGuiCol_TabDimmedSelected] = { cfg.ImGuiCol_TabDimmedSelected.r,
+                                               cfg.ImGuiCol_TabDimmedSelected.g,
+                                               cfg.ImGuiCol_TabDimmedSelected.b,
+                                               cfg.ImGuiCol_TabDimmedSelected.alpha };
 
-  style.Colors[ImGuiCol_FrameBg] = { cfg.ImGuiCol_FrameBg.r, cfg.ImGuiCol_FrameBg.g, cfg.ImGuiCol_FrameBg.b, cfg.ImGuiCol_FrameBg.alpha };
+  style.Colors[ImGuiCol_FrameBg] = {
+    cfg.ImGuiCol_FrameBg.r, cfg.ImGuiCol_FrameBg.g, cfg.ImGuiCol_FrameBg.b, cfg.ImGuiCol_FrameBg.alpha };
 
-  style.Colors[ImGuiCol_FrameBgHovered] = {
-    cfg.ImGuiCol_FrameBgHovered.r, cfg.ImGuiCol_FrameBgHovered.g, cfg.ImGuiCol_FrameBgHovered.b, cfg.ImGuiCol_FrameBgHovered.alpha };
+  style.Colors[ImGuiCol_FrameBgHovered] = { cfg.ImGuiCol_FrameBgHovered.r,
+                                            cfg.ImGuiCol_FrameBgHovered.g,
+                                            cfg.ImGuiCol_FrameBgHovered.b,
+                                            cfg.ImGuiCol_FrameBgHovered.alpha };
 
-  style.Colors[ImGuiCol_FrameBgActive] = {
-    cfg.ImGuiCol_FrameBgActive.r, cfg.ImGuiCol_FrameBgActive.g, cfg.ImGuiCol_FrameBgActive.b, cfg.ImGuiCol_FrameBgActive.alpha };
+  style.Colors[ImGuiCol_FrameBgActive] = { cfg.ImGuiCol_FrameBgActive.r,
+                                           cfg.ImGuiCol_FrameBgActive.g,
+                                           cfg.ImGuiCol_FrameBgActive.b,
+                                           cfg.ImGuiCol_FrameBgActive.alpha };
 
-  style.Colors[ImGuiCol_TitleBg] = { cfg.ImGuiCol_TitleBg.r, cfg.ImGuiCol_TitleBg.g, cfg.ImGuiCol_TitleBg.b, cfg.ImGuiCol_TitleBg.alpha };
+  style.Colors[ImGuiCol_TitleBg] = {
+    cfg.ImGuiCol_TitleBg.r, cfg.ImGuiCol_TitleBg.g, cfg.ImGuiCol_TitleBg.b, cfg.ImGuiCol_TitleBg.alpha };
 
-  style.Colors[ImGuiCol_TitleBgCollapsed] = {
-    cfg.ImGuiCol_TitleBgCollapsed.r, cfg.ImGuiCol_TitleBgCollapsed.g, cfg.ImGuiCol_TitleBgCollapsed.b, cfg.ImGuiCol_TitleBgCollapsed.alpha };
+  style.Colors[ImGuiCol_TitleBgCollapsed] = { cfg.ImGuiCol_TitleBgCollapsed.r,
+                                              cfg.ImGuiCol_TitleBgCollapsed.g,
+                                              cfg.ImGuiCol_TitleBgCollapsed.b,
+                                              cfg.ImGuiCol_TitleBgCollapsed.alpha };
 
-  style.Colors[ImGuiCol_TitleBgActive] = {
-    cfg.ImGuiCol_TitleBgActive.r, cfg.ImGuiCol_TitleBgActive.g, cfg.ImGuiCol_TitleBgActive.b, cfg.ImGuiCol_TitleBgActive.alpha };
+  style.Colors[ImGuiCol_TitleBgActive] = { cfg.ImGuiCol_TitleBgActive.r,
+                                           cfg.ImGuiCol_TitleBgActive.g,
+                                           cfg.ImGuiCol_TitleBgActive.b,
+                                           cfg.ImGuiCol_TitleBgActive.alpha };
 
-  style.Colors[ImGuiCol_MenuBarBg] = { cfg.ImGuiCol_MenuBarBg.r, cfg.ImGuiCol_MenuBarBg.g, cfg.ImGuiCol_MenuBarBg.b, cfg.ImGuiCol_MenuBarBg.alpha };
+  style.Colors[ImGuiCol_MenuBarBg] = {
+    cfg.ImGuiCol_MenuBarBg.r, cfg.ImGuiCol_MenuBarBg.g, cfg.ImGuiCol_MenuBarBg.b, cfg.ImGuiCol_MenuBarBg.alpha };
 
-  style.Colors[ImGuiCol_ScrollbarBg] = { cfg.ImGuiCol_ScrollbarBg.r, cfg.ImGuiCol_ScrollbarBg.g, cfg.ImGuiCol_ScrollbarBg.b, cfg.ImGuiCol_ScrollbarBg.alpha };
+  style.Colors[ImGuiCol_ScrollbarBg] = { cfg.ImGuiCol_ScrollbarBg.r,
+                                         cfg.ImGuiCol_ScrollbarBg.g,
+                                         cfg.ImGuiCol_ScrollbarBg.b,
+                                         cfg.ImGuiCol_ScrollbarBg.alpha };
 
-  style.Colors[ImGuiCol_ScrollbarGrab] = {
-    cfg.ImGuiCol_ScrollbarGrab.r, cfg.ImGuiCol_ScrollbarGrab.g, cfg.ImGuiCol_ScrollbarGrab.b, cfg.ImGuiCol_ScrollbarGrab.alpha };
+  style.Colors[ImGuiCol_ScrollbarGrab] = { cfg.ImGuiCol_ScrollbarGrab.r,
+                                           cfg.ImGuiCol_ScrollbarGrab.g,
+                                           cfg.ImGuiCol_ScrollbarGrab.b,
+                                           cfg.ImGuiCol_ScrollbarGrab.alpha };
 
-  style.Colors[ImGuiCol_ScrollbarGrabHovered] = {
-    cfg.ImGuiCol_ScrollbarGrabHovered.r, cfg.ImGuiCol_ScrollbarGrabHovered.g, cfg.ImGuiCol_ScrollbarGrabHovered.b, cfg.ImGuiCol_ScrollbarGrabHovered.alpha };
+  style.Colors[ImGuiCol_ScrollbarGrabHovered] = { cfg.ImGuiCol_ScrollbarGrabHovered.r,
+                                                  cfg.ImGuiCol_ScrollbarGrabHovered.g,
+                                                  cfg.ImGuiCol_ScrollbarGrabHovered.b,
+                                                  cfg.ImGuiCol_ScrollbarGrabHovered.alpha };
 
-  style.Colors[ImGuiCol_ScrollbarGrabActive] = {
-    cfg.ImGuiCol_ScrollbarGrabActive.r, cfg.ImGuiCol_ScrollbarGrabActive.g, cfg.ImGuiCol_ScrollbarGrabActive.b, cfg.ImGuiCol_ScrollbarGrabActive.alpha };
+  style.Colors[ImGuiCol_ScrollbarGrabActive] = { cfg.ImGuiCol_ScrollbarGrabActive.r,
+                                                 cfg.ImGuiCol_ScrollbarGrabActive.g,
+                                                 cfg.ImGuiCol_ScrollbarGrabActive.b,
+                                                 cfg.ImGuiCol_ScrollbarGrabActive.alpha };
 
-  style.Colors[ImGuiCol_CheckMark] = { cfg.ImGuiCol_CheckMark.r, cfg.ImGuiCol_CheckMark.g, cfg.ImGuiCol_CheckMark.b, cfg.ImGuiCol_CheckMark.alpha };
+  style.Colors[ImGuiCol_CheckMark] = {
+    cfg.ImGuiCol_CheckMark.r, cfg.ImGuiCol_CheckMark.g, cfg.ImGuiCol_CheckMark.b, cfg.ImGuiCol_CheckMark.alpha };
 
-  style.Colors[ImGuiCol_SliderGrab] = { cfg.ImGuiCol_SliderGrab.r, cfg.ImGuiCol_SliderGrab.g, cfg.ImGuiCol_SliderGrab.b, cfg.ImGuiCol_SliderGrab.alpha };
+  style.Colors[ImGuiCol_SliderGrab] = {
+    cfg.ImGuiCol_SliderGrab.r, cfg.ImGuiCol_SliderGrab.g, cfg.ImGuiCol_SliderGrab.b, cfg.ImGuiCol_SliderGrab.alpha };
 
-  style.Colors[ImGuiCol_SliderGrabActive] = {
-    cfg.ImGuiCol_SliderGrabActive.r, cfg.ImGuiCol_SliderGrabActive.g, cfg.ImGuiCol_SliderGrabActive.b, cfg.ImGuiCol_SliderGrabActive.alpha };
+  style.Colors[ImGuiCol_SliderGrabActive] = { cfg.ImGuiCol_SliderGrabActive.r,
+                                              cfg.ImGuiCol_SliderGrabActive.g,
+                                              cfg.ImGuiCol_SliderGrabActive.b,
+                                              cfg.ImGuiCol_SliderGrabActive.alpha };
 
-  style.Colors[ImGuiCol_Button] = { cfg.ImGuiCol_Button.r, cfg.ImGuiCol_Button.g, cfg.ImGuiCol_Button.b, cfg.ImGuiCol_Button.alpha };
+  style.Colors[ImGuiCol_Button] = {
+    cfg.ImGuiCol_Button.r, cfg.ImGuiCol_Button.g, cfg.ImGuiCol_Button.b, cfg.ImGuiCol_Button.alpha };
 
-  style.Colors[ImGuiCol_ButtonHovered] = {
-    cfg.ImGuiCol_ButtonHovered.r, cfg.ImGuiCol_ButtonHovered.g, cfg.ImGuiCol_ButtonHovered.b, cfg.ImGuiCol_ButtonHovered.alpha };
+  style.Colors[ImGuiCol_ButtonHovered] = { cfg.ImGuiCol_ButtonHovered.r,
+                                           cfg.ImGuiCol_ButtonHovered.g,
+                                           cfg.ImGuiCol_ButtonHovered.b,
+                                           cfg.ImGuiCol_ButtonHovered.alpha };
 
-  style.Colors[ImGuiCol_ButtonActive] = {
-    cfg.ImGuiCol_ButtonActive.r, cfg.ImGuiCol_ButtonActive.g, cfg.ImGuiCol_ButtonActive.b, cfg.ImGuiCol_ButtonActive.alpha };
+  style.Colors[ImGuiCol_ButtonActive] = { cfg.ImGuiCol_ButtonActive.r,
+                                          cfg.ImGuiCol_ButtonActive.g,
+                                          cfg.ImGuiCol_ButtonActive.b,
+                                          cfg.ImGuiCol_ButtonActive.alpha };
 
-  style.Colors[ImGuiCol_Header] = { cfg.ImGuiCol_Header.r, cfg.ImGuiCol_Header.g, cfg.ImGuiCol_Header.b, cfg.ImGuiCol_Header.alpha };
+  style.Colors[ImGuiCol_Header] = {
+    cfg.ImGuiCol_Header.r, cfg.ImGuiCol_Header.g, cfg.ImGuiCol_Header.b, cfg.ImGuiCol_Header.alpha };
 
-  style.Colors[ImGuiCol_HeaderHovered] = {
-    cfg.ImGuiCol_HeaderHovered.r, cfg.ImGuiCol_HeaderHovered.g, cfg.ImGuiCol_HeaderHovered.b, cfg.ImGuiCol_HeaderHovered.alpha };
+  style.Colors[ImGuiCol_HeaderHovered] = { cfg.ImGuiCol_HeaderHovered.r,
+                                           cfg.ImGuiCol_HeaderHovered.g,
+                                           cfg.ImGuiCol_HeaderHovered.b,
+                                           cfg.ImGuiCol_HeaderHovered.alpha };
 
-  style.Colors[ImGuiCol_HeaderActive] = {
-    cfg.ImGuiCol_HeaderActive.r, cfg.ImGuiCol_HeaderActive.g, cfg.ImGuiCol_HeaderActive.b, cfg.ImGuiCol_HeaderActive.alpha };
+  style.Colors[ImGuiCol_HeaderActive] = { cfg.ImGuiCol_HeaderActive.r,
+                                          cfg.ImGuiCol_HeaderActive.g,
+                                          cfg.ImGuiCol_HeaderActive.b,
+                                          cfg.ImGuiCol_HeaderActive.alpha };
 
-  style.Colors[ImGuiCol_Separator] = { cfg.ImGuiCol_Separator.r, cfg.ImGuiCol_Separator.g, cfg.ImGuiCol_Separator.b, cfg.ImGuiCol_Separator.alpha };
+  style.Colors[ImGuiCol_Separator] = {
+    cfg.ImGuiCol_Separator.r, cfg.ImGuiCol_Separator.g, cfg.ImGuiCol_Separator.b, cfg.ImGuiCol_Separator.alpha };
 
-  style.Colors[ImGuiCol_SeparatorHovered] = {
-    cfg.ImGuiCol_SeparatorHovered.r, cfg.ImGuiCol_SeparatorHovered.g, cfg.ImGuiCol_SeparatorHovered.b, cfg.ImGuiCol_SeparatorHovered.alpha };
+  style.Colors[ImGuiCol_SeparatorHovered] = { cfg.ImGuiCol_SeparatorHovered.r,
+                                              cfg.ImGuiCol_SeparatorHovered.g,
+                                              cfg.ImGuiCol_SeparatorHovered.b,
+                                              cfg.ImGuiCol_SeparatorHovered.alpha };
 
-  style.Colors[ImGuiCol_SeparatorActive] = {
-    cfg.ImGuiCol_SeparatorActive.r, cfg.ImGuiCol_SeparatorActive.g, cfg.ImGuiCol_SeparatorActive.b, cfg.ImGuiCol_SeparatorActive.alpha };
+  style.Colors[ImGuiCol_SeparatorActive] = { cfg.ImGuiCol_SeparatorActive.r,
+                                             cfg.ImGuiCol_SeparatorActive.g,
+                                             cfg.ImGuiCol_SeparatorActive.b,
+                                             cfg.ImGuiCol_SeparatorActive.alpha };
 
-  style.Colors[ImGuiCol_ResizeGrip] = { cfg.ImGuiCol_ResizeGrip.r, cfg.ImGuiCol_ResizeGrip.g, cfg.ImGuiCol_ResizeGrip.b, cfg.ImGuiCol_ResizeGrip.alpha };
+  style.Colors[ImGuiCol_ResizeGrip] = {
+    cfg.ImGuiCol_ResizeGrip.r, cfg.ImGuiCol_ResizeGrip.g, cfg.ImGuiCol_ResizeGrip.b, cfg.ImGuiCol_ResizeGrip.alpha };
 
-  style.Colors[ImGuiCol_ResizeGripHovered] = {
-    cfg.ImGuiCol_ResizeGripHovered.r, cfg.ImGuiCol_ResizeGripHovered.g, cfg.ImGuiCol_ResizeGripHovered.b, cfg.ImGuiCol_ResizeGripHovered.alpha };
+  style.Colors[ImGuiCol_ResizeGripHovered] = { cfg.ImGuiCol_ResizeGripHovered.r,
+                                               cfg.ImGuiCol_ResizeGripHovered.g,
+                                               cfg.ImGuiCol_ResizeGripHovered.b,
+                                               cfg.ImGuiCol_ResizeGripHovered.alpha };
 
-  style.Colors[ImGuiCol_ResizeGripActive] = {
-    cfg.ImGuiCol_ResizeGripActive.r, cfg.ImGuiCol_ResizeGripActive.g, cfg.ImGuiCol_ResizeGripActive.b, cfg.ImGuiCol_ResizeGripActive.alpha };
+  style.Colors[ImGuiCol_ResizeGripActive] = { cfg.ImGuiCol_ResizeGripActive.r,
+                                              cfg.ImGuiCol_ResizeGripActive.g,
+                                              cfg.ImGuiCol_ResizeGripActive.b,
+                                              cfg.ImGuiCol_ResizeGripActive.alpha };
 
-  style.Colors[ImGuiCol_PlotLines] = { cfg.ImGuiCol_PlotLines.r, cfg.ImGuiCol_PlotLines.g, cfg.ImGuiCol_PlotLines.b, cfg.ImGuiCol_PlotLines.alpha };
+  style.Colors[ImGuiCol_PlotLines] = {
+    cfg.ImGuiCol_PlotLines.r, cfg.ImGuiCol_PlotLines.g, cfg.ImGuiCol_PlotLines.b, cfg.ImGuiCol_PlotLines.alpha };
 
-  style.Colors[ImGuiCol_PlotLinesHovered] = {
-    cfg.ImGuiCol_PlotLinesHovered.r, cfg.ImGuiCol_PlotLinesHovered.g, cfg.ImGuiCol_PlotLinesHovered.b, cfg.ImGuiCol_PlotLinesHovered.alpha };
+  style.Colors[ImGuiCol_PlotLinesHovered] = { cfg.ImGuiCol_PlotLinesHovered.r,
+                                              cfg.ImGuiCol_PlotLinesHovered.g,
+                                              cfg.ImGuiCol_PlotLinesHovered.b,
+                                              cfg.ImGuiCol_PlotLinesHovered.alpha };
 
-  style.Colors[ImGuiCol_PlotHistogram] = {
-    cfg.ImGuiCol_PlotHistogram.r, cfg.ImGuiCol_PlotHistogram.g, cfg.ImGuiCol_PlotHistogram.b, cfg.ImGuiCol_PlotHistogram.alpha };
+  style.Colors[ImGuiCol_PlotHistogram] = { cfg.ImGuiCol_PlotHistogram.r,
+                                           cfg.ImGuiCol_PlotHistogram.g,
+                                           cfg.ImGuiCol_PlotHistogram.b,
+                                           cfg.ImGuiCol_PlotHistogram.alpha };
 
-  style.Colors[ImGuiCol_PlotHistogramHovered] = {
-    cfg.ImGuiCol_PlotHistogramHovered.r, cfg.ImGuiCol_PlotHistogramHovered.g, cfg.ImGuiCol_PlotHistogramHovered.b, cfg.ImGuiCol_PlotHistogramHovered.alpha };
+  style.Colors[ImGuiCol_PlotHistogramHovered] = { cfg.ImGuiCol_PlotHistogramHovered.r,
+                                                  cfg.ImGuiCol_PlotHistogramHovered.g,
+                                                  cfg.ImGuiCol_PlotHistogramHovered.b,
+                                                  cfg.ImGuiCol_PlotHistogramHovered.alpha };
 
-  style.Colors[ImGuiCol_TextSelectedBg] = {
-    cfg.ImGuiCol_TextSelectedBg.r, cfg.ImGuiCol_TextSelectedBg.g, cfg.ImGuiCol_TextSelectedBg.b, cfg.ImGuiCol_TextSelectedBg.alpha };
+  style.Colors[ImGuiCol_TextSelectedBg] = { cfg.ImGuiCol_TextSelectedBg.r,
+                                            cfg.ImGuiCol_TextSelectedBg.g,
+                                            cfg.ImGuiCol_TextSelectedBg.b,
+                                            cfg.ImGuiCol_TextSelectedBg.alpha };
 }
 
 void gui::VulkanImguiRenderer::changeColorConfig()
@@ -758,8 +876,10 @@ void gui::VulkanImguiRenderer::changeColorConfig()
   auto& cfg = utilities::EditorConfigManager::getColorConfig();
   auto& style = ImGui::GetStyle();
 
-  cfg.ImGuiCol_Text =
-    utilities::ColorVec4{ style.Colors[ImGuiCol_Text].x, style.Colors[ImGuiCol_Text].y, style.Colors[ImGuiCol_Text].z, style.Colors[ImGuiCol_Text].w };
+  cfg.ImGuiCol_Text = utilities::ColorVec4{ style.Colors[ImGuiCol_Text].x,
+                                            style.Colors[ImGuiCol_Text].y,
+                                            style.Colors[ImGuiCol_Text].z,
+                                            style.Colors[ImGuiCol_Text].w };
 
   cfg.ImGuiCol_ModalWindowDimBg = utilities::ColorVec4{ style.Colors[ImGuiCol_ModalWindowDimBg].x,
                                                         style.Colors[ImGuiCol_ModalWindowDimBg].y,
@@ -771,34 +891,50 @@ void gui::VulkanImguiRenderer::changeColorConfig()
                                                     style.Colors[ImGuiCol_TextDisabled].z,
                                                     style.Colors[ImGuiCol_TextDisabled].w };
 
-  cfg.ImGuiCol_WindowBg = utilities::ColorVec4{
-    style.Colors[ImGuiCol_WindowBg].x, style.Colors[ImGuiCol_WindowBg].y, style.Colors[ImGuiCol_WindowBg].z, style.Colors[ImGuiCol_WindowBg].w };
+  cfg.ImGuiCol_WindowBg = utilities::ColorVec4{ style.Colors[ImGuiCol_WindowBg].x,
+                                                style.Colors[ImGuiCol_WindowBg].y,
+                                                style.Colors[ImGuiCol_WindowBg].z,
+                                                style.Colors[ImGuiCol_WindowBg].w };
 
-  cfg.ImGuiCol_ChildBg = utilities::ColorVec4{
-    style.Colors[ImGuiCol_ChildBg].x, style.Colors[ImGuiCol_ChildBg].y, style.Colors[ImGuiCol_ChildBg].z, style.Colors[ImGuiCol_ChildBg].w };
+  cfg.ImGuiCol_ChildBg = utilities::ColorVec4{ style.Colors[ImGuiCol_ChildBg].x,
+                                               style.Colors[ImGuiCol_ChildBg].y,
+                                               style.Colors[ImGuiCol_ChildBg].z,
+                                               style.Colors[ImGuiCol_ChildBg].w };
 
-  cfg.ImGuiCol_PopupBg = utilities::ColorVec4{
-    style.Colors[ImGuiCol_PopupBg].x, style.Colors[ImGuiCol_PopupBg].y, style.Colors[ImGuiCol_PopupBg].z, style.Colors[ImGuiCol_PopupBg].w };
+  cfg.ImGuiCol_PopupBg = utilities::ColorVec4{ style.Colors[ImGuiCol_PopupBg].x,
+                                               style.Colors[ImGuiCol_PopupBg].y,
+                                               style.Colors[ImGuiCol_PopupBg].z,
+                                               style.Colors[ImGuiCol_PopupBg].w };
 
-  cfg.ImGuiCol_Border =
-    utilities::ColorVec4{ style.Colors[ImGuiCol_Border].x, style.Colors[ImGuiCol_Border].y, style.Colors[ImGuiCol_Border].z, style.Colors[ImGuiCol_Border].w };
+  cfg.ImGuiCol_Border = utilities::ColorVec4{ style.Colors[ImGuiCol_Border].x,
+                                              style.Colors[ImGuiCol_Border].y,
+                                              style.Colors[ImGuiCol_Border].z,
+                                              style.Colors[ImGuiCol_Border].w };
 
   cfg.ImGuiCol_BorderShadow = utilities::ColorVec4{ style.Colors[ImGuiCol_BorderShadow].x,
                                                     style.Colors[ImGuiCol_BorderShadow].y,
                                                     style.Colors[ImGuiCol_BorderShadow].z,
                                                     style.Colors[ImGuiCol_BorderShadow].w };
 
-  cfg.ImGuiCol_TabHovered = utilities::ColorVec4{
-    style.Colors[ImGuiCol_TabHovered].x, style.Colors[ImGuiCol_TabHovered].y, style.Colors[ImGuiCol_TabHovered].z, style.Colors[ImGuiCol_TabHovered].w };
+  cfg.ImGuiCol_TabHovered = utilities::ColorVec4{ style.Colors[ImGuiCol_TabHovered].x,
+                                                  style.Colors[ImGuiCol_TabHovered].y,
+                                                  style.Colors[ImGuiCol_TabHovered].z,
+                                                  style.Colors[ImGuiCol_TabHovered].w };
 
-  cfg.ImGuiCol_TabSelected = utilities::ColorVec4{
-    style.Colors[ImGuiCol_TabSelected].x, style.Colors[ImGuiCol_TabSelected].y, style.Colors[ImGuiCol_TabSelected].z, style.Colors[ImGuiCol_TabSelected].w };
+  cfg.ImGuiCol_TabSelected = utilities::ColorVec4{ style.Colors[ImGuiCol_TabSelected].x,
+                                                   style.Colors[ImGuiCol_TabSelected].y,
+                                                   style.Colors[ImGuiCol_TabSelected].z,
+                                                   style.Colors[ImGuiCol_TabSelected].w };
 
-  cfg.ImGuiCol_TabDimmed = utilities::ColorVec4{
-    style.Colors[ImGuiCol_TabDimmed].x, style.Colors[ImGuiCol_TabDimmed].y, style.Colors[ImGuiCol_TabDimmed].z, style.Colors[ImGuiCol_TabDimmed].w };
+  cfg.ImGuiCol_TabDimmed = utilities::ColorVec4{ style.Colors[ImGuiCol_TabDimmed].x,
+                                                 style.Colors[ImGuiCol_TabDimmed].y,
+                                                 style.Colors[ImGuiCol_TabDimmed].z,
+                                                 style.Colors[ImGuiCol_TabDimmed].w };
 
-  cfg.ImGuiCol_FrameBg = utilities::ColorVec4{
-    style.Colors[ImGuiCol_FrameBg].x, style.Colors[ImGuiCol_FrameBg].y, style.Colors[ImGuiCol_FrameBg].z, style.Colors[ImGuiCol_FrameBg].w };
+  cfg.ImGuiCol_FrameBg = utilities::ColorVec4{ style.Colors[ImGuiCol_FrameBg].x,
+                                               style.Colors[ImGuiCol_FrameBg].y,
+                                               style.Colors[ImGuiCol_FrameBg].z,
+                                               style.Colors[ImGuiCol_FrameBg].w };
 
   cfg.ImGuiCol_FrameBgHovered = utilities::ColorVec4{ style.Colors[ImGuiCol_FrameBgHovered].x,
                                                       style.Colors[ImGuiCol_FrameBgHovered].y,
@@ -810,19 +946,25 @@ void gui::VulkanImguiRenderer::changeColorConfig()
                                                      style.Colors[ImGuiCol_FrameBgActive].z,
                                                      style.Colors[ImGuiCol_FrameBgActive].w };
 
-  cfg.ImGuiCol_TitleBg = utilities::ColorVec4{
-    style.Colors[ImGuiCol_TitleBg].x, style.Colors[ImGuiCol_TitleBg].y, style.Colors[ImGuiCol_TitleBg].z, style.Colors[ImGuiCol_TitleBg].w };
+  cfg.ImGuiCol_TitleBg = utilities::ColorVec4{ style.Colors[ImGuiCol_TitleBg].x,
+                                               style.Colors[ImGuiCol_TitleBg].y,
+                                               style.Colors[ImGuiCol_TitleBg].z,
+                                               style.Colors[ImGuiCol_TitleBg].w };
 
   cfg.ImGuiCol_TitleBgActive = utilities::ColorVec4{ style.Colors[ImGuiCol_TitleBgActive].x,
                                                      style.Colors[ImGuiCol_TitleBgActive].y,
                                                      style.Colors[ImGuiCol_TitleBgActive].z,
                                                      style.Colors[ImGuiCol_TitleBgActive].w };
 
-  cfg.ImGuiCol_MenuBarBg = utilities::ColorVec4{
-    style.Colors[ImGuiCol_MenuBarBg].x, style.Colors[ImGuiCol_MenuBarBg].y, style.Colors[ImGuiCol_MenuBarBg].z, style.Colors[ImGuiCol_MenuBarBg].w };
+  cfg.ImGuiCol_MenuBarBg = utilities::ColorVec4{ style.Colors[ImGuiCol_MenuBarBg].x,
+                                                 style.Colors[ImGuiCol_MenuBarBg].y,
+                                                 style.Colors[ImGuiCol_MenuBarBg].z,
+                                                 style.Colors[ImGuiCol_MenuBarBg].w };
 
-  cfg.ImGuiCol_ScrollbarBg = utilities::ColorVec4{
-    style.Colors[ImGuiCol_ScrollbarBg].x, style.Colors[ImGuiCol_ScrollbarBg].y, style.Colors[ImGuiCol_ScrollbarBg].z, style.Colors[ImGuiCol_ScrollbarBg].w };
+  cfg.ImGuiCol_ScrollbarBg = utilities::ColorVec4{ style.Colors[ImGuiCol_ScrollbarBg].x,
+                                                   style.Colors[ImGuiCol_ScrollbarBg].y,
+                                                   style.Colors[ImGuiCol_ScrollbarBg].z,
+                                                   style.Colors[ImGuiCol_ScrollbarBg].w };
 
   cfg.ImGuiCol_ScrollbarGrab = utilities::ColorVec4{ style.Colors[ImGuiCol_ScrollbarGrab].x,
                                                      style.Colors[ImGuiCol_ScrollbarGrab].y,
@@ -839,16 +981,20 @@ void gui::VulkanImguiRenderer::changeColorConfig()
                                                            style.Colors[ImGuiCol_ScrollbarGrabActive].z,
                                                            style.Colors[ImGuiCol_ScrollbarGrabActive].w };
 
-  cfg.ImGuiCol_CheckMark = utilities::ColorVec4{
-    style.Colors[ImGuiCol_CheckMark].x, style.Colors[ImGuiCol_CheckMark].y, style.Colors[ImGuiCol_CheckMark].z, style.Colors[ImGuiCol_CheckMark].w };
+  cfg.ImGuiCol_CheckMark = utilities::ColorVec4{ style.Colors[ImGuiCol_CheckMark].x,
+                                                 style.Colors[ImGuiCol_CheckMark].y,
+                                                 style.Colors[ImGuiCol_CheckMark].z,
+                                                 style.Colors[ImGuiCol_CheckMark].w };
 
   cfg.ImGuiCol_SliderGrabActive = utilities::ColorVec4{ style.Colors[ImGuiCol_SliderGrabActive].x,
                                                         style.Colors[ImGuiCol_SliderGrabActive].y,
                                                         style.Colors[ImGuiCol_SliderGrabActive].z,
                                                         style.Colors[ImGuiCol_SliderGrabActive].w };
 
-  cfg.ImGuiCol_Button =
-    utilities::ColorVec4{ style.Colors[ImGuiCol_Button].x, style.Colors[ImGuiCol_Button].y, style.Colors[ImGuiCol_Button].z, style.Colors[ImGuiCol_Button].w };
+  cfg.ImGuiCol_Button = utilities::ColorVec4{ style.Colors[ImGuiCol_Button].x,
+                                              style.Colors[ImGuiCol_Button].y,
+                                              style.Colors[ImGuiCol_Button].z,
+                                              style.Colors[ImGuiCol_Button].w };
 
   cfg.ImGuiCol_ButtonHovered = utilities::ColorVec4{ style.Colors[ImGuiCol_ButtonHovered].x,
                                                      style.Colors[ImGuiCol_ButtonHovered].y,
@@ -860,8 +1006,10 @@ void gui::VulkanImguiRenderer::changeColorConfig()
                                                     style.Colors[ImGuiCol_ButtonActive].z,
                                                     style.Colors[ImGuiCol_ButtonActive].w };
 
-  cfg.ImGuiCol_Header =
-    utilities::ColorVec4{ style.Colors[ImGuiCol_Header].x, style.Colors[ImGuiCol_Header].y, style.Colors[ImGuiCol_Header].z, style.Colors[ImGuiCol_Header].w };
+  cfg.ImGuiCol_Header = utilities::ColorVec4{ style.Colors[ImGuiCol_Header].x,
+                                              style.Colors[ImGuiCol_Header].y,
+                                              style.Colors[ImGuiCol_Header].z,
+                                              style.Colors[ImGuiCol_Header].w };
 
   cfg.ImGuiCol_HeaderHovered = utilities::ColorVec4{ style.Colors[ImGuiCol_HeaderHovered].x,
                                                      style.Colors[ImGuiCol_HeaderHovered].y,
@@ -873,8 +1021,10 @@ void gui::VulkanImguiRenderer::changeColorConfig()
                                                     style.Colors[ImGuiCol_HeaderActive].z,
                                                     style.Colors[ImGuiCol_HeaderActive].w };
 
-  cfg.ImGuiCol_Separator = utilities::ColorVec4{
-    style.Colors[ImGuiCol_Separator].x, style.Colors[ImGuiCol_Separator].y, style.Colors[ImGuiCol_Separator].z, style.Colors[ImGuiCol_Separator].w };
+  cfg.ImGuiCol_Separator = utilities::ColorVec4{ style.Colors[ImGuiCol_Separator].x,
+                                                 style.Colors[ImGuiCol_Separator].y,
+                                                 style.Colors[ImGuiCol_Separator].z,
+                                                 style.Colors[ImGuiCol_Separator].w };
 
   cfg.ImGuiCol_SeparatorHovered = utilities::ColorVec4{ style.Colors[ImGuiCol_SeparatorHovered].x,
                                                         style.Colors[ImGuiCol_SeparatorHovered].y,
@@ -886,8 +1036,10 @@ void gui::VulkanImguiRenderer::changeColorConfig()
                                                        style.Colors[ImGuiCol_SeparatorActive].z,
                                                        style.Colors[ImGuiCol_SeparatorActive].w };
 
-  cfg.ImGuiCol_ResizeGrip = utilities::ColorVec4{
-    style.Colors[ImGuiCol_ResizeGrip].x, style.Colors[ImGuiCol_ResizeGrip].y, style.Colors[ImGuiCol_ResizeGrip].z, style.Colors[ImGuiCol_ResizeGrip].w };
+  cfg.ImGuiCol_ResizeGrip = utilities::ColorVec4{ style.Colors[ImGuiCol_ResizeGrip].x,
+                                                  style.Colors[ImGuiCol_ResizeGrip].y,
+                                                  style.Colors[ImGuiCol_ResizeGrip].z,
+                                                  style.Colors[ImGuiCol_ResizeGrip].w };
 
   cfg.ImGuiCol_ResizeGripActive = utilities::ColorVec4{ style.Colors[ImGuiCol_ResizeGripActive].x,
                                                         style.Colors[ImGuiCol_ResizeGripActive].y,
@@ -933,7 +1085,8 @@ auto gui::VulkanImguiRenderer::deviceModal() -> void
   SDL_GetWindowSize( m_wnd, &w, &h );
 
   gui_utils::centerPopup( { static_cast<float>( w ), static_cast<float>( h ) }, { 600.0f, 600.0f } );
-  if ( ImGui::BeginPopupModal( "GPU properties", nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize ) )
+  if ( ImGui::BeginPopupModal(
+         "GPU properties", nullptr, ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize ) )
   {
     showDeviceProperties();
     if ( ImGui::Button( ICON_MDI_CLOSE "Close" ) )

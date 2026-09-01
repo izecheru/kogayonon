@@ -8,11 +8,11 @@ namespace graphics
 struct ImageTransitionData
 {
   VkPipelineStageFlags2 srcStage{ VK_PIPELINE_STAGE_2_NONE };
-  VkPipelineStageFlags2 currentStage{ VK_PIPELINE_STAGE_2_NONE };
+  VkPipelineStageFlags2 newStage{ VK_PIPELINE_STAGE_2_NONE };
   VkAccessFlags2 srcAccess{ VK_ACCESS_2_NONE };
-  VkAccessFlags2 currentAccess{ VK_ACCESS_2_NONE };
+  VkAccessFlags2 newAccess{ VK_ACCESS_2_NONE };
   VkImageLayout oldLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
-  VkImageLayout currentLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
+  VkImageLayout newLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
   /**
    * @brief Defaults to VK_IMAGE_ASPECT_COLOR_BIT
    */

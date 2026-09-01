@@ -27,10 +27,10 @@ public:
   template <typename SetupFunc, typename ExecuteFunc>
   auto addNode( std::string_view name, SetupFunc&& setupFunc, ExecuteFunc&& executeFunc ) -> void
   {
-    auto node = std::make_unique<rendering::Node>();
-    node->name = name.empty() ? "Node_Name" : std::string{ name };
-    node->setupFunction = std::move( setupFunc );
+    std::unique_ptr<Node> node = std::make_unique<rendering::Node>();
     node->executeFunction = std::move( executeFunc );
+    node->setupFunction = std::move( setupFunc );
+    node->name = name.empty() ? "Node_Name" : std::string{ name };
 
     m_container.nodes.emplace_back( std::move( node ) );
   }
@@ -115,7 +115,6 @@ private:
   NodeContainer m_container;
   std::unique_ptr<Blackboard> m_blackboard;
   graphics::VulkanDevice* m_device;
-
   bool m_compiled{ false };
 };
 } // namespace rendering

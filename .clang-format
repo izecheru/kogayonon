@@ -1,6 +1,6 @@
 ﻿BasedOnStyle: Microsoft
 
-# Indentation and Formatting
+SortIncludes: false
 IndentWidth: 2
 TabWidth: 2
 ContinuationIndentWidth: 2

@@ -56,30 +56,27 @@ auto rendering::VulkanRenderer::initModules() -> void
 
   m_extent = m_vkCtx->swapchain->getSwapchainExtent();
 
-  ModuleDescriptorData prepassData{ .descriptorSetLayouts =
-                                      {
-                                        m_cameraDescriptor.layout,
-                                      },
-                                    .descriptorSets = {
-                                      m_cameraDescriptor.set,
-                                    } };
+  ModuleDescriptorData prepassDescriptorData{ .descriptorSetLayouts = { m_cameraDescriptor.layout },
+                                              .descriptorSets = { m_cameraDescriptor.set } };
 
-  ModuleDescriptorData geometryData{ .descriptorSetLayouts = { m_cameraDescriptor.layout,
-                                                               assetManager->getBindlessDescriptorLayout(),
-                                                               assetManager->getMaterialsDescriptorLayout() },
-                                     .descriptorSets = { m_cameraDescriptor.set,
-                                                         assetManager->getBindlessDescriptorSet(),
-                                                         assetManager->getMaterialsDescriptorSet() } };
+  ModuleDescriptorData geometryDescriptorData{ .descriptorSetLayouts = { m_cameraDescriptor.layout,
+                                                                         assetManager->getBindlessDescriptorLayout(),
+                                                                         assetManager->getMaterialsDescriptorLayout() },
+                                               .descriptorSets = { m_cameraDescriptor.set,
+                                                                   assetManager->getBindlessDescriptorSet(),
+                                                                   assetManager->getMaterialsDescriptorSet() } };
 
-  ModuleDescriptorData pickingData{ .descriptorSetLayouts = { m_cameraDescriptor.layout },
-                                    .descriptorSets = { m_cameraDescriptor.set } };
+  ModuleDescriptorData pickingDescriptorData{ .descriptorSetLayouts = { m_cameraDescriptor.layout },
+                                              .descriptorSets = { m_cameraDescriptor.set } };
+
+  m_imguiModule = std::make_unique<ImGuiModule>( m_frameGraph.get(), m_vkCtx, m_pImguiRenderer.get() );
+  m_prepassModule = std::make_unique<PrepassModule>( m_frameGraph.get(), m_vkCtx, m_extent, prepassDescriptorData );
 
   m_geometryModule = std::make_unique<GeometryModule>(
-    m_frameGraph.get(), m_vkCtx, m_extent, geometryData, glm::vec4{ 0.5f, 0.5f, 0.5f, 1.0f } );
-  m_pickingModule =
-    std::make_unique<PickingModule>( m_frameGraph.get(), m_vkCtx, m_pImguiRenderer.get(), m_extent, pickingData );
-  m_prepassModule = std::make_unique<PrepassModule>( m_frameGraph.get(), m_vkCtx, m_extent, prepassData );
-  m_imguiModule = std::make_unique<ImGuiModule>( m_frameGraph.get(), m_vkCtx, m_pImguiRenderer.get() );
+    m_frameGraph.get(), m_vkCtx, m_extent, geometryDescriptorData, glm::vec4{ 0.5f, 0.5f, 0.5f, 1.0f } );
+
+  m_pickingModule = std::make_unique<PickingModule>(
+    m_frameGraph.get(), m_vkCtx, m_pImguiRenderer.get(), m_extent, pickingDescriptorData );
 
   m_imguiModule->setViewport();
 }

@@ -21,17 +21,9 @@ class PickingModule;
 class PrepassModule;
 } // namespace rendering
 
-enum DescriptorSetNum
-{
-  SET_0 = 0,
-  SET_1 = 1,
-  SET_2 = 2
-};
-
 namespace core
 {
 class Entity;
-
 class MouseClickedEvent;
 class SelectEntityEvent;
 class ImGuiWindowResizeEvent;
@@ -49,7 +41,6 @@ class VulkanImguiRenderer;
 
 namespace rendering
 {
-
 class VulkanRenderer
 {
 public:

@@ -178,7 +178,6 @@ private:
   auto updateMaterialsBuffer() -> void;
 
 private:
-  // copy is not allowed
   AssetManager( const AssetManager& ) = delete;
   AssetManager& operator=( const AssetManager& ) = delete;
   AssetManager( AssetManager&& ) = delete;

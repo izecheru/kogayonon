@@ -441,12 +441,12 @@ auto graphics::VulkanSwapchain::preparePresent() -> void
   VulkanImage& currentImage = getImageAtAquiredIndex();
 
   ImageTransitionData newTransition{};
-  newTransition.srcAccess = currentImage.transition.currentAccess;
-  newTransition.currentAccess = VK_ACCESS_2_NONE;
-  newTransition.srcStage = currentImage.transition.currentStage;
-  newTransition.currentStage = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
-  newTransition.oldLayout = currentImage.transition.currentLayout;
-  newTransition.currentLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  newTransition.srcAccess = currentImage.transition.newAccess;
+  newTransition.newAccess = VK_ACCESS_2_NONE;
+  newTransition.srcStage = currentImage.transition.newStage;
+  newTransition.newStage = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+  newTransition.oldLayout = currentImage.transition.newLayout;
+  newTransition.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
   currentImage.transition = newTransition;
   m_pDevice->transitionImageLayout( currentImage, m_currentCmdBuffer, currentImage.transition );
@@ -457,19 +457,19 @@ auto graphics::VulkanSwapchain::prepareAttachment() -> void
   VulkanImage& currentImage = getImageAtAquiredIndex();
   ImageTransitionData newTransition{};
 
-  if ( currentImage.transition.currentLayout == VK_IMAGE_LAYOUT_UNDEFINED )
+  if ( currentImage.transition.newLayout == VK_IMAGE_LAYOUT_UNDEFINED )
   {
     newTransition.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   }
-  else if ( currentImage.transition.currentLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR )
+  else if ( currentImage.transition.newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR )
   {
     newTransition.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
   }
 
   newTransition.srcAccess = VK_ACCESS_2_NONE;
-  newTransition.currentAccess = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-  newTransition.currentStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-  newTransition.currentLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  newTransition.newAccess = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+  newTransition.newStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+  newTransition.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
   currentImage.transition = newTransition;
 

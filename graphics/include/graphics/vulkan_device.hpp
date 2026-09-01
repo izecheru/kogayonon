@@ -172,6 +172,8 @@ public:
                           VkExtent3D extent,
                           bool applyBarrier = true ) -> void;
 
+  auto cmdPipelineBarrier2( VkCommandBuffer cmdBuffer, VkDependencyInfo dependencyInfo ) -> void;
+
   auto endSingleTimeCommands( VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool ) const -> void;
 
   auto endSingleTimeCommands( VkCommandBuffer commandBuffer,

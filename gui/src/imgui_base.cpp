@@ -59,7 +59,7 @@ void gui::ImGuiWindow::updatePosition()
 
 void gui::ImGuiWindow::updateSize()
 {
-  auto size = ImGui::GetWindowSize();
+  ImVec2 size = ImGui::GetContentRegionAvail();
   if ( m_props->width == size.x && m_props->height == size.y )
     return;
 

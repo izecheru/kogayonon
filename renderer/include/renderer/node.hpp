@@ -20,10 +20,11 @@ enum class FGResourceAccessType
 
 enum class FGResourceType
 {
-  None,
-  Color,
-  Depth,
-  ColorTransfer
+  None,          // undefined
+  Color,         // basic color
+  Depth,         // basic depth
+  ColorTransfer, // for entity  picking
+  Shader         // for shadow mapping for example, this will be sampled in the shader
 };
 
 struct FGResourceState
@@ -38,7 +39,7 @@ struct FGResourceState
 struct FGResource
 {
   graphics::VulkanImage vulkanImage;
-  FGResourceState currentState;
+  FGResourceState lastState;
   std::set<Node*> writerNodes;
   std::set<Node*> readerNodes;
 };
@@ -62,8 +63,8 @@ struct Node
   uint32_t indegree{ 0u };
 
   /**
-   * @brief Nodes that produce resources we need to use in the current node, so we wait for them to finish before using
-   * the resource
+   * @brief Nodes that produce resources we need to use in the current node, so we wait for them to finish before
+   * using the resource
    */
   std::set<Node*> dependsOn; // this must contain only unique entries hence set is used
 
@@ -94,7 +95,15 @@ struct Node
    */
   std::function<void( VkCommandBuffer )> executeFunction;
 
+  /**
+   * @brief This is filled at graph build time and using this state we can define the future
+   * needed barriers for image layout transitions
+   */
   std::unordered_map<FGResource*, FGResourceState> resourceExpectedState;
+
+  /**
+   * @brief Actual transition data per FGResource*, those should be grouped and call the vkCmdImageBarrier once per node
+   */
   std::vector<std::tuple<FGResource*, graphics::ImageTransitionData>> resourceBarriers;
 };
 
@@ -111,9 +120,10 @@ struct NodeContainer
 /**
  * @brief Build a node writes and reads
  */
-struct NodeBuilder
+class NodeBuilder
 {
-  NodeBuilder( Node* nodeHandle, NodeContainer* container )
+public:
+  explicit NodeBuilder( Node* nodeHandle, NodeContainer* container )
       : m_nodeHandle{ nodeHandle }
       , m_nodeContainer{ container }
   {
@@ -133,13 +143,15 @@ struct NodeBuilder
   auto inline read( FGResource* resource, FGResourceType type ) -> void
   {
     using enum FGResourceAccessType;
+
     resource->readerNodes.insert( m_nodeHandle );
     m_nodeHandle->reads.push_back( resource );
 
     m_nodeHandle->resourceExpectedState[resource] =
-      FGResourceState{ .type = type, .accessType = FGResourceAccessType::Write };
+      FGResourceState{ .type = type, .accessType = FGResourceAccessType::Read };
   }
 
+private:
   Node* m_nodeHandle;
   NodeContainer* m_nodeContainer;
 };
