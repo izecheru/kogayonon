@@ -116,7 +116,8 @@ auto rendering::GeometryModule::registerWireframePass() -> void
       b.write( geometryData.color, rendering::FGResourceType::Color );
       b.read( prepassData.depth, rendering::FGResourceType::Depth );
     },
-    [=]( VkCommandBuffer buffer ) {
+    [=]( VkCommandBuffer cmdBuffer ) {
+      TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::Wireframe );
       GeometryModuleData& geometryData = m_graph->getBlackboard()->get<GeometryModuleData>();
       PrepassModuleData& prepassData = m_graph->getBlackboard()->get<PrepassModuleData>();
 
@@ -148,13 +149,13 @@ auto rendering::GeometryModule::registerWireframePass() -> void
       };
 
       m_vkCtx->swapchain->beginRendering( geometryData.renderingInfo.vkRenderingInfo );
-      m_vkCtx->swapchain->setupScissors( buffer );
-      m_vkCtx->swapchain->setupViewport( buffer );
+      m_vkCtx->swapchain->setupScissors( cmdBuffer );
+      m_vkCtx->swapchain->setupViewport( cmdBuffer );
 
-      wireframePipeline.bind( buffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
+      wireframePipeline.bind( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
 
       // camera descriptor, this is tripple buffered to ensure operations are not overwritten by cpu/ gpu
-      vkCmdBindDescriptorSets( buffer,
+      vkCmdBindDescriptorSets( cmdBuffer,
                                VK_PIPELINE_BIND_POINT_GRAPHICS,
                                wireframePipeline.getLayout(),
                                0,
@@ -164,7 +165,7 @@ auto rendering::GeometryModule::registerWireframePass() -> void
                                nullptr );
 
       // this is the bindless texture set
-      vkCmdBindDescriptorSets( buffer,
+      vkCmdBindDescriptorSets( cmdBuffer,
                                VK_PIPELINE_BIND_POINT_GRAPHICS,
                                wireframePipeline.getLayout(),
                                1,
@@ -173,7 +174,7 @@ auto rendering::GeometryModule::registerWireframePass() -> void
                                0,
                                nullptr );
 
-      vkCmdBindDescriptorSets( buffer,
+      vkCmdBindDescriptorSets( cmdBuffer,
                                VK_PIPELINE_BIND_POINT_GRAPHICS,
                                wireframePipeline.getLayout(),
                                2,
@@ -186,32 +187,32 @@ auto rendering::GeometryModule::registerWireframePass() -> void
       core::Scene* scene = sceneManager->getCurrentScene();
 
       auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
-      view.each( [&]( const entt::entity& entityId,
-                      core::MeshComponent& meshComponent,
-                      core::TransformComponent& transform ) {
-        if ( !meshComponent.loaded )
-          return;
+      view.each(
+        [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
+          if ( !meshComponent.loaded )
+            return;
 
-        VkDeviceSize offsets[] = { 0 };
+          VkDeviceSize offsets[] = { 0 };
 
-        vkCmdBindVertexBuffers( buffer, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
-        vkCmdBindIndexBuffer( buffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
-        for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
-        {
-          // this should be expensive, move it somewhere in the mesh or submesh
-          auto push =
-            resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(), .materialIndex = submesh.materialIndex };
+          vkCmdBindVertexBuffers( cmdBuffer, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
+          vkCmdBindIndexBuffer(
+            cmdBuffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
+          for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
+          {
+            // this should be expensive, move it somewhere in the mesh or submesh
+            auto push = resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(),
+                                                     .materialIndex = submesh.materialIndex };
 
-          vkCmdPushConstants( buffer,
-                              wireframePipeline.getLayout(),
-                              VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                              0,
-                              sizeof( resources::MeshPushConstant ),
-                              &push );
+            vkCmdPushConstants( cmdBuffer,
+                                wireframePipeline.getLayout(),
+                                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                0,
+                                sizeof( resources::MeshPushConstant ),
+                                &push );
 
-          vkCmdDrawIndexed( buffer, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
-        }
-      } );
+            vkCmdDrawIndexed( cmdBuffer, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
+          }
+        } );
 
       m_vkCtx->swapchain->endRendering();
     } );
@@ -255,7 +256,9 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
       b.read( prepassData.depth, rendering::FGResourceType::Depth );
       // b.read();
     },
-    [=]( VkCommandBuffer buffer ) {
+    [=]( VkCommandBuffer cmdBuffer ) {
+      TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::Geometry );
+
       if ( m_extent.width == 0 || m_extent.height == 0 )
         return;
 
@@ -292,12 +295,12 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
       };
 
       m_vkCtx->swapchain->beginRendering( geometryData.renderingInfo.vkRenderingInfo );
-      m_vkCtx->swapchain->setupScissors( buffer );
-      m_vkCtx->swapchain->setupViewport( buffer );
+      m_vkCtx->swapchain->setupScissors( cmdBuffer );
+      m_vkCtx->swapchain->setupViewport( cmdBuffer );
 
-      geometryPipeline.bind( buffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
+      geometryPipeline.bind( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
 
-      vkCmdBindDescriptorSets( buffer,
+      vkCmdBindDescriptorSets( cmdBuffer,
                                VK_PIPELINE_BIND_POINT_GRAPHICS,
                                geometryPipeline.getLayout(),
                                0,
@@ -306,7 +309,7 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
                                0,
                                nullptr );
 
-      vkCmdBindDescriptorSets( buffer,
+      vkCmdBindDescriptorSets( cmdBuffer,
                                VK_PIPELINE_BIND_POINT_GRAPHICS,
                                geometryPipeline.getLayout(),
                                1,
@@ -315,7 +318,7 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
                                0,
                                nullptr );
 
-      vkCmdBindDescriptorSets( buffer,
+      vkCmdBindDescriptorSets( cmdBuffer,
                                VK_PIPELINE_BIND_POINT_GRAPHICS,
                                geometryPipeline.getLayout(),
                                2,
@@ -328,32 +331,32 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
       core::Scene* scene = sceneManager->getCurrentScene();
 
       auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
-      view.each( [&]( const entt::entity& entityId,
-                      core::MeshComponent& meshComponent,
-                      core::TransformComponent& transform ) {
-        if ( !meshComponent.loaded )
-          return;
+      view.each(
+        [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
+          if ( !meshComponent.loaded )
+            return;
 
-        VkDeviceSize offsets[] = { 0 };
+          VkDeviceSize offsets[] = { 0 };
 
-        vkCmdBindVertexBuffers( buffer, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
-        vkCmdBindIndexBuffer( buffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
-        for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
-        {
-          // this should be expensive, move it somewhere in the mesh or submesh
-          auto push =
-            resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(), .materialIndex = submesh.materialIndex };
+          vkCmdBindVertexBuffers( cmdBuffer, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
+          vkCmdBindIndexBuffer(
+            cmdBuffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
+          for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
+          {
+            // this should be expensive, move it somewhere in the mesh or submesh
+            auto push = resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(),
+                                                     .materialIndex = submesh.materialIndex };
 
-          vkCmdPushConstants( buffer,
-                              geometryPipeline.getLayout(),
-                              VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                              0,
-                              sizeof( resources::MeshPushConstant ),
-                              &push );
+            vkCmdPushConstants( cmdBuffer,
+                                geometryPipeline.getLayout(),
+                                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                0,
+                                sizeof( resources::MeshPushConstant ),
+                                &push );
 
-          vkCmdDrawIndexed( buffer, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
-        }
-      } );
+            vkCmdDrawIndexed( cmdBuffer, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
+          }
+        } );
 
       m_vkCtx->swapchain->endRendering();
     } );

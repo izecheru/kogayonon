@@ -106,7 +106,9 @@ auto rendering::PickingModule::registerPickingPass() -> void
       b.read( prepassData.depth, FGResourceType::Depth );
     },
     [=, coords = &m_mouseCoords, readyToCopy = &m_readyToCopy, pickRequested = &m_pickRequested](
-      VkCommandBuffer buffer ) {
+      VkCommandBuffer cmdBuffer ) {
+      TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::Picking );
+
       if ( ( coords->x == -1 && coords->y == -1 ) || *readyToCopy == true )
       {
         return;
@@ -147,13 +149,13 @@ auto rendering::PickingModule::registerPickingPass() -> void
       };
 
       m_vkCtx->swapchain->beginRendering( pickingData.renderingInfo.vkRenderingInfo );
-      m_vkCtx->swapchain->setupScissors( buffer );
-      m_vkCtx->swapchain->setupViewport( buffer );
+      m_vkCtx->swapchain->setupScissors( cmdBuffer );
+      m_vkCtx->swapchain->setupViewport( cmdBuffer );
 
       graphics::VulkanPipeline& pickingPipeline = pickingData.pickingPipeline;
-      pickingPipeline.bind( buffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
+      pickingPipeline.bind( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
 
-      vkCmdBindDescriptorSets( buffer,
+      vkCmdBindDescriptorSets( cmdBuffer,
                                VK_PIPELINE_BIND_POINT_GRAPHICS,
                                pickingPipeline.getLayout(),
                                0,
@@ -165,31 +167,31 @@ auto rendering::PickingModule::registerPickingPass() -> void
       core::Scene* scene = core::MainRegistry::getInstance().getSceneManager()->getCurrentScene();
 
       auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
-      view.each( [&]( const entt::entity& entityId,
-                      core::MeshComponent& meshComponent,
-                      core::TransformComponent& transform ) {
-        if ( !meshComponent.loaded )
-          return;
+      view.each(
+        [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
+          if ( !meshComponent.loaded )
+            return;
 
-        VkDeviceSize offsets[] = { 0 };
+          VkDeviceSize offsets[] = { 0 };
 
-        vkCmdBindVertexBuffers( buffer, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
-        vkCmdBindIndexBuffer( buffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
-        for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
-        {
-          resources::EntityPickingPushConstant push{ .modelMatrix = transform.getMatrix(),
-                                                     .entityId = static_cast<int>( entityId ) };
+          vkCmdBindVertexBuffers( cmdBuffer, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
+          vkCmdBindIndexBuffer(
+            cmdBuffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
+          for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
+          {
+            resources::EntityPickingPushConstant push{ .modelMatrix = transform.getMatrix(),
+                                                       .entityId = static_cast<int>( entityId ) };
 
-          vkCmdPushConstants( buffer,
-                              pickingPipeline.getLayout(),
-                              VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                              0,
-                              sizeof( resources::EntityPickingPushConstant ),
-                              &push );
+            vkCmdPushConstants( cmdBuffer,
+                                pickingPipeline.getLayout(),
+                                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                0,
+                                sizeof( resources::EntityPickingPushConstant ),
+                                &push );
 
-          vkCmdDrawIndexed( buffer, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
-        }
-      } );
+            vkCmdDrawIndexed( cmdBuffer, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
+          }
+        } );
 
       m_vkCtx->swapchain->endRendering();
     } );
@@ -208,7 +210,8 @@ auto rendering::PickingModule::registerPickingReadbackPass() -> void
      lastFrameIndex = &m_lastFrameIndex,
      coords = &m_mouseCoords,
      pickRequested = &m_pickRequested,
-     readyToCopy = &m_readyToCopy]( VkCommandBuffer buffer ) {
+     readyToCopy = &m_readyToCopy]( VkCommandBuffer cmdBuffer ) {
+      TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::PickingReadback );
       if ( m_extent.width == 0 || m_extent.height == 0 )
         return;
 
@@ -220,7 +223,7 @@ auto rendering::PickingModule::registerPickingReadbackPass() -> void
 
       uint32_t frameNumber = m_vkCtx->swapchain->getCurrentFrameNumber();
       m_vkCtx->device->copyImageToBuffer( pickingData.color->vulkanImage.vkImage,
-                                          buffer,
+                                          cmdBuffer,
                                           pickingData.pickingBuffer.buffers.at( frameNumber ).vkBuffer,
                                           { coords->x, coords->y, 0 },
                                           { 1, 1, 1 },
@@ -245,7 +248,8 @@ auto rendering::PickingModule::registerPickingEntityReadPass() -> void
      lastFrameIndex = &m_lastFrameIndex,
      coords = &m_mouseCoords,
      pickRequested = &m_pickRequested,
-     readyToCopy = &m_readyToCopy]( VkCommandBuffer buffer ) {
+     readyToCopy = &m_readyToCopy]( VkCommandBuffer cmdBuffer ) {
+      TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::PickingEntityRead );
       if ( m_extent.width == 0 || m_extent.height == 0 )
         return;
 

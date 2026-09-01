@@ -99,7 +99,10 @@ auto rendering::VulkanRenderer::render() -> void
 
   m_vkCtx->swapchain->prepareAttachment();
 
-  m_frameGraph->execute( m_vkCtx->swapchain->getCurrentCommandBuffer() );
+  VkCommandBuffer cmdBuffer = m_vkCtx->swapchain->getCurrentCommandBuffer();
+  m_frameGraph->execute( cmdBuffer );
+
+  m_vkCtx->tracyContext->collect( cmdBuffer );
 }
 
 auto rendering::VulkanRenderer::createCameraBuffers() -> void

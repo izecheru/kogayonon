@@ -7,6 +7,7 @@
 #include "renderer/blackboard.hpp"
 #include "resources/mesh_push_constant.hpp"
 #include "resources/vertex.hpp"
+#include "utilities/tracy_utils/tracy_utils.hpp"
 
 rendering::PrepassModule::PrepassModule( FrameGraph* graph,
                                          graphics::VulkanContext* vkCtx,
@@ -62,6 +63,7 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
       b.write( prepassData.depth, FGResourceType::Depth );
     },
     [=]( VkCommandBuffer cmdBuffer ) {
+      TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::DepthPrepass );
       if ( m_extent.width == 0 || m_extent.height == 0 )
         return;
 

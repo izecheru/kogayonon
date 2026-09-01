@@ -300,13 +300,14 @@ bool editor::Editor::initMainRegistry()
                     swapchain->getCommandPool() );
 #endif
 
-  std::unique_ptr<graphics::VulkanContext> vkCtx( new graphics::VulkanContext{ .device = std::move( device ),
-                                                                               .swapchain = std::move( swapchain ),
+  std::unique_ptr<graphics::VulkanContext> vkCtx =
+    std::make_unique<graphics::VulkanContext>( graphics::VulkanContext{ .device = std::move( device ),
+                                                                        .swapchain = std::move( swapchain ),
 #ifdef TRACY_ENABLE
-                                                                               .tracyContext = std::move( vkTracy )
+                                                                        .tracyContext = std::move( vkTracy )
 #endif
 
-  } );
+    } );
 
   mainRegistry.addToContext<std::shared_ptr<graphics::VulkanContext>>( std::move( vkCtx ) );
 

@@ -17,7 +17,7 @@ if(MSVC)
   add_compile_options(/utf-8)
 endif()
 
-option(KOGAYONON_ENABLE_TRACY "Enable Tracy profiler" OFF)
+option(KOGAYONON_ENABLE_TRACY "Enable Tracy profiler" ON)
 
 add_compile_definitions(MAX_FRAMES_IN_FLIGHT=3)
 

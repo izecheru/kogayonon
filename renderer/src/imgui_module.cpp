@@ -1,4 +1,5 @@
 #include "renderer/modules/imgui_module.hpp"
+#include "utilities/tracy_utils/tracy_utils.hpp"
 #include "graphics/vulkan_context.hpp"
 #include "gui/vulkan_imgui_renderer.hpp"
 #include "renderer/blackboard.hpp"
@@ -36,7 +37,8 @@ void rendering::ImGuiModule::registerImGuiPass()
       GeometryModuleData& geometryData{ m_graph->getBlackboard()->get<GeometryModuleData>() };
       b.read( geometryData.color, FGResourceType::Color );
     },
-    [=]( VkCommandBuffer buffer ) {
+    [=]( VkCommandBuffer cmdBuffer ) {
+      TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::ImGui );
       ImGuiModuleData& imguiData = blackboard->get<ImGuiModuleData>();
 
       imguiData.renderingAttachment =
@@ -60,7 +62,7 @@ void rendering::ImGuiModule::registerImGuiPass()
 
       m_vkCtx->swapchain->beginRendering( imguiData.renderingInfo );
       m_imguiRenderer->render();
-      m_imguiRenderer->present( buffer );
+      m_imguiRenderer->present( cmdBuffer );
       m_vkCtx->swapchain->endRendering();
     } );
 }
