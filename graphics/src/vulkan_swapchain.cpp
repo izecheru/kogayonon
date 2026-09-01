@@ -439,41 +439,59 @@ void graphics::VulkanSwapchain::endCommandBuffer() const
 auto graphics::VulkanSwapchain::preparePresent() -> void
 {
   VulkanImage& currentImage = getImageAtAquiredIndex();
+  VkImageMemoryBarrier2& currentState = currentImage.currentState;
 
-  ImageTransitionData newTransition{};
-  newTransition.srcAccess = currentImage.transition.newAccess;
-  newTransition.newAccess = VK_ACCESS_2_NONE;
-  newTransition.srcStage = currentImage.transition.newStage;
-  newTransition.newStage = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
-  newTransition.oldLayout = currentImage.transition.newLayout;
-  newTransition.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  VkImageMemoryBarrier2 newBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                    .srcStageMask = currentState.dstStageMask,
+                                    .srcAccessMask = currentState.dstAccessMask,
+                                    .dstStageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+                                    .dstAccessMask = VK_ACCESS_2_NONE,
+                                    .oldLayout = currentState.newLayout,
+                                    .newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                    .image = currentImage.vkImage,
+                                    .subresourceRange{
+                                      .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                      .baseMipLevel = 0,
+                                      .levelCount = 1,
+                                      .baseArrayLayer = 0,
+                                      .layerCount = 1,
+                                    } };
 
-  currentImage.transition = newTransition;
-  m_pDevice->transitionImageLayout( currentImage, m_currentCmdBuffer, currentImage.transition );
+  currentState = newBarrier;
+  m_pDevice->transitionImageLayout( currentImage, m_currentCmdBuffer, newBarrier );
 }
 
 auto graphics::VulkanSwapchain::prepareAttachment() -> void
 {
   VulkanImage& currentImage = getImageAtAquiredIndex();
-  ImageTransitionData newTransition{};
+  VkImageMemoryBarrier2& currentState = currentImage.currentState;
 
-  if ( currentImage.transition.newLayout == VK_IMAGE_LAYOUT_UNDEFINED )
+  VkImageMemoryBarrier2 newBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                    .srcStageMask = VK_PIPELINE_STAGE_2_NONE,
+                                    .srcAccessMask = VK_ACCESS_2_NONE,
+                                    .dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                    .dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                    .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                    .image = currentImage.vkImage,
+                                    .subresourceRange{
+                                      .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                      .baseMipLevel = 0,
+                                      .levelCount = 1,
+                                      .baseArrayLayer = 0,
+                                      .layerCount = 1,
+                                    } };
+
+  if ( currentState.newLayout == VK_IMAGE_LAYOUT_UNDEFINED )
   {
-    newTransition.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    newBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   }
-  else if ( currentImage.transition.newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR )
+  else if ( currentState.newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR )
   {
-    newTransition.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    newBarrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
   }
 
-  newTransition.srcAccess = VK_ACCESS_2_NONE;
-  newTransition.newAccess = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-  newTransition.newStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-  newTransition.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-  currentImage.transition = newTransition;
-
-  m_pDevice->transitionImageLayout( currentImage, m_currentCmdBuffer, currentImage.transition );
+  currentState = newBarrier;
+  m_pDevice->transitionImageLayout( currentImage, m_currentCmdBuffer, newBarrier );
 }
 
 auto graphics::VulkanSwapchain::getCurrentFrameNumber() const -> uint32_t

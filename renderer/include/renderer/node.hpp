@@ -104,7 +104,8 @@ struct Node
   /**
    * @brief Actual transition data per FGResource*, those should be grouped and call the vkCmdImageBarrier once per node
    */
-  std::vector<std::tuple<FGResource*, graphics::ImageTransitionData>> resourceBarriers;
+  std::vector<std::tuple<FGResource*, VkImageMemoryBarrier2>> resourceBarriers;
+  std::vector<VkImageMemoryBarrier2> barriers;
 };
 
 /**

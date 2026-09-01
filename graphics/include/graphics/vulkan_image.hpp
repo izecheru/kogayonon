@@ -4,27 +4,26 @@
 
 namespace graphics
 {
-
-struct ImageTransitionData
-{
-  VkPipelineStageFlags2 srcStage{ VK_PIPELINE_STAGE_2_NONE };
-  VkPipelineStageFlags2 newStage{ VK_PIPELINE_STAGE_2_NONE };
-  VkAccessFlags2 srcAccess{ VK_ACCESS_2_NONE };
-  VkAccessFlags2 newAccess{ VK_ACCESS_2_NONE };
-  VkImageLayout oldLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
-  VkImageLayout newLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
-  /**
-   * @brief Defaults to VK_IMAGE_ASPECT_COLOR_BIT
-   */
-  VkImageAspectFlags aspect{ VK_IMAGE_ASPECT_COLOR_BIT };
-};
-
 struct VulkanImage
 {
   VkImage vkImage{ VK_NULL_HANDLE };
   VkImageView vkImageView{ VK_NULL_HANDLE };
   VkExtent2D extent{ 0, 0 };
   VmaAllocation vmaAllocation{ VK_NULL_HANDLE };
-  ImageTransitionData transition;
+
+  VkImageMemoryBarrier2 currentState{
+    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+    .pNext = nullptr,
+    .srcStageMask = VK_PIPELINE_STAGE_2_NONE,
+    .srcAccessMask = VK_ACCESS_2_NONE,
+    .dstStageMask = VK_PIPELINE_STAGE_2_NONE,
+    .dstAccessMask = VK_ACCESS_2_NONE,
+    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    .newLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+    .image = VK_NULL_HANDLE,
+    .subresourceRange = {
+      .aspectMask = VK_IMAGE_ASPECT_NONE, .baseMipLevel = 0, .levelCount = 0, .baseArrayLayer = 0, .layerCount = 0 } };
 };
 } // namespace graphics

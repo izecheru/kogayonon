@@ -73,12 +73,14 @@ auto rendering::FrameGraph::clearGraph() -> void
 
   for ( std::unique_ptr<Node>& node : m_container.nodes )
   {
+    node->resourceExpectedState.clear();
+    node->resourceBarriers.clear();
+    node->resourceBarriers.clear();
     node->consumers.clear();
     node->dependsOn.clear();
-    node->reads.clear();
+    node->barriers.clear();
     node->writes.clear();
-    node->resourceBarriers.clear();
-    node->resourceExpectedState.clear();
+    node->reads.clear();
     node->indegree = 0u;
   }
 }
@@ -96,36 +98,15 @@ auto rendering::FrameGraph::execute( VkCommandBuffer cmdBuff ) -> void
 {
   for ( auto& node : m_container.executionOrder )
   {
-    std::vector<VkImageMemoryBarrier2> builtBarriers{};
-
-    for ( auto& [resource, transition] : node->resourceBarriers )
+    if ( !node->barriers.empty() )
     {
-      VkImageMemoryBarrier2 transitionBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                                               .srcStageMask = transition.srcStage,
-                                               .srcAccessMask = transition.srcAccess,
-                                               .dstStageMask = transition.newStage,
-                                               .dstAccessMask = transition.newAccess,
-                                               .oldLayout = transition.oldLayout,
-                                               .newLayout = transition.newLayout,
-                                               .image = resource->vulkanImage.vkImage,
-                                               .subresourceRange = {
-                                                 .aspectMask = transition.aspect,
-                                                 .baseMipLevel = 0,
-                                                 .levelCount = 1,
-                                                 .baseArrayLayer = 0,
-                                                 .layerCount = 1,
-                                               } };
-
-      builtBarriers.push_back( transitionBarrier );
+      VkDependencyInfo dependency{
+        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+        .imageMemoryBarrierCount = static_cast<uint32_t>( node->barriers.size() ),
+        .pImageMemoryBarriers = node->barriers.data(),
+      };
+      m_device->cmdPipelineBarrier2( cmdBuff, dependency );
     }
-
-    VkDependencyInfo dependency{
-      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-      .imageMemoryBarrierCount = static_cast<uint32_t>( builtBarriers.size() ),
-      .pImageMemoryBarriers = builtBarriers.data(),
-    };
-
-    m_device->cmdPipelineBarrier2( cmdBuff, dependency );
 
     node->executeFunction( cmdBuff );
   }
@@ -237,55 +218,72 @@ auto rendering::FrameGraph::resolveResourceBarriers() -> void
         const FGResourceState& desiredState = node->resourceExpectedState[resource];
         bool depth = desiredState.type == FGResourceType::Depth;
 
-        graphics::ImageTransitionData& currentData = resource->vulkanImage.transition;
-        graphics::ImageTransitionData transition{};
+        VkImageMemoryBarrier2& currentState = resource->vulkanImage.currentState;
+
+        VkImageMemoryBarrier2 transitionBarrier{};
 
         if ( desiredState.type == FGResourceType::ColorTransfer )
         {
-          transition = graphics::ImageTransitionData{ .srcStage = currentData.newStage,
-                                                      .newStage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-                                                      .srcAccess = currentData.newAccess,
-                                                      .newAccess = VK_ACCESS_2_TRANSFER_READ_BIT,
-                                                      .oldLayout = currentData.newLayout,
-                                                      .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                                      .aspect = VK_IMAGE_ASPECT_COLOR_BIT };
+          transitionBarrier = VkImageMemoryBarrier2{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                                     .srcStageMask = currentState.dstStageMask,
+                                                     .srcAccessMask = currentState.dstAccessMask,
+                                                     .dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                                                     .dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT,
+                                                     .oldLayout = currentState.newLayout,
+                                                     .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                                     .image = resource->vulkanImage.vkImage,
+                                                     .subresourceRange = {
+                                                       .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                                       .baseMipLevel = 0,
+                                                       .levelCount = 1,
+                                                       .baseArrayLayer = 0,
+                                                       .layerCount = 1,
+                                                     } };
         }
         else if ( desiredState.type == FGResourceType::Depth ) // if we want to read a previously written depth image
         {
-
-          transition =
-            graphics::ImageTransitionData{ .srcStage = currentData.newStage,
-                                           .newStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                                           .srcAccess = currentData.newAccess,
-                                           .newAccess = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
-                                           .oldLayout = currentData.newLayout,
-                                           .newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL,
-                                           .aspect = VK_IMAGE_ASPECT_DEPTH_BIT };
+          transitionBarrier =
+            VkImageMemoryBarrier2{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                   .srcStageMask = currentState.dstStageMask,
+                                   .srcAccessMask = currentState.dstAccessMask,
+                                   .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                   .dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+                                   .oldLayout = currentState.newLayout,
+                                   .newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL,
+                                   .image = resource->vulkanImage.vkImage,
+                                   .subresourceRange = {
+                                     .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+                                     .baseMipLevel = 0,
+                                     .levelCount = 1,
+                                     .baseArrayLayer = 0,
+                                     .layerCount = 1,
+                                   } };
         }
         else // if we don't have a color transfer or a previously written detph image, this also covers the Shader type
              // and the Color case
         {
-          if ( depth )
-          {
-            transition.aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
-          }
-          else
-          {
-            transition.aspect = VK_IMAGE_ASPECT_COLOR_BIT;
-          }
 
-          transition = graphics::ImageTransitionData{
-            .srcStage = currentData.newStage,
-            .newStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-            .srcAccess = currentData.newAccess,
-            .newAccess = VK_ACCESS_2_SHADER_READ_BIT,
-            .oldLayout = currentData.newLayout,
-            .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-          };
+          transitionBarrier =
+            VkImageMemoryBarrier2{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                   .srcStageMask = currentState.dstStageMask,
+                                   .srcAccessMask = currentState.dstAccessMask,
+                                   .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                   .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+                                   .oldLayout = currentState.newLayout,
+                                   .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                   .image = resource->vulkanImage.vkImage,
+                                   .subresourceRange = {
+                                     .aspectMask = depth ? static_cast<VkImageAspectFlags>( VK_IMAGE_ASPECT_DEPTH_BIT )
+                                                         : static_cast<VkImageAspectFlags>( VK_IMAGE_ASPECT_COLOR_BIT ),
+                                     .baseMipLevel = 0,
+                                     .levelCount = 1,
+                                     .baseArrayLayer = 0,
+                                     .layerCount = 1,
+                                   } };
         }
 
-        currentData = transition;
-        node->resourceBarriers.push_back( { resource, transition } );
+        currentState = transitionBarrier;
+        node->resourceBarriers.push_back( { resource, transitionBarrier } );
         resource->lastState = desiredState;
       }
     }
@@ -295,31 +293,48 @@ auto rendering::FrameGraph::resolveResourceBarriers() -> void
       if ( resource->lastState.accessType == FGResourceAccessType::None ) // Undefined case
       {
         const FGResourceState& desiredState = node->resourceExpectedState[resource];
-        graphics::ImageTransitionData transition;
+
+        VkImageMemoryBarrier2 transitionBarrier{};
 
         if ( desiredState.type == FGResourceType::Color && desiredState.accessType == FGResourceAccessType::Write )
         {
-          transition = graphics::ImageTransitionData{ .srcStage = VK_PIPELINE_STAGE_2_NONE,
-                                                      .newStage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                                      .srcAccess = VK_ACCESS_2_NONE,
-                                                      .newAccess = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                                                      .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                                                      .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                                      .aspect = VK_IMAGE_ASPECT_COLOR_BIT };
+          transitionBarrier = VkImageMemoryBarrier2{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                                     .srcStageMask = VK_PIPELINE_STAGE_2_NONE,
+                                                     .srcAccessMask = VK_ACCESS_2_NONE,
+                                                     .dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                                     .dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                                     .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                                     .newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                                     .image = resource->vulkanImage.vkImage,
+                                                     .subresourceRange = {
+                                                       .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                                       .baseMipLevel = 0,
+                                                       .levelCount = 1,
+                                                       .baseArrayLayer = 0,
+                                                       .layerCount = 1,
+                                                     } };
         }
         else if ( desiredState.type == FGResourceType::Depth && desiredState.accessType == FGResourceAccessType::Write )
         {
-          transition = graphics::ImageTransitionData{ .srcStage = VK_PIPELINE_STAGE_2_NONE,
-                                                      .newStage = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                                                      .srcAccess = VK_ACCESS_2_NONE,
-                                                      .newAccess = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                                                      .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                                                      .newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-                                                      .aspect = VK_IMAGE_ASPECT_DEPTH_BIT };
+          transitionBarrier = VkImageMemoryBarrier2{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                                     .srcStageMask = VK_PIPELINE_STAGE_2_NONE,
+                                                     .srcAccessMask = VK_ACCESS_2_NONE,
+                                                     .dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+                                                     .dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                                     .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                                     .newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                                                     .image = resource->vulkanImage.vkImage,
+                                                     .subresourceRange = {
+                                                       .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+                                                       .baseMipLevel = 0,
+                                                       .levelCount = 1,
+                                                       .baseArrayLayer = 0,
+                                                       .layerCount = 1,
+                                                     } };
         }
 
-        resource->vulkanImage.transition = transition;
-        node->resourceBarriers.push_back( { resource, transition } );
+        resource->vulkanImage.currentState = transitionBarrier;
+        node->resourceBarriers.push_back( { resource, transitionBarrier } );
         resource->lastState = desiredState;
       }
       else if ( resource->lastState.accessType == FGResourceAccessType::Write ) // WAW
@@ -327,22 +342,30 @@ auto rendering::FrameGraph::resolveResourceBarriers() -> void
         const FGResourceState& desiredState = node->resourceExpectedState[resource];
         bool depth = desiredState.type == FGResourceType::Depth;
 
-        graphics::ImageTransitionData& currentData = resource->vulkanImage.transition;
+        VkImageMemoryBarrier2& currentState = resource->vulkanImage.currentState;
 
-        graphics::ImageTransitionData transition{
-          .srcStage = currentData.newStage,
-          .newStage =
+        VkImageMemoryBarrier2 transitionBarrier{
+          .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+          .srcStageMask = currentState.dstStageMask,
+          .srcAccessMask = currentState.dstAccessMask,
+          .dstStageMask =
             depth ? VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT : VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-          .srcAccess = currentData.newAccess,
-          .newAccess = depth ? VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-          .oldLayout = currentData.newLayout,
+          .dstAccessMask =
+            depth ? VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+          .oldLayout = currentState.newLayout,
           .newLayout = depth ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-          .aspect = depth ? static_cast<VkImageAspectFlags>( VK_IMAGE_ASPECT_DEPTH_BIT )
-                          : static_cast<VkImageAspectFlags>( VK_IMAGE_ASPECT_COLOR_BIT ),
-        };
+          .image = resource->vulkanImage.vkImage,
+          .subresourceRange = {
+            .aspectMask = depth ? static_cast<VkImageAspectFlags>( VK_IMAGE_ASPECT_DEPTH_BIT )
+                                : static_cast<VkImageAspectFlags>( VK_IMAGE_ASPECT_COLOR_BIT ),
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+          } };
 
-        currentData = transition;
-        node->resourceBarriers.push_back( { resource, transition } );
+        currentState = transitionBarrier;
+        node->resourceBarriers.push_back( { resource, transitionBarrier } );
         resource->lastState = desiredState;
       }
       else if ( resource->lastState.accessType == FGResourceAccessType::Read ) // WAR
@@ -350,23 +373,38 @@ auto rendering::FrameGraph::resolveResourceBarriers() -> void
         const FGResourceState& desiredState = node->resourceExpectedState[resource];
         bool depth = desiredState.type == FGResourceType::Depth;
 
-        graphics::ImageTransitionData& currentData = resource->vulkanImage.transition;
+        VkImageMemoryBarrier2 currentState = resource->vulkanImage.currentState;
 
-        graphics::ImageTransitionData transition{
-          .srcStage = currentData.newStage,
-          .newStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-          .srcAccess = currentData.newAccess,
-          .newAccess = VK_ACCESS_2_SHADER_READ_BIT,
-          .oldLayout = currentData.newLayout,
+        VkImageMemoryBarrier2 transitionBarrier{
+          .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+          .srcStageMask = currentState.dstStageMask,
+          .srcAccessMask = currentState.dstAccessMask,
+          .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+          .oldLayout = currentState.newLayout,
           .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-          .aspect = depth ? static_cast<VkImageAspectFlags>( VK_IMAGE_ASPECT_DEPTH_BIT )
-                          : static_cast<VkImageAspectFlags>( VK_IMAGE_ASPECT_COLOR_BIT ),
-        };
+          .image = resource->vulkanImage.vkImage,
+          .subresourceRange = {
+            .aspectMask = depth ? static_cast<VkImageAspectFlags>( VK_IMAGE_ASPECT_DEPTH_BIT )
+                                : static_cast<VkImageAspectFlags>( VK_IMAGE_ASPECT_COLOR_BIT ),
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1,
+          } };
 
-        currentData = transition;
-        node->resourceBarriers.push_back( { resource, transition } );
+        currentState = transitionBarrier;
+        node->resourceBarriers.push_back( { resource, transitionBarrier } );
         resource->lastState = desiredState;
       }
+    }
+  }
+
+  for ( Node* node : m_container.executionOrder )
+  {
+    for ( auto& [resource, barrier] : node->resourceBarriers )
+    {
+      node->barriers.emplace_back( barrier );
     }
   }
 }

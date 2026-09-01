@@ -96,13 +96,23 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
     texture->getView(), texture->getImage(), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT );
 
   // transfer barrier
-  m_vkCtx->device->transitionImageLayout( texture->getImage(),
-                                          { .srcStage = VK_PIPELINE_STAGE_2_NONE,
-                                            .newStage = VK_PIPELINE_STAGE_2_COPY_BIT,
-                                            .srcAccess = VK_ACCESS_2_NONE,
-                                            .newAccess = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                                            .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                                            .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL } );
+  VkImageMemoryBarrier2 transferLayoutBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                               .srcStageMask = VK_PIPELINE_STAGE_2_NONE,
+                                               .srcAccessMask = VK_ACCESS_2_NONE,
+                                               .dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
+                                               .dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                               .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                               .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                               .image = texture->getImage(),
+                                               .subresourceRange = {
+                                                 .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                                 .baseMipLevel = 0,
+                                                 .levelCount = 1,
+                                                 .baseArrayLayer = 0,
+                                                 .layerCount = 1,
+                                               } };
+
+  m_vkCtx->device->transitionImageLayout( texture->getImage(), transferLayoutBarrier );
 
   void* data;
   vmaMapMemory( m_vkCtx->device->getAllocator(), stageBuffer.vmaAllocation, &data );
@@ -112,16 +122,27 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
   stbi_image_free( pixels );
 
   // copy and also transition layout
+  VkImageMemoryBarrier2 copyImageBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                          .srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
+                                          .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                          .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                          .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+                                          .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                          .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                          .image = texture->getImage(),
+                                          .subresourceRange = {
+                                            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                            .baseMipLevel = 0,
+                                            .levelCount = 1,
+                                            .baseArrayLayer = 0,
+                                            .layerCount = 1,
+                                          } };
+
   m_vkCtx->device->copyBufferToImage( stageBuffer.vkBuffer,
                                       texture->getImage(),
                                       static_cast<uint32_t>( texWidth ),
                                       static_cast<uint32_t>( texHeight ),
-                                      { .srcStage = VK_PIPELINE_STAGE_2_COPY_BIT,
-                                        .newStage = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                                        .srcAccess = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                                        .newAccess = VK_ACCESS_2_SHADER_READ_BIT,
-                                        .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                        .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL } );
+                                      copyImageBarrier );
 
   m_vkCtx->device->destroyBuffer( stageBuffer );
 
@@ -603,7 +624,6 @@ auto core::AssetManager::createMaterialsBuffers( VkDeviceSize size ) -> void
 
 auto core::AssetManager::updateMaterialsBuffer() -> void
 {
-
   m_vkCtx->device->destroyBuffer( m_materialsBuffer );
 
   VkDeviceSize totalSize = m_materials.size() * sizeof( resources::Material );

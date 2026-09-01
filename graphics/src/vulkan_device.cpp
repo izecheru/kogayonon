@@ -1002,82 +1002,49 @@ auto graphics::VulkanDevice::createImageView( VkImageView& imageView,
   setDebugName( vulkanTypeToObject<VkImageView>(), reinterpret_cast<uint64_t>( imageView ), imageViewName );
 }
 
-auto graphics::VulkanDevice::transitionImageLayout( VkImage image, ImageTransitionData transitionData ) -> void
+auto graphics::VulkanDevice::transitionImageLayout( VkImage image, VkImageMemoryBarrier2 imageBarrier ) -> void
 {
   VkCommandBuffer commandBuffer = beginSingleTimeCommands( m_commandPool );
 
   VkImageAspectFlags aspect{ VK_IMAGE_ASPECT_COLOR_BIT };
-  if ( transitionData.oldLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL )
+  if ( imageBarrier.oldLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL )
   {
     aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
   }
 
-  VkImageMemoryBarrier2 transferBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                                         .srcStageMask = transitionData.srcStage,
-                                         .srcAccessMask = transitionData.srcAccess,
-                                         .dstStageMask = transitionData.newStage,
-                                         .dstAccessMask = transitionData.newAccess,
-                                         .oldLayout = transitionData.oldLayout,
-                                         .newLayout = transitionData.newLayout,
-                                         .image = image,
-                                         .subresourceRange{
-                                           .aspectMask = aspect,
-                                           .baseMipLevel = 0,
-                                           .levelCount = 1,
-                                           .baseArrayLayer = 0,
-                                           .layerCount = 1,
-                                         } };
-
-  VkDependencyInfo transferDepInfo{ .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                                    .imageMemoryBarrierCount = 1,
-                                    .pImageMemoryBarriers = &transferBarrier };
+  VkDependencyInfo transferDepInfo{
+    .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO, .imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &imageBarrier };
 
   vkCmdPipelineBarrier2( commandBuffer, &transferDepInfo );
 
   endSingleTimeCommands( commandBuffer, getGraphicsQueue().handle, m_commandPool );
 }
 
-auto graphics::VulkanDevice::transitionImageLayout( VulkanImage image, ImageTransitionData transitionData ) -> void
+auto graphics::VulkanDevice::transitionImageLayout( VulkanImage image, VkImageMemoryBarrier2 imageBarrier ) -> void
 {
-  transitionImageLayout( image.vkImage, transitionData );
+  transitionImageLayout( image.vkImage, imageBarrier );
 }
 
 auto graphics::VulkanDevice::transitionImageLayout( VkImage image,
                                                     VkCommandBuffer cmdBuffer,
-                                                    ImageTransitionData transitionData ) -> void
+                                                    VkImageMemoryBarrier2 imageBarrier ) -> void
 {
-  VkImageMemoryBarrier2 transferBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                                         .srcStageMask = transitionData.srcStage,
-                                         .srcAccessMask = transitionData.srcAccess,
-                                         .dstStageMask = transitionData.newStage,
-                                         .dstAccessMask = transitionData.newAccess,
-                                         .oldLayout = transitionData.oldLayout,
-                                         .newLayout = transitionData.newLayout,
-                                         .image = image,
-                                         .subresourceRange{
-                                           .aspectMask = transitionData.aspect,
-                                           .baseMipLevel = 0,
-                                           .levelCount = 1,
-                                           .baseArrayLayer = 0,
-                                           .layerCount = 1,
-                                         } };
 
-  VkDependencyInfo transferDepInfo{ .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                                    .imageMemoryBarrierCount = 1,
-                                    .pImageMemoryBarriers = &transferBarrier };
+  VkDependencyInfo transferDepInfo{
+    .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO, .imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &imageBarrier };
 
   vkCmdPipelineBarrier2( cmdBuffer, &transferDepInfo );
 }
 
 auto graphics::VulkanDevice::transitionImageLayout( VulkanImage image,
                                                     VkCommandBuffer cmdBuffer,
-                                                    ImageTransitionData transitionData ) -> void
+                                                    VkImageMemoryBarrier2 imageBarrier ) -> void
 {
-  transitionImageLayout( image.vkImage, cmdBuffer, transitionData );
+  transitionImageLayout( image.vkImage, cmdBuffer, imageBarrier );
 }
 
 auto graphics::VulkanDevice::copyBufferToImage(
-  VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, ImageTransitionData transitionData ) -> void
+  VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkImageMemoryBarrier2 imageBarrier ) -> void
 {
   VkCommandBuffer commandBuffer = beginSingleTimeCommands( m_transferCommandPool );
 
@@ -1094,26 +1061,10 @@ auto graphics::VulkanDevice::copyBufferToImage(
 
   vkCmdCopyBufferToImage( commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region );
 
-  VkImageMemoryBarrier2 textureToColor{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                                        .srcStageMask = transitionData.srcStage,
-                                        .srcAccessMask = transitionData.srcAccess,
-                                        .dstStageMask = transitionData.newStage,
-                                        .dstAccessMask = transitionData.newAccess,
-                                        .oldLayout = transitionData.oldLayout,
-                                        .newLayout = transitionData.newLayout,
-                                        .image = image,
-                                        .subresourceRange = {
-                                          .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                                          .baseMipLevel = 0,
-                                          .levelCount = 1,
-                                          .baseArrayLayer = 0,
-                                          .layerCount = 1,
-                                        } };
-
   VkDependencyInfo dependency{
     .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
     .imageMemoryBarrierCount = 1,
-    .pImageMemoryBarriers = &textureToColor,
+    .pImageMemoryBarriers = &imageBarrier,
   };
 
   vkCmdPipelineBarrier2( commandBuffer, &dependency );

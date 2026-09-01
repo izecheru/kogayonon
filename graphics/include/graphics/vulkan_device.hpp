@@ -139,29 +139,29 @@ public:
   /**
    * @brief Transition image layout with a newly allocated one-time-use VkCommandBuffer
    * @param image
-   * @param transitionData
+   * @param imageBarrier
    * @return
    */
-  auto transitionImageLayout( VkImage image, ImageTransitionData transitionData ) -> void;
-  auto transitionImageLayout( VulkanImage image, ImageTransitionData transitionData ) -> void;
+  auto transitionImageLayout( VkImage image, VkImageMemoryBarrier2 imageBarrier ) -> void;
+  auto transitionImageLayout( VulkanImage image, VkImageMemoryBarrier2 imageBarrier ) -> void;
 
   /**
    * @brief Transition image layout with the command buffer from swapchain instead of a
    * single use new command buffer
    * @param image
    * @param cmdBuffer
-   * @param transitionData
+   * @param imageBarrier
    * @return
    */
-  auto transitionImageLayout( VkImage image, VkCommandBuffer cmdBuffer, ImageTransitionData transitionData ) -> void;
-  auto transitionImageLayout( VulkanImage image, VkCommandBuffer cmdBuffer, ImageTransitionData transitionData )
+  auto transitionImageLayout( VkImage image, VkCommandBuffer cmdBuffer, VkImageMemoryBarrier2 imageBarrier ) -> void;
+  auto transitionImageLayout( VulkanImage image, VkCommandBuffer cmdBuffer, VkImageMemoryBarrier2 imageBarrier )
     -> void;
 
   auto createSampler( VkSampler& sampler ) const -> void;
   auto copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size ) const -> void;
 
   auto copyBufferToImage(
-    VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, ImageTransitionData transitionData ) -> void;
+    VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkImageMemoryBarrier2 imageBarrier ) -> void;
 
   auto copyImageToBuffer( VkImage image, VkBuffer buffer, VkOffset3D offset, VkExtent3D extent ) -> void;
 
