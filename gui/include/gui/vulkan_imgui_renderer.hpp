@@ -1,6 +1,7 @@
 #pragma once
-#include "precompiled/pch.hpp"
 #include <vulkan/vulkan.h>
+#include "precompiled/pch.hpp"
+#include "core/event/config_event.hpp"
 
 struct SDL_Window;
 struct ImGuiViewport;
@@ -61,7 +62,7 @@ public:
 
   auto initImgui( SDL_Window* wnd, graphics::VulkanDevice* device, graphics::VulkanSwapchain* swapchain ) -> void;
   auto render() -> void;
-  auto present( VkCommandBuffer& buffer ) -> void;
+  auto renderDrawData( VkCommandBuffer& buffer ) -> void;
 
   auto getImGuiWindows() -> std::unordered_map<ImGuiWindowName, std::unique_ptr<ImGuiWindow>>&;
 
@@ -70,9 +71,12 @@ public:
   auto getViewportSize() -> VkExtent2D;
 
 private:
+  auto onConfigChange( const core::ConfigChangedEvent& e ) -> void;
   auto createIconSampler( graphics::VulkanDevice* device ) -> void;
   auto initWindows() -> void;
   auto mainMenu() -> void;
+
+  auto customTitleBar() -> void;
 
   // MODALS
   auto configChanger() -> void;

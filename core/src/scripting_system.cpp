@@ -1,4 +1,7 @@
 #include "core/systems/scripting_system.hpp"
+#include <filesystem>
+#include <fstream>
+#include <sol/sol.hpp>
 #include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/components/index_component.hpp"
@@ -13,9 +16,6 @@
 #include "core/event/event_dispatcher.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
 #include "utilities/utils/utils.hpp"
-#include <filesystem>
-#include <fstream>
-#include <sol/sol.hpp>
 #include "window/window.hpp"
 
 using namespace utilities;
@@ -35,7 +35,7 @@ ScriptingSystem::ScriptingSystem()
   ////MainRegistry::getInstance().addToContext<std::unique_ptr<MainScriptFuncs>>( std::move( mainScript ) );
 
   // auto currentPath = std::filesystem::absolute( "." ) / "resources\\scripts\\main.lua";
-  // K_INFO( "{}", currentPath.string() );
+  // KINFO( "{}", currentPath.string() );
   // assert( fs::exists( currentPath ) == true && "main.lua MUST exist in the resources/scripts folder" );
   // m_luaState.open_libraries( sol::lib::base, sol::lib::package, sol::lib::string );
 
@@ -59,7 +59,6 @@ void ScriptingSystem::registerBindings( sol::state& lua )
   TransformComponent::createLuaBindings( lua );
   OutlineComponent::createLuaBindings( lua );
   IndexComponent::createLuaBindings( lua );
-  MeshComponent::createLuaBindings( lua );
 
   registerMetaComponent<DirectionalLightComponent>();
   registerMetaComponent<PointLightComponent>();

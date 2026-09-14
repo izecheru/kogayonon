@@ -1,7 +1,7 @@
 #pragma once
-#include "precompiled/pch.hpp"
 #include <Windows.h>
 #include <shellapi.h>
+#include "precompiled/pch.hpp"
 
 namespace core
 {

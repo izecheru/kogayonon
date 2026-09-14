@@ -1,11 +1,9 @@
 #include "renderer/modules/imgui_module.hpp"
-#include "utilities/tracy_utils/tracy_utils.hpp"
 #include "graphics/vulkan_context.hpp"
 #include "gui/vulkan_imgui_renderer.hpp"
 #include "renderer/blackboard.hpp"
 #include "renderer/frame_graph.hpp"
-
-// TODO maybe move module data structs to a separate file each
+#include "utilities/tracy_utils/tracy_utils.hpp"
 #include "renderer/modules/geometry_module.hpp"
 
 rendering::ImGuiModule::ImGuiModule( FrameGraph* graph,
@@ -30,11 +28,12 @@ void rendering::ImGuiModule::registerPasses()
 void rendering::ImGuiModule::registerImGuiPass()
 {
   Blackboard* blackboard = m_graph->getBlackboard();
+  blackboard->addToStorage<ImGuiModuleData>();
+
   m_graph->addNode(
     std::string{ passId::ImGui },
-    [=]( NodeBuilder& b, Blackboard* blackboard ) -> void {
-      blackboard->addToStorage<ImGuiModuleData>();
-      GeometryModuleData& geometryData{ m_graph->getBlackboard()->get<GeometryModuleData>() };
+    []( NodeBuilder& b, Blackboard* blackboard ) -> void {
+      GeometryModuleData& geometryData = blackboard->get<GeometryModuleData>();
       b.read( geometryData.color, FGResourceType::Color );
     },
     [=]( VkCommandBuffer cmdBuffer ) {
@@ -58,11 +57,9 @@ void rendering::ImGuiModule::registerImGuiPass()
         .pDepthAttachment = nullptr,
       };
 
-      rendering::GeometryModuleData& geometryData{ m_graph->getBlackboard()->get<GeometryModuleData>() };
-
       m_vkCtx->swapchain->beginRendering( imguiData.renderingInfo );
       m_imguiRenderer->render();
-      m_imguiRenderer->present( cmdBuffer );
+      m_imguiRenderer->renderDrawData( cmdBuffer );
       m_vkCtx->swapchain->endRendering();
     } );
 }
@@ -70,5 +67,6 @@ void rendering::ImGuiModule::registerImGuiPass()
 auto rendering::ImGuiModule::setViewport() -> void
 {
   GeometryModuleData& geometryData = m_graph->getBlackboard()->get<GeometryModuleData>();
+  KASSERT( geometryData.color->vulkanImage.vkImageView != VK_NULL_HANDLE );
   m_imguiRenderer->setViewport( geometryData.color->vulkanImage.vkImageView );
 }

@@ -1,7 +1,7 @@
 #include "utilities/config_manager/config_manager.hpp"
+#include <yaml-cpp/yaml.h>
 #include "utilities/utils/utils.hpp"
 #include "utilities/yaml_serializer/yaml_serializer.hpp"
-#include <yaml-cpp/yaml.h>
 
 namespace utilities
 {
@@ -10,13 +10,13 @@ void EditorConfigManager::initConfig()
 {
   if ( !std::filesystem::exists( m_configPath ) )
   {
-    K_INFO( "Creating default config" );
+    KINFO( "Creating default config" );
     initDefaultConfig();
   }
 
   if ( !std::filesystem::exists( m_colorConfigPath ) )
   {
-    K_INFO( "Creating default color config" );
+    KINFO( "Creating default color config" );
     initDefaultColorConfig();
   }
 
@@ -123,7 +123,7 @@ void EditorConfigManager::parseConfig()
   m_config = doc.as<Config>();
   m_colorConfig = colorDoc.as<ColorConfig>();
 
-  K_INFO( "config loaded" );
+  KINFO( "config loaded" );
   m_loaded = true;
 }
 } // namespace utilities

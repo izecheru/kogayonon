@@ -1,15 +1,11 @@
 #pragma once
 #include "graphics/vulkan_image.hpp"
 #include "graphics/vulkan_pipeline.hpp"
+#include "graphics/vulkan_descriptor.hpp"
+#include "graphics/vulkan_context.hpp"
 #include "renderer/frame_graph.hpp"
 #include "renderer/modules/module_base.hpp"
-#include "renderer/modules/module_descriptor.hpp"
 #include "renderer/modules/module_rendering_info.hpp"
-
-namespace graphics
-{
-struct VulkanContext;
-}
 
 namespace rendering
 {
@@ -37,13 +33,13 @@ public:
   explicit GeometryModule( FrameGraph* graph,
                            graphics::VulkanContext* ctx,
                            VkExtent2D extent,
-                           ModuleDescriptorData descriptorData,
+                           graphics::FrameInFlightVulkanDescriptor* cameraDescriptor,
                            glm::vec4 clearColor );
 
   explicit GeometryModule( FrameGraph* graph,
                            graphics::VulkanContext* ctx,
                            VkExtent2D extent,
-                           ModuleDescriptorData descriptorData );
+                           graphics::FrameInFlightVulkanDescriptor* cameraDescriptor );
 
   ~GeometryModule();
 
@@ -75,9 +71,9 @@ protected:
   auto registerBaseGeometryPass() -> void;
 
 private:
+  graphics::FrameInFlightVulkanDescriptor* m_cameraDescriptor;
   graphics::VulkanContext* m_vkCtx;
   rendering::FrameGraph* m_graph;
-  ModuleDescriptorData m_moduleDescriptorData;
   glm::vec4 m_clearColor;
 
   VkExtent2D m_extent{};

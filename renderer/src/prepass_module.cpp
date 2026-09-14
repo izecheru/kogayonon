@@ -12,10 +12,10 @@
 rendering::PrepassModule::PrepassModule( FrameGraph* graph,
                                          graphics::VulkanContext* vkCtx,
                                          VkExtent2D extent,
-                                         ModuleDescriptorData descriptorData )
+                                         graphics::FrameInFlightVulkanDescriptor* cameraDescriptor )
     : m_graph{ graph }
     , m_vkCtx{ vkCtx }
-    , m_moduleDescriptorData{ descriptorData }
+    , m_cameraDescriptor{ cameraDescriptor }
     , m_extent{ extent }
 {
   createModuleResources( extent );
@@ -39,15 +39,18 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
   VkShaderModule vertex = m_vkCtx->device->createShaderModule( "depth", "vertexMain" );
   VkShaderModule fragment = m_vkCtx->device->createShaderModule( "depth", "fragmentMain" );
 
+  std::vector<VkDescriptorSetLayout> descriptorLayout{ m_cameraDescriptor->layout };
+
   graphics::VulkanPipelineSpec defaultPipelineSpec{
-    .type = graphics::PipelineType::geometry,
     .options = { .cullMode = VK_CULL_MODE_BACK_BIT, .polyMode = VK_POLYGON_MODE_FILL },
-    .descriptorLayout = m_moduleDescriptorData.descriptorSetLayouts,
+    .descriptorLayout = descriptorLayout,
+    .colorAttachmentCount = 0u,
+    .depthAttachmentFormat = VK_FORMAT_D32_SFLOAT,
+    .blendEnable = VK_FALSE,
     .vertexModule = vertex,
     .fragmentModule = fragment,
     .pushConstantSize = sizeof( resources::MeshPushConstant ),
     .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-    .colorAttachmentCount = 0u,
     .vertexBindingDescription = resources::Vertex::getBindingDescription(),
     .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions() };
 
@@ -92,12 +95,14 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
 
       prepassData.depthPrepassPipeline.bind( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
 
+      uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
+
       vkCmdBindDescriptorSets( cmdBuffer,
                                VK_PIPELINE_BIND_POINT_GRAPHICS,
                                prepassData.depthPrepassPipeline.getLayout(),
                                0,
                                1,
-                               &m_moduleDescriptorData.descriptorSets.at( 0 ),
+                               &m_cameraDescriptor->set[currentFrame],
                                0,
                                nullptr );
 
@@ -107,7 +112,11 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
       auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
       view.each(
         [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
-          if ( !meshComponent.loaded )
+          resources::Mesh* pMesh = meshComponent.pMesh;
+          if ( !pMesh )
+            return;
+
+          if ( !pMesh->isLoaded() )
             return;
 
           VkDeviceSize offsets[] = { 0 };
@@ -118,8 +127,8 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
           for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
           {
             // this should be expensive, move it somewhere in the mesh or submesh
-            auto push = resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(),
-                                                     .materialIndex = submesh.materialIndex };
+            resources::MeshPushConstant push{ .modelMatrix = transform.getMatrix(),
+                                              .materialIndex = submesh.materialIndex };
 
             vkCmdPushConstants( cmdBuffer,
                                 prepassData.depthPrepassPipeline.getLayout(),

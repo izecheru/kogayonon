@@ -1,4 +1,7 @@
 #include "gui/imgui_windows/file_explorer.hpp"
+#include "core/event/config_event.hpp"
+#include <imgui_impl_vulkan.h>
+#include <imgui_stdlib.h>
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
@@ -12,8 +15,6 @@
 #include "utilities/fonts/materialdesign.hpp"
 #include "utilities/task_manager/task.hpp"
 #include "utilities/task_manager/task_manager.hpp"
-#include <imgui_impl_vulkan.h>
-#include <imgui_stdlib.h>
 
 #include "utilities/utils/utils.hpp"
 
@@ -63,6 +64,8 @@ void FileExplorerWindow::onFileEvent( FileEvent& e )
   if ( m_update == true )
     return;
 
+  core::EventDispatcher* eventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
+
   // handle all modify cases, currently we just do hot-load for shaders
   switch ( e.getType() )
   {
@@ -72,10 +75,14 @@ void FileExplorerWindow::onFileEvent( FileEvent& e )
     {
       // auto pShaderManager = MainRegistry::getInstance().getShaderManager();
     }
-    if ( e.getPath().find( "config" ) != std::string::npos )
+    else if ( e.getPath().find( "config" ) != std::string::npos )
     {
       // rebuild the file vector, filters might have changed in config file
       buildFileVector();
+    }
+    else if ( e.getPath().find( "colorConfig" ) != std::string::npos )
+    {
+      eventDispatcher->dispatchEvent( core::ConfigChangedEvent{} );
     }
   }
   break;
@@ -89,7 +96,7 @@ void FileExplorerWindow::onFileEvent( FileEvent& e )
   }
   break;
   default:
-    K_ERROR( "something went wrong, enum FileEventType does not support this value" );
+    KERROR( "something went wrong, enum FileEventType does not support this value" );
     break;
   }
 
@@ -150,14 +157,14 @@ void FileExplorerWindow::drawFileContextMenu( const File_& file, const std::stri
         auto taskManager = core::MainRegistry::getInstance().getTaskManager();
 
         auto callback = [assetManager, file]() { assetManager->loadFont( file.path.string() ); };
-        auto loadFontTask = taskManager->addTask<utilities::CallbackTask>( callback );
-        taskManager->addTaskSetToPipe( loadFontTask->taskPtr.get() );
+        auto task = taskManager->addTask( callback );
+        taskManager->addTaskSetToPipe( task );
       }
     }
     if ( ImGui::MenuItem( "Delete file" ) )
     {
       std::filesystem::remove( file.path );
-      K_INFO( "removed {}", file.path.string() );
+      KINFO( "removed {}", file.path.string() );
     }
     ImGui::EndPopup();
   }
@@ -205,7 +212,7 @@ void FileExplorerWindow::render()
       auto pos = ImGui::GetCursorScreenPos();
       auto textHeight = ImGui::CalcTextSize( file.path.filename().stem().string().c_str() );
       ImGui::GetWindowDrawList()->AddRectFilled(
-        pos, ImVec2{ pos.x + childSize.x, pos.y + childSize.y + textHeight.y }, IM_COL32( 87, 91, 180, 70 ) );
+        pos, ImVec2{ pos.x + childSize.x, pos.y + childSize.y + textHeight.y }, IM_COL32( 87, 91, 180, 0 ) );
 
       ImGui::BeginGroup();
       auto filename = file.path.filename();
@@ -226,16 +233,16 @@ void FileExplorerWindow::render()
     }
     else
     {
-      auto filename = file.path.filename();
-      auto pos = ImGui::GetCursorScreenPos();
-      auto textHeight = ImGui::CalcTextSize( file.path.filename().stem().string().c_str() );
+      std::filesystem::path filename = file.path.filename();
+      ImVec2 pos = ImGui::GetCursorScreenPos();
+      ImVec2 textHeight = ImGui::CalcTextSize( file.path.filename().stem().string().c_str() );
       ImGui::GetWindowDrawList()->AddRectFilled(
-        pos, ImVec2{ pos.x + childSize.x, pos.y + childSize.y + textHeight.y }, IM_COL32( 87, 91, 180, 70 ) );
+        pos, ImVec2{ pos.x + childSize.x, pos.y + childSize.y + textHeight.y }, IM_COL32( 87, 91, 180, 0 ) );
 
       ImGui::BeginGroup();
       ImGui::SetCursorPosX( ImGui::GetCursorPosX() + 5.0f );
       ImGui::Image( fileTexture( file ), size );
-      auto truncatedText = gui_utils::truncateText( filename.stem().string(), size.x );
+      std::string truncatedText = gui_utils::truncateText( filename.stem().string(), size.x );
       gui_utils::moveTextToCenter( size, truncatedText );
       gui_utils::renderWithSizedFont(
         m_spec.fonts->at( "inter" ), 20.0f, [=]() { ImGui::TextWrapped( "%s", truncatedText.c_str() ); } );
@@ -335,10 +342,6 @@ void FileExplorerWindow::drawToolbar()
         ImGui::SameLine();
       }
 
-      ImGui::PushStyleColor( ImGuiCol_ButtonHovered, COL_LIGHT_GRAY_LA );
-      ImGui::PushStyleColor( ImGuiCol_Button, COL_TRANSPARENT );
-      ImGui::PushStyleColor( ImGuiCol_Border, COL_TRANSPARENT );
-
       if ( ImGui::Button( it->filename().string().c_str() ) )
       {
         m_currentPath = *it;
@@ -347,22 +350,14 @@ void FileExplorerWindow::drawToolbar()
       }
 
       ImGui::PopFont();
-      ImGui::PopStyleColor( 3 );
       ImGui::SameLine( 0.0f, 5.0f );
     }
   }
   else
   {
-    ImGui::PushStyleColor( ImGuiCol_ButtonHovered, COL_LIGHT_GRAY_LA );
-    ImGui::PushStyleColor( ImGuiCol_Button, COL_TRANSPARENT );
-    ImGui::PushStyleColor( ImGuiCol_Border, COL_TRANSPARENT );
-
     ImGui::PushFont( m_spec.fonts->at( INTER ), 18.0f );
-
     ImGui::Button( m_currentPath.stem().string().c_str() );
-
     ImGui::PopFont();
-    ImGui::PopStyleColor( 3 );
   }
 
   ImGui::PopStyleColor();

@@ -1,9 +1,9 @@
+#include <gtest/gtest.h>
 #include "core/ecs/components/text_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/event/event_dispatcher.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
-#include <gtest/gtest.h>
 
 namespace core
 {

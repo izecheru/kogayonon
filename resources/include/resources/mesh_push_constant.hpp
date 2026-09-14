@@ -3,7 +3,6 @@
 
 namespace resources
 {
-
 struct MeshPushConstant
 {
   glm::mat4 modelMatrix;

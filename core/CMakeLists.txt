@@ -20,6 +20,7 @@ set(HEADER_FILES
     "include/core/ecs/components/pointlight_component.hpp"
     "include/core/ecs/components/camera_component.hpp"
     "include/core/event/file_events.hpp"
+    "include/core/event/config_event.hpp"
     "include/core/ecs/components/index_component.hpp"
     "include/core/ecs/components/text_component.hpp"
     "include/core/event/project_event.hpp"
@@ -32,8 +33,6 @@ set(HEADER_FILES
     "include/core/systems/scripting_system.hpp"
     "include/core/systems/scene_rendering_system.hpp"
     "include/core/asset_manager/asset_manager.hpp"
-    "include/core/asset_manager/cgltf_loader.hpp"
-    "include/core/asset_manager/assimp_loader.hpp"
     "include/core/asset_manager/font_loader.hpp"
     "include/core/asset_manager/tinygltf_loader.hpp"
 )
@@ -46,8 +45,7 @@ set(SOURCE_FILES
     "src/scene_manager.cpp"
     "src/scene_events.cpp"
     "src/asset_manager.cpp"
-    "src/assimp_loader.cpp"
-    "src/cgltf_loader.cpp"
+    
     "src/font_loader.cpp"
     "src/project_manager.cpp"
     "src/scripting_system.cpp"
@@ -56,26 +54,23 @@ set(SOURCE_FILES
     "src/scene_rendering_system.cpp"
     "src/scene_event_handler.cpp"
     "src/tinygltf_loader.cpp"
-)
+ )
 
 add_library(core ${SOURCE_FILES} ${HEADER_FILES})
 
 find_path(SOL2_INCLUDE_DIRS "sol/abort.hpp")
-find_path(TINYGLTF_INCLUDE_DIRS "tiny_gltf_v3.h")
 target_include_directories(
   core
   PUBLIC 
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
-  PUBLIC ${TINYGLTF_INCLUDE_DIRS}
   PRIVATE ${SOL2_INCLUDE_DIRS})
 
 target_precompile_headers(core REUSE_FROM precompiled)
 target_link_libraries(
   core
   PUBLIC EnTT::EnTT glm::glm-header-only lua physics precompiled msdf-atlas-gen  PRIVATE  window yaml-cpp::yaml-cpp utilities
-          resources
+          resources tinygltf
 )
-
 
 
 if(KOGAYONON_ENABLE_TRACY)

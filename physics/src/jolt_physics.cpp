@@ -72,11 +72,10 @@ void physics::JoltPhysics::onUpdate( float delta )
 
   m_timeAccumulator += delta;
 
-  while ( m_timeAccumulator >= m_deltaUpdate )
-  {
-    m_physicsSystem.Update( m_deltaUpdate, 1, m_tempAlloc.get(), m_jobSystem.get() );
-    m_timeAccumulator -= m_deltaUpdate;
-  }
+  // while (m_timeAccumulator >= m_deltaUpdate) {
+  m_physicsSystem.Update( m_deltaUpdate, 1, m_tempAlloc.get(), m_jobSystem.get() );
+  //  m_timeAccumulator = 0;
+  //}
 }
 
 bool physics::JoltPhysics::isRunning() const

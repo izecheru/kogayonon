@@ -1,7 +1,7 @@
 #pragma once
-#include "precompiled/pch.hpp"
-#include <cstdint>
 #include <imgui.h>
+#include <cstdint>
+#include "precompiled/pch.hpp"
 
 namespace gui
 {
@@ -18,7 +18,7 @@ struct ImGuiProps
   bool hovered{ false };
   bool resizable{ false };
   bool focused{ false };
-  ImGuiWindowFlags flags{ 0 };
+  ImGuiWindowFlags flags{ ImGuiWindowFlags_None };
   ImVec2 size{ 0.0f, 0.0f };
 
   explicit ImGuiProps( std::string t_name )

@@ -6,7 +6,6 @@ set(MODULE_HEADERS
     "include/renderer/modules/imgui_module.hpp"
     "include/renderer/modules/shadowmap_module.hpp"
     "include/renderer/modules/module_base.hpp"
-    "include/renderer/modules/module_descriptor.hpp"
     "include/renderer/modules/module_rendering_info.hpp"
 )
 

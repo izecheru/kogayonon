@@ -40,7 +40,7 @@ utilities::TimeTracker::duration utilities::TimeTracker::getDuration( const std:
   {
     return it->second.second;
   }
-  K_ERROR( "Duration for {} was not found ", key );
+  KERROR( "Duration for {} was not found ", key );
   return duration{ 0 };
 }
 

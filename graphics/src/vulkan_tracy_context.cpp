@@ -12,16 +12,15 @@ graphics::VulkanTracyContext::~VulkanTracyContext()
   }
 }
 
-auto graphics::VulkanTracyContext::initCtx( VkDevice device,
-                                            VkPhysicalDevice physicalDevice,
-                                            VkQueue graphicsQueue,
-                                            VkCommandPool cmdPool ) -> void
+graphics::VulkanTracyContext::VulkanTracyContext( VkDevice device,
+                                                  VkPhysicalDevice physicalDevice,
+                                                  VkQueue graphicsQueue,
+                                                  VkCommandPool cmdPool )
 {
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.commandPool = cmdPool;
-  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandBufferCount = 1;
+  VkCommandBufferAllocateInfo allocInfo{ .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                                         .commandPool = cmdPool,
+                                         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                                         .commandBufferCount = 1 };
 
   vkAllocateCommandBuffers( device, &allocInfo, &m_buffer );
 

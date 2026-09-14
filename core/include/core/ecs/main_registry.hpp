@@ -38,12 +38,12 @@ namespace core
 class MainRegistry
 {
 public:
-  inline static MainRegistry& getInstance()
+  inline static auto getInstance() -> MainRegistry&
   {
     static MainRegistry instance{};
     if ( !m_init )
     {
-      m_pRegistry = std::make_shared<Registry>();
+      m_pRegistry = std::make_unique<Registry>();
       m_init = true;
     }
     return instance;

@@ -1,8 +1,7 @@
 #pragma once
-
+#include <vulkan/vulkan.h>
 #include "graphics/vulkan_buffer.hpp"
 #include "precompiled/pch.hpp"
-#include <vulkan/vulkan.h>
 
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
@@ -15,8 +14,10 @@ namespace graphics
 {
 
 inline const std::vector<const char*> validationLayers{ "VK_LAYER_KHRONOS_validation" };
-inline const std::vector<const char*> deviceExtensions{
-  VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SHADER_ATOMIC_INT64_EXTENSION_NAME, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME };
+inline const std::vector<const char*> deviceExtensions{ VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+                                                        VK_KHR_SHADER_ATOMIC_INT64_EXTENSION_NAME,
+                                                        VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
+                                                        VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME };
 
 #ifdef _DEBUG
 const bool enableValidationLayers{ true };
@@ -100,6 +101,9 @@ public:
    */
   auto createStagingBuffer( VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& usage ) -> VulkanBuffer;
 
+  auto label( VkCommandBuffer cmdBuffer, VkDebugUtilsLabelEXT markerInfo ) -> void;
+  auto endLabel( VkCommandBuffer cmdBuffer ) -> void;
+
   template <typename T>
   auto copyFromBuffer( T& data, VulkanBuffer& buffer ) -> void;
 
@@ -157,7 +161,7 @@ public:
   auto transitionImageLayout( VulkanImage image, VkCommandBuffer cmdBuffer, VkImageMemoryBarrier2 imageBarrier )
     -> void;
 
-  auto createSampler( VkSampler& sampler ) const -> void;
+  auto createSampler( VkSampler& sampler, std::string_view samplerName = "" ) -> void;
   auto copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size ) const -> void;
 
   auto copyBufferToImage(
@@ -231,7 +235,7 @@ public:
    * @param allocation
    * @return
    */
-  auto setName( std::string_view name, VmaAllocation& allocation ) const -> void;
+  auto setVMAllocationName( std::string_view name, VmaAllocation& allocation ) const -> void;
 
   auto createDescriptorSetLayout( VkDescriptorSetLayout& layout, VkDescriptorSetLayoutCreateInfo& layoutInfo ) const
     -> void;
@@ -240,12 +244,6 @@ public:
   auto updateDescriptorSet( std::initializer_list<VkWriteDescriptorSet> writes,
                             uint32_t writeCount = 1,
                             uint32_t copyCount = 0 ) const -> void;
-
-  //	vmaCopyMemoryToAllocation( m_vkCtx->device->getAllocator(),
-  // m_materials.data(),
-  // m_materialsBuffer.allocation,
-  // 0,
-  // sizeof( resources::Material ) * m_materials.size() );
 
   template <typename T>
   auto updateBuffer( std::vector<T>& vectorData, VmaAllocation allocation, VkDeviceSize offset = 0 ) -> void;
@@ -339,7 +337,7 @@ public:
    * @param name Name we want to assign to that object
    * @return
    */
-  auto setDebugName( VkObjectType objType, uint64_t handle, std::string_view name ) -> void;
+  auto setVulkanDebugName( VkObjectType objType, uint64_t handle, std::string_view name ) -> void;
 
   /**
    * @brief Return the graphics queue
@@ -416,7 +414,14 @@ private:
   auto getAllocInfo( VmaAllocation allocation ) const -> VmaAllocationInfo;
 
   auto findQueueFamilies( VkPhysicalDevice& device ) -> QueueFamilyIndices;
+
+  /**
+   * @brief Check if the found physical device is suitable for our rendering needs
+   * @param device
+   * @return
+   */
   bool isDeviceSuitable( VkPhysicalDevice& device );
+
   auto getRequiredExtensions() -> std::vector<const char*>;
 
 private:

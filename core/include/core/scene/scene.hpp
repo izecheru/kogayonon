@@ -1,14 +1,9 @@
 #pragma once
-#include "core/ecs/entity.hpp"
 #include "precompiled/pch.hpp"
-#include "resources/mesh.hpp"
 #include <entt/entt.hpp>
-
-namespace core
-{
-class Registry;
-struct DirectionalLightComponent;
-} // namespace core
+#include "core/ecs/entity.hpp"
+#include "resources/mesh.hpp"
+#include "core/ecs/registry.hpp"
 
 namespace core
 {
@@ -31,7 +26,7 @@ public:
   auto getEnttRegistry() -> entt::registry&;
 
   auto getName() const -> std::string;
-  void changeName( const std::string& name );
+  auto changeName( const std::string& name ) -> void;
 
   inline auto getRegistryMutex() -> std::mutex&
   {
@@ -42,7 +37,7 @@ public:
    * @brief Completely removes an entity from the registry
    * @param ent Entity id
    */
-  void removeEntity( entt::entity ent );
+  auto removeEntity( entt::entity ent ) -> void;
 
   /**
    * @brief Creates a default entity with no components and adds it to the registry
@@ -55,7 +50,9 @@ public:
    * @param entity The entity id
    * @param pMesh The mesh weak_ptr from the asset manager
    */
-  void addMeshToEntity( entt::entity entity, resources::Mesh* pMesh );
+  auto addMeshToEntity( entt::entity entity, resources::Mesh* pMesh ) -> void;
+
+  auto onUpdate() -> void;
 
   /**
    * @brief Removes the MeshComponent from the entity and clears the related data in the instance data struct
@@ -63,12 +60,6 @@ public:
    * @param pModel The model weak_ptr from asset manager
    */
   void removeMeshFromEntity( entt::entity entity );
-
-  /**
-   * @brief Iterates through the entities that have rigid bodies and
-   * take the transforms from there and apply them to the models
-   */
-  void updateRigidbodyEntities();
 
   inline auto getEntityCount() const -> uint32_t
   {

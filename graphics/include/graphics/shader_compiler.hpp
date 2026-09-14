@@ -1,8 +1,8 @@
 #pragma once
 #include <slang-com-ptr.h>
+#include <vulkan/vulkan.h>
 #include <string>
 #include <unordered_map>
-#include <vulkan/vulkan.h>
 
 namespace graphics
 {

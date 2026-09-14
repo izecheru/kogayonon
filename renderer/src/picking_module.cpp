@@ -22,7 +22,7 @@ rendering::PickingModule::PickingModule( FrameGraph* graph,
                                          graphics::VulkanContext* vkCtx,
                                          gui::VulkanImguiRenderer* imguiRenderer,
                                          VkExtent2D extent,
-                                         ModuleDescriptorData descriptorData )
+                                         graphics::FrameInFlightVulkanDescriptor* cameraDescriptor )
     : m_graph{ graph }
     , m_vkCtx{ vkCtx }
     , m_extent{ extent }
@@ -30,7 +30,7 @@ rendering::PickingModule::PickingModule( FrameGraph* graph,
     , m_readyToCopy{ false }
     , m_mouseCoords{ -1, -1 }
     , m_imguiRenderer{ imguiRenderer }
-    , m_moduleDescriptorData{ descriptorData }
+    , m_cameraDescriptor{ cameraDescriptor }
     , m_lastFrameIndex{ -1 }
 {
   createModuleResources( extent );
@@ -78,16 +78,18 @@ auto rendering::PickingModule::registerPickingPass() -> void
   VkShaderModule vertex = m_vkCtx->device->createShaderModule( "picking", "vertexMain" );
   VkShaderModule fragment = m_vkCtx->device->createShaderModule( "picking", "fragmentMain" );
 
+  std::vector<VkDescriptorSetLayout> descriptorLayout{ m_cameraDescriptor->layout };
+
   graphics::VulkanPipelineSpec defaultPipelineSpec{
-    .type = graphics::PipelineType::geometry,
     .options = { .cullMode = VK_CULL_MODE_BACK_BIT, .polyMode = VK_POLYGON_MODE_FILL },
-    .descriptorLayout = m_moduleDescriptorData.descriptorSetLayouts,
+    .descriptorLayout = descriptorLayout,
+    .colorAttachmentCount = 1,
     .colorAttachmentFormat = { VK_FORMAT_R32_SINT },
+    .depthAttachmentFormat = VK_FORMAT_D32_SFLOAT,
     .vertexModule = vertex,
     .fragmentModule = fragment,
     .pushConstantSize = sizeof( resources::EntityPickingPushConstant ),
     .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-    .colorAttachmentCount = 1,
     .vertexBindingDescription = resources::Vertex::getBindingDescription(),
     .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions() };
 
@@ -114,12 +116,10 @@ auto rendering::PickingModule::registerPickingPass() -> void
         return;
       }
 
-      if ( m_extent.width == 0 || m_extent.height == 0 )
-        return;
-
       *pickRequested = true;
 
       Blackboard* blackboard = m_graph->getBlackboard();
+
       PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
       PrepassModuleData& prepassData = blackboard->get<PrepassModuleData>();
 
@@ -155,12 +155,14 @@ auto rendering::PickingModule::registerPickingPass() -> void
       graphics::VulkanPipeline& pickingPipeline = pickingData.pickingPipeline;
       pickingPipeline.bind( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
 
+      uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
+
       vkCmdBindDescriptorSets( cmdBuffer,
                                VK_PIPELINE_BIND_POINT_GRAPHICS,
                                pickingPipeline.getLayout(),
                                0,
                                1,
-                               &m_moduleDescriptorData.descriptorSets.at( 0 ),
+                               &m_cameraDescriptor->set[currentFrame],
                                0,
                                nullptr );
 
@@ -169,7 +171,11 @@ auto rendering::PickingModule::registerPickingPass() -> void
       auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
       view.each(
         [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
-          if ( !meshComponent.loaded )
+          resources::Mesh* pMesh = meshComponent.pMesh;
+          if ( !pMesh )
+            return;
+
+          if ( !pMesh->isLoaded() )
             return;
 
           VkDeviceSize offsets[] = { 0 };
@@ -199,7 +205,6 @@ auto rendering::PickingModule::registerPickingPass() -> void
 
 auto rendering::PickingModule::registerPickingReadbackPass() -> void
 {
-
   m_graph->addNode(
     std::string{ passId::PickingReadback },
     []( NodeBuilder& b, Blackboard* blackboard ) {
@@ -212,8 +217,6 @@ auto rendering::PickingModule::registerPickingReadbackPass() -> void
      pickRequested = &m_pickRequested,
      readyToCopy = &m_readyToCopy]( VkCommandBuffer cmdBuffer ) {
       TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::PickingReadback );
-      if ( m_extent.width == 0 || m_extent.height == 0 )
-        return;
 
       Blackboard* blackboard = m_graph->getBlackboard();
       PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
@@ -237,7 +240,6 @@ auto rendering::PickingModule::registerPickingReadbackPass() -> void
 
 auto rendering::PickingModule::registerPickingEntityReadPass() -> void
 {
-
   m_graph->addNode(
     std::string{ passId::PickingEntityRead },
     []( NodeBuilder& b, Blackboard* blackboard ) {
@@ -250,8 +252,6 @@ auto rendering::PickingModule::registerPickingEntityReadPass() -> void
      pickRequested = &m_pickRequested,
      readyToCopy = &m_readyToCopy]( VkCommandBuffer cmdBuffer ) {
       TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::PickingEntityRead );
-      if ( m_extent.width == 0 || m_extent.height == 0 )
-        return;
 
       if ( *lastFrameIndex == -1 )
       {
@@ -272,12 +272,12 @@ auto rendering::PickingModule::registerPickingEntityReadPass() -> void
 
       int32_t id{ -1 };
       m_vkCtx->device->copyFromBuffer( id, pickingData.pickingBuffer.buffers.at( *lastFrameIndex ) );
-      K_INFO( "id {}", id );
 
       if ( id != -1 )
       {
         entt::entity entity = static_cast<entt::entity>( id );
-        if ( scene->getRegistry()->isValid( entity ) )
+        if ( scene->getRegistry()->isValid( entity ) &&
+             sceneManager->getEventHandler()->getCurrentEntityId() == entt::null )
         {
           core::EventDispatcher* eventDispathcer = core::MainRegistry::getInstance().getEventDispatcher();
           eventDispathcer->dispatchEvent<core::SelectEntityEvent>(

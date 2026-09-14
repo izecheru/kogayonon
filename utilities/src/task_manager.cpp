@@ -2,7 +2,12 @@
 
 utilities::TaskManager::TaskManager()
 {
+  m_config.numTaskThreadsToCreate = 10;
   m_taskScheduler.Initialize( m_config );
+
+  m_pin.taskScheduler = &m_taskScheduler;
+  m_pin.threadNum = m_taskScheduler.GetNumTaskThreads() - 1;
+  m_taskScheduler.AddPinnedTask( &m_pin );
 }
 
 utilities::TaskManager::~TaskManager()
@@ -22,20 +27,19 @@ auto utilities::TaskManager::addTaskSetToPipe( enki::ITaskSet* pSet ) -> void
 
 auto utilities::TaskManager::onUpdate() -> void
 {
-  if ( m_tasks.empty() )
+  if ( !m_tasks.empty() )
   {
-    return;
+    std::erase_if( m_tasks, []( const std::unique_ptr<CallbackTask>& callback ) { return callback->GetIsComplete(); } );
   }
 
-  for ( auto it = m_tasks.begin(); it != m_tasks.end(); )
+  if ( !m_pinnedTasks.empty() )
   {
-    if ( it->get()->taskPtr->GetIsComplete() )
-    {
-      it = m_tasks.erase( it );
-    }
-    else
-    {
-      ++it;
-    }
+    std::erase_if( m_pinnedTasks,
+                   []( const std::unique_ptr<PinnedCallbackTask>& callback ) { return callback->GetIsComplete(); } );
   }
+}
+
+auto utilities::TaskManager::addPinnedTaskToExecution( enki::IPinnedTask* pTask ) -> void
+{
+  m_taskScheduler.AddPinnedTask( pTask );
 }

@@ -1,9 +1,9 @@
 #pragma once
 
+#include <vulkan/vulkan.h>
+#include <glm/glm.hpp>
 #include "graphics/vulkan_image.hpp"
 #include "precompiled/pch.hpp"
-#include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
 
 namespace graphics
 {

@@ -1,6 +1,6 @@
 #include "resources/font.hpp"
-#include "utilities/utils/utils.hpp"
 #include <rapidjson/document.h>
+#include "utilities/utils/utils.hpp"
 
 resources::Font::Font( const std::string_view name, const std::string_view jsonPath, const std::string_view pngPath )
     : m_name{ name }
@@ -15,7 +15,7 @@ resources::Font::Font( const std::string_view name, const std::string_view jsonP
 
   if ( doc.HasParseError() )
   {
-    K_ERROR( "Document has parsing errors" );
+    KERROR( "Document has parsing errors" );
   }
 
   auto metrics = AtlasMetrics{
@@ -65,7 +65,7 @@ resources::Font::Font( const std::string_view name, const std::string_view jsonP
 
   m_atlas = FontAtlas{ .metrics = metrics, .glyphs = std::move( glyphs ) };
 
-  K_INFO( "Atlas has {} glyphs", m_atlas.glyphs.size() );
+  KINFO( "Atlas has {} glyphs", m_atlas.glyphs.size() );
 }
 
 auto resources::Font::getGlyph( char glyph ) -> const Glyph&

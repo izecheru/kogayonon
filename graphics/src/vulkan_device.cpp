@@ -1,14 +1,14 @@
 #define VMA_IMPLEMENTATION
 
 #include "graphics/vulkan_device.hpp"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
 #include "graphics/shader_compiler.hpp"
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_buffer.hpp"
 #include "graphics/vulkan_image.hpp"
 #include "precompiled/pch.hpp"
 #include "utilities/utils/utils.hpp"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
 
 static void destroyDebugUtilsMessengerEXT( VkInstance instance,
                                            VkDebugUtilsMessengerEXT debugMessenger,
@@ -50,7 +50,7 @@ auto graphics::VulkanDevice::checkDeviceExtensionSupport( VkPhysicalDevice devic
   {
     requiredExtensions.erase( extension.extensionName );
   }
-  K_ASSERT( requiredExtensions.empty() && "Not all extensions supported" );
+  KASSERT( requiredExtensions.empty() && "Not all extensions supported" );
   return requiredExtensions.empty();
 }
 
@@ -135,7 +135,6 @@ auto graphics::VulkanDevice::findQueueFamilies( VkPhysicalDevice& device ) -> Qu
       m_presentQueue.familyIndex = i;
     }
 
-    // early exit if we already found a family
     if ( indices.isComplete() )
       break;
 
@@ -144,22 +143,27 @@ auto graphics::VulkanDevice::findQueueFamilies( VkPhysicalDevice& device ) -> Qu
   return indices;
 }
 
-bool graphics::VulkanDevice::isDeviceSuitable( VkPhysicalDevice& device )
+auto graphics::VulkanDevice::isDeviceSuitable( VkPhysicalDevice& device ) -> bool
 {
-  // Get the device features and properties
   vkGetPhysicalDeviceProperties( device, &m_physicalDeviceProps );
 
-  // Assign the limits to get for future stuff
   m_physicalDeviceLimits = m_physicalDeviceProps.limits;
+
+  // Print here information that would prove to be useful to know
+  KINFO( "[DeviceLimits] Max bound descriptor sets {}", m_physicalDeviceLimits.maxBoundDescriptorSets );
+  KINFO( "[DeviceLimits] Max push constant size {}", m_physicalDeviceLimits.maxPushConstantsSize );
 
   vkGetPhysicalDeviceFeatures( device, &m_physicalDeviceFeatures );
   vkGetPhysicalDeviceMemoryProperties( device, &m_physicalDeviceMemoryProps );
-  auto indices = findQueueFamilies( device );
-  auto extensionsSupported = checkDeviceExtensionSupport( device );
+
+  graphics::QueueFamilyIndices indices = findQueueFamilies( device );
+  bool extensionsSupported = checkDeviceExtensionSupport( device );
 
   if ( m_physicalDeviceProps.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
        m_physicalDeviceFeatures.geometryShader && indices.isComplete() && extensionsSupported )
+  {
     return true;
+  }
 
   return false;
 }
@@ -168,7 +172,7 @@ auto graphics::VulkanDevice::getRequiredExtensions() -> std::vector<const char*>
 {
   uint32_t extensionCount{ 0u };
   SDL_Vulkan_GetInstanceExtensions( m_window, &extensionCount, nullptr );
-  K_INFO( "extension count from SDL_Vulkan_GetInstanceExtensions {}", extensionCount );
+  KINFO( "extension count from SDL_Vulkan_GetInstanceExtensions {}", extensionCount );
   std::vector<const char*> extensions( extensionCount );
   SDL_Vulkan_GetInstanceExtensions( m_window, &extensionCount, extensions.data() );
 
@@ -194,13 +198,13 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback( VkDebugUtilsMessageSeverity
   {
   case 1 << 0:
   case 1 << 4:
-    K_INFO( "{}", pCallbackData->pMessage );
+    KINFO( "{}", pCallbackData->pMessage );
     break;
   case 1 << 8:
-    K_WARN( "{}", pCallbackData->pMessage );
+    KWARN( "{}", pCallbackData->pMessage );
     break;
   case 1 << 12:
-    K_ERROR( "{}", pCallbackData->pMessage );
+    KERROR( "{}", pCallbackData->pMessage );
     break;
   }
 
@@ -237,7 +241,7 @@ auto graphics::VulkanDevice::checkValidationLayerSupport() -> bool
   return true;
 }
 
-void graphics::VulkanDevice::shutdown() const
+auto graphics::VulkanDevice::shutdown() const -> void
 {
   // printLeaks();
   waitIdle();
@@ -301,7 +305,7 @@ graphics::VulkanDevice::~VulkanDevice()
 
 void graphics::VulkanDevice::init()
 {
-  K_INFO( "initializing device" );
+  KINFO( "initializing device" );
   createInstance();
   setupDebug();
   createWindowSurface();
@@ -309,7 +313,7 @@ void graphics::VulkanDevice::init()
   createLogicalDevice();
   initMemoryAllocator();
   createDeviceCommandPool();
-  K_INFO( "vulkan device initialized" );
+  KINFO( "vulkan device initialized" );
 }
 
 auto graphics::VulkanDevice::createDeviceCommandPool() -> void
@@ -368,11 +372,36 @@ void graphics::VulkanDevice::createInstance()
   {
     throw std::runtime_error( "validation layers requested but not available!!!" );
   }
+
+  std::vector<VkValidationFeatureEnableEXT> validationFeatures{
+    VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+    VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
+    VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT };
+
+  VkValidationFeaturesEXT features{};
+  features.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
+  features.pNext = nullptr;
+  features.enabledValidationFeatureCount = static_cast<uint32_t>( validationFeatures.size() );
+  features.pEnabledValidationFeatures = validationFeatures.data();
+  features.disabledValidationFeatureCount = 0;
+  features.pDisabledValidationFeatures = nullptr;
+
+  VkDebugUtilsMessengerCreateInfoEXT info{};
+  info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+  info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                         VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | // <-- also add INFO
+                         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                         VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+  info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                     VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+  info.pfnUserCallback = debugCallback;
+  info.pNext = &features;
+
   VkApplicationInfo appInfo{};
   appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-  appInfo.pApplicationName = "Hello Triangle";
+  appInfo.pApplicationName = "kogayonon";
   appInfo.applicationVersion = VK_MAKE_VERSION( 1, 0, 0 );
-  appInfo.pEngineName = "No Engine";
+  appInfo.pEngineName = "Kogayonon 3D Engine";
   appInfo.engineVersion = VK_MAKE_VERSION( 1, 0, 0 );
   appInfo.apiVersion = VK_API_VERSION_1_4;
 
@@ -384,32 +413,21 @@ void graphics::VulkanDevice::createInstance()
   createInfo.enabledExtensionCount = static_cast<uint32_t>( extensions.size() );
   createInfo.ppEnabledExtensionNames = extensions.data();
 
-  VkDebugUtilsMessengerCreateInfoEXT info{};
   if ( enableValidationLayers )
   {
     createInfo.enabledLayerCount = static_cast<uint32_t>( validationLayers.size() );
     createInfo.ppEnabledLayerNames = validationLayers.data();
-
-    info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-                           VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                           VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-                       VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    info.pfnUserCallback = debugCallback;
-    info.pNext = nullptr;
     createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&info;
   }
   else
   {
     createInfo.enabledLayerCount = 0;
-
     createInfo.pNext = nullptr;
   }
 
   for ( auto& extension : extensions )
   {
-    K_INFO( "extension: {}", extension );
+    KINFO( "extension: {}", extension );
   }
 
   VK_CALL( vkCreateInstance( &createInfo, nullptr, &m_platform.instance ) );
@@ -446,7 +464,7 @@ void graphics::VulkanDevice::pickPhysicalDevice()
     {
       VkPhysicalDeviceProperties props;
       vkGetPhysicalDeviceProperties( device, &props );
-      K_INFO( "Physical device found: {}", props.deviceName );
+      KINFO( "Physical device found: {}", props.deviceName );
       m_platform.physicalDevice = device;
       break;
     }
@@ -459,7 +477,8 @@ void graphics::VulkanDevice::createLogicalDevice()
   QueueFamilyIndices indices = findQueueFamilies( m_platform.physicalDevice );
 
   std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-  std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily.value(), indices.presentFamily.value() };
+  std::set<uint32_t> uniqueQueueFamilies = {
+    indices.graphicsFamily.value(), indices.transferFamily.value(), indices.presentFamily.value() };
 
   float queuePriority = 1.0f;
   for ( uint32_t queueFamily : uniqueQueueFamilies )
@@ -486,25 +505,23 @@ void graphics::VulkanDevice::createLogicalDevice()
   features12.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
   features12.descriptorBindingPartiallyBound = VK_TRUE;
   features12.descriptorBindingVariableDescriptorCount = VK_TRUE;
-
   features12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
   features12.timelineSemaphore = VK_TRUE;
   features12.bufferDeviceAddress = VK_TRUE;
 
   VkPhysicalDeviceVulkan13Features features13{};
   features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-  features13.synchronization2 = true;
-  features13.dynamicRendering = true;
-  features13.descriptorBindingInlineUniformBlockUpdateAfterBind = true;
+  features13.synchronization2 = VK_TRUE;
+  features13.dynamicRendering = VK_TRUE;
+  features13.descriptorBindingInlineUniformBlockUpdateAfterBind = VK_TRUE;
+  features13.shaderDemoteToHelperInvocation = VK_TRUE;
   features13.pNext = &features12;
 
   VkPhysicalDeviceFeatures deviceFeatures{};
   deviceFeatures.geometryShader = VK_TRUE;
   deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
-
-  // for wireframe pipeline
+  deviceFeatures.samplerAnisotropy = VK_TRUE;
   deviceFeatures.fillModeNonSolid = VK_TRUE;
-  // this is too for the wireframe, without this we cannot change the line width
   deviceFeatures.wideLines = VK_TRUE;
 
   VkDeviceCreateInfo createInfo{};
@@ -515,17 +532,7 @@ void graphics::VulkanDevice::createLogicalDevice()
   createInfo.pEnabledFeatures = &deviceFeatures;
   createInfo.enabledExtensionCount = deviceExtensions.size();
   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
-  // enable validation layers
-  if ( enableValidationLayers )
-  {
-    createInfo.enabledLayerCount = static_cast<uint32_t>( validationLayers.size() );
-    createInfo.ppEnabledLayerNames = validationLayers.data();
-  }
-  else
-  {
-    createInfo.enabledLayerCount = 0;
-  }
+  createInfo.enabledLayerCount = 0;
 
   if ( vkCreateDevice( m_platform.physicalDevice, &createInfo, nullptr, &m_platform.device ) != VK_SUCCESS )
   {
@@ -547,7 +554,7 @@ auto graphics::VulkanDevice::getLimits() -> VkPhysicalDeviceLimits&
   return m_physicalDeviceLimits;
 }
 
-auto graphics::VulkanDevice::setDebugName( VkObjectType objType, uint64_t handle, std::string_view name ) -> void
+auto graphics::VulkanDevice::setVulkanDebugName( VkObjectType objType, uint64_t handle, std::string_view name ) -> void
 {
 #ifndef _DEBUG
   return;
@@ -585,14 +592,15 @@ void graphics::VulkanDevice::createBuffer( VulkanBuffer& vulkanBuffer,
 
   if ( !bufferName.empty() )
   {
-    K_INFO( "[BUFF_ALLOC] {} {}", bufferName, formatSize( static_cast<double>( createInfo.size ) ) );
-    setName( bufferName, vulkanBuffer.vmaAllocation );
-    setDebugName( vulkanTypeToObject<VkBuffer>(), reinterpret_cast<uint64_t>( vulkanBuffer.vkBuffer ), bufferName );
+    KINFO( "[BUFF_ALLOC] {} {}", bufferName, formatSize( static_cast<double>( createInfo.size ) ) );
+    setVMAllocationName( bufferName, vulkanBuffer.vmaAllocation );
+    setVulkanDebugName(
+      vulkanTypeToObject<VkBuffer>(), reinterpret_cast<uint64_t>( vulkanBuffer.vkBuffer ), bufferName );
   }
   else
   {
 
-    K_INFO( "[BUFF_ALLOC] {}", formatSize( static_cast<double>( createInfo.size ) ) );
+    KINFO( "[BUFF_ALLOC] {}", formatSize( static_cast<double>( createInfo.size ) ) );
   }
 }
 
@@ -626,13 +634,13 @@ void graphics::VulkanDevice::createImage( VkImage& image,
   std::string size = formatSize( static_cast<double>( allocation->GetSize() ) );
   if ( !imageName.empty() )
   {
-    K_INFO( "[IMG_ALLOC] {} size {}", imageName, size );
-    setName( imageName, allocation );
-    setDebugName( vulkanTypeToObject<VkImage>(), reinterpret_cast<uint64_t>( image ), imageName );
+    KINFO( "[IMG_ALLOC] {} size {}", imageName, size );
+    setVMAllocationName( imageName, allocation );
+    setVulkanDebugName( vulkanTypeToObject<VkImage>(), reinterpret_cast<uint64_t>( image ), imageName );
   }
   else
   {
-    K_INFO( "[IMG_ALLOC] size {}", size );
+    KINFO( "[IMG_ALLOC] size {}", size );
   }
 }
 
@@ -687,13 +695,16 @@ auto graphics::VulkanDevice::invalidateAllocation( VulkanBuffer& vulkanBuffer,
 
 auto graphics::VulkanDevice::destroyImage( VkImage& image, VmaAllocation& allocation ) -> void
 {
-  if ( image == VK_NULL_HANDLE )
+  if ( !image )
+    return;
+
+  if ( !allocation )
     return;
 
   auto info = getAllocInfo( allocation );
   if ( info.pName )
   {
-    K_INFO( "[IMG_DEALLOC] {}, size {}", info.pName, formatSize( info.size ) );
+    KINFO( "[IMG_DEALLOC] {}, size {}", info.pName, formatSize( info.size ) );
   }
 
   vmaDestroyImage( m_allocator, image, allocation );
@@ -718,7 +729,7 @@ auto graphics::VulkanDevice::printLeaks() const -> void
   vmaFreeStatsString( m_allocator, statsString );
 }
 
-auto graphics::VulkanDevice::setName( std::string_view name, VmaAllocation& allocation ) const -> void
+auto graphics::VulkanDevice::setVMAllocationName( std::string_view name, VmaAllocation& allocation ) const -> void
 {
 #ifndef _DEBUG
   return;
@@ -730,15 +741,18 @@ auto graphics::VulkanDevice::setName( std::string_view name, VmaAllocation& allo
 
 auto graphics::VulkanDevice::destroyBuffer( VulkanBuffer& buff ) -> void
 {
+  if ( !buff.vmaAllocation )
+    return;
+
   auto info = getAllocInfo( buff.vmaAllocation );
 
   if ( info.pName )
   {
-    K_INFO( "[BUFF_DEALLOC] {}, size {}", info.pName, formatSize( info.size ) );
+    KINFO( "[BUFF_DEALLOC] {}, size {}", info.pName, formatSize( info.size ) );
   }
   else
   {
-    K_INFO( "[BUFF_DEALLOC] size {}", formatSize( info.size ) );
+    KINFO( "[BUFF_DEALLOC] size {}", formatSize( info.size ) );
   }
 
   vmaDestroyBuffer( m_allocator, buff.vkBuffer, buff.vmaAllocation );
@@ -753,6 +767,7 @@ auto graphics::VulkanDevice::destroyBuffer( FrameInFlightVulkanBuffer& buff ) ->
 }
 
 auto graphics::VulkanDevice::getAllocInfo( VmaAllocation allocation ) const -> VmaAllocationInfo
+
 {
   VmaAllocationInfo info{};
   vmaGetAllocationInfo( m_allocator, allocation, &info );
@@ -947,37 +962,41 @@ auto graphics::VulkanDevice::endSingleTimeCommands( VkCommandBuffer commandBuffe
 
 auto graphics::VulkanDevice::copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size ) const -> void
 {
-  VkCommandBuffer commandBuffer = beginSingleTimeCommands( m_transferCommandPool );
+  VkCommandBuffer commandBuffer = beginSingleTimeCommands( m_commandPool );
 
   VkBufferCopy copyRegion{};
   copyRegion.size = size;
   vkCmdCopyBuffer( commandBuffer, src, dst, 1, &copyRegion );
 
-  endSingleTimeCommands( commandBuffer, m_transferQueue.handle, m_transferCommandPool );
+  endSingleTimeCommands( commandBuffer, m_graphicsQueue.handle, m_commandPool );
 }
 
-auto graphics::VulkanDevice::createSampler( VkSampler& sampler ) const -> void
+auto graphics::VulkanDevice::createSampler( VkSampler& sampler, std::string_view samplerName ) -> void
 {
   VkPhysicalDeviceProperties properties{};
   vkGetPhysicalDeviceProperties( m_platform.physicalDevice, &properties );
 
-  VkSamplerCreateInfo samplerInfo{
-    .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-    .magFilter = VK_FILTER_NEAREST,
-    .minFilter = VK_FILTER_NEAREST,
-    .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-    .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-    .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-    .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-    //.anisotropyEnable = VK_FALSE,
-    //.maxAnisotropy = properties.limits.maxSamplerAnisotropy,
-    .compareEnable = VK_FALSE,
-    //.compareOp = VK_COMPARE_OP_ALWAYS,
-    //.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-    //.unnormalizedCoordinates = VK_FALSE,
-  };
+  VkSamplerCreateInfo samplerInfo{};
+  samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+  samplerInfo.magFilter = VK_FILTER_LINEAR;
+  samplerInfo.minFilter = VK_FILTER_LINEAR;
+  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  samplerInfo.anisotropyEnable = VK_TRUE;
+  samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+  samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+  samplerInfo.unnormalizedCoordinates = VK_FALSE;
+  samplerInfo.compareEnable = VK_FALSE;
+  samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+  samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
   VK_CALL( vkCreateSampler( m_platform.device, &samplerInfo, nullptr, &sampler ) );
+
+  if ( !samplerName.empty() )
+  {
+    setVulkanDebugName( vulkanTypeToObject<VkSampler>(), reinterpret_cast<uint64_t>( sampler ), samplerName );
+  }
 }
 
 auto graphics::VulkanDevice::createImageView( VkImageView& imageView,
@@ -999,7 +1018,7 @@ auto graphics::VulkanDevice::createImageView( VkImageView& imageView,
 
   VK_CALL( vkCreateImageView( m_platform.device, &viewInfo, nullptr, &imageView ) );
 
-  setDebugName( vulkanTypeToObject<VkImageView>(), reinterpret_cast<uint64_t>( imageView ), imageViewName );
+  setVulkanDebugName( vulkanTypeToObject<VkImageView>(), reinterpret_cast<uint64_t>( imageView ), imageViewName );
 }
 
 auto graphics::VulkanDevice::transitionImageLayout( VkImage image, VkImageMemoryBarrier2 imageBarrier ) -> void
@@ -1046,7 +1065,7 @@ auto graphics::VulkanDevice::transitionImageLayout( VulkanImage image,
 auto graphics::VulkanDevice::copyBufferToImage(
   VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkImageMemoryBarrier2 imageBarrier ) -> void
 {
-  VkCommandBuffer commandBuffer = beginSingleTimeCommands( m_transferCommandPool );
+  VkCommandBuffer commandBuffer = beginSingleTimeCommands( m_commandPool );
 
   VkBufferImageCopy region{};
   region.bufferOffset = 0;
@@ -1069,7 +1088,7 @@ auto graphics::VulkanDevice::copyBufferToImage(
 
   vkCmdPipelineBarrier2( commandBuffer, &dependency );
 
-  endSingleTimeCommands( commandBuffer, getTransferQueue().handle, m_transferCommandPool );
+  endSingleTimeCommands( commandBuffer, getGraphicsQueue().handle, m_commandPool );
 }
 
 auto graphics::VulkanDevice::copyImageToBuffer( VkImage image, VkBuffer buffer, VkOffset3D offset, VkExtent3D extent )
@@ -1241,4 +1260,14 @@ auto graphics::VulkanDevice::createTimelineSemaphore( VkSemaphore& timeline,
 auto graphics::VulkanDevice::cmdPipelineBarrier2( VkCommandBuffer cmdBuffer, VkDependencyInfo dependencyInfo ) -> void
 {
   vkCmdPipelineBarrier2( cmdBuffer, &dependencyInfo );
+}
+
+auto graphics::VulkanDevice::label( VkCommandBuffer cmdBuffer, VkDebugUtilsLabelEXT markerInfo ) -> void
+{
+  // vkCmdBeginDebugUtilsLabelEXT( cmdBuffer, &markerInfo );
+}
+
+auto graphics::VulkanDevice::endLabel( VkCommandBuffer cmdBuffer ) -> void
+{
+  // vkCmdEndDebugUtilsLabelEXT( cmdBuffer );
 }

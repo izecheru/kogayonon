@@ -1,7 +1,14 @@
-
 #include "editor/editor.hpp"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_vulkan.h>
+#include <rapidjson/istreamwrapper.h>
+#include <glm/gtc/type_ptr.hpp>
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/camera_component.hpp"
+#include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -26,13 +33,6 @@
 #include "utilities/time_tracker/time_tracker.hpp"
 #include "utilities/utils/utils.hpp"
 #include "window/window.hpp"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
-#include <glm/gtc/type_ptr.hpp>
-#include <imgui.h>
-#include <imgui_impl_sdl2.h>
-#include <imgui_impl_vulkan.h>
-#include <rapidjson/istreamwrapper.h>
 
 editor::Editor::Editor()
 {
@@ -69,12 +69,12 @@ void editor::Editor::pollEvents()
       {
         int newWidth = e.window.data1;
         int newHeight = e.window.data2;
-        K_INFO( "Resized wind" );
+        KINFO( "Resized wind" );
         pEventDispatcher->dispatchEvent( core::WindowResizeEvent{ newWidth, newHeight } );
       }
 
       if ( e.window.event == SDL_WINDOWEVENT_RESTORED )
-        K_INFO( "Restored wind" );
+        KINFO( "Restored wind" );
 
       break;
     }
@@ -85,9 +85,9 @@ void editor::Editor::pollEvents()
     }
     case SDL_KEYDOWN: {
       KeyboardState::updateState();
-      auto scanCode = static_cast<KeyScanCode>( e.key.keysym.scancode );
+      KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.keysym.scancode );
 
-      auto keyPressEvent = core::KeyPressedEvent{ scanCode, KeyScanCode::None, 0 };
+      core::KeyPressedEvent keyPressEvent{ scanCode, KeyScanCode::None, 0 };
 
       if ( KeyboardState::getKeyState( KeyScanCode::LeftControl ) )
       {
@@ -104,7 +104,7 @@ void editor::Editor::pollEvents()
     }
     case SDL_KEYUP: {
       KeyboardState::updateState();
-      auto scanCode = static_cast<KeyScanCode>( e.key.keysym.scancode );
+      KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.keysym.scancode );
       pEventDispatcher->dispatchEvent( core::KeyReleasedEvent{ scanCode, KeyScanCode::None } );
       break;
     }
@@ -155,43 +155,36 @@ void editor::Editor::pollEvents()
 
 void editor::Editor::run()
 {
-  auto vkContext = core::MainRegistry::getInstance().getVulkanContext();
-  auto& swapchain = vkContext->swapchain;
+  core::MainRegistry& mainRegistry = core::MainRegistry::getInstance();
+  utilities::TimeTracker* timeTracker = mainRegistry.getTimeTracker();
 
-  auto assetManager = core::MainRegistry::getInstance().getAssetManager();
-  assetManager->initSampler();
-
-  auto& mainRegistry = core::MainRegistry::getInstance();
-  auto timeTracker = mainRegistry.getTimeTracker();
-  // Start the delta time count
   timeTracker->start( DELTA_TIME );
 
   while ( m_running )
   {
     onUpdate();
+    timeTracker->update( DELTA_TIME );
   }
 }
 
 auto editor::Editor::onUpdate() -> void
 {
-  graphics::VulkanContext* vkCtx = core::MainRegistry::getInstance().getVulkanContext();
   core::MainRegistry& mainRegistry = core::MainRegistry::getInstance();
+  core::AssetManager* assetManager = mainRegistry.getAssetManager();
   physics::JoltPhysics* jolt = mainRegistry.getJoltPhysics();
   utilities::TaskManager* taskManager = mainRegistry.getTaskManager();
   utilities::TimeTracker* timeTracker = mainRegistry.getTimeTracker();
+  core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
 
-  taskManager->onUpdate();
-  // Poll events and dispatch them to listeners
+  float delta = timeTracker->getDurationInSeconds( DELTA_TIME );
+
   pollEvents();
 
-  // Update physics based on delta
-  jolt->onUpdate( timeTracker->getDurationInSeconds( DELTA_TIME ) );
+  jolt->onUpdate( delta );
+  taskManager->onUpdate();
+  assetManager->onUpdate();
+  m_vulkanRenderer->onUpdate();
 
-  // Render
-  m_pRenderer->render();
-  vkCtx->swapchain->presentFrame();
-
-  // Update delta time
   timeTracker->update( DELTA_TIME );
 }
 
@@ -199,31 +192,15 @@ bool editor::Editor::initSDL()
 {
   if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_EVENTS ) != 0 )
   {
-    K_ERROR( "SDL_Init Error: {}", SDL_GetError() );
+    KERROR( "SDL_Init Error: {}", SDL_GetError() );
     throw std::runtime_error( "SDL_Init failed" );
   }
 
   if ( SDL_Vulkan_LoadLibrary( nullptr ) != 0 )
   {
-    K_ERROR( "SDL Vulkan load failed: {}", SDL_GetError() );
+    KERROR( "SDL Vulkan load failed: {}", SDL_GetError() );
     throw std::runtime_error( "could not load lib vulkan" );
   }
-
-  return true;
-}
-
-bool editor::Editor::initVulkan()
-{
-  auto vkCtx = core::MainRegistry::getInstance().getVulkanContext();
-
-  createDescriptorPool();
-  vkCtx->globalDescriptorPool = m_globalDescriptorPool;
-
-  // TODO(kogayonon) this does not look clean, make the asset manager ctor better or smth
-  auto assetManager = core::MainRegistry::getInstance().getAssetManager();
-  assetManager->setContext( vkCtx );
-  assetManager->setDescriptorPool( m_globalDescriptorPool );
-  assetManager->initDescriptors();
 
   return true;
 }
@@ -232,9 +209,10 @@ bool editor::Editor::initMainWindow()
 {
   auto& cfg = utilities::EditorConfigManager::getConfig();
 
-  m_pWindow = std::make_shared<window::Window>( "kogayonon engine", cfg.width, cfg.height, false, cfg.maximized );
-  m_pWindow->setBordered( true );
-  m_pWindow->setResizable( true );
+  m_window = std::make_unique<window::Window>(
+    "kogayonon engine - default project", cfg.width, cfg.height, false, cfg.maximized );
+  m_window->setBordered( true );
+  m_window->setResizable( true );
   return true;
 }
 
@@ -242,9 +220,9 @@ bool editor::Editor::initRenderer()
 {
   auto vkCtx = core::MainRegistry::getInstance().getVulkanContext();
 
-  m_pRenderer = std::make_shared<rendering::VulkanRenderer>( vkCtx, m_pWindow->getWindow() );
+  m_vulkanRenderer = std::make_unique<rendering::VulkanRenderer>( vkCtx, m_window->getWindow() );
 
-  if ( !m_pRenderer )
+  if ( !m_vulkanRenderer )
     return false;
 
   return true;
@@ -267,11 +245,6 @@ bool editor::Editor::init()
     throw std::runtime_error( "main registry could not be initialized" );
   }
 
-  if ( !initVulkan() )
-  {
-    throw std::runtime_error( "vulkan could not be initialized" );
-  }
-
   if ( !initRenderer() )
   {
     throw std::runtime_error( "renderer could not be initialized" );
@@ -289,46 +262,51 @@ bool editor::Editor::initMainRegistry()
 {
   auto& mainRegistry = core::MainRegistry::getInstance();
 
-  auto device = std::make_unique<graphics::VulkanDevice>( m_pWindow->getWindow() );
-  auto swapchain = std::make_unique<graphics::VulkanSwapchain>( device.get(), m_pWindow->getWindow() );
+  std::unique_ptr<graphics::VulkanDevice> device = std::make_unique<graphics::VulkanDevice>( m_window->getWindow() );
+  std::unique_ptr<graphics::VulkanSwapchain> swapchain =
+    std::make_unique<graphics::VulkanSwapchain>( device.get(), m_window->getWindow() );
 
 #ifdef TRACY_ENABLE
-  auto vkTracy = std::make_unique<graphics::VulkanTracyContext>();
-  vkTracy->initCtx( device->getLogicalDevice(),
-                    device->getPhysicalDevice(),
-                    device->getGraphicsQueue().handle,
-                    swapchain->getCommandPool() );
+  std::unique_ptr<graphics::VulkanTracyContext> vkTracy =
+    std::make_unique<graphics::VulkanTracyContext>( device->getLogicalDevice(),
+                                                    device->getPhysicalDevice(),
+                                                    device->getGraphicsQueue().handle,
+                                                    swapchain->getCommandPool() );
 #endif
 
-  std::unique_ptr<graphics::VulkanContext> vkCtx =
-    std::make_unique<graphics::VulkanContext>( graphics::VulkanContext{ .device = std::move( device ),
-                                                                        .swapchain = std::move( swapchain ),
+  std::shared_ptr<graphics::VulkanContext> vkCtx = std::make_shared<graphics::VulkanContext>( graphics::VulkanContext{
+    .device = std::move( device ),
+    .swapchain = std::move( swapchain ),
 #ifdef TRACY_ENABLE
-                                                                        .tracyContext = std::move( vkTracy )
+    .tracyContext = std::move( vkTracy ),
 #endif
+  } );
 
-    } );
-
+  KASSERT( vkCtx );
   mainRegistry.addToContext<std::shared_ptr<graphics::VulkanContext>>( std::move( vkCtx ) );
+
+  graphics::VulkanContext* vkCtx_ = mainRegistry.getVulkanContext();
+  createDescriptorPool();
+  vkCtx_->globalDescriptorPool = m_globalDescriptorPool;
 
   auto joltPhysics = std::make_shared<physics::JoltPhysics>();
   mainRegistry.addToContext<std::shared_ptr<physics::JoltPhysics>>( std::move( joltPhysics ) );
 
-  auto assetManager = std::make_shared<core::AssetManager>();
-  K_ASSERT( assetManager && "could not init event dispathcer" );
+  auto assetManager = std::make_shared<core::AssetManager>( mainRegistry.getVulkanContext() );
+  KASSERT( assetManager && "could not init event dispathcer" );
   mainRegistry.addToContext<std::shared_ptr<core::AssetManager>>( std::move( assetManager ) );
 
   auto eventDispatcher = std::make_shared<core::EventDispatcher>();
   eventDispatcher->addHandler<core::WindowCloseEvent, &editor::Editor::onWindowClose>( *this );
-  K_ASSERT( eventDispatcher && "could not init event dispathcer" );
+  KASSERT( eventDispatcher && "could not init event dispathcer" );
   mainRegistry.addToContext<std::shared_ptr<core::EventDispatcher>>( std::move( eventDispatcher ) );
 
   auto timeTracker = std::make_shared<utilities::TimeTracker>();
-  K_ASSERT( timeTracker && "could not initialize TimeTracker" );
+  KASSERT( timeTracker && "could not initialize TimeTracker" );
   mainRegistry.addToContext<std::shared_ptr<utilities::TimeTracker>>( std::move( timeTracker ) );
 
   auto taskManager = std::make_shared<utilities::TaskManager>();
-  K_ASSERT( taskManager && "could not initialize TaskManager" );
+  KASSERT( taskManager && "could not initialize TaskManager" );
   mainRegistry.addToContext<std::shared_ptr<utilities::TaskManager>>( std::move( taskManager ) );
 
   auto sceneManager = std::make_shared<core::SceneManager>( mainRegistry.getEventDispatcher() );
@@ -337,29 +315,29 @@ bool editor::Editor::initMainRegistry()
   core::Entity entity{ scene->getRegistry(), "DefaultCamera" };
   sceneManager->setCurrentScene( scene->getName() );
 
-  K_ASSERT( sceneManager && "could not initialize SceneManager" );
-  mainRegistry.addToContext<std::shared_ptr<core::SceneManager>>( std::move( sceneManager ) );
-
   auto ctx = mainRegistry.getVulkanContext();
   auto extent = ctx->swapchain->getSwapchainExtent();
 
-  auto cameraComponent = core::PerspectiveCameraComponent{};
+  core::DirectionalLightComponent directionalLight{};
+  core::Entity direciontalLightEnt{ scene->getRegistry(), "DefaultDirecitonalLight" };
+  direciontalLightEnt.addComponent<core::DirectionalLightComponent>( directionalLight );
 
-  cameraComponent.props.farView = 3000.0f;
-
+  core::PerspectiveCameraComponent cameraComponent{};
+  cameraComponent.props.farView = 500.0f;
   cameraComponent.ubo.view =
     glm::lookAt( cameraComponent.props.eye, cameraComponent.props.center, cameraComponent.props.up );
-
   cameraComponent.ubo.projection = glm::perspective( glm::radians( cameraComponent.props.fov ),
                                                      extent.width / (float)( extent.height ),
                                                      cameraComponent.props.nearView,
                                                      cameraComponent.props.farView );
-
   cameraComponent.ubo.projection[1][1] *= -1;
   cameraComponent.props.extent = { (float)extent.width, (float)extent.height };
   cameraComponent.isUsed = true;
 
   entity.addComponent<core::PerspectiveCameraComponent>( cameraComponent );
+
+  KASSERT( sceneManager && "could not initialize SceneManager" );
+  mainRegistry.addToContext<std::shared_ptr<core::SceneManager>>( std::move( sceneManager ) );
 
   return true;
 }
@@ -379,7 +357,7 @@ void editor::Editor::createDescriptorPool()
   poolInfo.pPoolSizes = poolSizes.data();
   poolInfo.maxSets = 3000;
 
-  auto vkCtx = core::MainRegistry::getInstance().getVulkanContext();
+  graphics::VulkanContext* vkCtx = core::MainRegistry::getInstance().getVulkanContext();
 
   VK_CALL( vkCreateDescriptorPool( vkCtx->device->getLogicalDevice(), &poolInfo, nullptr, &m_globalDescriptorPool ) );
 }

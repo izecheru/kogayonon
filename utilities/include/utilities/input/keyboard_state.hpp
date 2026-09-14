@@ -1,7 +1,7 @@
 #pragma once
+#include <SDL2/SDL.h>
 #include "key_codes.hpp"
 #include "precompiled/pch.hpp"
-#include <SDL2/SDL.h>
 
 namespace utilities
 {

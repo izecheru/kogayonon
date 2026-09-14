@@ -1,8 +1,8 @@
 #pragma once
+#include "graphics/vulkan_descriptor.hpp"
 #include "graphics/vulkan_pipeline.hpp"
 #include "renderer/frame_graph.hpp"
 #include "renderer/modules/module_base.hpp"
-#include "renderer/modules/module_descriptor.hpp"
 #include "renderer/modules/module_rendering_info.hpp"
 
 namespace graphics
@@ -29,10 +29,9 @@ class PrepassModule : public BaseModule
 {
 public:
   explicit PrepassModule( FrameGraph* graph,
-                          graphics::VulkanContext* ctx,
+                          graphics::VulkanContext* vkCtx,
                           VkExtent2D extent,
-                          ModuleDescriptorData descriptorData );
-
+                          graphics::FrameInFlightVulkanDescriptor* cameraDescriptor );
   ~PrepassModule();
 
   auto registerPasses() -> void override;
@@ -40,14 +39,15 @@ public:
   auto setExtent( VkExtent2D extent ) -> void override;
 
 protected:
+  auto registerDepthPrepass() -> void;
+
   auto createModuleResources( VkExtent2D extent ) -> void override;
   auto destroyModuleResources() -> void override;
-  auto registerDepthPrepass() -> void;
 
 private:
   FrameGraph* m_graph;
   graphics::VulkanContext* m_vkCtx;
   VkExtent2D m_extent;
-  ModuleDescriptorData m_moduleDescriptorData;
+  graphics::FrameInFlightVulkanDescriptor* m_cameraDescriptor;
 };
 } // namespace rendering

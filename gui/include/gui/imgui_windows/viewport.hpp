@@ -1,11 +1,11 @@
 #pragma once
+#include <SDL2/SDL.h>
+#include <vulkan/vulkan.h>
+#include <entt/entt.hpp>
+#include <glm/glm.hpp>
 #include "imgui_base.hpp"
 #include "precompiled/pch.hpp"
 #include <ImGuizmo.h>
-#include <SDL2/SDL.h>
-#include <entt/entt.hpp>
-#include <glm/glm.hpp>
-#include <vulkan/vulkan.h>
 
 namespace core
 {
@@ -25,24 +25,16 @@ namespace gui
 
 enum class GuizmoMode
 {
-  TRANSLATE,
-  SCALE,
-  ROTATE
+  Translate,
+  Scale,
+  Rotate
 };
-
 enum class AxisLock
 {
-  NONE,
-  X,
-  Y,
-  Z
-};
-
-enum class RenderMode
-{
-  Geometry,
-  GeometryAndLights,
-  Depth
+  None,
+  X_axis,
+  Y_axis,
+  Z_axis
 };
 
 struct ViewportSpec
@@ -83,10 +75,7 @@ private:
   auto getGuizmoOp() -> ImGuizmo::OPERATION;
 
 private:
-  // void onMouseMoved( const kogayonon_core::MouseMovedEvent& e );
-  // void onMouseClicked( const core::MouseClickedEvent& e );
   void onKeyPressed( const core::KeyPressedEvent& e );
-  // void onMouseScrolled( const kogayonon_core::MouseScrolledEvent& e );
 
 private:
   SDL_Window* m_mainWindow;

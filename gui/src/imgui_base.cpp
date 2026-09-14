@@ -12,9 +12,8 @@ gui::ImGuiWindow::ImGuiWindow( std::string name, ImGuiWindowFlags flags )
 
 gui::ImGuiWindow::ImGuiWindow( std::string name, ImGuiWindowFlags flags, ImVec2 size )
     : m_props{ std::make_unique<ImGuiProps>( name, flags, size ) }
-
 {
-  ImGui::SetWindowSize( size );
+  // ImGui::SetWindowSize( size );
 }
 
 gui::ImGuiWindow::ImGuiWindow( std::string name, ImVec2 size )
@@ -51,7 +50,9 @@ void gui::ImGuiWindow::updatePosition()
 {
   auto pos = ImGui::GetWindowPos();
   if ( m_props->x == pos.x && m_props->y == pos.y )
+  {
     return;
+  }
 
   m_props->x = pos.x;
   m_props->y = pos.y;
@@ -93,7 +94,9 @@ void gui::ImGuiWindow::updateProps()
 bool gui::ImGuiWindow::begin()
 {
   if ( !m_props->visible )
+  {
     return false;
+  }
 
   if ( !ImGui::Begin( m_props->name.c_str(), nullptr, m_props->flags ) )
   {

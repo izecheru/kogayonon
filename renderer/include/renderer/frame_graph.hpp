@@ -1,15 +1,10 @@
 #pragma once
 #include "renderer/node.hpp"
-#include <entt/entt.hpp>
-
-namespace graphics
-{
-class VulkanDevice;
-} // namespace graphics
+#include "renderer/blackboard.hpp"
+#include "graphics/vulkan_device.hpp"
 
 namespace rendering
 {
-class Blackboard;
 
 class FrameGraph
 {
@@ -30,7 +25,7 @@ public:
     std::unique_ptr<Node> node = std::make_unique<rendering::Node>();
     node->executeFunction = std::move( executeFunc );
     node->setupFunction = std::move( setupFunc );
-    node->name = name.empty() ? "Node_Name" : std::string{ name };
+    node->name = name.empty() ? "Node_Name_" + std::to_string( m_container.nodes.size() ) : std::string{ name };
 
     m_container.nodes.emplace_back( std::move( node ) );
   }
@@ -100,13 +95,13 @@ private:
   auto resloveDependencies() -> void;
 
   /**
-   * @brief Topologically sort the graph based on nodes it depends on
+   * @brief Topologically sort the graph based on nodes edges
    * @return
    */
   auto topoSort() -> void;
 
   /**
-   * @brief Search for resource transitions that need a barrier set in place and execute it
+   * @brief Search for resource transitions that need a barrier set in place before node execution
    * @return
    */
   auto resolveResourceBarriers() -> void;

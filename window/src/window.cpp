@@ -1,6 +1,16 @@
 #include <assert.h>
 #include "window/window.hpp"
 
+auto window_hit_test( SDL_Window* wnd, const SDL_Point* pos, void* ) -> SDL_HitTestResult
+{
+  if ( pos->y < 50 )
+  {
+    return SDL_HITTEST_DRAGGABLE;
+  }
+
+  return SDL_HITTEST_NORMAL;
+}
+
 namespace window
 {
 Window::Window( const char* t_title, int t_width, int t_height, bool t_vsync, bool t_maximized )
@@ -26,8 +36,10 @@ Window::Window( const char* t_title, int t_width, int t_height, bool t_vsync, bo
                                  SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE );
   }
 
-  // can't go to w=0 or h=0 due to swapchain constraints so we force minimum size
   SDL_SetWindowMinimumSize( m_window, 400, 400 );
+
+  // this is needed for the custom title bar
+  // SDL_SetWindowHitTest( m_window, window_hit_test, nullptr );
 
   int x, y;
   SDL_GetWindowPosition( m_window, &x, &y );

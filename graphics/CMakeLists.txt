@@ -44,6 +44,7 @@ target_link_libraries(graphics
          $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
  precompiled
  resources
+ core
 )
 
 if(KOGAYONON_ENABLE_TRACY)

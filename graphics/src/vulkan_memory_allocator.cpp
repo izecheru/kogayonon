@@ -42,13 +42,13 @@ void graphics::VulkanMemoryAllocator::createBuffer( VulkanBuffer& vulkanBuffer,
 
   if ( !bufferName.empty() )
   {
-    K_INFO( "[BUFF_ALLOC] {} {}", bufferName, formatSize( static_cast<double>( createInfo.size ) ) );
+    KINFO( "[BUFF_ALLOC] {} {}", bufferName, formatSize( static_cast<double>( createInfo.size ) ) );
     setName( bufferName, vulkanBuffer.allocation );
   }
   else
   {
 
-    K_INFO( "[BUFF_ALLOC] {}", formatSize( static_cast<double>( createInfo.size ) ) );
+    KINFO( "[BUFF_ALLOC] {}", formatSize( static_cast<double>( createInfo.size ) ) );
   }
 }
 
@@ -72,12 +72,12 @@ void graphics::VulkanMemoryAllocator::createImage( VkImage& image,
 
   if ( !imageName.empty() )
   {
-    K_INFO( "[IMG_ALLOC] {} size {}", imageName, formatSize( static_cast<double>( allocation->GetSize() ) ) );
+    KINFO( "[IMG_ALLOC] {} size {}", imageName, formatSize( static_cast<double>( allocation->GetSize() ) ) );
     setName( imageName, allocation );
   }
   else
   {
-    K_INFO( "[IMG_ALLOC] size {}", formatSize( static_cast<double>( allocation->GetSize() ) ) );
+    KINFO( "[IMG_ALLOC] size {}", formatSize( static_cast<double>( allocation->GetSize() ) ) );
   }
 }
 
@@ -120,7 +120,7 @@ void graphics::VulkanMemoryAllocator::mapBuffer( VulkanBuffer& vulkanBuffer ) co
   auto info = getAllocInfo( vulkanBuffer.allocation );
   if ( info.pName )
   {
-    K_INFO( "Buffer {} mapped", info.pName );
+    KINFO( "Buffer {} mapped", info.pName );
   }
   vmaMapMemory( m_allocator, vulkanBuffer.allocation, &vulkanBuffer.mapped );
   vulkanBuffer.flags |= Persistent | Mapped;
@@ -139,7 +139,7 @@ void graphics::VulkanMemoryAllocator::unmapBuffer( VulkanBuffer& vulkanBuffer ) 
   auto info = getAllocInfo( vulkanBuffer.allocation );
   if ( info.pName )
   {
-    K_INFO( "Unmapping buffer {}", info.pName );
+    KINFO( "Unmapping buffer {}", info.pName );
   }
   vmaUnmapMemory( m_allocator, vulkanBuffer.allocation );
 }
@@ -160,7 +160,7 @@ auto graphics::VulkanMemoryAllocator::destroyImage( VkImage& image, VmaAllocatio
   auto info = getAllocInfo( allocation );
   if ( info.pName )
   {
-    K_INFO( "[IMG_DEALLOC] {}, size {}", info.pName, formatSize( info.size ) );
+    KINFO( "[IMG_DEALLOC] {}, size {}", info.pName, formatSize( info.size ) );
   }
 
   vmaDestroyImage( m_allocator, image, allocation );
@@ -201,7 +201,7 @@ auto graphics::VulkanMemoryAllocator::destroyBuffer( VulkanBuffer& buff ) -> voi
 
   if ( info.pName )
   {
-    K_INFO( "[BUFF_DEALLOC] {}, size {}", info.pName, formatSize( info.size ) );
+    KINFO( "[BUFF_DEALLOC] {}, size {}", info.pName, formatSize( info.size ) );
   }
 
   vmaDestroyBuffer( m_allocator, buff.vkBuffer, buff.allocation );

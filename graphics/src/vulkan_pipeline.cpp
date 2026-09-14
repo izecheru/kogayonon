@@ -1,7 +1,7 @@
 #include "graphics/vulkan_pipeline.hpp"
+#include <vulkan/vulkan_core.h>
 #include "graphics/utils.hpp"
 #include "resources/vertex.hpp"
-#include <vulkan/vulkan_core.h>
 
 graphics::VulkanPipeline::VulkanPipeline( const VulkanPipelineSpec& spec, VulkanContext* pContext )
     : m_spec{ spec }
@@ -90,8 +90,6 @@ auto graphics::VulkanPipeline::create( const VulkanPipelineSpec& spec, VulkanCon
 
   std::vector<VkDynamicState> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 
-  // If we have a line width bigger than 1 and the pipeline is a wireframe one, we add the dynamic state line width to
-  // the dynamicStates
   if ( spec.options.lineWidth > 1.0f )
   {
     dynamicStates.push_back( VK_DYNAMIC_STATE_LINE_WIDTH );
@@ -109,7 +107,6 @@ auto graphics::VulkanPipeline::create( const VulkanPipelineSpec& spec, VulkanCon
 
   if ( spec.pushConstantSize != 0u )
   {
-    // create the mesh constants here
     VkPushConstantRange pushConstant{};
     pushConstant.offset = 0;
     pushConstant.size = spec.pushConstantSize;
@@ -121,7 +118,7 @@ auto graphics::VulkanPipeline::create( const VulkanPipelineSpec& spec, VulkanCon
   else // no push constants
   {
     pipelineLayoutInfo.pushConstantRangeCount = 0;
-    pipelineLayoutInfo.pPushConstantRanges = nullptr;
+    pipelineLayoutInfo.pPushConstantRanges = VK_NULL_HANDLE;
   }
 
   vkCtx->device->createPipelineLayout( pipelineLayoutInfo, m_layout );
@@ -140,8 +137,8 @@ auto graphics::VulkanPipeline::create( const VulkanPipelineSpec& spec, VulkanCon
   }
 
   // TODO change the format to come from the spec
-  renderingInfo.depthAttachmentFormat = VK_FORMAT_D32_SFLOAT;
-  renderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+  renderingInfo.depthAttachmentFormat = spec.depthAttachmentFormat;
+  renderingInfo.stencilAttachmentFormat = spec.stencilAttachmentFormat;
 
   VkPipelineDepthStencilStateCreateInfo depthStencil{ .sType =
                                                         VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
@@ -169,6 +166,7 @@ auto graphics::VulkanPipeline::create( const VulkanPipelineSpec& spec, VulkanCon
     .subpass = 0,
     .basePipelineHandle = VK_NULL_HANDLE,
   };
+
   vkCtx->device->createGraphicsPipeline( m_pipeline, pipelineInfo );
 }
 

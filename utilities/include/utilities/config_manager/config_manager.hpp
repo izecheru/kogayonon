@@ -99,12 +99,12 @@ public:
    */
   static void initDefaultConfig();
   static void initDefaultColorConfig();
+  static void parseConfig();
 
 private:
   /**
    * @brief Populates the Config struct value with values loaded from the loaded json document
    */
-  static void parseConfig();
 
   EditorConfigManager() = delete;
   ~EditorConfigManager() = default;

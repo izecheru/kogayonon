@@ -1,7 +1,5 @@
 #include "renderer/frame_graph.hpp"
-#include "graphics/vulkan_device.hpp"
 #include "graphics/vulkan_swapchain.hpp"
-#include "renderer/blackboard.hpp"
 #include "renderer/node.hpp"
 #include "utilities/utils/utils.hpp"
 
@@ -15,6 +13,7 @@ auto rendering::FrameGraph::createResource( std::string_view name,
                                             VkImageCreateInfo imageInfo,
                                             VmaAllocationCreateInfo imageAllocInfo ) -> rendering::FGResource*
 {
+
   m_container.resources.emplace_back( std::make_unique<FGResource>() );
 
   std::string resName =
@@ -23,6 +22,7 @@ auto rendering::FrameGraph::createResource( std::string_view name,
   res->lastState = FGResourceState{ .type = FGResourceType::None, .accessType = FGResourceAccessType::None };
 
   VkImageAspectFlags aspect{ VK_IMAGE_ASPECT_COLOR_BIT };
+
   if ( imageInfo.format == VK_FORMAT_D32_SFLOAT )
   {
     aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -45,7 +45,9 @@ auto rendering::FrameGraph::createResource( std::string_view name,
 void rendering::FrameGraph::addEdge( Node* from, Node* to )
 {
   if ( from == to )
+  {
     return;
+  }
 
   to->dependsOn.insert( from );
   from->consumers.insert( to );
@@ -66,22 +68,12 @@ auto rendering::FrameGraph::clearGraph() -> void
 
   for ( std::unique_ptr<FGResource>& resource : m_container.resources )
   {
-    resource->lastState = FGResourceState{ .type = FGResourceType::None, .accessType = FGResourceAccessType::None };
-    resource->readerNodes.clear();
-    resource->writerNodes.clear();
+    resource->resetState();
   }
 
   for ( std::unique_ptr<Node>& node : m_container.nodes )
   {
-    node->resourceExpectedState.clear();
-    node->resourceBarriers.clear();
-    node->resourceBarriers.clear();
-    node->consumers.clear();
-    node->dependsOn.clear();
-    node->barriers.clear();
-    node->writes.clear();
-    node->reads.clear();
-    node->indegree = 0u;
+    node->resetState();
   }
 }
 
@@ -89,7 +81,7 @@ auto rendering::FrameGraph::setupNodes() -> void
 {
   for ( std::unique_ptr<Node>& node : m_container.nodes )
   {
-    NodeBuilder builder{ node.get(), &m_container };
+    NodeBuilder builder{ node.get() };
     node->setupFunction( builder, m_blackboard.get() );
   }
 }
@@ -105,6 +97,7 @@ auto rendering::FrameGraph::execute( VkCommandBuffer cmdBuff ) -> void
         .imageMemoryBarrierCount = static_cast<uint32_t>( node->barriers.size() ),
         .pImageMemoryBarriers = node->barriers.data(),
       };
+
       m_device->cmdPipelineBarrier2( cmdBuff, dependency );
     }
 
@@ -114,7 +107,7 @@ auto rendering::FrameGraph::execute( VkCommandBuffer cmdBuff ) -> void
 
 auto rendering::FrameGraph::recompile() -> void
 {
-  K_INFO( "[FrameGraph] Recompiling!!!" );
+  KINFO( "[FrameGraph] Recompiling!!!" );
   m_compiled = false;
 
   clearGraph();
@@ -125,26 +118,33 @@ auto rendering::FrameGraph::resloveDependencies() -> void
 {
   for ( std::unique_ptr<FGResource>& resource : m_container.resources )
   {
-    if ( resource->writerNodes.empty() ) // don't go and loop through writers if we don't have any
+    if ( resource->writerNodes.empty() )
     {
       continue;
     }
 
-    Node* writer = *resource->writerNodes.begin(); // todo this might need to go from the end to the beginning
-    for ( Node* reader : resource->readerNodes )
+    for ( Node* writer : resource->writerNodes )
     {
-      if ( reader->culled || writer->culled )
-        continue;
+      for ( Node* reader : resource->readerNodes )
+      {
+        if ( writer == reader )
+          continue;
 
-      K_INFO( "[FrameGraph] Found edge from {} to {}", writer->name, reader->name );
-      addEdge( writer, reader );
+        if ( reader->culled || writer->culled )
+          continue;
+
+        KINFO( "[FrameGraph] Node {} needs {}", reader->name, writer->name );
+        addEdge( writer, reader );
+      }
     }
   }
 
   for ( std::unique_ptr<Node>& node : m_container.nodes )
   {
     if ( node->culled )
+    {
       continue;
+    }
 
     for ( FGResource* res : node->reads )
     {
@@ -153,7 +153,7 @@ auto rendering::FrameGraph::resloveDependencies() -> void
         throw std::runtime_error( "Resource was never written to!!!" );
       }
     }
-    // indegree is just the number of edges a node has
+    // indegree is just the number of edges a node has or how many nodes it depends on
     node->indegree = static_cast<uint32_t>( node->dependsOn.size() );
   }
 }
@@ -166,7 +166,9 @@ auto rendering::FrameGraph::topoSort() -> void
   for ( std::unique_ptr<Node>& node : m_container.nodes )
   {
     if ( node->culled )
+    {
       continue;
+    }
 
     remaining[node.get()] = node->indegree;
     if ( node->indegree == 0 )
@@ -184,7 +186,9 @@ auto rendering::FrameGraph::topoSort() -> void
     for ( Node* consumer : n->consumers )
     {
       if ( consumer->culled )
+      {
         continue;
+      }
 
       if ( --remaining[consumer] == 0 )
       {
@@ -199,11 +203,11 @@ auto rendering::FrameGraph::topoSort() -> void
                                 m_container.nodes.end(),
                                 []( const std::unique_ptr<Node>& node ) { return !node->culled; } );
 
-  K_ASSERT( size == count && "Cycle detected" );
+  KASSERT( size == count && "Cycle detected" );
 
   for ( Node* node : m_container.executionOrder )
   {
-    K_INFO( "[FrameGraph] node {}", node->name );
+    KINFO( "[FrameGraph] node {}", node->name );
   }
 }
 
@@ -262,24 +266,35 @@ auto rendering::FrameGraph::resolveResourceBarriers() -> void
         else // if we don't have a color transfer or a previously written detph image, this also covers the Shader type
              // and the Color case
         {
+          VkImageAspectFlags aspect{ VK_IMAGE_ASPECT_COLOR_BIT };
 
-          transitionBarrier =
-            VkImageMemoryBarrier2{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                                   .srcStageMask = currentState.dstStageMask,
-                                   .srcAccessMask = currentState.dstAccessMask,
-                                   .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                                   .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
-                                   .oldLayout = currentState.newLayout,
-                                   .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                   .image = resource->vulkanImage.vkImage,
-                                   .subresourceRange = {
-                                     .aspectMask = depth ? static_cast<VkImageAspectFlags>( VK_IMAGE_ASPECT_DEPTH_BIT )
-                                                         : static_cast<VkImageAspectFlags>( VK_IMAGE_ASPECT_COLOR_BIT ),
-                                     .baseMipLevel = 0,
-                                     .levelCount = 1,
-                                     .baseArrayLayer = 0,
-                                     .layerCount = 1,
-                                   } };
+          if ( desiredState.type == FGResourceType::Shader )
+          {
+            if ( resource->lastState.type == FGResourceType::Depth )
+            {
+              aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+            }
+          }
+          else if ( desiredState.type == FGResourceType::Depth )
+          {
+            aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+          }
+
+          transitionBarrier = VkImageMemoryBarrier2{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                                     .srcStageMask = currentState.dstStageMask,
+                                                     .srcAccessMask = currentState.dstAccessMask,
+                                                     .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                                     .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+                                                     .oldLayout = currentState.newLayout,
+                                                     .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                                     .image = resource->vulkanImage.vkImage,
+                                                     .subresourceRange = {
+                                                       .aspectMask = aspect,
+                                                       .baseMipLevel = 0,
+                                                       .levelCount = 1,
+                                                       .baseArrayLayer = 0,
+                                                       .layerCount = 1,
+                                                     } };
         }
 
         currentState = transitionBarrier;

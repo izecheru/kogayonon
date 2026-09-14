@@ -1,6 +1,6 @@
-#include "core/asset_manager/font_loader.hpp"
 #include <Windows.h>
 #include <gtest/gtest.h>
+#include "core/asset_manager/font_loader.hpp"
 
 namespace core
 {

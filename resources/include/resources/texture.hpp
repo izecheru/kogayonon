@@ -23,7 +23,7 @@ public:
   auto getName() const -> std::string;
   auto getWidth() const -> int;
   auto getHeight() const -> int;
-  auto getLoaded() const -> bool;
+  auto isLoaded() const -> bool;
 
   auto setPath( const std::string& path ) -> void;
   auto setWidth( int width ) -> void;

@@ -1,8 +1,8 @@
 #pragma once
 
+#include <assert.h>
 #include <algorithm>
 #include <array>
-#include <assert.h>
 #include <atomic>
 #include <chrono>
 #include <codecvt>
@@ -20,6 +20,7 @@
 #include <new>
 #include <optional>
 #include <queue>
+#include <ranges>
 #include <set>
 #include <sstream>
 #include <stack>
@@ -30,4 +31,3 @@
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
-#include <ranges>

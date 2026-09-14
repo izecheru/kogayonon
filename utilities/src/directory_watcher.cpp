@@ -1,7 +1,6 @@
 #include "utilities/directory_watcher/directory_watcher.hpp"
-#include "utilities/utils/utils.hpp"
 #include <stdexcept>
-
+#include "utilities/utils/utils.hpp"
 
 namespace utilities
 {
@@ -71,7 +70,7 @@ void DirectoryWatcher::run( std::filesystem::path root )
 
     if ( !success )
     {
-      K_ERROR( "ReadDirectoryChangesW failed" );
+      KERROR( "ReadDirectoryChangesW failed" );
       break;
     }
 
@@ -84,7 +83,7 @@ void DirectoryWatcher::run( std::filesystem::path root )
       DWORD bytesTransferred = 0;
       if ( !GetOverlappedResult( m_dirHandle, &m_overlapped, &bytesTransferred, FALSE ) )
       {
-        K_ERROR( "GetOverlappedResult failed {}", GetLastError() );
+        KERROR( "GetOverlappedResult failed {}", GetLastError() );
         break;
       }
 
@@ -119,7 +118,7 @@ void DirectoryWatcher::run( std::filesystem::path root )
           m_eventCallbackFunc( relativePath.string(), nameOnly, core::FileEventType( 1 << 3 ) );
           break;
         default:
-          K_ERROR( "Unknown action!" );
+          KERROR( "Unknown action!" );
           break;
         }
 

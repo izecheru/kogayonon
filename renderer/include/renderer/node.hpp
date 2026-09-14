@@ -1,8 +1,8 @@
 #pragma once
+#include <entt/entt.hpp>
 #include "graphics/vulkan_image.hpp"
 #include "precompiled/pch.hpp"
 #include "utilities/utils/utils.hpp"
-#include <entt/entt.hpp>
 
 namespace rendering
 {
@@ -42,6 +42,13 @@ struct FGResource
   FGResourceState lastState;
   std::set<Node*> writerNodes;
   std::set<Node*> readerNodes;
+
+  inline auto resetState() -> void
+  {
+    lastState = FGResourceState{ .type = FGResourceType::None, .accessType = FGResourceAccessType::None };
+    readerNodes.clear();
+    writerNodes.clear();
+  }
 };
 
 struct Node
@@ -106,6 +113,19 @@ struct Node
    */
   std::vector<std::tuple<FGResource*, VkImageMemoryBarrier2>> resourceBarriers;
   std::vector<VkImageMemoryBarrier2> barriers;
+
+  inline auto resetState() -> void
+  {
+    resourceExpectedState.clear();
+    resourceBarriers.clear();
+    resourceBarriers.clear();
+    consumers.clear();
+    dependsOn.clear();
+    barriers.clear();
+    writes.clear();
+    reads.clear();
+    indegree = 0u;
+  }
 };
 
 /**
@@ -119,17 +139,22 @@ struct NodeContainer
 };
 
 /**
- * @brief Build a node writes and reads
+ * @brief Node builder class, sets up the write and reads of a specific node
  */
 class NodeBuilder
 {
 public:
-  explicit NodeBuilder( Node* nodeHandle, NodeContainer* container )
+  explicit NodeBuilder( Node* nodeHandle )
       : m_nodeHandle{ nodeHandle }
-      , m_nodeContainer{ container }
   {
   }
 
+  /**
+   * @brief This will mark the resource as write of the node
+   * @param resource A frame graph resource
+   * @param type Desired state of the resource at the moment of consumption
+   * @return
+   */
   auto inline write( FGResource* resource, FGResourceType type ) const -> void
   {
     using enum FGResourceAccessType;
@@ -141,6 +166,12 @@ public:
       FGResourceState{ .type = type, .accessType = FGResourceAccessType::Write };
   }
 
+  /**
+   * @brief This will mark the resource as read of the node
+   * @param resource A frame graph resource
+   * @param type Desired state of the resource at the moment of consumption
+   * @return
+   */
   auto inline read( FGResource* resource, FGResourceType type ) -> void
   {
     using enum FGResourceAccessType;
@@ -154,6 +185,5 @@ public:
 
 private:
   Node* m_nodeHandle;
-  NodeContainer* m_nodeContainer;
 };
 } // namespace rendering

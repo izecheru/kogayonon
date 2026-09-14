@@ -4,7 +4,6 @@
 #include "graphics/vulkan_pipeline.hpp"
 #include "renderer/frame_graph.hpp"
 #include "renderer/modules/module_base.hpp"
-#include "renderer/modules/module_descriptor.hpp"
 #include "renderer/modules/module_rendering_info.hpp"
 
 namespace rendering
@@ -14,29 +13,31 @@ namespace passId
 constexpr const char* ShadowmapPass = "shadowmapPass";
 }
 
+struct DirectionalLightUBO
+{
+  glm::mat4 projection;
+  glm::mat4 view;
+};
+
 struct ShadowmapModuleData
 {
   FGResource* depth{ VK_NULL_HANDLE };
   graphics::VulkanPipeline shadowmapPipeline;
   ModuleRenderingInfo renderingInfo;
 
-  /**
-   * @brief used to pass the depth texture from the light's point of view to other modules that might need to sample
-   * it and render the shadow
-   */
-  graphics::VulkanDescriptor directionalLightDescriptor;
+  graphics::VulkanDescriptor directionalLightDescriptor;      // texture descriptor
+  graphics::VulkanDescriptor directionalLightPovDescriptor;   // light mvp matrix descriptor
+  graphics::FrameInFlightVulkanBuffer directionalLightBuffer; // ubo
 };
 
 class ShadowmapModule : public BaseModule
 {
 public:
-  explicit ShadowmapModule( FrameGraph* graph,
-                            graphics::VulkanContext* vkCtx,
-                            ModuleDescriptorData descriptorData,
-                            VkExtent2D extent );
+  explicit ShadowmapModule( FrameGraph* graph, graphics::VulkanContext* vkCtx, VkExtent2D extent );
   ~ShadowmapModule();
 
   auto registerPasses() -> void override;
+  auto getShadowmapDescriptor() -> graphics::VulkanDescriptor&;
 
 protected:
   auto registerShadowmapPass() -> void;
@@ -49,7 +50,6 @@ protected:
 private:
   FrameGraph* m_graph;
   graphics::VulkanContext* m_vkCtx;
-  ModuleDescriptorData m_moduleDescriptorData;
   VkExtent2D m_extent;
 };
 

@@ -1,22 +1,23 @@
-#include "core/asset_manager/asset_manager.hpp"
-#include "resources/font.hpp"
 #include <vulkan/vulkan.h>
+#include "core/ecs/main_registry.hpp"
+#include "core/asset_manager/asset_manager.hpp"
+#include "utilities/task_manager/task_manager.hpp"
+#include "resources/font.hpp"
 #define STB_IMAGE_IMPLEMENTATION
-#include "graphics/utils.hpp"
+#include <stb_image.h>
 #include "graphics/vulkan_context.hpp"
 #include "graphics/vulkan_device.hpp"
 #include "graphics/vulkan_swapchain.hpp"
-#include "resources/mesh.hpp"
-#include "resources/texture.hpp"
 #include "utilities/tracy_utils/tracy_utils.hpp"
 #include "utilities/utils/utils.hpp"
-#include <stb_image.h>
 
-core::AssetManager::AssetManager()
+core::AssetManager::AssetManager( graphics::VulkanContext* vkCtx )
     : m_bindlessTexturesIndex{ 0u }
-    , m_bindlessMaterialIndex{ 0u }
     , m_samplerIndex{ 0u }
+    , m_vkCtx{ vkCtx }
 {
+  initDescriptors();
+  initSampler();
 }
 
 core::AssetManager::~AssetManager()
@@ -47,7 +48,9 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
   ZoneScopedN( "AssetManager::loadTexture" );
 
   if ( m_loadedTextures.contains( texturePath ) )
+  {
     return m_loadedTextures[texturePath].get();
+  }
 
   int texWidth, texHeight, texChannels;
   stbi_uc* pixels = stbi_load( texturePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha );
@@ -65,7 +68,6 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
   stageBufferInfo.size = imageSize;
   stageBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
   stageBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-  stageBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 
   VmaAllocationCreateInfo stageAllocInfo{};
   stageAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
@@ -78,7 +80,7 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
   imageInfo.extent.width = texWidth;
   imageInfo.extent.height = texHeight;
   imageInfo.extent.depth = 1;
-  imageInfo.mipLevels = 5;
+  imageInfo.mipLevels = 1;
   imageInfo.arrayLayers = 1;
   imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
   imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -166,17 +168,12 @@ auto core::AssetManager::initDescriptors() -> void
     allocateBindlessDescriptorSet();
 
     // materials
-    createMaterialsBuffers( sizeof( resources::Material ) );
+    createMaterialsBuffers( 500 * sizeof( resources::Material ) );
     createMaterialsDescriptorSetLayout();
     allocateMaterialsDescriptorSet();
 
     m_layoutInit = true;
   }
-}
-
-auto core::AssetManager::setContext( graphics::VulkanContext* ctx ) -> void
-{
-  m_vkCtx = ctx;
 }
 
 auto core::AssetManager::getTexture( const std::string& texturePath ) -> resources::Texture*
@@ -186,12 +183,12 @@ auto core::AssetManager::getTexture( const std::string& texturePath ) -> resourc
   if ( m_loadedTextures.contains( texturePath ) )
     return m_loadedTextures[texturePath].get();
 
-  return loadTexture( p.filename().string(), texturePath );
+  return nullptr;
 }
 
 auto core::AssetManager::initSampler() -> void
 {
-  m_vkCtx->device->createSampler( m_textureSampler );
+  m_vkCtx->device->createSampler( m_textureSampler, "assetManager_Sampler" );
   ++m_samplerIndex;
 }
 
@@ -203,15 +200,6 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
   if ( m_loadedMeshes.contains( meshPath ) )
     return m_loadedMeshes[meshPath].get();
 
-  std::unique_ptr<resources::Mesh> mesh = std::make_unique<resources::Mesh>();
-
-  mesh->setPath( meshPath );
-  std::filesystem::path p{ meshPath };
-
-  std::vector<aiMaterial*> materials{};
-  m_assimpLoader.loadMesh( meshPath, mesh.get(), materials );
-  std::vector<resources::Submesh>& submeshes = mesh->getSubmeshes();
-
   if ( m_materials.empty() )
   {
     resources::Material defaultMaterial{};
@@ -220,7 +208,7 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
 
     if ( std::filesystem::exists( path ) && !m_loadedTextures.contains( meshPath ) )
     {
-      auto texture = loadTexture( "default", path.string() );
+      resources::Texture* texture = loadTexture( "default", path.string() );
       texture->setIndex( m_bindlessTexturesIndex );
       defaultMaterial.diffuseTextureIndex = m_bindlessTexturesIndex;
       updateBindlessTextures( texture );
@@ -230,144 +218,40 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
     updateMaterialsBuffer();
   }
 
-  for ( auto i = 0u; i < materials.size(); i++ )
-  {
+  m_loadedMeshes.emplace( meshPath, std::make_unique<resources::Mesh>() );
 
-    resources::Material mat{};
-    aiMaterial* material = materials.at( i );
+  resources::Mesh* mesh = m_loadedMeshes[meshPath].get();
 
-    if ( material->GetTextureCount( aiTextureType_EMISSIVE ) > 0 )
-    {
-      aiString str;
-      material->GetTexture( aiTextureType_EMISSIVE, 0, &str );
+  mesh->setPath( meshPath );
 
-      std::filesystem::path path =
-        std::filesystem::absolute( "." ) / ( "engine_resources\\" + std::string( str.C_Str() ) );
+  utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
 
-      std::string key = std::filesystem::weakly_canonical( path ).string();
-      if ( !m_loadedTextures.contains( key ) )
-      {
-        K_INFO( "tex {} index {}", key, m_bindlessTexturesIndex );
-        mat.emissiveTextureIndex = m_bindlessTexturesIndex;
-        auto texture = loadTexture( path.stem().string(), key );
-        texture->setIndex( m_bindlessTexturesIndex );
-        updateBindlessTextures( texture );
-      }
-      else
-      {
-        mat.emissiveTextureIndex = getTexture( key )->getIndex();
-      }
-    }
+  utilities::CallbackTask* callbackPtr =
+    taskManager->addTask( [this, meshPath, meshPtr = m_loadedMeshes[meshPath].get()]() -> void {
+      auto tinyLoader = std::make_unique<TinyGltfLoader>( meshPath );
+      std::lock_guard lock( m_mutex );
+      tinyLoader->processVertexData( meshPtr );
+      m_parsedMaterials.parsedMaterialData = std::move( tinyLoader->parseTextureData( meshPtr ) );
+      m_parsedMaterials.pMesh = meshPtr;
+      enqueueMesh( meshPtr );
+    } );
 
-    if ( material->GetTextureCount( aiTextureType_SPECULAR ) > 0 )
-    {
-      aiString str;
-      material->GetTexture( aiTextureType_SPECULAR, 0, &str );
+  // this will run ONLY after the task above finished
+  utilities::CallbackTask* flagReady =
+    taskManager->addTask( [this, meshPtr = m_loadedMeshes[meshPath].get()]() -> void {
+      std::lock_guard lock( m_mutex );
+      m_readyForUpdate.store( true );
+    } );
 
-      std::filesystem::path path =
-        std::filesystem::absolute( "." ) / ( "engine_resources\\" + std::string( str.C_Str() ) );
+  taskManager->addDependency( flagReady, callbackPtr );
+  taskManager->addTaskSetToPipe( callbackPtr );
 
-      std::string key = std::filesystem::weakly_canonical( path ).string();
-      if ( !m_loadedTextures.contains( key ) )
-      {
-        K_INFO( "tex {} index {}", key, m_bindlessTexturesIndex );
-        mat.specularTextureIndex = m_bindlessTexturesIndex;
-        auto texture = loadTexture( path.stem().string(), key );
-        texture->setIndex( m_bindlessTexturesIndex );
-        updateBindlessTextures( texture );
-      }
-      else
-      {
-        mat.specularTextureIndex = getTexture( key )->getIndex();
-      }
-    }
-
-    if ( material->GetTextureCount( aiTextureType_NORMALS ) > 0 )
-    {
-      aiString str;
-      material->GetTexture( aiTextureType_NORMALS, 0, &str );
-
-      std::filesystem::path path =
-        std::filesystem::absolute( "." ) / ( "engine_resources\\" + std::string( str.C_Str() ) );
-
-      std::string key = std::filesystem::weakly_canonical( path ).string();
-
-      if ( !m_loadedTextures.contains( key ) )
-      {
-        K_INFO( "tex {} index {}", key, m_bindlessTexturesIndex );
-        mat.normalTextureIndex = m_bindlessTexturesIndex;
-        auto texture = loadTexture( path.stem().string(), key );
-        texture->setIndex( m_bindlessTexturesIndex );
-        updateBindlessTextures( texture );
-      }
-      else
-      {
-        mat.normalTextureIndex = getTexture( key )->getIndex();
-      }
-    }
-
-    if ( material->GetTextureCount( aiTextureType_DIFFUSE ) > 0 )
-    {
-      aiString str;
-      material->GetTexture( aiTextureType_DIFFUSE, 0, &str );
-
-      std::filesystem::path path =
-        std::filesystem::absolute( "." ) / ( "engine_resources\\" + std::string( str.C_Str() ) );
-
-      std::string key = std::filesystem::weakly_canonical( path ).string();
-      if ( !m_loadedTextures.contains( key ) )
-      {
-        K_INFO( "tex {} index {}", key, m_bindlessTexturesIndex );
-        mat.diffuseTextureIndex = m_bindlessTexturesIndex;
-        auto texture = loadTexture( path.stem().string(), key );
-        texture->setIndex( m_bindlessTexturesIndex );
-        updateBindlessTextures( texture );
-      }
-      else
-      {
-        mat.diffuseTextureIndex = getTexture( key )->getIndex();
-      }
-    }
-
-    int32_t foundIndex{ -1 };
-    for ( auto j = 0u; j < m_materials.size(); ++j )
-    {
-      resources::Material& material = m_materials.at( j );
-      if ( material.diffuseTextureIndex == mat.diffuseTextureIndex &&
-           material.normalTextureIndex == mat.normalTextureIndex &&
-           material.specularTextureIndex == mat.specularTextureIndex )
-      {
-        if ( material.diffuseTextureIndex != -1 && material.specularTextureIndex != -1 &&
-             material.normalTextureIndex != -1 )
-        {
-          foundIndex = j;
-          break;
-        }
-      }
-    }
-
-    if ( foundIndex == -1 )
-    {
-      m_materials.push_back( mat );
-      submeshes[i].materialIndex = m_materials.size() - 1;
-      updateMaterialsBuffer();
-    }
-    else
-    {
-      submeshes[i].materialIndex = foundIndex;
-    }
-  }
-
-  createVertexBuffer( mesh.get() );
-  createIndexBuffer( mesh.get() );
-
-  m_loadedMeshes.emplace( meshPath, std::move( mesh ) );
   return m_loadedMeshes[meshPath].get();
 }
 
 auto core::AssetManager::loadFont( const std::string_view path ) -> void
 {
-  K_ASSERT( std::filesystem::exists( path ) && "File does not exist" );
+  KASSERT( std::filesystem::exists( path ) && "File does not exist" );
   ZoneScopedN( "AssetManager::loadFont" );
   m_fontLoader.generateAtlas( path );
 
@@ -383,7 +267,9 @@ auto core::AssetManager::getMesh( const std::string& path ) -> resources::Mesh*
 {
   std::filesystem::path p = std::filesystem::path{ path };
   if ( m_loadedMeshes.contains( path ) )
+  {
     return m_loadedMeshes[path].get();
+  }
 
   return loadMesh( p.stem().string(), p.string() );
 }
@@ -508,7 +394,7 @@ auto core::AssetManager::allocateBindlessDescriptorSet() -> void
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 
-  allocInfo.descriptorPool = m_pDescriptorPool;
+  allocInfo.descriptorPool = m_vkCtx->globalDescriptorPool;
   allocInfo.descriptorSetCount = 1;
   allocInfo.pSetLayouts = &m_bindlessTexturesDescriptor.layout;
   allocInfo.pNext = &variableCountInfo;
@@ -516,25 +402,25 @@ auto core::AssetManager::allocateBindlessDescriptorSet() -> void
   m_vkCtx->device->allocateDescriptorSet( m_bindlessTexturesDescriptor.set, allocInfo );
 }
 
-auto core::AssetManager::setDescriptorPool( VkDescriptorPool pool ) -> void
-{
-  m_pDescriptorPool = pool;
-}
-
 auto core::AssetManager::updateBindlessTextures( resources::Texture* pTexture ) -> void
 {
+  if ( m_textureSampler == VK_NULL_HANDLE )
+  {
+    throw std::runtime_error( "sampler is not initialized" );
+  }
+
   VkDescriptorImageInfo imageInfo{};
   imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   imageInfo.imageView = pTexture->getView();
   imageInfo.sampler = m_textureSampler;
 
-  auto bindlessDescriptor = VkWriteDescriptorSet{ .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                                  .dstSet = m_bindlessTexturesDescriptor.set,
-                                                  .dstBinding = 0,
-                                                  .dstArrayElement = m_bindlessTexturesIndex,
-                                                  .descriptorCount = 1,
-                                                  .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                                  .pImageInfo = &imageInfo };
+  VkWriteDescriptorSet bindlessDescriptor{ .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                           .dstSet = m_bindlessTexturesDescriptor.set,
+                                           .dstBinding = 0,
+                                           .dstArrayElement = m_bindlessTexturesIndex,
+                                           .descriptorCount = 1,
+                                           .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                           .pImageInfo = &imageInfo };
 
   ++m_bindlessTexturesIndex;
 
@@ -553,7 +439,7 @@ auto core::AssetManager::createMaterialsDescriptorSet() -> void
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 
-  allocInfo.descriptorPool = m_pDescriptorPool;
+  allocInfo.descriptorPool = m_vkCtx->globalDescriptorPool;
   allocInfo.descriptorSetCount = 1;
   allocInfo.pSetLayouts = &m_materialsDescriptor.layout;
   allocInfo.pNext = &variableCountInfo;
@@ -592,15 +478,14 @@ auto core::AssetManager::allocateMaterialsDescriptorSet() -> void
 {
   uint32_t descriptorCount{ 500 };
 
-  VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{};
-  variableCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
-  variableCountInfo.descriptorSetCount = 1;
-  variableCountInfo.pDescriptorCounts = &descriptorCount;
+  VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{
+    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
+    .descriptorSetCount = 1,
+    .pDescriptorCounts = &descriptorCount };
 
-  VkDescriptorSetAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+  VkDescriptorSetAllocateInfo allocInfo{ .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 
-  allocInfo.descriptorPool = m_pDescriptorPool;
+  allocInfo.descriptorPool = m_vkCtx->globalDescriptorPool;
   allocInfo.descriptorSetCount = 1;
   allocInfo.pSetLayouts = &m_materialsDescriptor.layout;
   allocInfo.pNext = &variableCountInfo;
@@ -610,14 +495,13 @@ auto core::AssetManager::allocateMaterialsDescriptorSet() -> void
 
 auto core::AssetManager::createMaterialsBuffers( VkDeviceSize size ) -> void
 {
-  VkBufferCreateInfo bufferInfo{};
-  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  bufferInfo.size = size;
-  bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+  VkBufferCreateInfo bufferInfo{
+    .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = size, .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT };
 
-  VmaAllocationCreateInfo vmaAllocInfo{};
-  vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-  vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+  VmaAllocationCreateInfo vmaAllocInfo{
+    .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
+    .usage = VMA_MEMORY_USAGE_CPU_TO_GPU,
+  };
 
   m_vkCtx->device->createBuffer( m_materialsBuffer, bufferInfo, vmaAllocInfo, "materialsBuffer" );
 }
@@ -625,17 +509,15 @@ auto core::AssetManager::createMaterialsBuffers( VkDeviceSize size ) -> void
 auto core::AssetManager::updateMaterialsBuffer() -> void
 {
   m_vkCtx->device->destroyBuffer( m_materialsBuffer );
+  createMaterialsBuffers( m_materials.size() * sizeof( resources::Material ) );
 
-  VkDeviceSize totalSize = m_materials.size() * sizeof( resources::Material );
+  VkDescriptorBufferInfo buffInfo{
+    .buffer = m_materialsBuffer.vkBuffer,
+    .offset = 0,
+    .range = VK_WHOLE_SIZE,
+  };
 
-  createMaterialsBuffers( totalSize );
-
-  VkDescriptorBufferInfo buffInfo{};
-  buffInfo.buffer = m_materialsBuffer.vkBuffer;
-  buffInfo.offset = 0;
-  buffInfo.range = VK_WHOLE_SIZE;
-
-  auto bindlessDescriptor = VkWriteDescriptorSet{
+  VkWriteDescriptorSet bindlessDescriptor{
     .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
     .dstSet = m_materialsDescriptor.set,
     .dstBinding = 0,
@@ -645,7 +527,6 @@ auto core::AssetManager::updateMaterialsBuffer() -> void
     .pBufferInfo = &buffInfo,
   };
 
-  ++m_bindlessMaterialIndex;
   m_vkCtx->device->copyToBuffer( m_materials, m_materialsBuffer );
   m_vkCtx->device->updateDescriptorSet( { bindlessDescriptor } );
 }
@@ -660,7 +541,7 @@ auto core::AssetManager::getMaterialsDescriptorSet() -> VkDescriptorSet&
   return m_materialsDescriptor.set;
 }
 
-auto core::AssetManager::getBindlessDescriptorLayout() -> VkDescriptorSetLayout&
+auto core::AssetManager::getBindlessTexturesDescriptorLayout() -> VkDescriptorSetLayout&
 {
   return m_bindlessTexturesDescriptor.layout;
 }
@@ -678,4 +559,130 @@ auto core::AssetManager::getMeshes() -> std::unordered_map<std::string, std::uni
 auto core::AssetManager::getTextures() -> std::unordered_map<std::string, std::unique_ptr<resources::Texture>>&
 {
   return m_loadedTextures;
+}
+
+auto core::AssetManager::uploadMeshData() -> void
+{
+  while ( !m_queuedMeshes.empty() )
+  {
+    resources::Mesh* mesh = m_queuedMeshes.front();
+    m_queuedMeshes.pop();
+
+    if ( !mesh->isLoaded() )
+    {
+      createMeshResources( mesh );
+      mesh->setLoaded( true );
+      KINFO( "Loaded {}", mesh->getPath() );
+    }
+  }
+}
+
+auto core::AssetManager::onUpdate() -> void
+{
+  if ( !m_readyForUpdate.load() )
+  {
+    return;
+  }
+  m_readyForUpdate.store( false );
+
+  if ( !m_queuedMeshes.empty() )
+  {
+    uploadMeshData();
+  }
+
+  if ( !m_parsedMaterials.parsedMaterialData.empty() )
+  {
+    resources::Material staleMaterial{};
+    resources::Mesh* mesh = m_parsedMaterials.pMesh;
+    std::vector<resources::Submesh>& submeshes = mesh->getSubmeshes();
+    for ( const auto& [submeshIndex, textureMap] : m_parsedMaterials.parsedMaterialData )
+    {
+      using enum TextureType;
+      resources::Material material{};
+      if ( !textureMap.at( Diffuse ).empty() )
+      {
+        std::filesystem::path texturePath{ textureMap.at( Diffuse ) };
+        if ( !getTexture( texturePath.string() ) )
+        {
+          resources::Texture* texture = loadTexture( texturePath.stem().string(), texturePath.string() );
+          texture->setIndex( m_bindlessTexturesIndex );
+          material.diffuseTextureIndex = texture->getIndex();
+          updateBindlessTextures( texture );
+        }
+        else
+        {
+          resources::Texture* texture = getTexture( texturePath.string() );
+          material.diffuseTextureIndex = texture->getIndex();
+        }
+      }
+
+      if ( !textureMap.at( Emissive ).empty() )
+      {
+        std::filesystem::path texturePath{ textureMap.at( Emissive ) };
+        if ( !getTexture( texturePath.string() ) )
+        {
+          resources::Texture* texture = loadTexture( texturePath.stem().string(), texturePath.string() );
+          texture->setIndex( m_bindlessTexturesIndex );
+          material.emissiveTextureIndex = texture->getIndex();
+          updateBindlessTextures( texture );
+        }
+        else
+        {
+          resources::Texture* texture = getTexture( texturePath.string() );
+          material.emissiveTextureIndex = texture->getIndex();
+        }
+      }
+
+      if ( !textureMap.at( Normal ).empty() )
+      {
+        std::filesystem::path texturePath{ textureMap.at( Normal ) };
+        if ( !getTexture( texturePath.string() ) )
+        {
+          resources::Texture* texture = loadTexture( texturePath.stem().string(), texturePath.string() );
+          texture->setIndex( m_bindlessTexturesIndex );
+          material.normalTextureIndex = texture->getIndex();
+          updateBindlessTextures( texture );
+        }
+        else
+        {
+          resources::Texture* texture = getTexture( texturePath.string() );
+          material.normalTextureIndex = texture->getIndex();
+        }
+      }
+
+      // if we have no texture loaded then this is the default matrial
+      if ( material == staleMaterial )
+      {
+        submeshes[submeshIndex].materialIndex = 0;
+        KINFO( "using default material (index 0)" );
+        continue;
+      }
+
+      auto it = std::ranges::find( m_materials, material );
+      if ( it != m_materials.end() )
+      {
+        submeshes[submeshIndex].materialIndex = static_cast<uint32_t>( std::distance( m_materials.begin(), it ) );
+        KINFO( "using index {}", submeshes[submeshIndex].materialIndex );
+      }
+      else
+      {
+        submeshes[submeshIndex].materialIndex = m_materials.size();
+        m_materials.push_back( material );
+        KINFO( "created material, index is size-1={}", submeshes[submeshIndex].materialIndex );
+        updateMaterialsBuffer();
+      }
+    }
+    m_parsedMaterials.parsedMaterialData.clear();
+  }
+}
+
+auto core::AssetManager::createMeshResources( resources::Mesh* pMesh ) -> void
+{
+  createVertexBuffer( pMesh );
+  createIndexBuffer( pMesh );
+}
+
+auto core::AssetManager::enqueueMesh( resources::Mesh* mesh ) -> void
+{
+  m_queuedMeshes.push( mesh );
 }

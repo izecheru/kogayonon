@@ -147,7 +147,8 @@ static std::unordered_map<VkResult, std::string> ErrorDescriptions = {
   { VK_EVENT_RESET, "An event is unsignaled" },
   { VK_INCOMPLETE, "A return array was too small for the result" },
   { VK_SUBOPTIMAL_KHR,
-    "A swapchain no longer matches the surface properties exactly, but can still be used to present to the surface "
+    "A swapchain no longer matches the surface properties exactly, but can still be used to renderDrawData to the "
+    "surface "
     "successfully." },
   { VK_THREAD_IDLE_KHR,
     "A deferred operation is not complete but there is currently no work for this thread to do at the time of this "
@@ -165,7 +166,7 @@ static std::unordered_map<VkResult, std::string> ErrorDescriptions = {
     "Initialization of an object could not be completed for implementation-specific reasons." },
   { VK_ERROR_DEVICE_LOST, "The logical or physical device has been lost. See Lost Device" },
   { VK_ERROR_MEMORY_MAP_FAILED, "Mapping of a memory object has failed." },
-  { VK_ERROR_LAYER_NOT_PRESENT, "A requested layer is not present or could not be loaded." },
+  { VK_ERROR_LAYER_NOT_PRESENT, "A requested layer is not renderDrawData or could not be loaded." },
   { VK_ERROR_EXTENSION_NOT_PRESENT, "A requested extension is not supported." },
   { VK_ERROR_FEATURE_NOT_PRESENT, "A requested feature is not supported." },
   { VK_ERROR_INCOMPATIBLE_DRIVER,
@@ -174,7 +175,8 @@ static std::unordered_map<VkResult, std::string> ErrorDescriptions = {
   { VK_ERROR_TOO_MANY_OBJECTS, "Too many objects of the type have already been created." },
   { VK_ERROR_FORMAT_NOT_SUPPORTED, "A requested format is not supported on this device." },
   { VK_ERROR_FRAGMENTED_POOL,
-    "A pool vmaAllocation has failed due to fragmentation of the pool’s memory. This must only be returned if no attempt "
+    "A pool vmaAllocation has failed due to fragmentation of the pool’s memory. This must only be returned if no "
+    "attempt "
     "to allocate host or device memory was made to accommodate the new vmaAllocation. This should be returned in "
     "preference to VK_ERROR_OUT_OF_POOL_MEMORY, but only if the implementation is certain that the pool vmaAllocation "
     "failure was due to fragmentation." },
@@ -194,7 +196,8 @@ static std::unordered_map<VkResult, std::string> ErrorDescriptions = {
     "One or more shaders failed to compile or link. More details are reported back to the application via "
     "VK_EXT_debug_report if enabled." },
   { VK_ERROR_OUT_OF_POOL_MEMORY,
-    "A pool memory vmaAllocation has failed. This must only be returned if no attempt to allocate host or device memory "
+    "A pool memory vmaAllocation has failed. This must only be returned if no attempt to allocate host or device "
+    "memory "
     "was made to accommodate the new vmaAllocation. If the failure was definitely due to fragmentation of the pool, "
     "VK_ERROR_FRAGMENTED_POOL should be returned instead." },
   { VK_ERROR_INVALID_EXTERNAL_HANDLE, "An external handle is not a valid handle of the specified type." },
@@ -204,7 +207,8 @@ static std::unordered_map<VkResult, std::string> ErrorDescriptions = {
     "A buffer creation or memory vmaAllocation failed because the requested address is not available. A shader group "
     "handle assignment failed because the requested shader group handle information is no longer valid." },
   { VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT,
-    "An operation on a swapchain created with VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT failed as it did not "
+    "An operation on a swapchain created with VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT failed as it did "
+    "not "
     "have exlusive full-screen access. This may occur due to implementation-dependent reasons, outside of the "
     "application’s control." },
   { VK_ERROR_UNKNOWN,
@@ -220,7 +224,7 @@ static bool VulkanCheckErrorStatus( VkResult x, const char* file, int line )
   if ( x != VK_SUCCESS )
   {
     auto filePath = std::filesystem::path{ file };
-    K_ERROR( "VK_CALL failed -> {} {} {}", line, filePath.filename().string(), vkResultToString( x ) );
+    KERROR( "VK_CALL failed -> {} {} {}", line, filePath.filename().string(), vkResultToString( x ) );
     return true;
   }
   else

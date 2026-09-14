@@ -25,7 +25,6 @@ gui::EntityProperties::EntityProperties( const std::string& name, const EntityPr
     : ImGuiWindow{ name }
     , m_spec{ spec }
 {
-  auto pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
 }
 
 void gui::EntityProperties::render()
@@ -33,7 +32,7 @@ void gui::EntityProperties::render()
   if ( !begin() )
     return;
 
-  auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
+  core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
   if ( sceneManager->getEventHandler()->getCurrentEntityId() == entt::null )
   {
     ImGui::PushFont( m_spec.fonts->at( INTER_I ), 18.0f );
@@ -73,7 +72,6 @@ void gui::EntityProperties::contextMenu()
         registry->addComponent<core::MeshComponent>( currentEntity,
                                                      core::MeshComponent{
                                                        .pMesh = nullptr,
-                                                       .loaded = false,
                                                      } );
       }
     }
@@ -178,8 +176,8 @@ void gui::EntityProperties::renderMesh()
 
       std::string dropResult{ static_cast<const char*>( payload->Data ) };
       std::filesystem::path p{ dropResult };
-      auto assetManager = core::MainRegistry::getInstance().getAssetManager();
-      auto pMesh = assetManager->loadMesh( p.stem().string(), p.string() );
+      core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+      resources::Mesh* pMesh = assetManager->loadMesh( p.stem().string(), p.string() );
 
       core::Entity ent{ scene->getRegistry(), currentEntity };
 
@@ -187,7 +185,7 @@ void gui::EntityProperties::renderMesh()
       ent.removeComponent<core::MeshComponent>();
 
       ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
-      ent.addComponent<core::MeshComponent>( core::MeshComponent{ .pMesh = pMesh, .loaded = true } );
+      ent.addComponent<core::MeshComponent>( core::MeshComponent{ .pMesh = pMesh } );
     }
   }
   else

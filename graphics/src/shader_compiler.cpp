@@ -51,7 +51,7 @@ auto graphics::ShaderCompiler::compileShaderFromSource( const std::string& shade
 
   if ( SLANG_FAILED( res ) )
   {
-    K_ERROR( "Failed to create Slang session" );
+    KERROR( "Failed to create Slang session" );
     return obj;
   }
 
@@ -63,7 +63,7 @@ auto graphics::ShaderCompiler::compileShaderFromSource( const std::string& shade
     if ( !slangModule )
     {
       const char* diagMsg = (const char*)diagnosticsBlob->getBufferPointer();
-      K_ERROR( "Failed to load module: {}", diagMsg );
+      KERROR( "Failed to load module: {}", diagMsg );
       throw std::runtime_error( "Could not load slang module" );
     }
   }
@@ -73,7 +73,7 @@ auto graphics::ShaderCompiler::compileShaderFromSource( const std::string& shade
 
   if ( SLANG_FAILED( res ) || !entryPoint )
   {
-    K_ERROR( "Entry point not found: {}", shaderEntryFunc );
+    KERROR( "Entry point not found: {}", shaderEntryFunc );
     throw std::runtime_error( "Entry point lookup failed" );
   }
 
@@ -96,7 +96,7 @@ auto graphics::ShaderCompiler::compileShaderFromSource( const std::string& shade
     if ( diagnosticsBlob )
     {
       const char* diagMsg = (const char*)diagnosticsBlob->getBufferPointer();
-      K_ERROR( "Failed to load module: {}", diagMsg );
+      KERROR( "Failed to load module: {}", diagMsg );
       throw std::runtime_error( "Failed to compile entry point to SPIR-V" );
     }
   }

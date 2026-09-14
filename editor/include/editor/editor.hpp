@@ -1,6 +1,6 @@
 #pragma once
-#include "precompiled/pch.hpp"
 #include <vulkan/vulkan.h>
+#include "precompiled/pch.hpp"
 
 namespace window
 {
@@ -15,7 +15,9 @@ class VulkanImguiRenderer;
 namespace core
 {
 class WindowCloseEvent;
-}
+class ProjectLoadEvent;
+class ProjectCreateEvent;
+} // namespace core
 
 namespace rendering
 {
@@ -34,30 +36,31 @@ class Editor
 public:
   Editor();
   ~Editor();
-  void cleanup() const;
-  void pollEvents();
-  void run();
+  auto cleanup() const -> void;
+  auto pollEvents() -> void;
+  auto run() -> void;
 
   auto onUpdate() -> void;
 
-  bool initMainRegistry();
-  bool initMainWindow();
-  bool initRenderer();
-  bool initVulkan();
+  auto initMainRegistry() -> bool;
+  auto initMainWindow() -> bool;
+  auto initRenderer() -> bool;
 
-  bool initSDL();
-  bool init();
-
-private:
-  void createDescriptorPool();
+  auto initSDL() -> bool;
+  auto init() -> bool;
 
 private:
-  void onWindowClose( const core::WindowCloseEvent& e );
+  auto createDescriptorPool() -> void;
+
+private:
+  auto onWindowClose( const core::WindowCloseEvent& e ) -> void;
+  auto onProjectLoad( const core::ProjectLoadEvent& e ) -> void;
+  auto onProjectCreate( const core::ProjectCreateEvent& e ) -> void;
 
 private:
   VkDescriptorPool m_globalDescriptorPool;
-  std::shared_ptr<window::Window> m_pWindow;
-  std::shared_ptr<rendering::VulkanRenderer> m_pRenderer;
+  std::unique_ptr<window::Window> m_window;
+  std::unique_ptr<rendering::VulkanRenderer> m_vulkanRenderer;
 
   bool m_running{ false };
 };

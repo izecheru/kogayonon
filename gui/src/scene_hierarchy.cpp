@@ -22,6 +22,8 @@ gui::SceneHierarchy::SceneHierarchy( const std::string& name, const SceneHierarc
 
 void gui::SceneHierarchy::render()
 {
+  m_props->flags = ImGuiWindowFlags_NoNavFocus;
+
   if ( !begin() )
     return;
 
@@ -168,8 +170,7 @@ void gui::SceneHierarchy::drawContextMenu()
       Entity ent{ scene->getRegistry(), "ObjectEntity" };
 
       ent.addComponent<TransformComponent>( TransformComponent{} );
-      ent.addComponent<MeshComponent>(
-        MeshComponent{ .pMesh = assetManager->loadMesh( "test", p.string() ), .loaded = true } );
+      ent.addComponent<MeshComponent>( MeshComponent{ .pMesh = assetManager->loadMesh( "test", p.string() ) } );
 
       pEventDispatcher->dispatchEvent<SelectEntityEvent>(
         SelectEntityEvent{ ent.getEntityId(), SelectEntityEventSource::Hierarchy_Window } );

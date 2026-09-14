@@ -1,9 +1,9 @@
 #include "graphics/vulkan_swapchain.hpp"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_vulkan.h>
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_device.hpp"
 #include "precompiled/pch.hpp"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
 
 auto graphics::VulkanSwapchain::querySwapchainSupport() -> SwapchainSupportDetails
 {
@@ -86,13 +86,10 @@ void graphics::VulkanSwapchain::recreateSwapchain()
 void graphics::VulkanSwapchain::presentFrame()
 {
   preparePresent();
-  // get the command buffer out of the recording state
   endCommandBuffer();
 
-  // submit the command buffer to the queue
   submit();
 
-  // present the result
   VkPresentInfoKHR presentInfo{
     .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
     .waitSemaphoreCount = 1,
@@ -109,7 +106,7 @@ void graphics::VulkanSwapchain::presentFrame()
   }
   else if ( result != VK_SUCCESS )
   {
-    throw std::runtime_error( "failed to present swap chain image!" );
+    throw std::runtime_error( "failed to renderDrawData swap chain image!" );
   }
 
   onUpdate();

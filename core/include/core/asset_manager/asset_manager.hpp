@@ -1,52 +1,34 @@
 #pragma once
-#include "core/asset_manager/assimp_loader.hpp"
-#include "core/asset_manager/cgltf_loader.hpp"
+#include <vma/vk_mem_alloc.h>
+#include <vulkan/vulkan.h>
+#include <glm/glm.hpp>
 #include "core/asset_manager/font_loader.hpp"
+#include "core/asset_manager/tinygltf_loader.hpp"
 #include "graphics/vulkan_buffer.hpp"
 #include "graphics/vulkan_descriptor.hpp"
 #include "precompiled/pch.hpp"
+#include "resources/texture.hpp"
 #include "resources/material.hpp"
-#include <glm/glm.hpp>
-#include <vma/vk_mem_alloc.h>
-#include <vulkan/vulkan.h>
+#include "resources/texture.hpp"
+#include "resources/mesh.hpp"
+#include "resources/font.hpp"
+#include "graphics/vulkan_context.hpp"
 
 #define MAX_TEXTURE_SUPPORT 1000
 
-namespace graphics
-{
-struct VulkanContext;
-}
-
-namespace resources
-{
-class Texture;
-class Mesh;
-class Font;
-} // namespace resources
-
-struct cgltf_primitive;
-struct cgltf_accessor;
-struct cgltf_material;
-
-struct AssimpMaterial
-{
-  std::string texturePath;
-  int textureType;
-};
-
 namespace core
 {
+struct ParsedMaterials
+{
+  resources::Mesh* pMesh{ nullptr };
+  std::unordered_map<uint32_t, std::map<TextureType, std::string>> parsedMaterialData;
+};
+
 class AssetManager
 {
 public:
-  AssetManager();
+  explicit AssetManager( graphics::VulkanContext* vkCtx );
   ~AssetManager();
-
-  /**
-   * @brief Set the VulkanContext* member variable
-   * @param ctx
-   */
-  auto setContext( graphics::VulkanContext* ctx ) -> void;
 
   /**
    * @brief Get the texture sampler of the AssetManager, this is for convenience
@@ -89,18 +71,26 @@ public:
    */
   auto loadMesh( const std::string& meshName, const std::string& meshPath ) -> resources::Mesh*;
 
-  // Fonts
+  auto uploadMeshData() -> void;
+
+  /**
+   * @brief Enqueue mesh for vertices and indices buffers creation
+   * @param mesh
+   * @return
+   */
+  auto enqueueMesh( resources::Mesh* mesh ) -> void;
+
+  auto onUpdate() -> void;
+
   auto loadFont( const std::string_view path ) -> void;
 
-  // TODO(kogayonon) change this
-  auto setDescriptorPool( VkDescriptorPool pool ) -> void;
   auto initDescriptors() -> void;
 
   /**
    * @brief We need this layout for the VkPipelineCreateInfo structure
    * @return
    */
-  auto getBindlessDescriptorLayout() -> VkDescriptorSetLayout&;
+  auto getBindlessTexturesDescriptorLayout() -> VkDescriptorSetLayout&;
 
   /**
    * @brief We get the descriptor set to bind it when rendering
@@ -122,6 +112,8 @@ public:
 
   auto getMeshes() -> std::unordered_map<std::string, std::unique_ptr<resources::Mesh>>&;
   auto getTextures() -> std::unordered_map<std::string, std::unique_ptr<resources::Texture>>&;
+
+  auto createMeshResources( resources::Mesh* pMesh ) -> void;
 
 private:
   /**
@@ -194,21 +186,22 @@ private:
   graphics::VulkanBuffer m_materialsBuffer;
   std::vector<resources::Material> m_materials;
 
+  std::mutex m_mutex;
   std::unordered_map<std::string, std::unique_ptr<resources::Texture>> m_loadedTextures;
   std::unordered_map<std::string, std::unique_ptr<resources::Mesh>> m_loadedMeshes;
+  std::queue<resources::Mesh*> m_queuedMeshes;
   std::unordered_map<std::string, std::unique_ptr<resources::Font>> m_loadedFonts;
+  ParsedMaterials m_parsedMaterials;
 
   graphics::VulkanContext* m_vkCtx;
-
   VkSampler m_textureSampler;
 
-  CgltfLoader m_cgltfLoader;
-  AssimpLoader m_assimpLoader;
   FontLoader m_fontLoader;
+
+  std::atomic<bool> m_readyForUpdate{ false };
 
   // used for assigning the values to material indices in the mesh
   uint32_t m_bindlessTexturesIndex;
-  uint32_t m_bindlessMaterialIndex;
   uint32_t m_samplerIndex;
 };
 } // namespace core

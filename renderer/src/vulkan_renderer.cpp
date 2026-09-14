@@ -1,4 +1,5 @@
 #include "renderer/vulkan_renderer.hpp"
+#include <SDL2/SDL.h>
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
@@ -20,11 +21,11 @@
 #include "renderer/modules/imgui_module.hpp"
 #include "renderer/modules/picking_module.hpp"
 #include "renderer/modules/prepass_module.hpp"
+#include "renderer/modules/shadowmap_module.hpp"
 #include "resources/mesh_push_constant.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
 #include "utilities/tracy_utils/tracy_vulkan_utils.hpp"
 #include "utilities/utils/utils.hpp"
-#include <SDL2/SDL.h>
 
 rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Window* window )
     : m_vkCtx{ pCtx }
@@ -37,48 +38,48 @@ rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Wi
   timeTracker->start( "resize" );
   eventDispatcher->addHandler<core::MouseClickedEvent, &VulkanRenderer::onMouseClicked>( *this );
 
-  createCameraDescriptorSetLayout();
   createCameraBuffers();
+  createCameraDescriptorSetLayout();
   createCameraDescriptorSet();
 
   initImgui();
-
-  m_frameGraph = std::make_unique<FrameGraph>( m_vkCtx->device.get() );
-
   initModules();
+}
 
-  m_frameGraph->compile();
+auto rendering::VulkanRenderer::presentToScreen() -> void
+{
+  m_vkCtx->swapchain->presentFrame();
+}
+
+auto rendering::VulkanRenderer::onUpdate() -> void
+{
+  render();
+  presentToScreen();
 }
 
 auto rendering::VulkanRenderer::initModules() -> void
 {
+  m_frameGraph = std::make_unique<FrameGraph>( m_vkCtx->device.get() );
+
   core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
 
   m_extent = m_vkCtx->swapchain->getSwapchainExtent();
 
-  ModuleDescriptorData prepassDescriptorData{ .descriptorSetLayouts = { m_cameraDescriptor.layout },
-                                              .descriptorSets = { m_cameraDescriptor.set } };
-
-  ModuleDescriptorData geometryDescriptorData{ .descriptorSetLayouts = { m_cameraDescriptor.layout,
-                                                                         assetManager->getBindlessDescriptorLayout(),
-                                                                         assetManager->getMaterialsDescriptorLayout() },
-                                               .descriptorSets = { m_cameraDescriptor.set,
-                                                                   assetManager->getBindlessDescriptorSet(),
-                                                                   assetManager->getMaterialsDescriptorSet() } };
-
-  ModuleDescriptorData pickingDescriptorData{ .descriptorSetLayouts = { m_cameraDescriptor.layout },
-                                              .descriptorSets = { m_cameraDescriptor.set } };
-
   m_imguiModule = std::make_unique<ImGuiModule>( m_frameGraph.get(), m_vkCtx, m_pImguiRenderer.get() );
-  m_prepassModule = std::make_unique<PrepassModule>( m_frameGraph.get(), m_vkCtx, m_extent, prepassDescriptorData );
+  m_prepassModule = std::make_unique<PrepassModule>( m_frameGraph.get(), m_vkCtx, m_extent, &m_cameraDescriptor );
+
+  // m_shadowmapModule = std::make_unique<ShadowmapModule>( m_frameGraph.get(), m_vkCtx, m_extent, &m_cameraDescriptor
+  // );
 
   m_geometryModule = std::make_unique<GeometryModule>(
-    m_frameGraph.get(), m_vkCtx, m_extent, geometryDescriptorData, glm::vec4{ 0.5f, 0.5f, 0.5f, 1.0f } );
+    m_frameGraph.get(), m_vkCtx, m_extent, &m_cameraDescriptor, glm::vec4{ 0.5f, 0.5f, 0.5f, 1.0f } );
 
   m_pickingModule = std::make_unique<PickingModule>(
-    m_frameGraph.get(), m_vkCtx, m_pImguiRenderer.get(), m_extent, pickingDescriptorData );
+    m_frameGraph.get(), m_vkCtx, m_pImguiRenderer.get(), m_extent, &m_cameraDescriptor );
 
   m_imguiModule->setViewport();
+
+  m_frameGraph->compile();
 }
 
 rendering::VulkanRenderer::~VulkanRenderer()
@@ -91,18 +92,20 @@ auto rendering::VulkanRenderer::render() -> void
 {
   m_vkCtx->swapchain->waitForFences();
   m_vkCtx->swapchain->resetFences();
-
   updateCameraBuffer();
+
+  VkCommandBuffer cmdBuffer = m_vkCtx->swapchain->getCurrentCommandBuffer();
 
   m_vkCtx->swapchain->aquireNextImage();
   m_vkCtx->swapchain->beginCommandBuffer();
 
   m_vkCtx->swapchain->prepareAttachment();
 
-  VkCommandBuffer cmdBuffer = m_vkCtx->swapchain->getCurrentCommandBuffer();
   m_frameGraph->execute( cmdBuffer );
 
+#ifdef TRACY_ENABLE
   m_vkCtx->tracyContext->collect( cmdBuffer );
+#endif
 }
 
 auto rendering::VulkanRenderer::createCameraBuffers() -> void
@@ -117,18 +120,6 @@ auto rendering::VulkanRenderer::createCameraBuffers() -> void
   vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
   m_vkCtx->device->createBuffer( m_cameraBuffers, bufferInfo, vmaAllocInfo, "cameraBuffer" );
-
-  for ( auto i = 0u; i < MAX_FRAMES_IN_FLIGHT; ++i )
-  {
-    m_vkCtx->device->setName( std::string{ "cameraBuffer_" + std::to_string( i ) },
-                              m_cameraBuffers.buffers.at( i ).vmaAllocation );
-  }
-
-  m_cameraBuffers.each( [this]( const graphics::VulkanBuffer& buffer, uint32_t index ) {
-    std::string name = std::string{ "cameraBuffer_" + std::to_string( index ) };
-    m_vkCtx->device->setDebugName(
-      VK_OBJECT_TYPE_BUFFER, reinterpret_cast<uint64_t>( m_cameraBuffers.buffers.at( index ).vkBuffer ), name );
-  } );
 }
 
 auto rendering::VulkanRenderer::updateCameraBuffer() -> void
@@ -137,16 +128,18 @@ auto rendering::VulkanRenderer::updateCameraBuffer() -> void
   core::Scene* scene = sceneManager->getCurrentScene();
   auto view = scene->getEnttRegistry().view<core::PerspectiveCameraComponent>();
   view.each( [&]( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComp ) {
-    if ( cameraComp.isUsed )
+    if ( !cameraComp.isUsed )
     {
-      if ( cameraComp.props.changed )
-      {
-        cameraComp.updateUbo();
-      }
-
-      m_vkCtx->device->copyToBuffer( cameraComp.ubo,
-                                     m_cameraBuffers.buffers.at( m_vkCtx->swapchain->getCurrentFrameNumber() ) );
+      return;
     }
+
+    if ( cameraComp.props.changed )
+    {
+      cameraComp.updateUbo();
+    }
+
+    uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
+    m_vkCtx->device->copyToBuffer( cameraComp.ubo, m_cameraBuffers.buffers.at( currentFrame ) );
   } );
 }
 
@@ -159,7 +152,10 @@ auto rendering::VulkanRenderer::createCameraDescriptorSet() -> void
   allocInfo.pSetLayouts = &m_cameraDescriptor.layout;
   allocInfo.pNext = nullptr;
 
-  m_vkCtx->device->allocateDescriptorSet( m_cameraDescriptor.set, allocInfo );
+  for ( auto i = 0u; i < MAX_FRAMES_IN_FLIGHT; i++ )
+  {
+    m_vkCtx->device->allocateDescriptorSet( m_cameraDescriptor.set[i], allocInfo );
+  }
 
   std::vector<VkDescriptorBufferInfo> bufferInfo{};
   bufferInfo.resize( MAX_FRAMES_IN_FLIGHT );
@@ -171,17 +167,23 @@ auto rendering::VulkanRenderer::createCameraDescriptorSet() -> void
     bufferInfo.at( i ).range = sizeof( core::CameraUbo );
   }
 
-  VkWriteDescriptorSet uniformBufferDescriptor{
-    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-    .dstSet = m_cameraDescriptor.set,
-    .dstBinding = 0,
-    .descriptorCount = 1,
-    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-    .pBufferInfo = bufferInfo.data(),
-  };
+  std::vector<VkWriteDescriptorSet> writeDescriptors{};
 
-  VkWriteDescriptorSet descriptorWrites = uniformBufferDescriptor;
-  vkUpdateDescriptorSets( m_vkCtx->device->getLogicalDevice(), 1, &descriptorWrites, 0, nullptr );
+  for ( auto i = 0u; i < MAX_FRAMES_IN_FLIGHT; i++ )
+  {
+    VkWriteDescriptorSet uniformBufferDescriptor{
+      .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+      .dstSet = m_cameraDescriptor.set[i],
+      .dstBinding = 0,
+      .descriptorCount = 1,
+      .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+      .pBufferInfo = &bufferInfo.at( i ),
+    };
+    writeDescriptors.push_back( uniformBufferDescriptor );
+  }
+
+  vkUpdateDescriptorSets(
+    m_vkCtx->device->getLogicalDevice(), writeDescriptors.size(), writeDescriptors.data(), 0, nullptr );
 }
 
 auto rendering::VulkanRenderer::createCameraDescriptorSetLayout() -> void

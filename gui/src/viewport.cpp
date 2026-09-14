@@ -1,4 +1,5 @@
 #include "gui/imgui_windows/viewport.hpp"
+#include <cmath>
 #include "ImOGuizmo.hpp"
 #include "SDL2/SDL.h"
 #include "core/asset_manager/asset_manager.hpp"
@@ -25,15 +26,14 @@
 #include "utilities/fonts/materialdesign.hpp"
 #include "utilities/input/keyboard_state.hpp"
 #include "utilities/utils/utils.hpp"
-#include <cmath>
 
 gui::Viewport::Viewport( SDL_Window* mainWindow, const std::string& name, const ViewportSpec& spec )
     : ImGuiWindow{ name, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar }
     , m_spec{ spec }
     , m_mainWindow{ mainWindow }
-    , m_guizmoMode{ GuizmoMode::SCALE }
-    , m_guizmoAxisLock{ AxisLock::NONE }
-    , m_guizmoOp{ ImGuizmo::SCALE }
+    , m_guizmoMode{ GuizmoMode::Translate }
+    , m_guizmoAxisLock{ AxisLock::None }
+    , m_guizmoOp{ ImGuizmo::TRANSLATE }
     , m_guizmoEnabled{ true }
     , m_entityMenu{ false }
     , m_viewportDescriptor{ VK_NULL_HANDLE }
@@ -41,15 +41,14 @@ gui::Viewport::Viewport( SDL_Window* mainWindow, const std::string& name, const 
 {
   core::EventDispatcher* pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
   pEventDispatcher->addHandler<core::KeyPressedEvent, &Viewport::onKeyPressed>( *this );
-  // pEventDispatcher->addHandler<core::MouseClickedEvent, &Viewport::onMouseClicked>( *this );
 }
 
 void gui::Viewport::render()
 {
-  ImGuiWindowClass windowClass;
-  windowClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar;
+  ImGuiWindowClass viewportClass;
+  viewportClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar;
 
-  ImGui::SetNextWindowClass( &windowClass );
+  ImGui::SetNextWindowClass( &viewportClass );
 
   if ( !begin() )
     return;
@@ -75,6 +74,7 @@ void gui::Viewport::render()
   core::Scene* scene = sceneManager->getCurrentScene();
   auto view = scene->getEnttRegistry().view<core::PerspectiveCameraComponent>();
 
+  // Camera guizmo top right
   view.each( [&]( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComp ) {
     if ( cameraComp.isUsed )
     {
@@ -91,6 +91,7 @@ void gui::Viewport::render()
 
   physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
   entt::entity currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+
   if ( currentEntity != entt::null && m_guizmoEnabled && !jolt->isRunning() )
   {
     ImGuizmo::Enable( true );
@@ -134,11 +135,13 @@ void gui::Viewport::render()
         // If the entity has a rigid body then update the position and rotation of that too
         core::RigidbodyComponent* joltBody =
           scene->getRegistry()->tryGetComponent<core::RigidbodyComponent>( currentEntity );
+
         if ( joltBody )
         {
           // Now set position and rotation for the rigid body
           JPH::BodyInterface& bodyInterface = jolt->getPhysicsSystem().GetBodyInterface();
           glm::quat quat = transformComp->getOrientation();
+
           bodyInterface.SetPositionAndRotation(
             joltBody->body,
             { transformComp->translation.x, transformComp->translation.y, transformComp->translation.z },
@@ -154,7 +157,9 @@ void gui::Viewport::render()
 auto gui::Viewport::setViewport( VkImageView imageView ) -> void
 {
   if ( m_viewportDescriptor != VK_NULL_HANDLE )
+  {
     ImGui_ImplVulkan_RemoveTexture( m_viewportDescriptor );
+  }
 
   m_viewportDescriptor =
     ImGui_ImplVulkan_AddTexture( m_spec.sampler, imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
@@ -163,7 +168,7 @@ auto gui::Viewport::setViewport( VkImageView imageView ) -> void
 void gui::Viewport::drawToolbar()
 {
   auto& style = ImGui::GetStyle();
-  auto jolt = core::MainRegistry::getInstance().getJoltPhysics();
+  physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
 
   ImGui::SetCursorPos( { 20.0f, 20.0f } );
 
@@ -186,7 +191,7 @@ void gui::Viewport::drawToolbar()
     ImGui::PushStyleColor( ImGuiCol_Border, { 0.0f, 0.0f, 0.0f, 0.0f } );
 
     ImGui::SetCursorPos( { 5.0f, 5.5f } );
-    auto jolt = core::MainRegistry::getInstance().getJoltPhysics();
+    physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
 
     if ( ImGui::ImageButton( "##stopButton", m_spec.stopIcon, { 14.0f, 14.0f } ) )
     {
@@ -204,7 +209,7 @@ void gui::Viewport::drawToolbar()
     ImGui::SetCursorPos( { currentPos.x + 5.0f, currentPos.y } );
     gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::Text( "Axis lock" ); } );
     ImGui::SameLine();
-    if ( m_guizmoAxisLock == X )
+    if ( m_guizmoAxisLock == X_axis )
     {
       gui_utils::renderWithSizedFont(
         m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "X" ); } );
@@ -215,7 +220,7 @@ void gui::Viewport::drawToolbar()
         m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "X" ); } );
     }
     ImGui::SameLine();
-    if ( m_guizmoAxisLock == Y )
+    if ( m_guizmoAxisLock == Y_axis )
     {
       gui_utils::renderWithSizedFont(
         m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "Y" ); } );
@@ -226,7 +231,7 @@ void gui::Viewport::drawToolbar()
         m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "Y" ); } );
     }
     ImGui::SameLine();
-    if ( m_guizmoAxisLock == Z )
+    if ( m_guizmoAxisLock == Z_axis )
     {
       gui_utils::renderWithSizedFont(
         m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "Z" ); } );
@@ -279,13 +284,13 @@ void gui::Viewport::drawEntityMenu()
     }
   }
 
-  ImGui::SetNextWindowSize( { 130.0f, 190.0f } );
   ImGui::SetNextWindowPos( { m_mouseCoords.x, m_mouseCoords.y } );
 
-  ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, { 8.0f, 8.0f } );
-  ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, { 8.0f, 8.0f } );
-  ImGui::PushStyleVar( ImGuiStyleVar_ChildRounding, 10.0f );
-  ImGui::PushStyleColor( ImGuiCol_ChildBg, { 0.15f, 0.15f, 0.15f, 0.75f } );
+  ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, { 10.0f, 10.0f } );
+  ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, { 10.0f, 10.0f } );
+  ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 10.0f );
+  ImGui::PushStyleVar( ImGuiStyleVar_PopupRounding, 10.0f );
+  ImGui::PushStyleColor( ImGuiCol_ChildBg, { 0.15f, 0.15f, 0.15f, 1.0f } );
 
   if ( ImGui::Begin(
          "##quickMenu", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove ) )
@@ -298,14 +303,13 @@ void gui::Viewport::drawEntityMenu()
       m_mouseCoords = { 0.0f, 0.0f };
     }
 
-    ImGui::PushItemWidth( 130.0f / 2.0f );
-
-    auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
-    auto scene = sceneManager->getCurrentScene();
-    auto pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
-    auto assetManager = core::MainRegistry::getInstance().getAssetManager();
+    core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+    core::Scene* scene = sceneManager->getCurrentScene();
+    core::EventDispatcher* pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
+    core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
 
     ImGui::PushFont( m_spec.fonts->at( INTER ), 14.0f );
+
     if ( ImGui::BeginMenu( "Add object" ) )
     {
       std::string filename{ "" };
@@ -362,7 +366,7 @@ void gui::Viewport::drawEntityMenu()
 
         ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
         ent.addComponent<core::MeshComponent>(
-          core::MeshComponent{ .pMesh = assetManager->loadMesh( "test", p.string() ), .loaded = true } );
+          core::MeshComponent{ .pMesh = assetManager->loadMesh( "test", p.string() ) } );
 
         pEventDispatcher->dispatchEvent<core::SelectEntityEvent>(
           core::SelectEntityEvent{ ent.getEntityId(), core::SelectEntityEventSource::Viewport_Window } );
@@ -372,7 +376,8 @@ void gui::Viewport::drawEntityMenu()
       }
       ImGui::EndMenu();
     }
-    auto currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+
+    entt::entity currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
     if ( currentEntity != entt::null )
     {
       if ( ImGui::BeginMenu( "Add component" ) )
@@ -443,13 +448,11 @@ void gui::Viewport::drawEntityMenu()
     }
 
     ImGui::PopFont();
-
-    ImGui::PopItemWidth();
   }
   ImGui::End();
 
   ImGui::PopStyleColor();
-  ImGui::PopStyleVar( 3 );
+  ImGui::PopStyleVar( 4 );
 }
 
 auto gui::Viewport::getGuizmoOp() -> ImGuizmo::OPERATION
@@ -458,46 +461,46 @@ auto gui::Viewport::getGuizmoOp() -> ImGuizmo::OPERATION
   using enum AxisLock;
   switch ( m_guizmoMode )
   {
-  case SCALE: {
+  case Scale: {
     switch ( m_guizmoAxisLock )
     {
-    case NONE:
+    case None:
       return ImGuizmo::SCALE;
-    case X:
+    case X_axis:
       return ImGuizmo::SCALE_X;
-    case Y:
+    case Y_axis:
       return ImGuizmo::SCALE_Y;
-    case Z:
+    case Z_axis:
       return ImGuizmo::SCALE_Z;
     }
     break;
   }
 
-  case ROTATE: {
+  case Rotate: {
     switch ( m_guizmoAxisLock )
     {
-    case NONE:
+    case None:
       return ImGuizmo::ROTATE;
-    case X:
+    case X_axis:
       return ImGuizmo::ROTATE_X;
-    case Y:
+    case Y_axis:
       return ImGuizmo::ROTATE_Y;
-    case Z:
+    case Z_axis:
       return ImGuizmo::ROTATE_Z;
     }
     break;
   }
 
-  case TRANSLATE: {
+  case Translate: {
     switch ( m_guizmoAxisLock )
     {
-    case NONE:
+    case None:
       return ImGuizmo::TRANSLATE;
-    case X:
+    case X_axis:
       return ImGuizmo::TRANSLATE_X;
-    case Y:
+    case Y_axis:
       return ImGuizmo::TRANSLATE_Y;
-    case Z:
+    case Z_axis:
       return ImGuizmo::TRANSLATE_Z;
     }
     break;
@@ -527,7 +530,9 @@ void gui::Viewport::onKeyPressed( const core::KeyPressedEvent& e )
   if ( KeyboardState::getKeyCombinationState( { KeyScanCode::LeftShift, KeyScanCode::A } ) )
   {
     if ( m_entityMenu )
+    {
       m_mouseCoords = { 0.0f, 0.0f }; // Reset mouse coords on close
+    }
 
     m_entityMenu = !m_entityMenu;
   }
@@ -539,7 +544,9 @@ void gui::Viewport::onKeyPressed( const core::KeyPressedEvent& e )
 
   // If guizmo is enabled we also have some hotkeys for it like axis lock
   if ( !m_guizmoEnabled )
+  {
     return;
+  }
 
   using enum GuizmoMode;
   using enum AxisLock;
@@ -549,28 +556,28 @@ void gui::Viewport::onKeyPressed( const core::KeyPressedEvent& e )
     switch ( e.getKeyScanCode() )
     {
     case KeyScanCode::T: {
-      m_guizmoMode = TRANSLATE;
+      m_guizmoMode = Translate;
       break;
     }
     case KeyScanCode::R: {
-      m_guizmoMode = ROTATE;
+      m_guizmoMode = Rotate;
       break;
     }
     case KeyScanCode::S: {
-      m_guizmoMode = SCALE;
+      m_guizmoMode = Scale;
       break;
     }
 
     case KeyScanCode::X: {
-      m_guizmoAxisLock = ( m_guizmoAxisLock == X ) ? NONE : X;
+      m_guizmoAxisLock = ( m_guizmoAxisLock == X_axis ) ? None : X_axis;
       break;
     }
     case KeyScanCode::Y: {
-      m_guizmoAxisLock = ( m_guizmoAxisLock == Y ) ? NONE : Y;
+      m_guizmoAxisLock = ( m_guizmoAxisLock == Y_axis ) ? None : Y_axis;
       break;
     }
     case KeyScanCode::Z: {
-      m_guizmoAxisLock = ( m_guizmoAxisLock == Z ) ? NONE : Z;
+      m_guizmoAxisLock = ( m_guizmoAxisLock == Z_axis ) ? None : Z_axis;
       break;
     }
     }

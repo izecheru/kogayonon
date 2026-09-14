@@ -1,7 +1,7 @@
 #pragma once
+#include <yaml-cpp/yaml.h>
 #include <entt/entt.hpp>
 #include <sol/sol.hpp>
-#include <yaml-cpp/yaml.h>
 #include "resources/directional_light.hpp"
 #include "utilities/utils/yaml_utils.hpp"
 
@@ -9,7 +9,6 @@ namespace core
 {
 struct DirectionalLightComponent
 {
-  int directionalLightIndex{ 0 };
   float nearPlane{ 0.1f };
   float farPlane{ 300.0f };
   float orthoSize{ 70.0f };
@@ -27,8 +26,6 @@ struct DirectionalLightComponent
                         return DirectionalLightComponent{
                           .nearPlane = _near, .farPlane = _far, .orthoSize = orthoSize, .positionFactor = posFactor };
                       } ),
-      "directionalLightIndex",
-      &DirectionalLightComponent::directionalLightIndex,
       "nearPlane",
       &DirectionalLightComponent::nearPlane,
       "farPlane",

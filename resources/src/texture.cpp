@@ -73,7 +73,7 @@ void resources::Texture::setWidth( int width )
   m_width = width;
 }
 
-bool resources::Texture::getLoaded() const
+bool resources::Texture::isLoaded() const
 {
   return m_loaded;
 }

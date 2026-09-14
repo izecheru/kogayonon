@@ -1,4 +1,5 @@
 #include "renderer/modules/geometry_module.hpp"
+#include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
@@ -6,6 +7,7 @@
 #include "renderer/blackboard.hpp"
 #include "renderer/frame_graph.hpp"
 #include "renderer/modules/prepass_module.hpp"
+#include "renderer/modules/shadowmap_module.hpp"
 #include "resources/mesh_push_constant.hpp"
 #include "resources/vertex.hpp"
 #include "utilities/tracy_utils/tracy_utils.hpp"
@@ -16,13 +18,13 @@
 rendering::GeometryModule::GeometryModule( FrameGraph* graph,
                                            graphics::VulkanContext* ctx,
                                            VkExtent2D extent,
-                                           ModuleDescriptorData descriptorData,
+                                           graphics::FrameInFlightVulkanDescriptor* cameraDescriptor,
                                            glm::vec4 clearColor )
     : m_vkCtx{ ctx }
     , m_graph{ graph }
     , m_wireframe{ false }
     , m_wireframeInit{ false }
-    , m_moduleDescriptorData{ descriptorData }
+    , m_cameraDescriptor{ cameraDescriptor }
     , m_clearColor{ clearColor }
     , m_extent{ extent }
 {
@@ -33,8 +35,8 @@ rendering::GeometryModule::GeometryModule( FrameGraph* graph,
 rendering::GeometryModule::GeometryModule( FrameGraph* graph,
                                            graphics::VulkanContext* ctx,
                                            VkExtent2D extent,
-                                           ModuleDescriptorData descriptorData )
-    : GeometryModule( graph, ctx, extent, descriptorData, glm::vec4{ 0.0f, 0.0f, 0.0f, 0.0f } )
+                                           graphics::FrameInFlightVulkanDescriptor* cameraDescriptor )
+    : GeometryModule( graph, ctx, extent, cameraDescriptor, glm::vec4{ 0.0f, 0.0f, 0.0f, 0.0f } )
 {
 }
 
@@ -89,16 +91,21 @@ auto rendering::GeometryModule::registerWireframePass() -> void
   VkShaderModule vertex = m_vkCtx->device->createShaderModule( "basic_shader", "vertexMain" );
   VkShaderModule fragment = m_vkCtx->device->createShaderModule( "basic_shader", "fragmentMain" );
 
+  core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+  std::vector<VkDescriptorSetLayout> descriptorLayout{ m_cameraDescriptor->layout,
+                                                       assetManager->getBindlessTexturesDescriptorLayout(),
+                                                       assetManager->getMaterialsDescriptorLayout() };
+
   graphics::VulkanPipelineSpec wireframeSpec{
-    .type = graphics::PipelineType::geometry,
     .options = { .cullMode = VK_CULL_MODE_NONE, .polyMode = VK_POLYGON_MODE_LINE, .lineWidth = 0.1f },
-    .descriptorLayout = m_moduleDescriptorData.descriptorSetLayouts,
+    .descriptorLayout = descriptorLayout,
+    .colorAttachmentCount = 1,
     .colorAttachmentFormat = { m_vkCtx->swapchain->getSwapchainImageFormat() },
+    .depthAttachmentFormat = VK_FORMAT_D32_SFLOAT,
     .vertexModule = vertex,
     .fragmentModule = fragment,
     .pushConstantSize = sizeof( resources::MeshPushConstant ),
     .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-    .colorAttachmentCount = 1,
     .vertexBindingDescription = resources::Vertex::getBindingDescription(),
     .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions() };
 
@@ -154,23 +161,24 @@ auto rendering::GeometryModule::registerWireframePass() -> void
 
       wireframePipeline.bind( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
 
-      // camera descriptor, this is tripple buffered to ensure operations are not overwritten by cpu/ gpu
+      core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+      uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
+
       vkCmdBindDescriptorSets( cmdBuffer,
                                VK_PIPELINE_BIND_POINT_GRAPHICS,
                                wireframePipeline.getLayout(),
                                0,
                                1,
-                               &m_moduleDescriptorData.descriptorSets.at( 0 ),
+                               &m_cameraDescriptor->set[currentFrame],
                                0,
                                nullptr );
 
-      // this is the bindless texture set
       vkCmdBindDescriptorSets( cmdBuffer,
                                VK_PIPELINE_BIND_POINT_GRAPHICS,
                                wireframePipeline.getLayout(),
                                1,
                                1,
-                               &m_moduleDescriptorData.descriptorSets.at( 1 ),
+                               &assetManager->getBindlessDescriptorSet(),
                                0,
                                nullptr );
 
@@ -179,7 +187,7 @@ auto rendering::GeometryModule::registerWireframePass() -> void
                                wireframePipeline.getLayout(),
                                2,
                                1,
-                               &m_moduleDescriptorData.descriptorSets.at( 2 ),
+                               &assetManager->getMaterialsDescriptorSet(),
                                0,
                                nullptr );
 
@@ -189,7 +197,11 @@ auto rendering::GeometryModule::registerWireframePass() -> void
       auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
       view.each(
         [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
-          if ( !meshComponent.loaded )
+          resources::Mesh* pMesh = meshComponent.pMesh;
+          if ( !pMesh )
+            return;
+
+          if ( !pMesh->isLoaded() )
             return;
 
           VkDeviceSize offsets[] = { 0 };
@@ -221,22 +233,26 @@ auto rendering::GeometryModule::registerWireframePass() -> void
 auto rendering::GeometryModule::registerBaseGeometryPass() -> void
 {
   Blackboard* blackboard = m_graph->getBlackboard();
-
   GeometryModuleData& geometryInfo = blackboard->get<GeometryModuleData>();
 
   VkShaderModule vertex = m_vkCtx->device->createShaderModule( "basic_shader", "vertexMain" );
   VkShaderModule fragment = m_vkCtx->device->createShaderModule( "basic_shader", "fragmentMain" );
 
+  core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+  std::vector<VkDescriptorSetLayout> descriptorLayout{ m_cameraDescriptor->layout,
+                                                       assetManager->getBindlessTexturesDescriptorLayout(),
+                                                       assetManager->getMaterialsDescriptorLayout() };
+
   graphics::VulkanPipelineSpec defaultPipelineSpec{
-    .type = graphics::PipelineType::geometry,
     .options = { .cullMode = VK_CULL_MODE_BACK_BIT, .polyMode = VK_POLYGON_MODE_FILL },
-    .descriptorLayout = m_moduleDescriptorData.descriptorSetLayouts,
+    .descriptorLayout = descriptorLayout,
+    .colorAttachmentCount = 1,
     .colorAttachmentFormat = { m_vkCtx->swapchain->getSwapchainImageFormat() },
+    .depthAttachmentFormat = VK_FORMAT_D32_SFLOAT,
     .vertexModule = vertex,
     .fragmentModule = fragment,
     .pushConstantSize = sizeof( resources::MeshPushConstant ),
     .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-    .colorAttachmentCount = 1,
     .vertexBindingDescription = resources::Vertex::getBindingDescription(),
     .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions(),
   };
@@ -251,13 +267,20 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
     []( NodeBuilder& b, Blackboard* blackboard ) {
       GeometryModuleData& geometryModule = blackboard->get<GeometryModuleData>();
       PrepassModuleData& prepassData = blackboard->get<PrepassModuleData>();
+      // ShadowmapModuleData& shadowmapData = blackboard->get<ShadowmapModuleData>();
 
       b.write( geometryModule.color, rendering::FGResourceType::Color );
       b.read( prepassData.depth, rendering::FGResourceType::Depth );
-      // b.read();
+      // b.read( shadowmapData.depth, rendering::FGResourceType::Shader );
     },
     [=]( VkCommandBuffer cmdBuffer ) {
       TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::Geometry );
+      // ShadowmapModuleData& shadowmapData = blackboard->get<ShadowmapModuleData>();
+
+      VkDebugUtilsLabelEXT markerInfo{};
+      markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+      markerInfo.pLabelName = passId::Geometry;
+      m_vkCtx->device->label( cmdBuffer, markerInfo );
 
       if ( m_extent.width == 0 || m_extent.height == 0 )
         return;
@@ -275,8 +298,6 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
         .clearValue = { { m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w } } };
 
-      // TODO set flags according to acces type, for example the loadOp should be Clear if this node
-      // writes to this attachment, and Load if it just reads
       geometryData.renderingInfo.depthAttachmentInfo =
         VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
                                    .imageView = prepassData.depth->vulkanImage.vkImageView,
@@ -300,12 +321,15 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
 
       geometryPipeline.bind( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
 
+      core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+      uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
+
       vkCmdBindDescriptorSets( cmdBuffer,
                                VK_PIPELINE_BIND_POINT_GRAPHICS,
                                geometryPipeline.getLayout(),
                                0,
                                1,
-                               &m_moduleDescriptorData.descriptorSets.at( 0 ),
+                               &m_cameraDescriptor->set[currentFrame],
                                0,
                                nullptr );
 
@@ -314,7 +338,7 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
                                geometryPipeline.getLayout(),
                                1,
                                1,
-                               &m_moduleDescriptorData.descriptorSets.at( 1 ),
+                               &assetManager->getBindlessDescriptorSet(),
                                0,
                                nullptr );
 
@@ -323,9 +347,12 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
                                geometryPipeline.getLayout(),
                                2,
                                1,
-                               &m_moduleDescriptorData.descriptorSets.at( 2 ),
+                               &assetManager->getMaterialsDescriptorSet(),
                                0,
                                nullptr );
+
+      // vkCmdBindDescriptorSets( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipeline.getLayout(), 3, 1,
+      //                          &shadowmapData.directionalLightDescriptor.set, 0, nullptr );
 
       core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
       core::Scene* scene = sceneManager->getCurrentScene();
@@ -333,7 +360,11 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
       auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
       view.each(
         [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
-          if ( !meshComponent.loaded )
+          resources::Mesh* pMesh = meshComponent.pMesh;
+          if ( !pMesh )
+            return;
+
+          if ( !pMesh->isLoaded() )
             return;
 
           VkDeviceSize offsets[] = { 0 };
@@ -357,6 +388,8 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
             vkCmdDrawIndexed( cmdBuffer, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
           }
         } );
+
+      m_vkCtx->device->endLabel( cmdBuffer );
 
       m_vkCtx->swapchain->endRendering();
     } );

@@ -3,11 +3,11 @@
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
 #define VMA_VULKAN_VERSION 1004000
 
+#include <vk_mem_alloc.h>
+#include <vulkan/vulkan.h>
 #include "graphics/vulkan_buffer.hpp"
 #include "graphics/vulkan_image.hpp"
 #include "precompiled/pch.hpp"
-#include <vk_mem_alloc.h>
-#include <vulkan/vulkan.h>
 
 namespace graphics
 {

@@ -1,24 +1,10 @@
 #pragma once
+#include <vulkan/vulkan.h>
 #include "precompiled/pch.hpp"
 #include "vulkan_context.hpp"
-#include <vulkan/vulkan.h>
 
 namespace graphics
 {
-
-enum PipelineType
-{
-  geometry,
-  picking,
-  wireframe,
-  text
-};
-
-enum VulkanAttachmentType
-{
-  depth,
-  color
-};
 
 /**
  * @brief Options related to various pipeline options
@@ -28,33 +14,30 @@ struct VulkanPipelineOptions
   VkCullModeFlags cullMode{ VK_CULL_MODE_BACK_BIT };
   VkPolygonMode polyMode{ VK_POLYGON_MODE_FILL };
 
-  // Depth
   VkBool32 depthTestEnable{ VK_TRUE };
   VkBool32 depthWriteEnable{ VK_TRUE };
   VkCompareOp depthCompareOp{ VK_COMPARE_OP_LESS_OR_EQUAL };
 
-  // For wireframe
   float lineWidth{ 1.0f };
 };
 
 struct VulkanPipelineSpec
 {
-  PipelineType type;
   VulkanPipelineOptions options;
   std::vector<VkDescriptorSetLayout> descriptorLayout;
 
+  uint32_t colorAttachmentCount{ 0u };
   std::vector<VkFormat> colorAttachmentFormat;
+  VkFormat depthAttachmentFormat{ VK_FORMAT_UNDEFINED };
+  VkFormat stencilAttachmentFormat{ VK_FORMAT_UNDEFINED };
+
+  VkBool32 blendEnable{ VK_FALSE };
 
   VkShaderModule vertexModule;
   VkShaderModule fragmentModule;
 
-  /**
-   * @brief sizeof(PushConstant)
-   */
   uint32_t pushConstantSize{ 0u };
   VkShaderStageFlags pushConstantVisibility;
-
-  uint32_t colorAttachmentCount{ 0u };
 
 #ifdef VERTEX_PROVIDED
   VkVertexInputBindingDescription vertexBindingDescription;

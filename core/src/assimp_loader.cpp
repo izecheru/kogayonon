@@ -1,9 +1,9 @@
 #include "core/asset_manager/assimp_loader.hpp"
+#include <assimp/postprocess.h>
+#include <assimp/vector3.h>
 #include "precompiled/pch.hpp"
 #include "resources/mesh.hpp"
 #include "utilities/utils/utils.hpp"
-#include <assimp/postprocess.h>
-#include <assimp/vector3.h>
 
 core::AssimpLoader::AssimpLoader()
     : m_importer{}
@@ -27,7 +27,7 @@ const aiScene* core::AssimpLoader::readFile( const std::string& path )
 
   if ( !scene )
   {
-    K_INFO( "Assimp error: {}", m_importer.GetErrorString() );
+    KINFO( "Assimp error: {}", m_importer.GetErrorString() );
     return nullptr;
   }
   return scene;

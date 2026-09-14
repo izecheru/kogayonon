@@ -1,4 +1,11 @@
 #include "gui/vulkan_imgui_renderer.hpp"
+#include <SDL2/SDL.h>
+#include <imgui.h>
+#include <imgui_impl_sdl2.h>
+#include <imgui_impl_vulkan.h>
+#include <imgui_internal.h>
+#include <imgui_stdlib.h>
+#include <glm/gtc/type_ptr.hpp>
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
@@ -17,13 +24,6 @@
 #include "utilities/config_manager/config_manager.hpp"
 #include "utilities/fonts/materialdesign.hpp"
 #include "utilities/input/keyboard_state.hpp"
-#include <SDL2/SDL.h>
-#include <glm/gtc/type_ptr.hpp>
-#include <imgui.h>
-#include <imgui_impl_sdl2.h>
-#include <imgui_impl_vulkan.h>
-#include <imgui_internal.h>
-#include <imgui_stdlib.h>
 
 #include <ImGuizmo.h>
 
@@ -36,6 +36,16 @@ gui::VulkanImguiRenderer::VulkanImguiRenderer( SDL_Window* wnd,
   initImgui( wnd, device, swapchain );
   createIconSampler( device );
   initWindows();
+
+  core::EventDispatcher* eventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
+  eventDispatcher->addHandler<core::ConfigChangedEvent, &VulkanImguiRenderer::onConfigChange>( *this );
+}
+
+auto gui::VulkanImguiRenderer::onConfigChange( const core::ConfigChangedEvent& e ) -> void
+{
+  utilities::EditorConfigManager::parseConfig();
+  utilities::ColorConfig& config = utilities::EditorConfigManager::getColorConfig();
+  setColorPallete( config );
 }
 
 void gui::VulkanImguiRenderer::createIconSampler( graphics::VulkanDevice* device )
@@ -69,7 +79,8 @@ void gui::VulkanImguiRenderer::end()
 
 void gui::VulkanImguiRenderer::setupDockspace( ImGuiViewport* viewport )
 {
-  const auto dockSpaceId = ImGui::DockSpaceOverViewport( 0, ImGui::GetMainViewport() );
+
+  const ImGuiID dockSpaceId = ImGui::DockSpaceOverViewport( 0, viewport );
 
   if ( static auto firstTime = true; firstTime ) [[unlikely]]
   {
@@ -87,13 +98,78 @@ void gui::VulkanImguiRenderer::setupDockspace( ImGuiViewport* viewport )
     auto bottomLeftNodeId = ImGui::DockBuilderSplitNode( leftNodeId, ImGuiDir_Down, 0.50f, nullptr, &leftNodeId );
     auto bottomNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Down, 0.35f, nullptr, &centerNodeId );
 
-    ImGui::DockBuilderDockWindow( ICON_MDI_FOLDER_SEARCH "File explorer", bottomNodeId );
-    ImGui::DockBuilderDockWindow( ICON_MDI_AXIS "Viewport", centerNodeId );
-    ImGui::DockBuilderDockWindow( ICON_MDI_LIST_BOX "Hierarchy", leftNodeId );
-    ImGui::DockBuilderDockWindow( ICON_MDI_ADJUST "Properties", bottomLeftNodeId );
+    ImGui::DockBuilderDockWindow( "File explorer", bottomNodeId );
+    ImGui::DockBuilderDockWindow( "Viewport", centerNodeId );
+    ImGui::DockBuilderDockWindow( "Hierarchy", leftNodeId );
+    ImGui::DockBuilderDockWindow( "Properties", bottomLeftNodeId );
 
     ImGui::DockBuilderFinish( dockSpaceId );
   }
+}
+
+auto gui::VulkanImguiRenderer::customTitleBar() -> void
+{
+  // Get window width for layout
+  float windowWidth = ImGui::GetWindowWidth();
+  float titleBarHeight = 30.0f;
+
+  // Start the title bar area
+  ImGui::Begin( "Top bar", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize );
+  ImGui::BeginGroup();
+  ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
+
+  // Reserve space for title bar
+  ImGui::Dummy( ImVec2( 0, 0 ) );
+  ImGui::SameLine();
+
+  // Title text (centered)
+  float titleWidth = ImGui::CalcTextSize( "Your Application Name" ).x;
+  ImGui::SetCursorPosX( ( windowWidth - titleWidth ) * 0.5f );
+  ImGui::Text( "Your Application Name" );
+
+  // Window control buttons (right-aligned)
+  ImGui::SameLine( windowWidth - 120.0f ); // Adjust based on your needs
+
+  // Minimize button
+  if ( ImGui::Button( ICON_MDI_MINUS, ImVec2( 30, 25 ) ) )
+  {
+    SDL_MinimizeWindow( m_wnd );
+  }
+  ImGui::SameLine();
+
+  // Maximize/Restore button
+  if ( ImGui::Button( ICON_MDI_WINDOW_MAXIMIZE, ImVec2( 30, 25 ) ) )
+  {
+    // Toggle maximize
+    static bool maximized = false;
+    if ( maximized )
+      SDL_RestoreWindow( m_wnd );
+    else
+      SDL_MaximizeWindow( m_wnd );
+    maximized = !maximized;
+  }
+  ImGui::SameLine();
+
+  // Close button (with color)
+  ImVec4 closeColor = ImGui::GetStyle().Colors[ImGuiCol_Button];
+  closeColor.x = 1.0f; // Make it red
+  ImGui::PushStyleColor( ImGuiCol_Button, closeColor );
+  ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 1.0f, 0.3f, 0.3f, 1.0f ) );
+  if ( ImGui::Button( ICON_MDI_CLOSE, ImVec2( 30, 25 ) ) )
+  {
+    // Handle close
+    // SDL_Event quitEvent;
+    // quitEvent.type = SDL_QUIT;
+    // SDL_PushEvent(&quitEvent);
+  }
+  ImGui::PopStyleColor( 2 );
+
+  ImGui::PopStyleVar();
+  ImGui::EndGroup();
+
+  // Add a separator line below title bar
+  ImGui::Separator();
+  ImGui::End();
 }
 
 void gui::VulkanImguiRenderer::render()
@@ -115,7 +191,7 @@ void gui::VulkanImguiRenderer::render()
   end();
 }
 
-void gui::VulkanImguiRenderer::present( VkCommandBuffer& buffer )
+void gui::VulkanImguiRenderer::renderDrawData( VkCommandBuffer& buffer )
 {
   auto drawData = ImGui::GetDrawData();
   const bool isMinimized = ( drawData->DisplaySize.x <= 0.0f || drawData->DisplaySize.y <= 0.0f );
@@ -167,7 +243,7 @@ void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
   cfg.OversampleV = 1;
   cfg.PixelSnapH = true;
 
-  float baseFontSize = 24.0f;
+  float baseFontSize = 20.0f;
   float iconFontSize = baseFontSize * 2.0f / 3.0f;
 
   static const ImWchar materialdesignRanges[] = { ICON_MIN_MDI, ICON_MAX_MDI, 0 };
@@ -218,14 +294,15 @@ void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
   ImGuiStyle& style = ImGui::GetStyle();
   ImVec4* colors = style.Colors;
   style.WindowRounding = 0.5f;
-  style.GrabRounding = style.FrameRounding = 2.3f;
+  style.GrabRounding = style.FrameRounding = 6.5f;
+  style.FramePadding = { 5.0f, 5.0f };
   style.ScrollbarRounding = 5.0f;
   style.FrameBorderSize = 1.0f;
   style.ItemSpacing.y = 6.5f;
   style.TabRounding = 0.0f;
   style.TabBorderSize = 0.0f;
 
-  auto& colorCfg = utilities::EditorConfigManager::getColorConfig();
+  utilities::ColorConfig& colorCfg = utilities::EditorConfigManager::getColorConfig();
   setColorPallete( colorCfg );
 
   ImGui_ImplSDL2_InitForVulkan( wnd );
@@ -275,7 +352,7 @@ void gui::VulkanImguiRenderer::initWindows()
 
   m_windows.emplace(
     ImGuiWindowName::File_Explorer,
-    std::make_unique<FileExplorerWindow>( ICON_MDI_FOLDER_SEARCH "File explorer",
+    std::make_unique<FileExplorerWindow>( "File explorer",
                                           FileExplorerSpec{ .fonts = &m_fonts,
                                                             .iconGenericFolder = std::move( folder ),
                                                             .genericFileIcon = std::move( file ),
@@ -302,7 +379,7 @@ void gui::VulkanImguiRenderer::initWindows()
 
   m_windows.emplace( ImGuiWindowName::Viewport,
                      std::make_unique<Viewport>( m_wnd,
-                                                 ICON_MDI_AXIS "Viewport",
+                                                 "Viewport",
                                                  ViewportSpec{ .fonts = &m_fonts,
                                                                .renderModeIcon = std::move( renderMode ),
                                                                .playIcon = std::move( play ),
@@ -316,14 +393,12 @@ void gui::VulkanImguiRenderer::initWindows()
   auto cubeIcon = ImGui_ImplVulkan_AddTexture(
     m_iconSampler, hierarchyCubeIconTexture->getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
-  m_windows.emplace(
-    ImGuiWindowName::Scene_Hierarchy,
-    std::make_unique<SceneHierarchy>( ICON_MDI_LIST_BOX "Hierarchy",
-                                      SceneHierarchySpec{ .fonts = &m_fonts, .cubeIcon = std::move( cubeIcon ) } ) );
+  m_windows.emplace( ImGuiWindowName::Scene_Hierarchy,
+                     std::make_unique<SceneHierarchy>(
+                       "Hierarchy", SceneHierarchySpec{ .fonts = &m_fonts, .cubeIcon = std::move( cubeIcon ) } ) );
 
-  m_windows.emplace(
-    ImGuiWindowName::Entity_Properties,
-    std::make_unique<EntityProperties>( ICON_MDI_ADJUST "Properties", EntityPropertiesSpec{ .fonts = &m_fonts } ) );
+  m_windows.emplace( ImGuiWindowName::Entity_Properties,
+                     std::make_unique<EntityProperties>( "Properties", EntityPropertiesSpec{ .fonts = &m_fonts } ) );
 }
 
 void gui::VulkanImguiRenderer::mainMenu()
@@ -1051,7 +1126,7 @@ void gui::VulkanImguiRenderer::changeColorConfig()
 
 void gui::VulkanImguiRenderer::setViewport( VkImageView viewportView )
 {
-  K_ASSERT( viewportView != VK_NULL_HANDLE );
+  KASSERT( viewportView != VK_NULL_HANDLE );
   ImGuiWindow* viewport = m_windows.at( gui::ImGuiWindowName::Viewport ).get();
   dynamic_cast<gui::Viewport*>( viewport )->setViewport( viewportView );
 }

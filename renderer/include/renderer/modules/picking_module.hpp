@@ -1,11 +1,11 @@
 #pragma once
+#include "graphics/vulkan_descriptor.hpp"
 #include "glm/glm.hpp"
 #include "graphics/vulkan_buffer.hpp"
 #include "graphics/vulkan_image.hpp"
 #include "graphics/vulkan_pipeline.hpp"
 #include "renderer/frame_graph.hpp"
 #include "renderer/modules/module_base.hpp"
-#include "renderer/modules/module_descriptor.hpp"
 #include "renderer/modules/module_rendering_info.hpp"
 
 namespace gui
@@ -44,7 +44,7 @@ public:
                           graphics::VulkanContext* vkCtx,
                           gui::VulkanImguiRenderer* imguiRenderer,
                           VkExtent2D extent,
-                          ModuleDescriptorData descriptorData );
+                          graphics::FrameInFlightVulkanDescriptor* cameraDescriptor );
 
   ~PickingModule();
 
@@ -62,12 +62,12 @@ private:
   auto registerPickingEntityReadPass() -> void;
 
 private:
+  graphics::FrameInFlightVulkanDescriptor* m_cameraDescriptor;
   glm::ivec2 m_mouseCoords;
   bool m_pickRequested;
   bool m_readyToCopy;
   FrameGraph* m_graph;
   graphics::VulkanContext* m_vkCtx;
-  ModuleDescriptorData m_moduleDescriptorData;
   VkExtent2D m_extent;
   gui::VulkanImguiRenderer* m_imguiRenderer;
   int32_t m_lastFrameIndex;

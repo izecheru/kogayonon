@@ -1,4 +1,5 @@
 #define GLM_ENABLE_EXPERIMENTAL
+#include "core/asset_manager/asset_manager.hpp"
 #include "core/scene/scene.hpp"
 #include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/index_component.hpp"
@@ -67,7 +68,7 @@ void core::Scene::addMeshToEntity( entt::entity entity, resources::Mesh* pMesh )
   m_registryModified = true;
   Entity ent{ m_pRegistry.get(), entity };
   ent.setType( EntityType::Object );
-  ent.replaceComponent<MeshComponent>( MeshComponent{ .pMesh = pMesh, .staticMesh = false, .loaded = false } );
+  ent.replaceComponent<MeshComponent>( MeshComponent{ .pMesh = pMesh } );
 
   // if we did not setup the transform from somewhere else like deserialized, we initialise a default one
   if ( !ent.hasComponent<TransformComponent>() )
