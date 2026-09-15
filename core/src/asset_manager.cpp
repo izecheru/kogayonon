@@ -889,11 +889,11 @@ auto core::AssetManager::onUpdate() -> void
     {
       updateMaterialsBuffer();
     }
+  }
 
-    if ( !m_queuedMeshes.empty() )
-    {
-      uploadMeshData();
-    }
+  if ( !m_queuedMeshes.empty() )
+  {
+    uploadMeshData();
   }
 }
 

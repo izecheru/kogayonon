@@ -163,7 +163,6 @@ void editor::Editor::run()
   while ( m_running )
   {
     onUpdate();
-    timeTracker->update( DELTA_TIME );
   }
 }
 
