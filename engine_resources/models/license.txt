@@ -1,0 +1,8 @@
+Model Information:
+* title:	Crimson Fang the Kung fu Fox
+* source:	https://sketchfab.com/3d-models/crimson-fang-the-kung-fu-fox-4382e0bcce6247258cb1b064bc0a3db8
+* author:	No Skill Modelling (https://sketchfab.com/noskillmodelling)
+
+Model License:
+* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
+* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works

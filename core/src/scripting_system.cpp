@@ -20,9 +20,11 @@
 
 using namespace utilities;
 using namespace window;
+using namespace utilities;
+using namespace window;
 namespace fs = std::filesystem;
 
-namespace core
+namespace core namespace core
 {
 ScriptingSystem::ScriptingSystem()
     : m_luaState{ sol::state{} }
@@ -30,7 +32,11 @@ ScriptingSystem::ScriptingSystem()
 {
   //// make the main script object and add it to the registry
   // auto mainScript = std::make_unique<MainScriptFuncs>();
+  //// make the main script object and add it to the registry
+  // auto mainScript = std::make_unique<MainScriptFuncs>();
 
+  //// move to main registry
+  ////MainRegistry::getInstance().addToContext<std::unique_ptr<MainScriptFuncs>>( std::move( mainScript ) );
   //// move to main registry
   ////MainRegistry::getInstance().addToContext<std::unique_ptr<MainScriptFuncs>>( std::move( mainScript ) );
 
@@ -41,7 +47,11 @@ ScriptingSystem::ScriptingSystem()
 
   //// register all usretypes and expose them to lua
   // registerBindings( m_luaState );
+  //// register all usretypes and expose them to lua
+  // registerBindings( m_luaState );
 
+  //// load the script
+  // loadMainScript( currentPath.string() );
   //// load the script
   // loadMainScript( currentPath.string() );
 }
@@ -86,4 +96,5 @@ auto ScriptingSystem::getLuaState() -> sol::state&
   return m_luaState;
 }
 
+} // namespace core
 } // namespace core

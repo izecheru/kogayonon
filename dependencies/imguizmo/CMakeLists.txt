@@ -4,6 +4,7 @@ add_library(imguizmo
   "src/ImGradient.cpp"
   "src/ImSequencer.cpp"
   "src/ImGuizmo.cpp"
+  "src/ImGuizmo.cpp"
 
   "include/GraphEditor.h"
   "include/ImCurveEdit.h"
@@ -13,7 +14,10 @@ add_library(imguizmo
   "include/ImZoomSlider.h"
   "include/ImOGuizmo.hpp"
  )
+  "include/ImOGuizmo.hpp"
+ )
 
+target_include_directories(imguizmo PUBLIC
 target_include_directories(imguizmo PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}/include/"
 )

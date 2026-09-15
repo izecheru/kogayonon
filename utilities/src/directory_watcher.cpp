@@ -18,6 +18,13 @@ DirectoryWatcher::DirectoryWatcher( std::filesystem::path root )
                              OPEN_EXISTING,
                              FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
                              nullptr );
+  m_dirHandle = CreateFileW( m_root.c_str(),
+                             FILE_LIST_DIRECTORY,
+                             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                             nullptr,
+                             OPEN_EXISTING,
+                             FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
+                             nullptr );
 
   if ( m_dirHandle == INVALID_HANDLE_VALUE )
   {
@@ -58,7 +65,10 @@ void DirectoryWatcher::run( std::filesystem::path root )
 
   while ( !m_stop )
   {
-    BOOL success =
+    BOOL success = ReadDirectoryChangesW(
+      m_dirHandle,
+      buffer,
+      sizeof( buffer ),
       ReadDirectoryChangesW( m_dirHandle,
                              buffer,
                              sizeof( buffer ),
@@ -67,6 +77,7 @@ void DirectoryWatcher::run( std::filesystem::path root )
                              nullptr,
                              &m_overlapped,
                              nullptr );
+      nullptr, &m_overlapped, nullptr );
 
     if ( !success )
     {
@@ -102,19 +113,26 @@ void DirectoryWatcher::run( std::filesystem::path root )
         /// @file kogayonon\kogayonon_core\include\core\event\file_events.hpp
         /// See this file for file event type definition
 
+        /// @file kogayonon\kogayonon_core\include\core\event\file_events.hpp
+        /// See this file for file event type definition
+
         switch ( event->Action )
         {
         case FILE_ACTION_ADDED:
           m_eventCallbackFunc( relativePath.string(), nameOnly, core::FileEventType( 1 << 0 ) );
+          m_eventCallbackFunc( relativePath.string(), nameOnly, core::FileEventType( 1 << 0 ) );
           break;
         case FILE_ACTION_REMOVED:
+          m_eventCallbackFunc( relativePath.string(), nameOnly, core::FileEventType( 1 << 1 ) );
           m_eventCallbackFunc( relativePath.string(), nameOnly, core::FileEventType( 1 << 1 ) );
           break;
         case FILE_ACTION_MODIFIED:
           m_eventCallbackFunc( relativePath.string(), nameOnly, core::FileEventType( 1 << 2 ) );
+          m_eventCallbackFunc( relativePath.string(), nameOnly, core::FileEventType( 1 << 2 ) );
           break;
         case FILE_ACTION_RENAMED_OLD_NAME:
         case FILE_ACTION_RENAMED_NEW_NAME:
+          m_eventCallbackFunc( relativePath.string(), nameOnly, core::FileEventType( 1 << 3 ) );
           m_eventCallbackFunc( relativePath.string(), nameOnly, core::FileEventType( 1 << 3 ) );
           break;
         default:
@@ -135,4 +153,6 @@ void DirectoryWatcher::run( std::filesystem::path root )
     }
   }
 }
+} // namespace utilities
+
 } // namespace utilities

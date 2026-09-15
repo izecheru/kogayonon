@@ -115,7 +115,7 @@ void FileExplorerWindow::buildFileVector()
     {
       for ( const auto& entry : config.folderFilters )
       {
-        if ( dirEntry.path().filename().string().find( entry ) != std::string ::npos )
+        if ( dirEntry.path().filename().string().find( entry ) != std::string::npos )
         {
           found = true;
           break;
@@ -126,7 +126,7 @@ void FileExplorerWindow::buildFileVector()
     {
       for ( const auto& entry : config.fileFilters )
       {
-        if ( dirEntry.path().extension().string().find( entry ) != std::string ::npos )
+        if ( dirEntry.path().extension().string().find( entry ) != std::string::npos )
         {
           found = true;
           break;
