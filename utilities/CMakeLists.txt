@@ -51,7 +51,6 @@ target_link_libraries(utilities
 	yaml-cpp::yaml-cpp
 	lua 
 	rapidjson
-	assimp::assimp
 	resources
 	precompiled
 	slang::gfx slang::slang 

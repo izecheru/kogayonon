@@ -55,6 +55,7 @@ public:
    * @return
    */
   auto loadTexture( const std::string& textureName, const std::string& texturePath ) -> resources::Texture*;
+  auto loadTextures( const std::vector<std::tuple<std::string, std::string>>& textures ) -> void;
 
   /**
    * @brief Get the mesh using absolute path as key
@@ -143,6 +144,7 @@ private:
    * @param pTexture Texture pointer
    */
   auto updateBindlessTextures( resources::Texture* pTexture ) -> void;
+  auto updateBindlessTextures( const std::vector<resources::Texture*>& textures ) -> void;
 
   /**
    * @brief Create the descriptor layout for the material array ssbo
@@ -183,7 +185,7 @@ private:
   graphics::VulkanDescriptor m_bindlessTexturesDescriptor;
   graphics::VulkanDescriptor m_materialsDescriptor;
 
-  graphics::VulkanBuffer m_materialsBuffer;
+  graphics::FrameInFlightVulkanBuffer m_materialsBuffer;
   std::vector<resources::Material> m_materials;
 
   std::mutex m_mutex;
@@ -191,7 +193,7 @@ private:
   std::unordered_map<std::string, std::unique_ptr<resources::Mesh>> m_loadedMeshes;
   std::queue<resources::Mesh*> m_queuedMeshes;
   std::unordered_map<std::string, std::unique_ptr<resources::Font>> m_loadedFonts;
-  ParsedMaterials m_parsedMaterials;
+  std::queue<ParsedMaterials> m_parsedMaterialsQueue;
 
   graphics::VulkanContext* m_vkCtx;
   VkSampler m_textureSampler;

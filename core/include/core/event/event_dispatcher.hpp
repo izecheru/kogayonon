@@ -8,7 +8,7 @@
 #include "precompiled/pch.hpp"
 #include "utilities/utils/utils.hpp"
 
-namespace core namespace core
+namespace core
 {
 
 class EventDispatcher
@@ -163,5 +163,4 @@ void registerMetaEvent()
     .template func<&remove_handler<TEvent>>( "remove_handler"_hs )
     .template func<&dispatch_event<TEvent>>( "dispatch_event"_hs );
 }
-} // namespace core
 } // namespace core

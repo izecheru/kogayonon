@@ -13,11 +13,9 @@ add_library(imguizmo
   "include/ImSequencer.h"
   "include/ImZoomSlider.h"
   "include/ImOGuizmo.hpp"
- )
   "include/ImOGuizmo.hpp"
  )
 
-target_include_directories(imguizmo PUBLIC
 target_include_directories(imguizmo PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}/include/"
 )

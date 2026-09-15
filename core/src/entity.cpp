@@ -1,15 +1,13 @@
 #include "core/ecs/entity.hpp"
 #include "core/ecs/components/identifier_component.hpp"
 
-namespace core namespace core
+namespace core
 {
 Entity::Entity( Registry* registry, const std::string& name )
     : m_registry{ registry }
-    , m_entity{ registry->createEntity() } : m_registry{ registry },
-                                             m_entity{ registry->createEntity() }
+    , m_entity{ registry->createEntity() }
 {
   addComponent<IdentifierComponent>(
-    IdentifierComponent{ .name = name, .type = EntityType::None, .group = "DefaultGroup" } );
     IdentifierComponent{ .name = name, .type = EntityType::None, .group = "DefaultGroup" } );
 }
 
@@ -30,13 +28,11 @@ Entity::Entity( Registry* registry, entt::entity entity )
 
   addComponent<IdentifierComponent>(
     IdentifierComponent{ .name = "DefaultEntity", .type = EntityType::None, .group = "DefaultGroup" } );
-    IdentifierComponent{ .name = "DefaultEntity", .type = EntityType::None, .group = "DefaultGroup" } );
 }
 
 Entity::Entity( const Entity& other )
     : m_registry{ other.m_registry }
-    , m_entity{ other.m_entity } : m_registry{ other.m_registry },
-                                   m_entity{ other.m_entity }
+    , m_entity{ other.m_entity }
 {
   auto& id = m_registry->getComponent<IdentifierComponent>( other.getEntityId() );
 
@@ -45,8 +41,7 @@ Entity::Entity( const Entity& other )
 
 Entity::Entity( Entity&& other ) noexcept
     : m_registry{ other.m_registry }
-    , m_entity{ other.m_entity } : m_registry{ other.m_registry },
-                                   m_entity{ other.m_entity }
+    , m_entity{ other.m_entity }
 {
   auto& id = m_registry->getComponent<IdentifierComponent>( other.getEntityId() );
   addComponent<IdentifierComponent>( IdentifierComponent{ .name = id.name, .type = id.type, .group = id.group } );
@@ -203,4 +198,4 @@ void Entity::createLuaBindings( sol::state& lua )
     sol::property( &Entity::getGroup, &Entity::setGroup ) );
 }
 
-} // namespace corenamespace core
+} // namespace core

@@ -1,4 +1,5 @@
 #define GLM_ENABLE_EXPERIMENTAL
+#include "physics/jolt_physics.hpp"
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/scene/scene.hpp"
 #include "core/ecs/components/directional_light_component.hpp"
@@ -83,4 +84,31 @@ void core::Scene::removeMeshFromEntity( entt::entity entity )
   ent.removeComponent<MeshComponent>();
   ent.removeComponent<IndexComponent>();
   ent.removeComponent<TransformComponent>();
+}
+
+auto core::Scene::onUpdate() -> void
+{
+  // update jolt bodies
+  auto rigidView = m_pRegistry->getRegistry().view<core::RigidbodyComponent, core::TransformComponent>();
+  rigidView.each( []( const entt::entity& entityId,
+                      core::RigidbodyComponent& rigidBodyComponent,
+                      core::TransformComponent& transformComponent ) {
+    physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
+
+    if ( !jolt->isRunning() )
+    {
+      return;
+    }
+
+    JPH::BodyInterface& bodyInterface = jolt->getPhysicsSystem().GetBodyInterface();
+    JPH::RVec3 pos = bodyInterface.GetCenterOfMassPosition( rigidBodyComponent.body );
+    JPH::Quat rot = bodyInterface.GetRotation( rigidBodyComponent.body );
+    auto eulerRot = rot.GetEulerAngles();
+    transformComponent.translation = glm::vec3{ pos.GetX(), pos.GetY(), pos.GetZ() };
+
+    transformComponent.rotation =
+      glm::vec3{ glm::degrees( eulerRot.GetX() ), glm::degrees( eulerRot.GetY() ), glm::degrees( eulerRot.GetZ() ) };
+
+    transformComponent.computeMatrix();
+  } );
 }

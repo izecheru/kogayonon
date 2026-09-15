@@ -55,9 +55,7 @@ Sampler2D shadowmapTexture;
 PushConstant push;
 
 // VERTEX
-[shader( "vertex" )]
-VertexOutput vertexMain( VertexInput input )
-{
+[shader( "vertex" )] VertexOutput vertexMain( VertexInput input ) {
   VertexOutput output;
 
   output.position =
@@ -69,20 +67,14 @@ VertexOutput vertexMain( VertexInput input )
   return output;
 }
 
-// FRAGMENT
-[shader( "fragment" )]
-FragmentOutput fragmentMain( VertexOutput input )
+  // FRAGMENT
+  [shader( "fragment" )] FragmentOutput fragmentMain( VertexOutput input )
 {
   FragmentOutput output;
 
   float4 diffuseColor = float4( 1.0, 0.0, 1.0, 1.0 );
 
   int matIdx = push.materialIndex;
-  if ( input.position.x < 1.0 && input.position.y < 1.0 )
-  {
-    printf( "material index %d", matIdx );
-  }
-
   if ( matIdx < 0 )
   {
     diffuseColor = bindlessTextures[NonUniformResourceIndex( 0 )].Sample( input.fragTexCoord );
@@ -96,4 +88,3 @@ FragmentOutput fragmentMain( VertexOutput input )
 
   return output;
 }
-

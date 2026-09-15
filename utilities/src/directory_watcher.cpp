@@ -65,10 +65,7 @@ void DirectoryWatcher::run( std::filesystem::path root )
 
   while ( !m_stop )
   {
-    BOOL success = ReadDirectoryChangesW(
-      m_dirHandle,
-      buffer,
-      sizeof( buffer ),
+    BOOL success =
       ReadDirectoryChangesW( m_dirHandle,
                              buffer,
                              sizeof( buffer ),
@@ -77,7 +74,6 @@ void DirectoryWatcher::run( std::filesystem::path root )
                              nullptr,
                              &m_overlapped,
                              nullptr );
-      nullptr, &m_overlapped, nullptr );
 
     if ( !success )
     {
@@ -153,6 +149,4 @@ void DirectoryWatcher::run( std::filesystem::path root )
     }
   }
 }
-} // namespace utilities
-
 } // namespace utilities

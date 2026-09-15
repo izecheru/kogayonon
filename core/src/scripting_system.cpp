@@ -24,7 +24,7 @@ using namespace utilities;
 using namespace window;
 namespace fs = std::filesystem;
 
-namespace core namespace core
+namespace core
 {
 ScriptingSystem::ScriptingSystem()
     : m_luaState{ sol::state{} }
@@ -96,5 +96,4 @@ auto ScriptingSystem::getLuaState() -> sol::state&
   return m_luaState;
 }
 
-} // namespace core
 } // namespace core

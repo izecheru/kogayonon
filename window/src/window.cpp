@@ -12,10 +12,9 @@ auto window_hit_test( SDL_Window* wnd, const SDL_Point* pos, void* ) -> SDL_HitT
   return SDL_HITTEST_NORMAL;
 }
 
-namespace window namespace window
+namespace window
 {
 Window::Window( const char* t_title, int t_width, int t_height, bool t_vsync, bool t_maximized )
-    : m_pWindowProps( std::make_shared<WindowProperties>( t_title, t_width, t_height, t_vsync, t_maximized ) )
     : m_pWindowProps( std::make_shared<WindowProperties>( t_title, t_width, t_height, t_vsync, t_maximized ) )
 {
 
@@ -145,7 +144,7 @@ void Window::setWindow( SDL_Window* wnd )
   m_window = wnd;
 }
 
-auto Window::getWindowProps() -> WindowProperties* auto Window::getWindowProps() -> WindowProperties*
+auto Window::getWindowProps() -> WindowProperties*
 {
   return m_pWindowProps.get();
 }
@@ -171,6 +170,4 @@ void Window::createLuaBindings( sol::state& lua )
     "getWidth",
     []( Window& self ) { return self.getWidth(); } );
 }
-
-} // namespace window
 } // namespace window

@@ -9,7 +9,6 @@
 
 namespace core
 {
-
 struct RigidbodyData
 {
   physics::RigidbodyType type;

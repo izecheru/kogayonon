@@ -393,7 +393,7 @@ void gui::Viewport::drawEntityMenu()
               core::RigidbodyComponent{
                 .data{ .type = physics::RigidbodyType::Dynamic,
                        .shape = physics::RigidbodyShape::Box,
-                       .layer = Layers::NON_MOVING,
+                       .layer = Layers::MOVING,
                        .motionType = JPH::EMotionType::Dynamic,
                        .activation = JPH::EActivation::Activate },
                 .body = jolt->createRigidBody(

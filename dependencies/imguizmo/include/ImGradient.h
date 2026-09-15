@@ -1,6 +1,5 @@
 // https://github.com/CedricGuillemet/ImGuizmo
 // v1.92.5 WIP
-// v1.92.5 WIP
 //
 // The MIT License(MIT)
 //
@@ -32,15 +31,15 @@ struct ImVec2;
 
 namespace ImGradient
 {
-struct Delegate
-{
-  virtual size_t GetPointCount() = 0;
-  virtual ImVec4* GetPoints() = 0;
-  virtual int EditPoint( int pointIndex, ImVec4 value ) = 0;
-  virtual ImVec4 GetPoint( float t ) = 0;
-  virtual void AddPoint( ImVec4 value ) = 0;
-  virtual ~Delegate() = default;
-};
+   struct Delegate
+   {
+      virtual size_t GetPointCount() = 0;
+      virtual ImVec4* GetPoints() = 0;
+      virtual int EditPoint(int pointIndex, ImVec4 value) = 0;
+      virtual ImVec4 GetPoint(float t) = 0;
+      virtual void AddPoint(ImVec4 value) = 0;
+      virtual ~Delegate() = default;
+   };
 
-bool Edit( Delegate& delegate, const ImVec2& size, int& selection );
-} // namespace ImGradient
+   bool Edit(Delegate& delegate, const ImVec2& size, int& selection);
+}

@@ -1,8 +1,10 @@
 #include "core/scene/scene_event_handler.hpp"
-#include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
+#include "core/ecs/main_registry.hpp"
 #include "core/event/scene_events.hpp"
 #include "core/scene/scene.hpp"
+#include "core/event/event.hpp"
+#include "core/ecs/registry.hpp"
 #include "core/scene/scene_manager.hpp"
 
 core::SceneEventHandler::SceneEventHandler( EventDispatcher* pDispatcher )

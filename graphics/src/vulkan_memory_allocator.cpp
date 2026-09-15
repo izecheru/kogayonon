@@ -42,13 +42,13 @@ void graphics::VulkanMemoryAllocator::createBuffer( VulkanBuffer& vulkanBuffer,
 
   if ( !bufferName.empty() )
   {
-    KINFO( "[BUFF_ALLOC] {} {}", bufferName, formatSize( static_cast<double>( createInfo.size ) ) );
+    KINFO( "[Buffer] {} {}", bufferName, formatSize( static_cast<double>( createInfo.size ) ) );
     setName( bufferName, vulkanBuffer.allocation );
   }
   else
   {
 
-    KINFO( "[BUFF_ALLOC] {}", formatSize( static_cast<double>( createInfo.size ) ) );
+    KINFO( "[Buffer] {}", formatSize( static_cast<double>( createInfo.size ) ) );
   }
 }
 
@@ -72,12 +72,12 @@ void graphics::VulkanMemoryAllocator::createImage( VkImage& image,
 
   if ( !imageName.empty() )
   {
-    KINFO( "[IMG_ALLOC] {} size {}", imageName, formatSize( static_cast<double>( allocation->GetSize() ) ) );
+    KINFO( "[Image] {} size {}", imageName, formatSize( static_cast<double>( allocation->GetSize() ) ) );
     setName( imageName, allocation );
   }
   else
   {
-    KINFO( "[IMG_ALLOC] size {}", formatSize( static_cast<double>( allocation->GetSize() ) ) );
+    KINFO( "[Image] size {}", formatSize( static_cast<double>( allocation->GetSize() ) ) );
   }
 }
 
@@ -160,7 +160,7 @@ auto graphics::VulkanMemoryAllocator::destroyImage( VkImage& image, VmaAllocatio
   auto info = getAllocInfo( allocation );
   if ( info.pName )
   {
-    KINFO( "[IMG_DEALLOC] {}, size {}", info.pName, formatSize( info.size ) );
+    KINFO( "[~Image] {}, size {}", info.pName, formatSize( info.size ) );
   }
 
   vmaDestroyImage( m_allocator, image, allocation );
@@ -201,7 +201,7 @@ auto graphics::VulkanMemoryAllocator::destroyBuffer( VulkanBuffer& buff ) -> voi
 
   if ( info.pName )
   {
-    KINFO( "[BUFF_DEALLOC] {}, size {}", info.pName, formatSize( info.size ) );
+    KINFO( "[~Buffer] {}, size {}", info.pName, formatSize( info.size ) );
   }
 
   vmaDestroyBuffer( m_allocator, buff.vkBuffer, buff.allocation );

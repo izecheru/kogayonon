@@ -9,7 +9,7 @@
 // many thanks to this man on github https://github.com/skaarj1989/entt-meets-sol2
 // he defined those functions and i just had to understand them and from there try to implement my own
 
-namespace core namespace core
+namespace core
 {
 /**
  * @brief Get the entt::id_type of the sol::object
@@ -111,5 +111,4 @@ static inline auto invokeMetaFunc( entt::id_type typeId, entt::id_type funcId, A
   return invokeMetaFunc( entt::resolve( typeId ), funcId, std::forward<Args>( args )... );
 }
 
-} // namespace core
 } // namespace core

@@ -241,7 +241,7 @@ public:
     -> void;
   auto createDescriptorSet() -> void;
   auto allocateDescriptorSet( VkDescriptorSet& descriptor, VkDescriptorSetAllocateInfo& info ) const -> void;
-  auto updateDescriptorSet( std::initializer_list<VkWriteDescriptorSet> writes,
+  auto updateDescriptorSet( std::vector<VkWriteDescriptorSet> writes,
                             uint32_t writeCount = 1,
                             uint32_t copyCount = 0 ) const -> void;
 
@@ -401,6 +401,7 @@ public:
 
   auto getDeviceProperties() const -> VkPhysicalDeviceProperties;
   auto getDeviceMemoryProperties() const -> VkPhysicalDeviceMemoryProperties;
+  auto getAllocInfo( VmaAllocation allocation ) const -> VmaAllocationInfo;
 
 private:
   auto createDeviceCommandPool() -> void;
@@ -411,7 +412,6 @@ private:
   auto vulkanTypeToObject() const -> VkObjectType;
 
   auto formatSize( VkDeviceSize size ) -> std::string;
-  auto getAllocInfo( VmaAllocation allocation ) const -> VmaAllocationInfo;
 
   auto findQueueFamilies( VkPhysicalDevice& device ) -> QueueFamilyIndices;
 

@@ -7,7 +7,9 @@
 .idea/
 html/
 latex/
-engine_resources/*
+engine_resources/models
+engine_resources/textures
+engine_resources/fonts
 
 # User-specific files
 *.rsuser

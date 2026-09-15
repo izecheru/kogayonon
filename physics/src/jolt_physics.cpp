@@ -1,4 +1,5 @@
 #include "physics/jolt_physics.hpp"
+#include "utilities/utils/utils.hpp"
 #include <cstdarg>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -18,7 +19,7 @@ static void TraceImpl( const char* inFMT, ... )
 }
 
 physics::JoltPhysics::JoltPhysics()
-    : m_deltaUpdate( 1.0f / 60.0f )
+    : m_deltaUpdate{ 1.0f / 60.0f }
     , m_isRunning{ false }
     , m_timeAccumulator{ 0.0f }
 {
@@ -68,14 +69,17 @@ physics::JoltPhysics::~JoltPhysics()
 void physics::JoltPhysics::onUpdate( float delta )
 {
   if ( !m_isRunning )
+  {
     return;
+  }
 
   m_timeAccumulator += delta;
 
-  // while (m_timeAccumulator >= m_deltaUpdate) {
-  m_physicsSystem.Update( m_deltaUpdate, 1, m_tempAlloc.get(), m_jobSystem.get() );
-  //  m_timeAccumulator = 0;
-  //}
+  while ( m_timeAccumulator >= m_deltaUpdate )
+  {
+    m_physicsSystem.Update( m_deltaUpdate, 1, m_tempAlloc.get(), m_jobSystem.get() );
+    m_timeAccumulator -= m_deltaUpdate;
+  }
 }
 
 bool physics::JoltPhysics::isRunning() const

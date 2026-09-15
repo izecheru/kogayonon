@@ -70,7 +70,7 @@ auto graphics::VulkanDevice::allocateDescriptorSet( VkDescriptorSet& descriptor,
   VK_CALL( vkAllocateDescriptorSets( m_platform.device, &info, &descriptor ) );
 }
 
-auto graphics::VulkanDevice::updateDescriptorSet( std::initializer_list<VkWriteDescriptorSet> writes,
+auto graphics::VulkanDevice::updateDescriptorSet( std::vector<VkWriteDescriptorSet> writes,
                                                   uint32_t writeCount,
                                                   uint32_t copyCount ) const -> void
 {
@@ -592,7 +592,7 @@ void graphics::VulkanDevice::createBuffer( VulkanBuffer& vulkanBuffer,
 
   if ( !bufferName.empty() )
   {
-    KINFO( "[BUFF_ALLOC] {} {}", bufferName, formatSize( static_cast<double>( createInfo.size ) ) );
+    KINFO( "[Buffer] {} {}", bufferName, formatSize( static_cast<double>( createInfo.size ) ) );
     setVMAllocationName( bufferName, vulkanBuffer.vmaAllocation );
     setVulkanDebugName(
       vulkanTypeToObject<VkBuffer>(), reinterpret_cast<uint64_t>( vulkanBuffer.vkBuffer ), bufferName );
@@ -600,7 +600,7 @@ void graphics::VulkanDevice::createBuffer( VulkanBuffer& vulkanBuffer,
   else
   {
 
-    KINFO( "[BUFF_ALLOC] {}", formatSize( static_cast<double>( createInfo.size ) ) );
+    KINFO( "[Buffer] {}", formatSize( static_cast<double>( createInfo.size ) ) );
   }
 }
 
@@ -623,24 +623,18 @@ void graphics::VulkanDevice::createImage( VkImage& image,
                                           VmaAllocation& allocation,
                                           std::string_view imageName )
 {
-  auto imgExtent = imageCreateInfo.extent;
-  auto mipLevels =
-    static_cast<uint32_t>( std::floor( std::log2( std::max( imgExtent.width, imgExtent.height ) ) ) ) + 1;
-
-  imageCreateInfo.mipLevels = mipLevels;
-
   VK_CALL( vmaCreateImage( m_allocator, &imageCreateInfo, &usage, &image, &allocation, nullptr ) );
 
   std::string size = formatSize( static_cast<double>( allocation->GetSize() ) );
   if ( !imageName.empty() )
   {
-    KINFO( "[IMG_ALLOC] {} size {}", imageName, size );
+    KINFO( "[Image] {} size {}", imageName, size );
     setVMAllocationName( imageName, allocation );
     setVulkanDebugName( vulkanTypeToObject<VkImage>(), reinterpret_cast<uint64_t>( image ), imageName );
   }
   else
   {
-    KINFO( "[IMG_ALLOC] size {}", size );
+    KINFO( "[Image] size {}", size );
   }
 }
 
@@ -704,7 +698,7 @@ auto graphics::VulkanDevice::destroyImage( VkImage& image, VmaAllocation& alloca
   auto info = getAllocInfo( allocation );
   if ( info.pName )
   {
-    KINFO( "[IMG_DEALLOC] {}, size {}", info.pName, formatSize( info.size ) );
+    KINFO( "[~Image] {} size {}", info.pName, formatSize( info.size ) );
   }
 
   vmaDestroyImage( m_allocator, image, allocation );
@@ -725,7 +719,6 @@ auto graphics::VulkanDevice::printLeaks() const -> void
   VmaAllocatorCreateInfo info{};
   vmaBuildStatsString( m_allocator, &statsString, VK_TRUE );
   printf_s( "%s", statsString );
-  // K_INFO( statsString );
   vmaFreeStatsString( m_allocator, statsString );
 }
 
@@ -748,11 +741,11 @@ auto graphics::VulkanDevice::destroyBuffer( VulkanBuffer& buff ) -> void
 
   if ( info.pName )
   {
-    KINFO( "[BUFF_DEALLOC] {}, size {}", info.pName, formatSize( info.size ) );
+    KINFO( "[~Buffer] {} size {}", info.pName, formatSize( info.size ) );
   }
   else
   {
-    KINFO( "[BUFF_DEALLOC] size {}", formatSize( info.size ) );
+    KINFO( "[~Buffer] size {}", formatSize( info.size ) );
   }
 
   vmaDestroyBuffer( m_allocator, buff.vkBuffer, buff.vmaAllocation );
@@ -767,7 +760,6 @@ auto graphics::VulkanDevice::destroyBuffer( FrameInFlightVulkanBuffer& buff ) ->
 }
 
 auto graphics::VulkanDevice::getAllocInfo( VmaAllocation allocation ) const -> VmaAllocationInfo
-
 {
   VmaAllocationInfo info{};
   vmaGetAllocationInfo( m_allocator, allocation, &info );
@@ -901,25 +893,6 @@ auto graphics::VulkanDevice::createFence( VkFence& fence, VkFenceCreateInfo info
   VK_CALL( vkCreateFence( m_platform.device, &info, nullptr, &fence ) );
 }
 
-// auto graphics::VulkanDevice::endSingleTimeCommands( VkCommandBuffer commandBuffer, VkQueue queue, VkFence fence )
-// const
-//   -> void
-//{
-//   vkEndCommandBuffer( commandBuffer );
-//
-//   VkSubmitInfo submitInfo{};
-//   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-//   submitInfo.commandBufferCount = 1;
-//   submitInfo.pCommandBuffers = &commandBuffer;
-//
-//   VK_CALL( vkQueueSubmit( queue, 1, &submitInfo, fence ) );
-//
-//   vkWaitForFences( m_platform.device, 1, &fence, VK_TRUE, UINT64_MAX );
-//   vkResetFences( m_platform.device, 1, &fence );
-//
-//   vkFreeCommandBuffers( m_platform.device, m_commandPool, 1, &commandBuffer );
-// }
-
 auto graphics::VulkanDevice::getCommandPool() -> VkCommandPool
 {
   return m_commandPool;
@@ -1023,7 +996,7 @@ auto graphics::VulkanDevice::createImageView( VkImageView& imageView,
 
 auto graphics::VulkanDevice::transitionImageLayout( VkImage image, VkImageMemoryBarrier2 imageBarrier ) -> void
 {
-  VkCommandBuffer commandBuffer = beginSingleTimeCommands( m_commandPool );
+  VkCommandBuffer commandBuffer = beginSingleTimeCommands( m_transferCommandPool );
 
   VkImageAspectFlags aspect{ VK_IMAGE_ASPECT_COLOR_BIT };
   if ( imageBarrier.oldLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL )
@@ -1036,7 +1009,7 @@ auto graphics::VulkanDevice::transitionImageLayout( VkImage image, VkImageMemory
 
   vkCmdPipelineBarrier2( commandBuffer, &transferDepInfo );
 
-  endSingleTimeCommands( commandBuffer, getGraphicsQueue().handle, m_commandPool );
+  endSingleTimeCommands( commandBuffer, getTransferQueue().handle, m_transferCommandPool );
 }
 
 auto graphics::VulkanDevice::transitionImageLayout( VulkanImage image, VkImageMemoryBarrier2 imageBarrier ) -> void
@@ -1065,7 +1038,7 @@ auto graphics::VulkanDevice::transitionImageLayout( VulkanImage image,
 auto graphics::VulkanDevice::copyBufferToImage(
   VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkImageMemoryBarrier2 imageBarrier ) -> void
 {
-  VkCommandBuffer commandBuffer = beginSingleTimeCommands( m_commandPool );
+  VkCommandBuffer commandBuffer = beginSingleTimeCommands( m_transferCommandPool );
 
   VkBufferImageCopy region{};
   region.bufferOffset = 0;
@@ -1088,7 +1061,7 @@ auto graphics::VulkanDevice::copyBufferToImage(
 
   vkCmdPipelineBarrier2( commandBuffer, &dependency );
 
-  endSingleTimeCommands( commandBuffer, getGraphicsQueue().handle, m_commandPool );
+  endSingleTimeCommands( commandBuffer, getTransferQueue().handle, m_transferCommandPool );
 }
 
 auto graphics::VulkanDevice::copyImageToBuffer( VkImage image, VkBuffer buffer, VkOffset3D offset, VkExtent3D extent )

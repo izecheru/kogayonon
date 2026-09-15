@@ -183,6 +183,7 @@ auto editor::Editor::onUpdate() -> void
   jolt->onUpdate( delta );
   taskManager->onUpdate();
   assetManager->onUpdate();
+  sceneManager->getCurrentScene()->onUpdate();
   m_vulkanRenderer->onUpdate();
 
   timeTracker->update( DELTA_TIME );
