@@ -23,6 +23,7 @@ core::AssetManager::AssetManager( graphics::VulkanContext* vkCtx )
 core::AssetManager::~AssetManager()
 {
   m_vkCtx->device->waitIdle();
+
   m_vkCtx->device->destroyBuffer( m_materialsBuffer );
   m_vkCtx->device->destroySampler( m_textureSampler );
   m_vkCtx->device->destroyDescriptorSetLayout( m_bindlessTexturesDescriptor.layout );
@@ -347,7 +348,7 @@ auto core::AssetManager::initDescriptors() -> void
     allocateBindlessDescriptorSet();
 
     // materials
-    createMaterialsBuffers( 500 * sizeof( resources::Material ) );
+    createMaterialsBuffers( 1000 * sizeof( resources::Material ) );
     createMaterialsDescriptorSetLayout();
     allocateMaterialsDescriptorSet();
 
