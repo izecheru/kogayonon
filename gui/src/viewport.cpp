@@ -1,4 +1,5 @@
 #include "gui/imgui_windows/viewport.hpp"
+#include "utilities/task_manager/task_manager.hpp"
 #include <cmath>
 #include "ImOGuizmo.hpp"
 #include "SDL2/SDL.h"
@@ -404,6 +405,61 @@ void gui::Viewport::drawEntityMenu()
                     transform.scale.y,
                     transform.scale.z }, // TODO(kogayonon) detemrine size somehow, with a bounding box i guess
                   transform.getOrientation() ) } );
+
+            m_entityMenu = false;
+            m_mouseCoords = { 0.0f, 0.0f };
+          }
+
+          if ( ImGui::MenuItem( "Static rigid body (terrain)" ) )
+          {
+            auto jolt = core::MainRegistry::getInstance().getJoltPhysics();
+            core::TransformComponent& transform =
+              scene->getRegistry()->getComponent<core::TransformComponent>( currentEntity );
+
+            core::MeshComponent& meshComponent =
+              scene->getRegistry()->getComponent<core::MeshComponent>( currentEntity );
+
+            utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
+
+            auto callback = taskManager->addTask( [=, meshPtr = meshComponent.pMesh]() {
+              JPH::VertexList vertices{};
+              JPH::IndexedTriangleList indices{};
+
+              auto& vert = meshPtr->getVertices();
+              auto& ind = meshPtr->getIndices();
+
+              vertices.reserve( vert.size() );
+              indices.reserve( ind.size() / 3 );
+
+              for ( const resources::Vertex& v : vert )
+              {
+                vertices.push_back( { v.translation.x, v.translation.y, v.translation.z } );
+              }
+
+              for ( size_t i = 0; i < ind.size(); i += 3 )
+              {
+                indices.push_back( { ind[i], ind[i + 1], ind[i + 2] } );
+              }
+
+              {
+                std::lock_guard lock{ scene->getRegistryMutex() };
+                scene->getRegistry()->addComponent<core::RigidbodyComponent>(
+                  currentEntity,
+                  core::RigidbodyComponent{
+                    .data = { .type = physics::RigidbodyType::Static },
+                    .body = jolt->createRigidTerrainBody(
+                      vertices,
+                      indices,
+                      { transform.translation.x, transform.translation.y, transform.translation.z },
+                      { transform.scale.x,
+                        transform.scale.y,
+                        transform.scale.z }, // TODO(kogayonon) detemrine size somehow, with a bounding box i guess
+                      transform.getOrientation() ) } );
+
+                KINFO( "rigid body created" );
+              }
+            } );
+            taskManager->addTaskSetToPipe( callback );
 
             m_entityMenu = false;
             m_mouseCoords = { 0.0f, 0.0f };

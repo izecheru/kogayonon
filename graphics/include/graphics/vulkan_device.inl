@@ -107,41 +107,17 @@ inline auto graphics::VulkanDevice::updateBuffer( std::vector<T>& data,
 template <typename T>
 inline auto graphics::VulkanDevice::copyFromBuffer( T& data, VulkanBuffer& buffer ) -> void
 {
-  VmaAllocationInfo info = getAllocInfo( buffer.vmaAllocation );
-  if ( info.pMappedData )
-  {
-    std::memcpy( &data, info.pMappedData, sizeof( T ) );
-  }
-  else
-  {
-    vmaCopyMemoryToAllocation( m_allocator, &data, buffer.vmaAllocation, 0, sizeof( T ) );
-  }
+  vmaCopyMemoryToAllocation( m_allocator, &data, buffer.vmaAllocation, 0, sizeof( T ) );
 }
 
 template <typename T>
 inline auto graphics::VulkanDevice::copyToBuffer( T& data, VulkanBuffer& buffer ) -> void
 {
-  VmaAllocationInfo info = getAllocInfo( buffer.vmaAllocation );
-  if ( info.pMappedData )
-  {
-    std::memcpy( info.pMappedData, &data, sizeof( T ) );
-  }
-  else
-  {
-    vmaCopyMemoryToAllocation( m_allocator, &data, buffer.vmaAllocation, 0, sizeof( T ) );
-  }
+  vmaCopyMemoryToAllocation( m_allocator, &data, buffer.vmaAllocation, 0, sizeof( T ) );
 }
 
 template <typename T>
 inline auto graphics::VulkanDevice::copyToBuffer( std::vector<T>& data, VulkanBuffer& buffer ) -> void
 {
-  VmaAllocationInfo info = getAllocInfo( buffer.vmaAllocation );
-  if ( info.pMappedData )
-  {
-    std::memcpy( info.pMappedData, data.data(), sizeof( T ) * data.size() );
-  }
-  else
-  {
-    vmaCopyMemoryToAllocation( m_allocator, data.data(), buffer.vmaAllocation, 0, sizeof( T ) * data.size() );
-  }
+  vmaCopyMemoryToAllocation( m_allocator, data.data(), buffer.vmaAllocation, 0, sizeof( T ) * data.size() );
 }

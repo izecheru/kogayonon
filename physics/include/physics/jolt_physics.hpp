@@ -8,6 +8,9 @@
 
 #include <Jolt/Jolt.h>
 
+#include <Jolt/Physics/Collision/ObjectLayerPairFilterTable.h>
+#include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayerInterfaceTable.h>
+
 #include <Jolt/Core/Factory.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/Memory.h>
@@ -173,6 +176,12 @@ public:
   void start();
   void stop();
 
+  auto createRigidTerrainBody( const JPH::VertexList& vertices,
+                               const JPH::IndexedTriangleList& indices,
+                               const glm::vec3& pos,
+                               const glm::vec3& size,
+                               const glm::quat& rotation ) -> JPH::BodyID;
+
   auto createRigidBody( const RigidbodyType& type,
                         const RigidbodyShape& shape,
                         const glm::vec3& pos,
@@ -184,7 +193,7 @@ public:
   bool isBodyActive( JPH::BodyID& body );
 
 private:
-  float m_isRunning;
+  bool m_isRunning;
   float m_deltaUpdate;
   JPH::PhysicsSystem m_physicsSystem;
   std::unique_ptr<JPH::TempAllocatorImpl> m_tempAlloc;
@@ -194,7 +203,7 @@ private:
   ObjectVsBroadPhaseLayerFilterImpl m_objectVsBroadphaseLayerFilter;
   MyBodyActivationListener m_bodyActivationListener;
   MyContactListener m_contactListener;
-  ObjectLayerPairFilterImpl m_objectVsLayerFilter;
+  std::unique_ptr<JPH::ObjectLayerPairFilterTable> m_objectLayerPairFilterTable;
 
   std::queue<std::function<void()>> m_deletionQueue;
 

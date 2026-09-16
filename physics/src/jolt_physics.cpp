@@ -1,4 +1,7 @@
 #include "physics/jolt_physics.hpp"
+#include "Jolt/Geometry/IndexedTriangle.h"
+#include "Jolt/Physics/Collision/Shape/MeshShape.h"
+#include "Jolt/Physics/Collision/Shape/ScaledShape.h"
 #include "utilities/utils/utils.hpp"
 #include <cstdarg>
 #include <glm/gtc/constants.hpp>
@@ -29,7 +32,7 @@ physics::JoltPhysics::JoltPhysics()
   Factory::sInstance = new Factory();
   RegisterTypes();
 
-  m_tempAlloc = std::make_unique<JPH::TempAllocatorImpl>( 50 * 1024 * 1024 );
+  m_tempAlloc = std::make_unique<JPH::TempAllocatorImpl>( 200 * 1024 * 1024 );
 
   m_jobSystem = std::make_unique<JPH::JobSystemThreadPool>(
     cMaxPhysicsJobs, cMaxPhysicsBarriers, std::thread::hardware_concurrency() - 1 );
@@ -39,13 +42,17 @@ physics::JoltPhysics::JoltPhysics()
   const uint cMaxBodyPairs = 1024;
   const uint cMaxContactConstraints = 1024;
 
+  m_objectLayerPairFilterTable = std::make_unique<JPH::ObjectLayerPairFilterTable>( Layers::NUM_LAYERS );
+  m_objectLayerPairFilterTable->EnableCollision( Layers::MOVING, Layers::NON_MOVING );
+  m_objectLayerPairFilterTable->EnableCollision( Layers::MOVING, Layers::MOVING );
+
   m_physicsSystem.Init( cMaxBodies,
                         cNumBodyMutexes,
                         cMaxBodyPairs,
                         cMaxContactConstraints,
                         m_broadPhaseLayerInterface,
                         m_objectVsBroadphaseLayerFilter,
-                        m_objectVsLayerFilter );
+                        *m_objectLayerPairFilterTable.get() );
 
   m_physicsSystem.SetBodyActivationListener( &m_bodyActivationListener );
   m_physicsSystem.SetContactListener( &m_contactListener );
@@ -205,4 +212,39 @@ bool physics::JoltPhysics::isBodyActive( JPH::BodyID& body )
 {
   auto& bodyInterface = m_physicsSystem.GetBodyInterface();
   return bodyInterface.IsActive( body );
+}
+
+auto physics::JoltPhysics::createRigidTerrainBody( const JPH::VertexList& vertices,
+                                                   const JPH::IndexedTriangleList& indices,
+                                                   const glm::vec3& pos,
+                                                   const glm::vec3& size,
+                                                   const glm::quat& rotation ) -> JPH::BodyID
+{
+  JPH::MeshShapeSettings meshSettings{ vertices, indices };
+  JPH::ShapeSettings::ShapeResult meshResult = meshSettings.Create();
+
+  if ( !meshResult.IsValid() )
+  {
+    KERROR( "Mesh shape creation failed: {}", meshResult.GetError().c_str() );
+  }
+
+  JPH::ScaledShapeSettings scaledSettings{ meshResult.Get(), JPH::Vec3{ size.x, size.y, size.z } };
+  JPH::ShapeSettings::ShapeResult shapeResult = scaledSettings.Create();
+
+  if ( !shapeResult.IsValid() )
+  {
+    KERROR( "Scaled terrain shape creation failed: {}", shapeResult.GetError().c_str() );
+  }
+
+  BodyCreationSettings settings( shapeResult.Get(),
+                                 RVec3{ pos.x, pos.y, pos.z },
+                                 Quat{ rotation.x, rotation.y, rotation.z, rotation.w },
+                                 JPH::EMotionType::Static,
+                                 Layers::NON_MOVING );
+
+  settings.mMotionQuality = JPH::EMotionQuality::LinearCast;
+
+  JPH::BodyID bodyId = m_physicsSystem.GetBodyInterface().CreateAndAddBody( settings, JPH::EActivation::DontActivate );
+
+  return bodyId;
 }

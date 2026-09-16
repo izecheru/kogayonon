@@ -177,12 +177,12 @@ auto core::AssetManager::loadTextures( const std::vector<std::tuple<std::string,
 
   // since i want to use a single staging buffer we will use offsets and copy the data at those offsets
   graphics::VulkanBuffer stageBuffer = m_vkCtx->device->createStagingBuffer( stageBufferInfo, stageAllocInfo );
+
   VkDeviceSize currentOffset{ 0 };
 
   for ( auto& img : imageData )
   {
-    vmaCopyMemoryToAllocation(
-      m_vkCtx->device->getAllocator(), img.data, stageBuffer.vmaAllocation, currentOffset, img.size );
+    m_vkCtx->device->copyMemoryToAllocation( img.data, stageBuffer.vmaAllocation, currentOffset, img.size );
 
     VkBufferImageCopy region{};
     region.bufferOffset = currentOffset;
@@ -209,11 +209,14 @@ auto core::AssetManager::loadTextures( const std::vector<std::tuple<std::string,
   vkCmdPipelineBarrier2( commandBuffer, &after );
 
   VkQueue graphicsQueue = m_vkCtx->device->getGraphicsQueue().handle;
+
+  // this also waits on the queue since the staging buffer MUST live as long
+  // as the commands registered in that command buffer do
   m_vkCtx->device->endSingleTimeCommands( commandBuffer, graphicsQueue, commandPool );
 
   m_vkCtx->device->destroyBuffer( stageBuffer );
 
-  for ( const auto& img : imageData )
+  for ( ImageData& img : imageData )
   {
     updateBindlessTextures( img.pTexture );
     stbi_image_free( img.data );
@@ -223,7 +226,7 @@ auto core::AssetManager::loadTextures( const std::vector<std::tuple<std::string,
 auto core::AssetManager::loadTexture( const std::string& textureName, const std::string& texturePath )
   -> resources::Texture*
 {
-  assert( std::filesystem::exists( texturePath ) && "texture file MUST EXIST" );
+  KASSERT( std::filesystem::exists( texturePath ) && "texture file MUST EXIST" );
   ZoneScopedN( "AssetManager::loadTexture" );
 
   if ( m_loadedTextures.contains( texturePath ) )
@@ -295,7 +298,7 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
 
   m_vkCtx->device->transitionImageLayout( texture->getImage(), transferLayoutBarrier );
 
-  vmaCopyMemoryToAllocation( m_vkCtx->device->getAllocator(), pixels, stageBuffer.vmaAllocation, 0, imageSize );
+  m_vkCtx->device->copyMemoryToAllocation( pixels, stageBuffer.vmaAllocation, 0, imageSize );
 
   stbi_image_free( pixels );
 
@@ -461,12 +464,8 @@ auto core::AssetManager::createIndexBuffer( resources::Mesh* pMesh ) -> void
   VmaAllocationCreateInfo stageAllocInfo{};
   stageAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 
-  auto stageBuffer = m_vkCtx->device->createStagingBuffer( stageBufferInfo, stageAllocInfo );
-
-  void* data;
-  vmaMapMemory( m_vkCtx->device->getAllocator(), stageBuffer.vmaAllocation, &data );
-  memcpy( data, indices.data(), (size_t)bufferSize );
-  vmaUnmapMemory( m_vkCtx->device->getAllocator(), stageBuffer.vmaAllocation );
+  graphics::VulkanBuffer stageBuffer = m_vkCtx->device->createStagingBuffer( stageBufferInfo, stageAllocInfo );
+  m_vkCtx->device->copyMemoryToAllocation( indices.data(), stageBuffer.vmaAllocation, 0, bufferSize );
 
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -478,10 +477,9 @@ auto core::AssetManager::createIndexBuffer( resources::Mesh* pMesh ) -> void
 
   auto meshPath = std::filesystem::path{ pMesh->getPath() };
   auto name = std::string{ meshPath.stem().string() + "_indicesBuff" };
+
   m_vkCtx->device->createBuffer( pMesh->getIndicesBufferObject(), bufferInfo, vmaAllocInfo, name );
-
   m_vkCtx->device->copyBuffer( stageBuffer.vkBuffer, pMesh->getIndicesBufferObject().vkBuffer, bufferSize );
-
   m_vkCtx->device->destroyBuffer( stageBuffer );
 }
 
@@ -500,12 +498,9 @@ auto core::AssetManager::createVertexBuffer( resources::Mesh* pMesh ) -> void
   VmaAllocationCreateInfo stageAllocInfo{};
   stageAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 
-  auto stageBuffer = m_vkCtx->device->createStagingBuffer( stageBufferInfo, stageAllocInfo );
+  graphics::VulkanBuffer stageBuffer = m_vkCtx->device->createStagingBuffer( stageBufferInfo, stageAllocInfo );
 
-  void* data;
-  vmaMapMemory( m_vkCtx->device->getAllocator(), stageBuffer.vmaAllocation, &data );
-  memcpy( data, vertices.data(), (size_t)bufferSize );
-  vmaUnmapMemory( m_vkCtx->device->getAllocator(), stageBuffer.vmaAllocation );
+  m_vkCtx->device->copyMemoryToAllocation( vertices.data(), stageBuffer.vmaAllocation, 0, bufferSize );
 
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -516,12 +511,11 @@ auto core::AssetManager::createVertexBuffer( resources::Mesh* pMesh ) -> void
   vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
   vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-  auto meshPath = std::filesystem::path{ pMesh->getPath() };
-  auto name = std::string{ meshPath.stem().string() + "_verticesBuff" };
+  std::filesystem::path meshPath = pMesh->getPath();
+  std::string name = meshPath.stem().string() + "_verticesBuff";
+
   m_vkCtx->device->createBuffer( pMesh->getVertexBufferObject(), bufferInfo, vmaAllocInfo, name );
-
   m_vkCtx->device->copyBuffer( stageBuffer.vkBuffer, pMesh->getVertexBufferObject().vkBuffer, bufferSize );
-
   m_vkCtx->device->destroyBuffer( stageBuffer );
 }
 
@@ -600,7 +594,8 @@ auto core::AssetManager::updateBindlessTextures( const std::vector<resources::Te
       .dstArrayElement = m_bindlessTexturesIndex,
       .descriptorCount = 1,
       .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-      .pImageInfo = &imageInfo.back(),
+      // careful with this, not safe
+      .pImageInfo = &imageInfo[std::size( imageInfo ) - 1],
     } );
 
     tex->setIndex( m_bindlessTexturesIndex );
@@ -639,7 +634,7 @@ auto core::AssetManager::updateBindlessTextures( resources::Texture* pTexture ) 
 
 auto core::AssetManager::createMaterialsDescriptorSet() -> void
 {
-  uint32_t descriptorCount{ 500 };
+  uint32_t descriptorCount{ 1000 };
 
   VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{};
   variableCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
@@ -661,7 +656,7 @@ auto core::AssetManager::createMaterialsDescriptorSetLayout() -> void
 {
   VkDescriptorSetLayoutBinding bufferLayoutBinding{};
   bufferLayoutBinding.binding = 0;
-  bufferLayoutBinding.descriptorCount = 500;
+  bufferLayoutBinding.descriptorCount = 1000;
   bufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
   bufferLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
@@ -686,19 +681,20 @@ auto core::AssetManager::createMaterialsDescriptorSetLayout() -> void
 
 auto core::AssetManager::allocateMaterialsDescriptorSet() -> void
 {
-  uint32_t descriptorCount{ 500 };
+  uint32_t descriptorCount{ 1000 };
 
   VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{
     .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
     .descriptorSetCount = 1,
     .pDescriptorCounts = &descriptorCount };
 
-  VkDescriptorSetAllocateInfo allocInfo{ .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-
-  allocInfo.descriptorPool = m_vkCtx->globalDescriptorPool;
-  allocInfo.descriptorSetCount = 1;
-  allocInfo.pSetLayouts = &m_materialsDescriptor.layout;
-  allocInfo.pNext = &variableCountInfo;
+  VkDescriptorSetAllocateInfo allocInfo{
+    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+    .pNext = &variableCountInfo,
+    .descriptorPool = m_vkCtx->globalDescriptorPool,
+    .descriptorSetCount = 1,
+    .pSetLayouts = &m_materialsDescriptor.layout,
+  };
 
   m_vkCtx->device->allocateDescriptorSet( m_materialsDescriptor.set, allocInfo );
 }
@@ -718,9 +714,8 @@ auto core::AssetManager::createMaterialsBuffers( VkDeviceSize size ) -> void
 
 auto core::AssetManager::updateMaterialsBuffer() -> void
 {
-  m_vkCtx->device->destroyBuffer( m_materialsBuffer );
-  createMaterialsBuffers( m_materials.size() * sizeof( resources::Material ) );
   uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
+
   VkDescriptorBufferInfo buffInfo{
     .buffer = m_materialsBuffer.buffers.at( currentFrame ).vkBuffer,
     .offset = 0,
@@ -793,6 +788,7 @@ auto core::AssetManager::onUpdate() -> void
   {
     return;
   }
+
   m_readyForUpdate.store( false );
 
   std::vector<ParsedMaterials> batch;

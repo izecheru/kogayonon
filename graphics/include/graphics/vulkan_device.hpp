@@ -169,6 +169,11 @@ public:
 
   auto copyImageToBuffer( VkImage image, VkBuffer buffer, VkOffset3D offset, VkExtent3D extent ) -> void;
 
+  auto copyMemoryToAllocation( const void* pSrcHostPointer,
+                               VmaAllocation dstAllocation,
+                               VkDeviceSize dstAllocationLocalOffset,
+                               VkDeviceSize size ) -> void;
+
   auto copyImageToBuffer( VkImage image,
                           VkCommandBuffer cmdBuffer,
                           VkBuffer buffer,
@@ -241,9 +246,7 @@ public:
     -> void;
   auto createDescriptorSet() -> void;
   auto allocateDescriptorSet( VkDescriptorSet& descriptor, VkDescriptorSetAllocateInfo& info ) const -> void;
-  auto updateDescriptorSet( std::vector<VkWriteDescriptorSet> writes,
-                            uint32_t writeCount = 1,
-                            uint32_t copyCount = 0 ) const -> void;
+  auto updateDescriptorSet( std::vector<VkWriteDescriptorSet> writes, uint32_t copyCount = 0u ) const -> void;
 
   template <typename T>
   auto updateBuffer( std::vector<T>& vectorData, VmaAllocation allocation, VkDeviceSize offset = 0 ) -> void;

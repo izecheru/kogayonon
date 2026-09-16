@@ -55,7 +55,9 @@ Sampler2D shadowmapTexture;
 PushConstant push;
 
 // VERTEX
-[shader( "vertex" )] VertexOutput vertexMain( VertexInput input ) {
+[shader( "vertex" )]
+VertexOutput vertexMain( VertexInput input )
+{
   VertexOutput output;
 
   output.position =
@@ -67,8 +69,9 @@ PushConstant push;
   return output;
 }
 
-  // FRAGMENT
-  [shader( "fragment" )] FragmentOutput fragmentMain( VertexOutput input )
+// FRAGMENT
+[shader( "fragment" )]
+FragmentOutput fragmentMain( VertexOutput input )
 {
   FragmentOutput output;
 
@@ -88,3 +91,4 @@ PushConstant push;
 
   return output;
 }
+

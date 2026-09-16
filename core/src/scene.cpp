@@ -41,12 +41,12 @@ auto core::Scene::getName() const -> std::string
   return m_name;
 }
 
-void core::Scene::changeName( const std::string& name )
+auto core::Scene::changeName( const std::string& name ) -> void
 {
   m_name = name;
 }
 
-void core::Scene::removeEntity( entt::entity ent )
+auto core::Scene::removeEntity( entt::entity ent ) -> void
 {
   m_pRegistry->removeComponent<IdentifierComponent>( ent );
 
@@ -63,7 +63,7 @@ auto core::Scene::addEntity() -> entt::entity
   return ent.getEntityId();
 }
 
-void core::Scene::addMeshToEntity( entt::entity entity, resources::Mesh* pMesh )
+auto core::Scene::addMeshToEntity( entt::entity entity, resources::Mesh* pMesh ) -> void
 {
   std::lock_guard lock{ m_registryMutex };
   m_registryModified = true;
@@ -71,7 +71,6 @@ void core::Scene::addMeshToEntity( entt::entity entity, resources::Mesh* pMesh )
   ent.setType( EntityType::Object );
   ent.replaceComponent<MeshComponent>( MeshComponent{ .pMesh = pMesh } );
 
-  // if we did not setup the transform from somewhere else like deserialized, we initialise a default one
   if ( !ent.hasComponent<TransformComponent>() )
     ent.addComponent<TransformComponent>();
 }
@@ -96,6 +95,11 @@ auto core::Scene::onUpdate() -> void
     physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
 
     if ( !jolt->isRunning() )
+    {
+      return;
+    }
+
+    if ( rigidBodyComponent.data.type == physics::RigidbodyType::Static )
     {
       return;
     }

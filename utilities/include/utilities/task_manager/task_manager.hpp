@@ -63,10 +63,16 @@ public:
 
   template <typename Fn>
     requires std::invocable<Fn>
-  auto addTask( Fn&& fn ) -> CallbackTask*
+  auto addTask( Fn&& fn, bool addToPipe = false ) -> CallbackTask*
   {
     auto task = std::make_unique<CallbackTask>( std::forward<Fn>( fn ) );
     m_tasks.push_back( std::move( task ) );
+
+    if ( addToPipe )
+    {
+      m_taskScheduler.AddTaskSetToPipe( m_tasks.back().get() );
+    }
+
     return m_tasks.back().get();
   }
 

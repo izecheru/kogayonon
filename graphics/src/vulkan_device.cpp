@@ -70,11 +70,10 @@ auto graphics::VulkanDevice::allocateDescriptorSet( VkDescriptorSet& descriptor,
   VK_CALL( vkAllocateDescriptorSets( m_platform.device, &info, &descriptor ) );
 }
 
-auto graphics::VulkanDevice::updateDescriptorSet( std::vector<VkWriteDescriptorSet> writes,
-                                                  uint32_t writeCount,
-                                                  uint32_t copyCount ) const -> void
+auto graphics::VulkanDevice::updateDescriptorSet( std::vector<VkWriteDescriptorSet> writes, uint32_t copyCount ) const
+  -> void
 {
-  vkUpdateDescriptorSets( m_platform.device, writeCount, writes.data(), copyCount, nullptr );
+  vkUpdateDescriptorSets( m_platform.device, writes.size(), writes.data(), copyCount, nullptr );
 }
 
 auto graphics::VulkanDevice::destroyShaderModule( VkShaderModule module ) const -> void
@@ -1243,4 +1242,12 @@ auto graphics::VulkanDevice::label( VkCommandBuffer cmdBuffer, VkDebugUtilsLabel
 auto graphics::VulkanDevice::endLabel( VkCommandBuffer cmdBuffer ) -> void
 {
   // vkCmdEndDebugUtilsLabelEXT( cmdBuffer );
+}
+
+auto graphics::VulkanDevice::copyMemoryToAllocation( const void* pSrcHostPointer,
+                                                     VmaAllocation dstAllocation,
+                                                     VkDeviceSize dstAllocationLocalOffset,
+                                                     VkDeviceSize size ) -> void
+{
+  VK_CALL( vmaCopyMemoryToAllocation( m_allocator, pSrcHostPointer, dstAllocation, dstAllocationLocalOffset, size ) );
 }
