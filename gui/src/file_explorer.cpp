@@ -152,6 +152,26 @@ auto FileExplorerWindow::drawNodes( DirectoryEntry& e ) -> void
       }
       if ( ImGui::BeginPopupContextItem( "##fileMenu" ) )
       {
+        if ( f.path.extension().string() == ".slang" )
+        {
+          if ( ImGui::BeginMenu( "Open with" ) )
+          {
+            if ( ImGui::MenuItem( "Vs Code" ) )
+            {
+              ShellExecute( NULL, "open", "code", f.path.string().c_str(), NULL, SW_HIDE );
+            }
+            if ( ImGui::MenuItem( "Notepad" ) )
+            {
+              ShellExecute( NULL, "open", "notepad", f.path.string().c_str(), NULL, SW_HIDE );
+            }
+            if ( ImGui::MenuItem( "Notepad++" ) )
+            {
+              ShellExecute( NULL, "open", "notepad++", f.path.string().c_str(), NULL, SW_HIDE );
+            }
+
+            ImGui::EndMenu();
+          }
+        }
         if ( ImGui::MenuItem( "Delete file" ) )
         {
           std::filesystem::remove( f.path );
