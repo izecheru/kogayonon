@@ -15,8 +15,8 @@
 #include "utilities/fonts/materialdesign.hpp"
 #include "utilities/task_manager/task.hpp"
 #include "utilities/task_manager/task_manager.hpp"
-
 #include "utilities/utils/utils.hpp"
+#include "utilities/fonts/google_materialdesign.hpp"
 
 using namespace core;
 using namespace utilities;
@@ -140,9 +140,10 @@ auto FileExplorerWindow::drawNodes( DirectoryEntry& e ) -> void
   for ( const auto& f : e.files )
   {
     ImGui::PushID( f.path.string().c_str() );
+
     if ( ImGui::TreeNodeEx( f.path.filename().string().c_str(),
                             ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen |
-                              ImGuiTreeNodeFlags_SpanAvailWidth ) )
+                              ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoArrowDraw ) )
     {
       if ( ImGui::BeginDragDropSource( ImGuiDragDropFlags_None ) )
       {
@@ -156,6 +157,7 @@ auto FileExplorerWindow::drawNodes( DirectoryEntry& e ) -> void
         {
           if ( ImGui::BeginMenu( "Open with" ) )
           {
+            // TODO actually check if we have those programs installed
             if ( ImGui::MenuItem( "Vs Code" ) )
             {
               ShellExecute( NULL, "open", "code", f.path.string().c_str(), NULL, SW_HIDE );
@@ -187,8 +189,12 @@ auto FileExplorerWindow::drawNodes( DirectoryEntry& e ) -> void
   for ( auto& child : e.children )
   {
     ImGui::SetNextItemOpen( child.open );
-    bool open = ImGui::TreeNodeEx( child.path.filename().string().c_str(),
-                                   ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow );
+
+    std::string folderIcon( ICON_MDI_FOLDER );
+    folderIcon += child.path.stem().string();
+
+    bool open =
+      ImGui::TreeNodeEx( folderIcon.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoArrowDraw );
 
     if ( ImGui::IsItemToggledOpen() )
     {
@@ -209,8 +215,11 @@ auto FileExplorerWindow::drawFromRoot( DirectoryEntry& e ) -> void
 {
   ImGui::SetNextItemOpen( e.open );
 
-  const bool open = ImGui::TreeNodeEx( e.path.stem().string().c_str(),
-                                       ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth );
+  std::string folderIcon( ICON_MDI_FOLDER );
+  folderIcon += e.path.stem().string();
+
+  const bool open =
+    ImGui::TreeNodeEx( folderIcon.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoArrowDraw );
 
   if ( ImGui::IsItemToggledOpen() )
   {

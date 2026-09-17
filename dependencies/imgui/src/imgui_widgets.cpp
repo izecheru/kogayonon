@@ -8532,14 +8532,21 @@ bool ImGui::TreeNodeBehavior( ImGuiID id, ImGuiTreeNodeFlags flags, const char* 
       RenderNavCursor( frame_bb, id, nav_render_cursor_flags );
       if ( span_all_columns && !span_all_columns_label )
         TablePopBackgroundChannel();
-      // if (flags & ImGuiTreeNodeFlags_Bullet)
-      //     RenderBullet(window->DrawList, ImVec2(text_pos.x - text_offset_x * 0.60f, text_pos.y + g.FontSize * 0.5f),
-      //     text_col);
-      // else if (!is_leaf)
-      //     RenderArrow(window->DrawList, ImVec2(text_pos.x - text_offset_x + padding.x, text_pos.y), text_col, is_open
-      //     ? ((flags & ImGuiTreeNodeFlags_UpsideDownArrow) ? ImGuiDir_Up : ImGuiDir_Down) : ImGuiDir_Right, 1.0f);
-      // else // Leaf without bullet, left-adjusted text
-      //     text_pos.x -= text_offset_x - padding.x;
+      if ( !( flags & ImGuiTreeNodeFlags_NoArrowDraw ) )
+      {
+        if ( flags & ImGuiTreeNodeFlags_Bullet )
+          RenderBullet(
+            window->DrawList, ImVec2( text_pos.x - text_offset_x * 0.60f, text_pos.y + g.FontSize * 0.5f ), text_col );
+        else if ( !is_leaf )
+          RenderArrow( window->DrawList,
+                       ImVec2( text_pos.x - text_offset_x + padding.x, text_pos.y ),
+                       text_col,
+                       is_open ? ( ( flags & ImGuiTreeNodeFlags_UpsideDownArrow ) ? ImGuiDir_Up : ImGuiDir_Down )
+                               : ImGuiDir_Right,
+                       1.0f );
+        else // Leaf without bullet, left-adjusted text
+          text_pos.x -= text_offset_x - padding.x;
+      }
       if ( flags & ImGuiTreeNodeFlags_ClipLabelForTrailingButton )
         frame_bb.Max.x -= g.FontSize + style.FramePadding.x;
       if ( g.LogEnabled )
@@ -8556,15 +8563,22 @@ bool ImGui::TreeNodeBehavior( ImGuiID id, ImGuiTreeNodeFlags flags, const char* 
         RenderFrame( frame_bb.Min, frame_bb.Max, bg_col, false );
       }
       RenderNavCursor( frame_bb, id, nav_render_cursor_flags );
-      // if (span_all_columns && !span_all_columns_label)
-      //     TablePopBackgroundChannel();
-      // if (flags & ImGuiTreeNodeFlags_Bullet)
-      //     RenderBullet(window->DrawList, ImVec2(text_pos.x - text_offset_x * 0.5f, text_pos.y + g.FontSize * 0.5f),
-      //     text_col);
-      // else if (!is_leaf)
-      //     RenderArrow(window->DrawList, ImVec2(text_pos.x - text_offset_x + padding.x, text_pos.y + g.FontSize *
-      //     0.15f), text_col, is_open ? ((flags & ImGuiTreeNodeFlags_UpsideDownArrow) ? ImGuiDir_Up : ImGuiDir_Down) :
-      //     ImGuiDir_Right, 0.70f);
+      if ( span_all_columns && !span_all_columns_label )
+        TablePopBackgroundChannel();
+
+      if ( !( flags & ImGuiTreeNodeFlags_NoArrowDraw ) )
+      {
+        if ( flags & ImGuiTreeNodeFlags_Bullet )
+          RenderBullet(
+            window->DrawList, ImVec2( text_pos.x - text_offset_x * 0.5f, text_pos.y + g.FontSize * 0.5f ), text_col );
+        else if ( !is_leaf )
+          RenderArrow( window->DrawList,
+                       ImVec2( text_pos.x - text_offset_x + padding.x, text_pos.y + g.FontSize * 0.15f ),
+                       text_col,
+                       is_open ? ( ( flags & ImGuiTreeNodeFlags_UpsideDownArrow ) ? ImGuiDir_Up : ImGuiDir_Down )
+                               : ImGuiDir_Right,
+                       0.70f );
+      }
       if ( g.LogEnabled )
         LogSetNextTextDecoration( ">", NULL );
     }
@@ -8574,9 +8588,20 @@ bool ImGui::TreeNodeBehavior( ImGuiID id, ImGuiTreeNodeFlags flags, const char* 
 
     // Label
     if ( display_frame )
+    {
       RenderTextClipped( text_pos, frame_bb.Max, label, label_end, &label_size );
+    }
     else
-      RenderText( { text_pos.x - text_offset_x, text_pos.y }, label, label_end, false );
+    {
+      if ( flags & ImGuiTreeNodeFlags_NoArrowDraw )
+      {
+        RenderText( { text_pos.x - text_offset_x, text_pos.y }, label, label_end, false );
+      }
+      else
+      {
+        RenderText( text_pos, label, label_end, false );
+      }
+    }
 
     if ( span_all_columns_label )
       TablePopBackgroundChannel();
