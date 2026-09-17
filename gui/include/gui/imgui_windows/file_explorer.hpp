@@ -5,6 +5,7 @@
 #include "gui/imgui_windows/imgui_base.hpp"
 #include "precompiled/pch.hpp"
 #include "utilities/directory_watcher/directory_watcher.hpp"
+#include "gui/directory_hierarchy.hpp"
 
 namespace core
 {
@@ -20,22 +21,6 @@ struct FileExplorerSpec
   std::unordered_map<std::string, VkDescriptorSet> fileIcons;
 };
 
-struct File_
-{
-  // is it or not a directory
-  bool isDir{ false };
-
-  // id used for the imgui
-  std::string imguiId{ "##" };
-
-  // path to the file
-  std::filesystem::path path;
-
-  // just a flag for search functionality, if the filename contains what we
-  // search for then this is true, otherwise false (in case of searching)
-  bool renderable{ true };
-};
-
 namespace gui
 {
 
@@ -47,55 +32,44 @@ public:
 
   ~FileExplorerWindow() = default;
 
-  void render() override;
+  auto drawFromRoot( DirectoryEntry& e ) -> void;
 
-  void onFileEvent( core::FileEvent& e );
+  auto render() -> void override;
+
+  auto onFileEvent( core::FileEvent& e ) -> void;
 
 private:
-  /**
-   * @brief Draw the path, relative from resources folder, we can navigate back to "root" using it
-   */
-  void drawToolbar();
-
-  auto fileTexture( const File_& file ) -> VkDescriptorSet&;
+  auto fileTexture( const FileEntry& file ) -> VkDescriptorSet&;
 
   /**
    * @brief Initializes a map of callbacks for the DirectoryWatcher to use and call when a file event is triggered
    */
-  void setCallback();
+  auto setCallback() -> void;
 
   /**
    * @brief Adds event handlers and links them to onEvent functions from FilExplorerWindow
    */
-  void installHandlers();
+  auto installHandlers() -> void;
 
-  bool isTexture( const std::string& path );
-
-  /**
-   * @brief Builds a vector of File_ instances for the current directory
-   */
-  void buildFileVector();
+  auto isTexture( const std::string& path ) -> bool;
 
   /**
    * @brief Draws the context menu for files, here are defined funcs like Delete file and more to come
    * @param file The file we draw the context menu for
    * @param id This is the id for the ImGui::BeginPopupContextItem(id) since the filename is unique
    */
-  void drawFileContextMenu( const File_& file, const std::string& id );
+  auto drawFileContextMenu( const FileEntry& file, const std::string& id ) -> void;
 
-  /**
-   * @brief Search for files that contain the string
-   * @param toFind The string we search for
-   */
-  void searchFor( const std::string& toFind );
+  auto drawDirectoryHierarchy() -> void;
+  auto drawNodes( DirectoryEntry& e ) -> void;
 
 private:
-  std::vector<File_> m_files;
-  std::atomic_bool m_update;
+  DirectoryHierarchy m_hierarchy;
   std::filesystem::path m_currentPath;
   std::unique_ptr<utilities::DirectoryWatcher> m_pDirWatcher;
   std::unique_ptr<core::EventDispatcher> m_pDispatcher;
   std::string m_searchStr;
+  bool init;
 
   FileExplorerSpec m_spec;
 };

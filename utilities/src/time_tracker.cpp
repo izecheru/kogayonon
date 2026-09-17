@@ -14,7 +14,6 @@ void utilities::TimeTracker::update( const std::string& key )
   }
 }
 
-// some test text
 void utilities::TimeTracker::start( const std::string& key )
 {
   std::lock_guard lock( m_timeMutex );

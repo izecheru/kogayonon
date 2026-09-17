@@ -1,5 +1,6 @@
 set(HEADER_FILES
 	"include/gui/utils/imgui_utils.hpp"
+	"include/gui/directory_hierarchy.hpp"
 	"include/gui/utils/imgui_dragdrop_defines.hpp"
 	"include/gui/utils/font_keys.hpp"
 	"include/gui/vulkan_imgui_renderer.hpp"
@@ -17,7 +18,7 @@ set(SOURCE_FILES
 	"src/viewport.cpp"
 	"src/scene_hierarchy.cpp"
 	"src/entity_properties.cpp"
-)
+ "src/directory_hierarchy.cpp")
 
 add_library(gui ${SOURCE_FILES} ${HEADER_FILES})
 

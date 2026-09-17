@@ -411,7 +411,7 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
       ZoneScopedN( "Threaded loadMesh" );
       auto tinyLoader = std::make_unique<TinyGltfLoader>( meshPath );
       {
-        std::lock_guard lock( m_mutex );
+        std::lock_guard lock{ m_mutex };
         tinyLoader->processVertexData( meshPtr );
         auto parsedData = tinyLoader->parseTextureData( meshPtr );
         m_parsedMaterialsQueue.push(
@@ -430,11 +430,11 @@ auto core::AssetManager::loadFont( const std::string_view path ) -> void
 {
   KASSERT( std::filesystem::exists( path ) && "File does not exist" );
   ZoneScopedN( "AssetManager::loadFont" );
+
   m_fontLoader.generateAtlas( path );
 
-  // now load the textures
   std::filesystem::path p{ path };
-  auto fontName = p.stem().string();
+  std::string fontName = p.stem().string();
   std::unique_ptr<resources::Font> font = std::make_unique<resources::Font>(
     fontName, p.parent_path().string() + "/" + fontName + ".json", p.parent_path().string() + "/" + fontName + ".png" );
   m_loadedFonts.emplace( p.parent_path().string(), std::move( font ) );
@@ -476,8 +476,8 @@ auto core::AssetManager::createIndexBuffer( resources::Mesh* pMesh ) -> void
   VmaAllocationCreateInfo vmaAllocInfo{};
   vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-  auto meshPath = std::filesystem::path{ pMesh->getPath() };
-  auto name = std::string{ meshPath.stem().string() + "_indicesBuff" };
+  std::filesystem::path meshPath = pMesh->getPath();
+  std::string name = meshPath.stem().string() + "_indicesBuff";
 
   m_vkCtx->device->createBuffer( pMesh->getIndicesBufferObject(), bufferInfo, vmaAllocInfo, name );
   m_vkCtx->device->copyBuffer( stageBuffer.vkBuffer, pMesh->getIndicesBufferObject().vkBuffer, bufferSize );

@@ -93,15 +93,16 @@ void gui::VulkanImguiRenderer::setupDockspace( ImGuiViewport* viewport )
     node->LocalFlags |= ImGuiDockNodeFlags_NoWindowMenuButton | ImGuiDockNodeFlags_NoCloseButton |
                         ImGuiDockNodeFlags_AutoHideTabBar | ImGuiDockNodeFlags_NoTabBar;
 
-    auto centerNodeId = dockSpaceId;
-    auto leftNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Left, 0.30f, nullptr, &centerNodeId );
-    auto bottomLeftNodeId = ImGui::DockBuilderSplitNode( leftNodeId, ImGuiDir_Down, 0.50f, nullptr, &leftNodeId );
-    auto bottomNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Down, 0.35f, nullptr, &centerNodeId );
+    ImGuiID centerNodeId = dockSpaceId;
+    ImGuiID bottomNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Down, 0.30f, nullptr, &centerNodeId );
+    ImGuiID leftNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Left, 0.20f, nullptr, &centerNodeId );
+    ImGuiID rightNodeId = ImGui::DockBuilderSplitNode( centerNodeId, ImGuiDir_Right, 0.30f, nullptr, &centerNodeId );
+    ImGuiID bottomRightNodeId = ImGui::DockBuilderSplitNode( rightNodeId, ImGuiDir_Down, 0.30f, nullptr, &rightNodeId );
 
-    ImGui::DockBuilderDockWindow( "File explorer", bottomNodeId );
+    ImGui::DockBuilderDockWindow( "File explorer", leftNodeId );
     ImGui::DockBuilderDockWindow( "Viewport", centerNodeId );
-    ImGui::DockBuilderDockWindow( "Hierarchy", leftNodeId );
-    ImGui::DockBuilderDockWindow( "Properties", bottomLeftNodeId );
+    ImGui::DockBuilderDockWindow( "Hierarchy", rightNodeId );
+    ImGui::DockBuilderDockWindow( "Properties", bottomRightNodeId );
 
     ImGui::DockBuilderFinish( dockSpaceId );
   }
