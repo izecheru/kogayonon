@@ -5,7 +5,7 @@ namespace resources
 {
 struct Light
 {
-  int numPointLights;
-  int numDirectionalLights;
+    int numPointLights;
+    int numDirectionalLights;
 };
 } // namespace resources

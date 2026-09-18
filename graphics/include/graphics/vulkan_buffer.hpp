@@ -7,8 +7,8 @@ namespace graphics
 
 struct VulkanBuffer
 {
-  VkBuffer vkBuffer{ VK_NULL_HANDLE };
-  VmaAllocation vmaAllocation{ VK_NULL_HANDLE };
+    VkBuffer vkBuffer{ VK_NULL_HANDLE };
+    VmaAllocation vmaAllocation{ VK_NULL_HANDLE };
 };
 
 /**
@@ -18,25 +18,25 @@ struct VulkanBuffer
  */
 struct FrameInFlightVulkanBuffer
 {
-  std::array<VulkanBuffer, MAX_FRAMES_IN_FLIGHT> buffers;
+    std::array<VulkanBuffer, MAX_FRAMES_IN_FLIGHT> buffers;
 
-  // this is for conveniently calling the setDebugName function when we want the buffer to also
-  // hold a name for easier debugging experience
-  auto each( std::function<void( VulkanBuffer&, uint32_t index )>&& func ) -> void
-  {
-    for ( auto i = 0; i < buffers.size(); ++i )
+    // this is for conveniently calling the setDebugName function when we want the buffer to also
+    // hold a name for easier debugging experience
+    auto each( std::function<void( VulkanBuffer&, uint32_t index )>&& func ) -> void
     {
-      func( buffers.at( i ), i );
+        for ( auto i = 0; i < buffers.size(); ++i )
+        {
+            func( buffers.at( i ), i );
+        }
     }
-  }
 
-  auto each( std::function<void( VulkanBuffer& )>&& func ) -> void
-  {
-    for ( auto i = 0; i < buffers.size(); ++i )
+    auto each( std::function<void( VulkanBuffer& )>&& func ) -> void
     {
-      func( buffers.at( i ) );
+        for ( auto i = 0; i < buffers.size(); ++i )
+        {
+            func( buffers.at( i ) );
+        }
     }
-  }
 };
 
 } // namespace graphics

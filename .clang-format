@@ -1,9 +1,9 @@
 ﻿BasedOnStyle: Microsoft
 
 SortIncludes: false
-IndentWidth: 2
-TabWidth: 2
-ContinuationIndentWidth: 2
+IndentWidth: 4
+TabWidth: 4
+ContinuationIndentWidth: 4
 UseTab: Never
 BreakConstructorInitializers: BeforeComma
 AllowAllConstructorInitializersOnNextLine: false

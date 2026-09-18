@@ -6,20 +6,20 @@ namespace core
 // Where the action took place
 enum class ActionLocation
 {
-  None,
+    None,
 };
 
 // Action data
 struct IAction
 {
-  void* data{ nullptr };
+    void* data{ nullptr };
 };
 
 class UndoRedoSystem
 {
-public:
+  public:
 
-private:
-  std::unordered_map<ActionLocation, std::queue<IAction>> m_actions;
+  private:
+    std::unordered_map<ActionLocation, std::queue<IAction>> m_actions;
 };
 } // namespace core

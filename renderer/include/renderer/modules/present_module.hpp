@@ -7,15 +7,15 @@ namespace rendering
 {
 struct PresentModuleData
 {
-  FGResource* finalTexture;
+    FGResource* finalTexture;
 };
 
 class PresentModule
 {
-public:
-  PresentModule();
-  ~PresentModule();
+  public:
+    PresentModule();
+    ~PresentModule();
 
-private:
+  private:
 };
 } // namespace rendering

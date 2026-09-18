@@ -30,70 +30,70 @@ ScriptingSystem::ScriptingSystem()
     : m_luaState{ sol::state{} }
     , m_init{ false }
 {
-  //// make the main script object and add it to the registry
-  // auto mainScript = std::make_unique<MainScriptFuncs>();
-  //// make the main script object and add it to the registry
-  // auto mainScript = std::make_unique<MainScriptFuncs>();
+    //// make the main script object and add it to the registry
+    // auto mainScript = std::make_unique<MainScriptFuncs>();
+    //// make the main script object and add it to the registry
+    // auto mainScript = std::make_unique<MainScriptFuncs>();
 
-  //// move to main registry
-  ////MainRegistry::getInstance().addToContext<std::unique_ptr<MainScriptFuncs>>( std::move( mainScript ) );
-  //// move to main registry
-  ////MainRegistry::getInstance().addToContext<std::unique_ptr<MainScriptFuncs>>( std::move( mainScript ) );
+    //// move to main registry
+    ////MainRegistry::getInstance().addToContext<std::unique_ptr<MainScriptFuncs>>( std::move( mainScript ) );
+    //// move to main registry
+    ////MainRegistry::getInstance().addToContext<std::unique_ptr<MainScriptFuncs>>( std::move( mainScript ) );
 
-  // auto currentPath = std::filesystem::absolute( "." ) / "resources\\scripts\\main.lua";
-  // KINFO( "{}", currentPath.string() );
-  // assert( fs::exists( currentPath ) == true && "main.lua MUST exist in the resources/scripts folder" );
-  // m_luaState.open_libraries( sol::lib::base, sol::lib::package, sol::lib::string );
+    // auto currentPath = std::filesystem::absolute( "." ) / "resources\\scripts\\main.lua";
+    // KINFO( "{}", currentPath.string() );
+    // assert( fs::exists( currentPath ) == true && "main.lua MUST exist in the resources/scripts folder" );
+    // m_luaState.open_libraries( sol::lib::base, sol::lib::package, sol::lib::string );
 
-  //// register all usretypes and expose them to lua
-  // registerBindings( m_luaState );
-  //// register all usretypes and expose them to lua
-  // registerBindings( m_luaState );
+    //// register all usretypes and expose them to lua
+    // registerBindings( m_luaState );
+    //// register all usretypes and expose them to lua
+    // registerBindings( m_luaState );
 
-  //// load the script
-  // loadMainScript( currentPath.string() );
-  //// load the script
-  // loadMainScript( currentPath.string() );
+    //// load the script
+    // loadMainScript( currentPath.string() );
+    //// load the script
+    // loadMainScript( currentPath.string() );
 }
 
 void ScriptingSystem::registerBindings( sol::state& lua )
 {
-  Entity::createLuaBindings( lua );
-  Window::createLuaBindings( lua );
-  Registry::createLuaBindings( lua );
-  TimeTracker::createLuaBindings( lua );
-  EventDispatcher::createLuaBindings( lua );
-  DirectionalLightComponent::createLuaBindings( lua );
-  PointLightComponent::createLuaBindings( lua );
-  IdentifierComponent::createLuaBindings( lua );
-  TransformComponent::createLuaBindings( lua );
-  OutlineComponent::createLuaBindings( lua );
-  IndexComponent::createLuaBindings( lua );
+    Entity::createLuaBindings( lua );
+    Window::createLuaBindings( lua );
+    Registry::createLuaBindings( lua );
+    TimeTracker::createLuaBindings( lua );
+    EventDispatcher::createLuaBindings( lua );
+    DirectionalLightComponent::createLuaBindings( lua );
+    PointLightComponent::createLuaBindings( lua );
+    IdentifierComponent::createLuaBindings( lua );
+    TransformComponent::createLuaBindings( lua );
+    OutlineComponent::createLuaBindings( lua );
+    IndexComponent::createLuaBindings( lua );
 
-  registerMetaComponent<DirectionalLightComponent>();
-  registerMetaComponent<PointLightComponent>();
-  registerMetaComponent<IdentifierComponent>();
-  registerMetaComponent<TransformComponent>();
-  registerMetaComponent<OutlineComponent>();
-  registerMetaComponent<IndexComponent>();
-  registerMetaComponent<MeshComponent>();
-  registerMetaEvent<LuaEvent>();
-  registerMetaEvent<LuaEventHandler<LuaEvent>>();
+    registerMetaComponent<DirectionalLightComponent>();
+    registerMetaComponent<PointLightComponent>();
+    registerMetaComponent<IdentifierComponent>();
+    registerMetaComponent<TransformComponent>();
+    registerMetaComponent<OutlineComponent>();
+    registerMetaComponent<IndexComponent>();
+    registerMetaComponent<MeshComponent>();
+    registerMetaEvent<LuaEvent>();
+    registerMetaEvent<LuaEventHandler<LuaEvent>>();
 }
 
 bool ScriptingSystem::isInit() const
 {
-  return m_init;
+    return m_init;
 }
 
 void ScriptingSystem::loadMainScript( const std::string& path )
 {
-  m_luaState.safe_script_file( path );
+    m_luaState.safe_script_file( path );
 }
 
 auto ScriptingSystem::getLuaState() -> sol::state&
 {
-  return m_luaState;
+    return m_luaState;
 }
 
 } // namespace core

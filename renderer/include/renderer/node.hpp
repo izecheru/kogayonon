@@ -13,24 +13,24 @@ struct Blackboard;
 
 enum class FGResourceAccessType
 {
-  None,
-  Write,
-  Read,
+    None,
+    Write,
+    Read,
 };
 
 enum class FGResourceType
 {
-  None,          // undefined
-  Color,         // basic color
-  Depth,         // basic depth
-  ColorTransfer, // for entity  picking
-  Shader         // for shadow mapping for example, this will be sampled in the shader
+    None,          // undefined
+    Color,         // basic color
+    Depth,         // basic depth
+    ColorTransfer, // for entity  picking
+    Shader         // for shadow mapping for example, this will be sampled in the shader
 };
 
 struct FGResourceState
 {
-  FGResourceType type;
-  FGResourceAccessType accessType;
+    FGResourceType type;
+    FGResourceAccessType accessType;
 };
 
 /**
@@ -38,94 +38,95 @@ struct FGResourceState
  */
 struct FGResource
 {
-  graphics::VulkanImage vulkanImage;
-  FGResourceState lastState;
-  std::set<Node*> writerNodes;
-  std::set<Node*> readerNodes;
+    graphics::VulkanImage vulkanImage;
+    FGResourceState lastState;
+    std::set<Node*> writerNodes;
+    std::set<Node*> readerNodes;
 
-  inline auto resetState() -> void
-  {
-    lastState = FGResourceState{ .type = FGResourceType::None, .accessType = FGResourceAccessType::None };
-    readerNodes.clear();
-    writerNodes.clear();
-  }
+    inline auto resetState() -> void
+    {
+        lastState = FGResourceState{ .type = FGResourceType::None, .accessType = FGResourceAccessType::None };
+        readerNodes.clear();
+        writerNodes.clear();
+    }
 };
 
 struct Node
 {
-  /**
-   * @brief This node should not be taken into account
-   * MUST NOT generate edges, culling a node means recompiling the graph
-   */
-  bool culled{ false };
+    /**
+     * @brief This node should not be taken into account
+     * MUST NOT generate edges, culling a node means recompiling the graph
+     */
+    bool culled{ false };
 
-  /**
-   * @brief Name of the Node
-   */
-  std::string name;
+    /**
+     * @brief Name of the Node
+     */
+    std::string name;
 
-  /**
-   * @brief Count of edges in the graph
-   */
-  uint32_t indegree{ 0u };
+    /**
+     * @brief Count of edges in the graph
+     */
+    uint32_t indegree{ 0u };
 
-  /**
-   * @brief Nodes that produce resources we need to use in the current node, so we wait for them to finish before
-   * using the resource
-   */
-  std::set<Node*> dependsOn; // this must contain only unique entries hence set is used
+    /**
+     * @brief Nodes that produce resources we need to use in the current node, so we wait for them to finish before
+     * using the resource
+     */
+    std::set<Node*> dependsOn; // this must contain only unique entries hence set is used
 
-  /**
-   * @brief Nodes that consume resources produced by this current node, those have to wait for this one to finish
-   * execution
-   */
-  std::set<Node*> consumers; // this must contain only unique entries hence set is used
+    /**
+     * @brief Nodes that consume resources produced by this current node, those have to wait for this one to finish
+     * execution
+     */
+    std::set<Node*> consumers; // this must contain only unique entries hence set is used
 
-  // TODO maybe turn those into sets too, idk if a node should write or read the same resource twice
-  /**
-   * @brief List of resources this Node produces
-   */
-  std::vector<FGResource*> writes;
+    // TODO maybe turn those into sets too, idk if a node should write or read the same resource twice
+    /**
+     * @brief List of resources this Node produces
+     */
+    std::vector<FGResource*> writes;
 
-  /**
-   * @brief List of resources this Node consumes
-   */
-  std::vector<FGResource*> reads;
+    /**
+     * @brief List of resources this Node consumes
+     */
+    std::vector<FGResource*> reads;
 
-  /**
-   * @brief Node setup function
-   */
-  std::function<void( NodeBuilder&, Blackboard* )> setupFunction;
+    /**
+     * @brief Node setup function
+     */
+    std::function<void( NodeBuilder&, Blackboard* )> setupFunction;
 
-  /**
-   * @brief Rendering function
-   */
-  std::function<void( VkCommandBuffer )> executeFunction;
+    /**
+     * @brief Rendering function
+     */
+    std::function<void( VkCommandBuffer )> executeFunction;
 
-  /**
-   * @brief This is filled at graph build time and using this state we can define the future
-   * needed barriers for image layout transitions
-   */
-  std::unordered_map<FGResource*, FGResourceState> resourceExpectedState;
+    /**
+     * @brief This is filled at graph build time and using this state we can define the future
+     * needed barriers for image layout transitions
+     */
+    std::unordered_map<FGResource*, FGResourceState> resourceExpectedState;
 
-  /**
-   * @brief Actual transition data per FGResource*, those should be grouped and call the vkCmdImageBarrier once per node
-   */
-  std::vector<std::tuple<FGResource*, VkImageMemoryBarrier2>> resourceBarriers;
-  std::vector<VkImageMemoryBarrier2> barriers;
+    /**
+     * @brief Actual transition data per FGResource*, those should be grouped and call the vkCmdImageBarrier once per
+     * node
+     */
+    std::vector<std::tuple<FGResource*, VkImageMemoryBarrier2>> resourceBarriers;
+    std::vector<VkImageMemoryBarrier2> barriers;
 
-  inline auto resetState() -> void
-  {
-    resourceExpectedState.clear();
-    resourceBarriers.clear();
-    resourceBarriers.clear();
-    consumers.clear();
-    dependsOn.clear();
-    barriers.clear();
-    writes.clear();
-    reads.clear();
-    indegree = 0u;
-  }
+    inline auto resetState() -> void
+    {
+        resourceExpectedState.clear();
+        resourceBarriers.clear();
+        resourceBarriers.clear();
+        consumers.clear();
+        dependsOn.clear();
+        barriers.clear();
+        writes.clear();
+        reads.clear();
+        indegree = 0u;
+    }
 };
 
 /**
@@ -133,9 +134,9 @@ struct Node
  */
 struct NodeContainer
 {
-  std::vector<std::unique_ptr<Node>> nodes;
-  std::vector<std::unique_ptr<FGResource>> resources;
-  std::vector<Node*> executionOrder;
+    std::vector<std::unique_ptr<Node>> nodes;
+    std::vector<std::unique_ptr<FGResource>> resources;
+    std::vector<Node*> executionOrder;
 };
 
 /**
@@ -143,47 +144,47 @@ struct NodeContainer
  */
 class NodeBuilder
 {
-public:
-  explicit NodeBuilder( Node* nodeHandle )
-      : m_nodeHandle{ nodeHandle }
-  {
-  }
+  public:
+    explicit NodeBuilder( Node* nodeHandle )
+        : m_nodeHandle{ nodeHandle }
+    {
+    }
 
-  /**
-   * @brief This will mark the resource as write of the node
-   * @param resource A frame graph resource
-   * @param type Desired state of the resource at the moment of consumption
-   * @return
-   */
-  auto inline write( FGResource* resource, FGResourceType type ) const -> void
-  {
-    using enum FGResourceAccessType;
+    /**
+     * @brief This will mark the resource as write of the node
+     * @param resource A frame graph resource
+     * @param type Desired state of the resource at the moment of consumption
+     * @return
+     */
+    auto inline write( FGResource* resource, FGResourceType type ) const -> void
+    {
+        using enum FGResourceAccessType;
 
-    resource->writerNodes.insert( m_nodeHandle );
-    m_nodeHandle->writes.push_back( resource );
+        resource->writerNodes.insert( m_nodeHandle );
+        m_nodeHandle->writes.push_back( resource );
 
-    m_nodeHandle->resourceExpectedState[resource] =
-      FGResourceState{ .type = type, .accessType = FGResourceAccessType::Write };
-  }
+        m_nodeHandle->resourceExpectedState[resource] =
+            FGResourceState{ .type = type, .accessType = FGResourceAccessType::Write };
+    }
 
-  /**
-   * @brief This will mark the resource as read of the node
-   * @param resource A frame graph resource
-   * @param type Desired state of the resource at the moment of consumption
-   * @return
-   */
-  auto inline read( FGResource* resource, FGResourceType type ) -> void
-  {
-    using enum FGResourceAccessType;
+    /**
+     * @brief This will mark the resource as read of the node
+     * @param resource A frame graph resource
+     * @param type Desired state of the resource at the moment of consumption
+     * @return
+     */
+    auto inline read( FGResource* resource, FGResourceType type ) -> void
+    {
+        using enum FGResourceAccessType;
 
-    resource->readerNodes.insert( m_nodeHandle );
-    m_nodeHandle->reads.push_back( resource );
+        resource->readerNodes.insert( m_nodeHandle );
+        m_nodeHandle->reads.push_back( resource );
 
-    m_nodeHandle->resourceExpectedState[resource] =
-      FGResourceState{ .type = type, .accessType = FGResourceAccessType::Read };
-  }
+        m_nodeHandle->resourceExpectedState[resource] =
+            FGResourceState{ .type = type, .accessType = FGResourceAccessType::Read };
+    }
 
-private:
-  Node* m_nodeHandle;
+  private:
+    Node* m_nodeHandle;
 };
 } // namespace rendering

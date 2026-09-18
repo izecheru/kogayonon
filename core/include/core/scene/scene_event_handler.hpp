@@ -13,17 +13,17 @@ namespace core
 {
 class SceneEventHandler
 {
-public:
-  SceneEventHandler( core::EventDispatcher* pDispatcher );
-  ~SceneEventHandler() = default;
+  public:
+    SceneEventHandler( core::EventDispatcher* pDispatcher );
+    ~SceneEventHandler() = default;
 
-  auto getCurrentEntityId() const -> entt::entity;
+    auto getCurrentEntityId() const -> entt::entity;
 
-  auto onDeleteEntity( const core::DeleteEntityEvent& e ) -> void;
-  auto onAddEntity( const core::AddEntityEvent& e ) -> void;
-  auto onSelectEntity( const core::SelectEntityEvent& e ) -> void;
+    auto onDeleteEntity( const core::DeleteEntityEvent& e ) -> void;
+    auto onAddEntity( const core::AddEntityEvent& e ) -> void;
+    auto onSelectEntity( const core::SelectEntityEvent& e ) -> void;
 
-private:
-  entt::entity m_selectedEntity{ entt::null };
+  private:
+    entt::entity m_selectedEntity{ entt::null };
 };
 } // namespace core

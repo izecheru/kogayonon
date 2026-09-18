@@ -8,15 +8,15 @@ namespace resources
  */
 struct Material
 {
-  // TODO(kogayonon) extend this to support more type of textures, but i dont really know if i'll support PBR
-  int normalTextureIndex{ -1 };
-  int diffuseTextureIndex{ -1 };
-  int emissiveTextureIndex{ -1 };
+    // TODO(kogayonon) extend this to support more type of textures, but i dont really know if i'll support PBR
+    int normalTextureIndex{ -1 };
+    int diffuseTextureIndex{ -1 };
+    int emissiveTextureIndex{ -1 };
 
-  auto operator==( const Material& other ) const -> bool
-  {
-    return diffuseTextureIndex == other.diffuseTextureIndex && emissiveTextureIndex == other.emissiveTextureIndex &&
-           normalTextureIndex == other.normalTextureIndex;
-  }
+    auto operator==( const Material& other ) const -> bool
+    {
+        return diffuseTextureIndex == other.diffuseTextureIndex && emissiveTextureIndex == other.emissiveTextureIndex &&
+               normalTextureIndex == other.normalTextureIndex;
+    }
 };
 } // namespace resources

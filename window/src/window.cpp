@@ -4,12 +4,12 @@
 
 auto window_hit_test( SDL_Window* wnd, const SDL_Point* pos, void* ) -> SDL_HitTestResult
 {
-  if ( pos->y < 50 )
-  {
-    return SDL_HITTEST_DRAGGABLE;
-  }
+    if ( pos->y < 50 )
+    {
+        return SDL_HITTEST_DRAGGABLE;
+    }
 
-  return SDL_HITTEST_NORMAL;
+    return SDL_HITTEST_NORMAL;
 }
 
 namespace window
@@ -18,156 +18,156 @@ Window::Window( const char* t_title, int t_width, int t_height, bool t_vsync, bo
     : m_pWindowProps( std::make_shared<WindowProperties>( t_title, t_width, t_height, t_vsync, t_maximized ) )
 {
 
-  if ( t_maximized )
-  {
-    m_window = SDL_CreateWindow( m_pWindowProps->title,
-                                 SDL_WINDOWPOS_CENTERED,
-                                 SDL_WINDOWPOS_CENTERED,
-                                 m_pWindowProps->width,
-                                 m_pWindowProps->height,
-                                 SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED );
-  }
-  else
-  {
-    m_window = SDL_CreateWindow( m_pWindowProps->title,
-                                 SDL_WINDOWPOS_CENTERED,
-                                 SDL_WINDOWPOS_CENTERED,
-                                 m_pWindowProps->width,
-                                 m_pWindowProps->height,
-                                 SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE );
-  }
+    if ( t_maximized )
+    {
+        m_window = SDL_CreateWindow( m_pWindowProps->title,
+                                     SDL_WINDOWPOS_CENTERED,
+                                     SDL_WINDOWPOS_CENTERED,
+                                     m_pWindowProps->width,
+                                     m_pWindowProps->height,
+                                     SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED );
+    }
+    else
+    {
+        m_window = SDL_CreateWindow( m_pWindowProps->title,
+                                     SDL_WINDOWPOS_CENTERED,
+                                     SDL_WINDOWPOS_CENTERED,
+                                     m_pWindowProps->width,
+                                     m_pWindowProps->height,
+                                     SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE );
+    }
 
-  SDL_SetWindowMinimumSize( m_window, 400, 400 );
+    SDL_SetWindowMinimumSize( m_window, 400, 400 );
 
-  // this is needed for the custom title bar
-  // SDL_SetWindowHitTest( m_window, window_hit_test, nullptr );
+    // this is needed for the custom title bar
+    // SDL_SetWindowHitTest( m_window, window_hit_test, nullptr );
 
-  int x, y;
-  SDL_GetWindowPosition( m_window, &x, &y );
-  m_pWindowProps->x = x;
-  m_pWindowProps->y = y;
+    int x, y;
+    SDL_GetWindowPosition( m_window, &x, &y );
+    m_pWindowProps->x = x;
+    m_pWindowProps->y = y;
 }
 
 Window::~Window()
 {
-  if ( m_window )
-  {
-    SDL_DestroyWindow( m_window );
-    m_window = nullptr;
-  }
+    if ( m_window )
+    {
+        SDL_DestroyWindow( m_window );
+        m_window = nullptr;
+    }
 
-  SDL_Quit();
+    SDL_Quit();
 }
 
 void Window::setWidth( int w )
 {
-  m_pWindowProps->width = w;
-  SDL_SetWindowSize( m_window, w, m_pWindowProps->height );
+    m_pWindowProps->width = w;
+    SDL_SetWindowSize( m_window, w, m_pWindowProps->height );
 }
 
 void Window::setHeight( int h )
 {
-  m_pWindowProps->height = h;
-  SDL_SetWindowSize( m_window, m_pWindowProps->height, h );
+    m_pWindowProps->height = h;
+    SDL_SetWindowSize( m_window, m_pWindowProps->height, h );
 }
 
 void Window::resize()
 {
-  int w, h;
-  SDL_GL_GetDrawableSize( m_window, &w, &h );
+    int w, h;
+    SDL_GL_GetDrawableSize( m_window, &w, &h );
 }
 
 void Window::resize( int w, int h )
 {
-  m_pWindowProps->width = w;
-  m_pWindowProps->height = h;
-  SDL_SetWindowSize( m_window, w, h );
+    m_pWindowProps->width = w;
+    m_pWindowProps->height = h;
+    SDL_SetWindowSize( m_window, w, h );
 }
 
 void Window::placeAt( int x, int y )
 {
-  SDL_SetWindowPosition( m_window, x, y );
-  m_pWindowProps->x = x;
-  m_pWindowProps->y = y;
+    SDL_SetWindowPosition( m_window, x, y );
+    m_pWindowProps->x = x;
+    m_pWindowProps->y = y;
 }
 
 void Window::setTitle( const char* title )
 {
-  SDL_SetWindowTitle( m_window, title );
+    SDL_SetWindowTitle( m_window, title );
 }
 
 void Window::setBordered( bool value )
 {
-  SDL_SetWindowBordered( m_window, value == true ? SDL_TRUE : SDL_FALSE );
+    SDL_SetWindowBordered( m_window, value == true ? SDL_TRUE : SDL_FALSE );
 }
 
 void Window::setResizable( bool value )
 {
-  SDL_SetWindowResizable( m_window, value == true ? SDL_TRUE : SDL_FALSE );
+    SDL_SetWindowResizable( m_window, value == true ? SDL_TRUE : SDL_FALSE );
 }
 
 void Window::centerWindow()
 {
-  SDL_SetWindowPosition( m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED );
+    SDL_SetWindowPosition( m_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED );
 }
 
 bool Window::getMaximized()
 {
-  return m_pWindowProps->maximized;
+    return m_pWindowProps->maximized;
 }
 
 void Window::maximize()
 {
-  m_pWindowProps->maximized = true;
-  SDL_MaximizeWindow( m_window );
-  resize();
+    m_pWindowProps->maximized = true;
+    SDL_MaximizeWindow( m_window );
+    resize();
 }
 
 auto Window::getWidth() const -> int
 {
-  return m_pWindowProps->width;
+    return m_pWindowProps->width;
 }
 
 auto Window::getHeight() const -> int
 {
-  return m_pWindowProps->height;
+    return m_pWindowProps->height;
 }
 
 auto Window::getWindow() -> SDL_Window*
 {
-  return m_window;
+    return m_window;
 }
 
 void Window::setWindow( SDL_Window* wnd )
 {
-  assert( wnd != nullptr && "SDL_Window* can't be nullptr" );
-  m_window = wnd;
+    assert( wnd != nullptr && "SDL_Window* can't be nullptr" );
+    m_window = wnd;
 }
 
 auto Window::getWindowProps() -> WindowProperties*
 {
-  return m_pWindowProps.get();
+    return m_pWindowProps.get();
 }
 
 void Window::createLuaBindings( sol::state& lua )
 {
-  lua.new_usertype<Window>(
-    "Window",
-    "setResizable",
-    []( Window& self, bool value ) { return self.setResizable( value ); },
-    "setBordered",
-    []( Window& self, bool value ) { return self.setBordered( value ); },
-    "setTitle",
-    []( Window& self, const std::string& title ) { return self.setTitle( title.c_str() ); },
-    "resize",
-    []( Window& self, int w, int h ) { return self.resize( w, h ); },
-    "setHeight",
-    []( Window& self, int h ) { return self.setHeight( h ); },
-    "setWidth",
-    []( Window& self, int w ) { return self.setWidth( w ); },
-    "getHeight",
-    []( Window& self ) { return self.getHeight(); },
-    "getWidth",
-    []( Window& self ) { return self.getWidth(); } );
+    lua.new_usertype<Window>(
+        "Window",
+        "setResizable",
+        []( Window& self, bool value ) { return self.setResizable( value ); },
+        "setBordered",
+        []( Window& self, bool value ) { return self.setBordered( value ); },
+        "setTitle",
+        []( Window& self, const std::string& title ) { return self.setTitle( title.c_str() ); },
+        "resize",
+        []( Window& self, int w, int h ) { return self.resize( w, h ); },
+        "setHeight",
+        []( Window& self, int h ) { return self.setHeight( h ); },
+        "setWidth",
+        []( Window& self, int w ) { return self.setWidth( w ); },
+        "getHeight",
+        []( Window& self ) { return self.getHeight(); },
+        "getWidth",
+        []( Window& self ) { return self.getWidth(); } );
 }
 } // namespace window

@@ -6,55 +6,55 @@ namespace core
 {
 class ProjectLoadEvent : public IEvent
 {
-public:
-  explicit ProjectLoadEvent( const std::filesystem::path path )
-      : m_path{ path }
-  {
-  }
+  public:
+    explicit ProjectLoadEvent( const std::filesystem::path path )
+        : m_path{ path }
+    {
+    }
 
-  inline std::filesystem::path getPath() const
-  {
-    return m_path;
-  }
+    inline std::filesystem::path getPath() const
+    {
+        return m_path;
+    }
 
-private:
-  std::filesystem::path m_path;
-  EventType m_type{ EventType::ProjectLoad };
+  private:
+    std::filesystem::path m_path;
+    EventType m_type{ EventType::ProjectLoad };
 };
 
 class ProjectSaveEvent : public IEvent
 {
-public:
-  explicit ProjectSaveEvent( const std::filesystem::path path )
-      : m_path{ path }
-  {
-  }
+  public:
+    explicit ProjectSaveEvent( const std::filesystem::path path )
+        : m_path{ path }
+    {
+    }
 
-  inline std::filesystem::path getPath() const
-  {
-    return m_path;
-  }
+    inline std::filesystem::path getPath() const
+    {
+        return m_path;
+    }
 
-private:
-  std::filesystem::path m_path;
-  EventType m_type{ EventType::ProjectSave };
+  private:
+    std::filesystem::path m_path;
+    EventType m_type{ EventType::ProjectSave };
 };
 
 class ProjectCreateEvent : public IEvent
 {
-public:
-  explicit ProjectCreateEvent( const std::filesystem::path path )
-      : m_path{ path }
-  {
-  }
+  public:
+    explicit ProjectCreateEvent( const std::filesystem::path path )
+        : m_path{ path }
+    {
+    }
 
-  inline std::filesystem::path getPath() const
-  {
-    return m_path;
-  }
+    inline std::filesystem::path getPath() const
+    {
+        return m_path;
+    }
 
-private:
-  std::filesystem::path m_path;
-  EventType m_type{ EventType::ProjectCreate };
+  private:
+    std::filesystem::path m_path;
+    EventType m_type{ EventType::ProjectCreate };
 };
 } // namespace core

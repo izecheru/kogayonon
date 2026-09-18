@@ -19,66 +19,66 @@ inline constexpr const char* DepthPrepass = "depthPrepass";
 
 struct GeometryModuleData
 {
-  FGResource* color{ VK_NULL_HANDLE };
+    FGResource* color{ VK_NULL_HANDLE };
 
-  graphics::VulkanPipeline basePipeline{};
-  graphics::VulkanPipeline wireframePipeline{};
+    graphics::VulkanPipeline basePipeline{};
+    graphics::VulkanPipeline wireframePipeline{};
 
-  ModuleRenderingInfo renderingInfo;
+    ModuleRenderingInfo renderingInfo;
 };
 
 class GeometryModule : public BaseModule
 {
-public:
-  explicit GeometryModule( FrameGraph* graph,
-                           graphics::VulkanContext* ctx,
-                           VkExtent2D extent,
-                           graphics::FrameInFlightVulkanDescriptor* cameraDescriptor,
-                           glm::vec4 clearColor );
+  public:
+    explicit GeometryModule( FrameGraph* graph,
+                             graphics::VulkanContext* ctx,
+                             VkExtent2D extent,
+                             graphics::FrameInFlightVulkanDescriptor* cameraDescriptor,
+                             glm::vec4 clearColor );
 
-  explicit GeometryModule( FrameGraph* graph,
-                           graphics::VulkanContext* ctx,
-                           VkExtent2D extent,
-                           graphics::FrameInFlightVulkanDescriptor* cameraDescriptor );
+    explicit GeometryModule( FrameGraph* graph,
+                             graphics::VulkanContext* ctx,
+                             VkExtent2D extent,
+                             graphics::FrameInFlightVulkanDescriptor* cameraDescriptor );
 
-  ~GeometryModule();
+    ~GeometryModule();
 
-  auto setClearColor( glm::vec4 clearColor ) -> void;
-  auto setExtent( VkExtent2D extent ) -> void override;
+    auto setClearColor( glm::vec4 clearColor ) -> void;
+    auto setExtent( VkExtent2D extent ) -> void override;
 
-  /**
-   * @brief Create the pipelines from the module data and register
-   * render passes
-   * @return
-   */
-  auto registerPasses() -> void override;
+    /**
+     * @brief Create the pipelines from the module data and register
+     * render passes
+     * @return
+     */
+    auto registerPasses() -> void override;
 
-  /**
-   * @brief Initialize and allocate all the necessary resources for using this module to render
-   * @param extent Extent of the images that this pass is going to render to
-   * @return
-   */
-  auto createModuleResources( VkExtent2D extent ) -> void override;
+    /**
+     * @brief Initialize and allocate all the necessary resources for using this module to render
+     * @param extent Extent of the images that this pass is going to render to
+     * @return
+     */
+    auto createModuleResources( VkExtent2D extent ) -> void override;
 
-  auto enableWireframe() -> void;
-  auto disableWireframe() -> void;
+    auto enableWireframe() -> void;
+    auto disableWireframe() -> void;
 
-  auto recreate( VkExtent2D extent ) -> void override;
+    auto recreate( VkExtent2D extent ) -> void override;
 
-protected:
-  auto destroyModuleResources() -> void override;
-  auto registerWireframePass() -> void;
-  auto registerBaseGeometryPass() -> void;
+  protected:
+    auto destroyModuleResources() -> void override;
+    auto registerWireframePass() -> void;
+    auto registerBaseGeometryPass() -> void;
 
-private:
-  graphics::FrameInFlightVulkanDescriptor* m_cameraDescriptor;
-  graphics::VulkanContext* m_vkCtx;
-  rendering::FrameGraph* m_graph;
-  glm::vec4 m_clearColor;
+  private:
+    graphics::FrameInFlightVulkanDescriptor* m_cameraDescriptor;
+    graphics::VulkanContext* m_vkCtx;
+    rendering::FrameGraph* m_graph;
+    glm::vec4 m_clearColor;
 
-  VkExtent2D m_extent{};
+    VkExtent2D m_extent{};
 
-  bool m_wireframe;
-  bool m_wireframeInit;
+    bool m_wireframe;
+    bool m_wireframeInit;
 };
 } // namespace rendering

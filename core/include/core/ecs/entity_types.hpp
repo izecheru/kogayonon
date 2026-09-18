@@ -5,12 +5,12 @@ namespace core
 {
 enum class EntityType
 {
-  None = 0,
-  Camera,
-  EditorCamera,
-  Object,
-  Light,
-  UIelement,
-  Empty
+    None = 0,
+    Camera,
+    EditorCamera,
+    Object,
+    Light,
+    UIelement,
+    Empty
 };
 } // namespace core

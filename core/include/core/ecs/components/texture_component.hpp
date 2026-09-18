@@ -6,13 +6,13 @@ namespace core
 {
 struct TextureComponent
 {
-  explicit TextureComponent( std::weak_ptr<resources::Texture> texture )
-      : pTexture{ texture }
-  {
-  }
+    explicit TextureComponent( std::weak_ptr<resources::Texture> texture )
+        : pTexture{ texture }
+    {
+    }
 
-  ~TextureComponent() = default;
+    ~TextureComponent() = default;
 
-  std::weak_ptr<resources::Texture> pTexture;
+    std::weak_ptr<resources::Texture> pTexture;
 };
 } // namespace core

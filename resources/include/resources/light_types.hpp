@@ -4,8 +4,8 @@ namespace resources
 {
 enum class LightType
 {
-  Point,
-  Spot,
-  Directional
+    Point,
+    Spot,
+    Directional
 };
 } // namespace resources

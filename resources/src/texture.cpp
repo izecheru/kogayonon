@@ -40,75 +40,75 @@ resources::Texture::Texture( const std::string& p, int w, int h, int n, uint32_t
 
 auto resources::Texture::getPath() const -> std::string
 {
-  return m_path;
+    return m_path;
 }
 
 auto resources::Texture::getName() const -> std::string
 {
-  return m_name;
+    return m_name;
 }
 
 auto resources::Texture::getWidth() const -> int
 {
-  return m_width;
+    return m_width;
 }
 
 auto resources::Texture::getHeight() const -> int
 {
-  return m_height;
+    return m_height;
 }
 
 void resources::Texture::setPath( const std::string& path )
 {
-  m_path = path;
+    m_path = path;
 }
 
 void resources::Texture::setHeight( int height )
 {
-  m_height = height;
+    m_height = height;
 }
 
 void resources::Texture::setWidth( int width )
 {
-  m_width = width;
+    m_width = width;
 }
 
 bool resources::Texture::isLoaded() const
 {
-  return m_loaded;
+    return m_loaded;
 }
 
 void resources::Texture::setLoaded( bool value )
 {
-  m_loaded = value;
+    m_loaded = value;
 }
 
 auto resources::Texture::getImage() -> VkImage&
 {
-  return m_image.vkImage;
+    return m_image.vkImage;
 }
 
 auto resources::Texture::getView() -> VkImageView&
 {
-  return m_image.vkImageView;
+    return m_image.vkImageView;
 }
 
 auto resources::Texture::getAllocation() -> VmaAllocation&
 {
-  return m_image.vmaAllocation;
+    return m_image.vmaAllocation;
 }
 
 auto resources::Texture::getIndex() const -> uint32_t
 {
-  return m_textureIndex;
+    return m_textureIndex;
 }
 
 void resources::Texture::setIndex( uint32_t index )
 {
-  m_textureIndex = index;
+    m_textureIndex = index;
 }
 
 auto resources::Texture::setSamplerIndex( uint32_t index ) -> void
 {
-  m_samplerIndex = index;
+    m_samplerIndex = index;
 }

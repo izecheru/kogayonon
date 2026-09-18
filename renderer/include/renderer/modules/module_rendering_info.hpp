@@ -5,8 +5,8 @@ namespace rendering
 {
 struct ModuleRenderingInfo
 {
-  VkRenderingInfo vkRenderingInfo{};
-  VkRenderingAttachmentInfo colorAttachmentInfo{};
-  VkRenderingAttachmentInfo depthAttachmentInfo{};
+    VkRenderingInfo vkRenderingInfo{};
+    VkRenderingAttachmentInfo colorAttachmentInfo{};
+    VkRenderingAttachmentInfo depthAttachmentInfo{};
 };
 } // namespace rendering

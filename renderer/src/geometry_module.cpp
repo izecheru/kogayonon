@@ -28,8 +28,8 @@ rendering::GeometryModule::GeometryModule( FrameGraph* graph,
     , m_clearColor{ clearColor }
     , m_extent{ extent }
 {
-  createModuleResources( extent );
-  registerPasses();
+    createModuleResources( extent );
+    registerPasses();
 }
 
 rendering::GeometryModule::GeometryModule( FrameGraph* graph,
@@ -42,432 +42,436 @@ rendering::GeometryModule::GeometryModule( FrameGraph* graph,
 
 rendering::GeometryModule::~GeometryModule()
 {
-  destroyModuleResources();
+    destroyModuleResources();
 }
 
 auto rendering::GeometryModule::setClearColor( glm::vec4 clearColor ) -> void
 {
-  m_clearColor = clearColor;
+    m_clearColor = clearColor;
 }
 
 void rendering::GeometryModule::registerPasses()
 {
-  registerBaseGeometryPass();
-  if ( m_wireframe )
-  {
-    registerWireframePass();
-  }
+    registerBaseGeometryPass();
+    if ( m_wireframe )
+    {
+        registerWireframePass();
+    }
 }
 
 auto rendering::GeometryModule::recreate( VkExtent2D extent ) -> void
 {
-  destroyModuleResources();
-  createModuleResources( extent );
-  registerPasses();
+    destroyModuleResources();
+    createModuleResources( extent );
+    registerPasses();
 }
 
 auto rendering::GeometryModule::destroyModuleResources() -> void
 {
-  Blackboard* blackboard = m_graph->getBlackboard();
-  GeometryModuleData& geometryModuleData = blackboard->get<GeometryModuleData>();
+    Blackboard* blackboard = m_graph->getBlackboard();
+    GeometryModuleData& geometryModuleData = blackboard->get<GeometryModuleData>();
 
-  m_vkCtx->device->destroyPipelineLayout( geometryModuleData.basePipeline.getLayout() );
-  m_vkCtx->device->destroyPipeline( geometryModuleData.basePipeline.getPipeline() );
+    m_vkCtx->device->destroyPipelineLayout( geometryModuleData.basePipeline.getLayout() );
+    m_vkCtx->device->destroyPipeline( geometryModuleData.basePipeline.getPipeline() );
 
-  m_vkCtx->device->destroyPipelineLayout( geometryModuleData.wireframePipeline.getLayout() );
-  m_vkCtx->device->destroyPipeline( geometryModuleData.wireframePipeline.getPipeline() );
+    m_vkCtx->device->destroyPipelineLayout( geometryModuleData.wireframePipeline.getLayout() );
+    m_vkCtx->device->destroyPipeline( geometryModuleData.wireframePipeline.getPipeline() );
 
-  m_vkCtx->device->destroyImageView( geometryModuleData.color->vulkanImage.vkImageView );
-  m_vkCtx->device->destroyImage( geometryModuleData.color->vulkanImage.vkImage,
-                                 geometryModuleData.color->vulkanImage.vmaAllocation );
+    m_vkCtx->device->destroyImageView( geometryModuleData.color->vulkanImage.vkImageView );
+    m_vkCtx->device->destroyImage( geometryModuleData.color->vulkanImage.vkImage,
+                                   geometryModuleData.color->vulkanImage.vmaAllocation );
 }
 
 auto rendering::GeometryModule::registerWireframePass() -> void
 {
-  Blackboard* blackboard = m_graph->getBlackboard();
+    Blackboard* blackboard = m_graph->getBlackboard();
 
-  GeometryModuleData& geometryInfo{ blackboard->get<GeometryModuleData>() };
+    GeometryModuleData& geometryInfo{ blackboard->get<GeometryModuleData>() };
 
-  VkShaderModule vertex = m_vkCtx->device->createShaderModule( "basic_shader", "vertexMain" );
-  VkShaderModule fragment = m_vkCtx->device->createShaderModule( "basic_shader", "fragmentMain" );
+    VkShaderModule vertex = m_vkCtx->device->createShaderModule( "basic_shader", "vertexMain" );
+    VkShaderModule fragment = m_vkCtx->device->createShaderModule( "basic_shader", "fragmentMain" );
 
-  core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
-  std::vector<VkDescriptorSetLayout> descriptorLayout{ m_cameraDescriptor->layout,
-                                                       assetManager->getBindlessTexturesDescriptorLayout(),
-                                                       assetManager->getMaterialsDescriptorLayout() };
+    core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+    std::vector<VkDescriptorSetLayout> descriptorLayout{ m_cameraDescriptor->layout,
+                                                         assetManager->getBindlessTexturesDescriptorLayout(),
+                                                         assetManager->getMaterialsDescriptorLayout() };
 
-  graphics::VulkanPipelineSpec wireframeSpec{
-    .options = { .cullMode = VK_CULL_MODE_NONE, .polyMode = VK_POLYGON_MODE_LINE, .lineWidth = 0.1f },
-    .descriptorLayout = descriptorLayout,
-    .colorAttachmentCount = 1,
-    .colorAttachmentFormat = { m_vkCtx->swapchain->getSwapchainImageFormat() },
-    .depthAttachmentFormat = VK_FORMAT_D32_SFLOAT,
-    .vertexModule = vertex,
-    .fragmentModule = fragment,
-    .pushConstantSize = sizeof( resources::MeshPushConstant ),
-    .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-    .vertexBindingDescription = resources::Vertex::getBindingDescription(),
-    .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions() };
-
-  geometryInfo.wireframePipeline.create( wireframeSpec, m_vkCtx );
-
-  m_vkCtx->device->destroyShaderModule( vertex );
-  m_vkCtx->device->destroyShaderModule( fragment );
-
-  m_graph->addNode(
-    std::string{ passId::Wireframe },
-    []( NodeBuilder& b, Blackboard* blackboard ) {
-      GeometryModuleData& geometryData = blackboard->get<GeometryModuleData>();
-      PrepassModuleData& prepassData = blackboard->get<PrepassModuleData>();
-
-      b.write( geometryData.color, rendering::FGResourceType::Color );
-      b.read( prepassData.depth, rendering::FGResourceType::Depth );
-    },
-    [=]( VkCommandBuffer cmdBuffer ) {
-      TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::Wireframe );
-      GeometryModuleData& geometryData = m_graph->getBlackboard()->get<GeometryModuleData>();
-      PrepassModuleData& prepassData = m_graph->getBlackboard()->get<PrepassModuleData>();
-
-      graphics::VulkanPipeline& wireframePipeline = geometryData.wireframePipeline;
-
-      geometryData.renderingInfo.colorAttachmentInfo = VkRenderingAttachmentInfo{
-        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-        .imageView = geometryData.color->vulkanImage.vkImageView,
-        .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .clearValue = { { m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w } } };
-
-      geometryData.renderingInfo.depthAttachmentInfo =
-        VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                                   .imageView = prepassData.depth->vulkanImage.vkImageView,
-                                   .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-                                   .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
-                                   .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                                   .clearValue = { .depthStencil = { 1.f, 0 } } };
-
-      geometryData.renderingInfo.vkRenderingInfo = VkRenderingInfo{
-        .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-        .renderArea = { { 0, 0 }, m_extent },
-        .layerCount = 1,
+    graphics::VulkanPipelineSpec wireframeSpec{
+        .options = { .cullMode = VK_CULL_MODE_NONE, .polyMode = VK_POLYGON_MODE_LINE, .lineWidth = 0.1f },
+        .descriptorLayout = descriptorLayout,
         .colorAttachmentCount = 1,
-        .pColorAttachments = &geometryData.renderingInfo.colorAttachmentInfo,
-        .pDepthAttachment = &geometryData.renderingInfo.depthAttachmentInfo,
-      };
+        .colorAttachmentFormat = { m_vkCtx->swapchain->getSwapchainImageFormat() },
+        .depthAttachmentFormat = VK_FORMAT_D32_SFLOAT,
+        .vertexModule = vertex,
+        .fragmentModule = fragment,
+        .pushConstantSize = sizeof( resources::MeshPushConstant ),
+        .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+        .vertexBindingDescription = resources::Vertex::getBindingDescription(),
+        .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions() };
 
-      m_vkCtx->swapchain->beginRendering( geometryData.renderingInfo.vkRenderingInfo );
-      m_vkCtx->swapchain->setupScissors( cmdBuffer );
-      m_vkCtx->swapchain->setupViewport( cmdBuffer );
+    geometryInfo.wireframePipeline.create( wireframeSpec, m_vkCtx );
 
-      wireframePipeline.bind( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
+    m_vkCtx->device->destroyShaderModule( vertex );
+    m_vkCtx->device->destroyShaderModule( fragment );
 
-      core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
-      uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
+    m_graph->addNode(
+        std::string{ passId::Wireframe },
+        []( NodeBuilder& b, Blackboard* blackboard ) {
+            GeometryModuleData& geometryData = blackboard->get<GeometryModuleData>();
+            PrepassModuleData& prepassData = blackboard->get<PrepassModuleData>();
 
-      vkCmdBindDescriptorSets( cmdBuffer,
-                               VK_PIPELINE_BIND_POINT_GRAPHICS,
-                               wireframePipeline.getLayout(),
-                               0,
-                               1,
-                               &m_cameraDescriptor->set[currentFrame],
-                               0,
-                               nullptr );
+            b.write( geometryData.color, rendering::FGResourceType::Color );
+            b.read( prepassData.depth, rendering::FGResourceType::Depth );
+        },
+        [=]( VkCommandBuffer cmdBuffer ) {
+            TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::Wireframe );
+            GeometryModuleData& geometryData = m_graph->getBlackboard()->get<GeometryModuleData>();
+            PrepassModuleData& prepassData = m_graph->getBlackboard()->get<PrepassModuleData>();
 
-      vkCmdBindDescriptorSets( cmdBuffer,
-                               VK_PIPELINE_BIND_POINT_GRAPHICS,
-                               wireframePipeline.getLayout(),
-                               1,
-                               1,
-                               &assetManager->getBindlessDescriptorSet(),
-                               0,
-                               nullptr );
+            graphics::VulkanPipeline& wireframePipeline = geometryData.wireframePipeline;
 
-      vkCmdBindDescriptorSets( cmdBuffer,
-                               VK_PIPELINE_BIND_POINT_GRAPHICS,
-                               wireframePipeline.getLayout(),
-                               2,
-                               1,
-                               &assetManager->getMaterialsDescriptorSet(),
-                               0,
-                               nullptr );
+            geometryData.renderingInfo.colorAttachmentInfo = VkRenderingAttachmentInfo{
+                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                .imageView = geometryData.color->vulkanImage.vkImageView,
+                .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                .clearValue = { { m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w } } };
 
-      core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
-      core::Scene* scene = sceneManager->getCurrentScene();
+            geometryData.renderingInfo.depthAttachmentInfo =
+                VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                                           .imageView = prepassData.depth->vulkanImage.vkImageView,
+                                           .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                                           .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+                                           .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                                           .clearValue = { .depthStencil = { 1.f, 0 } } };
 
-      auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
-      view.each(
-        [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
-          resources::Mesh* pMesh = meshComponent.pMesh;
-          if ( !pMesh )
-            return;
+            geometryData.renderingInfo.vkRenderingInfo = VkRenderingInfo{
+                .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+                .renderArea = { { 0, 0 }, m_extent },
+                .layerCount = 1,
+                .colorAttachmentCount = 1,
+                .pColorAttachments = &geometryData.renderingInfo.colorAttachmentInfo,
+                .pDepthAttachment = &geometryData.renderingInfo.depthAttachmentInfo,
+            };
 
-          if ( !pMesh->isLoaded() )
-            return;
+            m_vkCtx->swapchain->beginRendering( geometryData.renderingInfo.vkRenderingInfo );
+            m_vkCtx->swapchain->setupScissors( cmdBuffer );
+            m_vkCtx->swapchain->setupViewport( cmdBuffer );
 
-          VkDeviceSize offsets[] = { 0 };
+            wireframePipeline.bind( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
 
-          vkCmdBindVertexBuffers( cmdBuffer, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
-          vkCmdBindIndexBuffer(
-            cmdBuffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
-          for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
-          {
-            // this should be expensive, move it somewhere in the mesh or submesh
-            auto push = resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(),
-                                                     .materialIndex = submesh.materialIndex };
+            core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+            uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
 
-            vkCmdPushConstants( cmdBuffer,
-                                wireframePipeline.getLayout(),
-                                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                                0,
-                                sizeof( resources::MeshPushConstant ),
-                                &push );
+            vkCmdBindDescriptorSets( cmdBuffer,
+                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                     wireframePipeline.getLayout(),
+                                     0,
+                                     1,
+                                     &m_cameraDescriptor->set[currentFrame],
+                                     0,
+                                     nullptr );
 
-            vkCmdDrawIndexed( cmdBuffer, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
-          }
+            vkCmdBindDescriptorSets( cmdBuffer,
+                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                     wireframePipeline.getLayout(),
+                                     1,
+                                     1,
+                                     &assetManager->getBindlessDescriptorSet(),
+                                     0,
+                                     nullptr );
+
+            vkCmdBindDescriptorSets( cmdBuffer,
+                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                     wireframePipeline.getLayout(),
+                                     2,
+                                     1,
+                                     &assetManager->getMaterialsDescriptorSet(),
+                                     0,
+                                     nullptr );
+
+            core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+            core::Scene* scene = sceneManager->getCurrentScene();
+
+            auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
+            view.each( [&]( const entt::entity& entityId,
+                            core::MeshComponent& meshComponent,
+                            core::TransformComponent& transform ) {
+                resources::Mesh* pMesh = meshComponent.pMesh;
+                if ( !pMesh )
+                    return;
+
+                if ( !pMesh->isLoaded() )
+                    return;
+
+                VkDeviceSize offsets[] = { 0 };
+
+                vkCmdBindVertexBuffers(
+                    cmdBuffer, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
+                vkCmdBindIndexBuffer(
+                    cmdBuffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
+                for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
+                {
+                    // this should be expensive, move it somewhere in the mesh or submesh
+                    auto push = resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(),
+                                                             .materialIndex = submesh.materialIndex };
+
+                    vkCmdPushConstants( cmdBuffer,
+                                        wireframePipeline.getLayout(),
+                                        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                        0,
+                                        sizeof( resources::MeshPushConstant ),
+                                        &push );
+
+                    vkCmdDrawIndexed( cmdBuffer, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
+                }
+            } );
+
+            m_vkCtx->swapchain->endRendering();
         } );
-
-      m_vkCtx->swapchain->endRendering();
-    } );
 }
 
 auto rendering::GeometryModule::registerBaseGeometryPass() -> void
 {
-  Blackboard* blackboard = m_graph->getBlackboard();
-  GeometryModuleData& geometryInfo = blackboard->get<GeometryModuleData>();
+    Blackboard* blackboard = m_graph->getBlackboard();
+    GeometryModuleData& geometryInfo = blackboard->get<GeometryModuleData>();
 
-  VkShaderModule vertex = m_vkCtx->device->createShaderModule( "basic_shader", "vertexMain" );
-  VkShaderModule fragment = m_vkCtx->device->createShaderModule( "basic_shader", "fragmentMain" );
+    VkShaderModule vertex = m_vkCtx->device->createShaderModule( "basic_shader", "vertexMain" );
+    VkShaderModule fragment = m_vkCtx->device->createShaderModule( "basic_shader", "fragmentMain" );
 
-  core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
-  std::vector<VkDescriptorSetLayout> descriptorLayout{ m_cameraDescriptor->layout,
-                                                       assetManager->getBindlessTexturesDescriptorLayout(),
-                                                       assetManager->getMaterialsDescriptorLayout() };
+    core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+    std::vector<VkDescriptorSetLayout> descriptorLayout{ m_cameraDescriptor->layout,
+                                                         assetManager->getBindlessTexturesDescriptorLayout(),
+                                                         assetManager->getMaterialsDescriptorLayout() };
 
-  graphics::VulkanPipelineSpec defaultPipelineSpec{
-    .options = { .cullMode = VK_CULL_MODE_BACK_BIT, .polyMode = VK_POLYGON_MODE_FILL },
-    .descriptorLayout = descriptorLayout,
-    .colorAttachmentCount = 1,
-    .colorAttachmentFormat = { m_vkCtx->swapchain->getSwapchainImageFormat() },
-    .depthAttachmentFormat = VK_FORMAT_D32_SFLOAT,
-    .vertexModule = vertex,
-    .fragmentModule = fragment,
-    .pushConstantSize = sizeof( resources::MeshPushConstant ),
-    .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-    .vertexBindingDescription = resources::Vertex::getBindingDescription(),
-    .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions(),
-  };
-
-  geometryInfo.basePipeline.create( defaultPipelineSpec, m_vkCtx );
-
-  m_vkCtx->device->destroyShaderModule( vertex );
-  m_vkCtx->device->destroyShaderModule( fragment );
-
-  m_graph->addNode(
-    std::string{ passId::Geometry },
-    []( NodeBuilder& b, Blackboard* blackboard ) {
-      GeometryModuleData& geometryModule = blackboard->get<GeometryModuleData>();
-      PrepassModuleData& prepassData = blackboard->get<PrepassModuleData>();
-      // ShadowmapModuleData& shadowmapData = blackboard->get<ShadowmapModuleData>();
-
-      b.write( geometryModule.color, rendering::FGResourceType::Color );
-      b.read( prepassData.depth, rendering::FGResourceType::Depth );
-      // b.read( shadowmapData.depth, rendering::FGResourceType::Shader );
-    },
-    [=]( VkCommandBuffer cmdBuffer ) {
-      TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::Geometry );
-      // ShadowmapModuleData& shadowmapData = blackboard->get<ShadowmapModuleData>();
-
-      VkDebugUtilsLabelEXT markerInfo{};
-      markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-      markerInfo.pLabelName = passId::Geometry;
-      m_vkCtx->device->label( cmdBuffer, markerInfo );
-
-      if ( m_extent.width == 0 || m_extent.height == 0 )
-        return;
-
-      GeometryModuleData& geometryData = m_graph->getBlackboard()->get<GeometryModuleData>();
-      PrepassModuleData& prepassData = m_graph->getBlackboard()->get<PrepassModuleData>();
-
-      graphics::VulkanPipeline& geometryPipeline = geometryData.basePipeline;
-
-      geometryData.renderingInfo.colorAttachmentInfo = VkRenderingAttachmentInfo{
-        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-        .imageView = geometryData.color->vulkanImage.vkImageView,
-        .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .clearValue = { { m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w } } };
-
-      geometryData.renderingInfo.depthAttachmentInfo =
-        VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                                   .imageView = prepassData.depth->vulkanImage.vkImageView,
-                                   .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-                                   .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
-                                   .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                                   .clearValue = { .depthStencil = { 1.f, 0 } } };
-
-      geometryData.renderingInfo.vkRenderingInfo = VkRenderingInfo{
-        .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-        .renderArea = { { 0, 0 }, m_extent },
-        .layerCount = 1,
+    graphics::VulkanPipelineSpec defaultPipelineSpec{
+        .options = { .cullMode = VK_CULL_MODE_BACK_BIT, .polyMode = VK_POLYGON_MODE_FILL },
+        .descriptorLayout = descriptorLayout,
         .colorAttachmentCount = 1,
-        .pColorAttachments = &geometryData.renderingInfo.colorAttachmentInfo,
-        .pDepthAttachment = &geometryData.renderingInfo.depthAttachmentInfo,
-      };
+        .colorAttachmentFormat = { m_vkCtx->swapchain->getSwapchainImageFormat() },
+        .depthAttachmentFormat = VK_FORMAT_D32_SFLOAT,
+        .vertexModule = vertex,
+        .fragmentModule = fragment,
+        .pushConstantSize = sizeof( resources::MeshPushConstant ),
+        .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+        .vertexBindingDescription = resources::Vertex::getBindingDescription(),
+        .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions(),
+    };
 
-      m_vkCtx->swapchain->beginRendering( geometryData.renderingInfo.vkRenderingInfo );
-      m_vkCtx->swapchain->setupScissors( cmdBuffer );
-      m_vkCtx->swapchain->setupViewport( cmdBuffer );
+    geometryInfo.basePipeline.create( defaultPipelineSpec, m_vkCtx );
 
-      geometryPipeline.bind( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
+    m_vkCtx->device->destroyShaderModule( vertex );
+    m_vkCtx->device->destroyShaderModule( fragment );
 
-      core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
-      uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
+    m_graph->addNode(
+        std::string{ passId::Geometry },
+        []( NodeBuilder& b, Blackboard* blackboard ) {
+            GeometryModuleData& geometryModule = blackboard->get<GeometryModuleData>();
+            PrepassModuleData& prepassData = blackboard->get<PrepassModuleData>();
+            // ShadowmapModuleData& shadowmapData = blackboard->get<ShadowmapModuleData>();
 
-      vkCmdBindDescriptorSets( cmdBuffer,
-                               VK_PIPELINE_BIND_POINT_GRAPHICS,
-                               geometryPipeline.getLayout(),
-                               0,
-                               1,
-                               &m_cameraDescriptor->set[currentFrame],
-                               0,
-                               nullptr );
+            b.write( geometryModule.color, rendering::FGResourceType::Color );
+            b.read( prepassData.depth, rendering::FGResourceType::Depth );
+            // b.read( shadowmapData.depth, rendering::FGResourceType::Shader );
+        },
+        [=]( VkCommandBuffer cmdBuffer ) {
+            TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::Geometry );
+            // ShadowmapModuleData& shadowmapData = blackboard->get<ShadowmapModuleData>();
 
-      vkCmdBindDescriptorSets( cmdBuffer,
-                               VK_PIPELINE_BIND_POINT_GRAPHICS,
-                               geometryPipeline.getLayout(),
-                               1,
-                               1,
-                               &assetManager->getBindlessDescriptorSet(),
-                               0,
-                               nullptr );
+            VkDebugUtilsLabelEXT markerInfo{};
+            markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+            markerInfo.pLabelName = passId::Geometry;
+            m_vkCtx->device->label( cmdBuffer, markerInfo );
 
-      vkCmdBindDescriptorSets( cmdBuffer,
-                               VK_PIPELINE_BIND_POINT_GRAPHICS,
-                               geometryPipeline.getLayout(),
-                               2,
-                               1,
-                               &assetManager->getMaterialsDescriptorSet(),
-                               0,
-                               nullptr );
+            if ( m_extent.width == 0 || m_extent.height == 0 )
+                return;
 
-      // vkCmdBindDescriptorSets( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipeline.getLayout(), 3, 1,
-      //                          &shadowmapData.directionalLightDescriptor.set, 0, nullptr );
+            GeometryModuleData& geometryData = m_graph->getBlackboard()->get<GeometryModuleData>();
+            PrepassModuleData& prepassData = m_graph->getBlackboard()->get<PrepassModuleData>();
 
-      core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
-      core::Scene* scene = sceneManager->getCurrentScene();
+            graphics::VulkanPipeline& geometryPipeline = geometryData.basePipeline;
 
-      auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
-      view.each(
-        [&]( const entt::entity& entityId, core::MeshComponent& meshComponent, core::TransformComponent& transform ) {
-          resources::Mesh* pMesh = meshComponent.pMesh;
-          if ( !pMesh )
-            return;
+            geometryData.renderingInfo.colorAttachmentInfo = VkRenderingAttachmentInfo{
+                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                .imageView = geometryData.color->vulkanImage.vkImageView,
+                .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                .clearValue = { { m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w } } };
 
-          if ( !pMesh->isLoaded() )
-            return;
+            geometryData.renderingInfo.depthAttachmentInfo =
+                VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                                           .imageView = prepassData.depth->vulkanImage.vkImageView,
+                                           .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                                           .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+                                           .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                                           .clearValue = { .depthStencil = { 1.f, 0 } } };
 
-          VkDeviceSize offsets[] = { 0 };
+            geometryData.renderingInfo.vkRenderingInfo = VkRenderingInfo{
+                .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+                .renderArea = { { 0, 0 }, m_extent },
+                .layerCount = 1,
+                .colorAttachmentCount = 1,
+                .pColorAttachments = &geometryData.renderingInfo.colorAttachmentInfo,
+                .pDepthAttachment = &geometryData.renderingInfo.depthAttachmentInfo,
+            };
 
-          vkCmdBindVertexBuffers( cmdBuffer, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
-          vkCmdBindIndexBuffer(
-            cmdBuffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
-          for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
-          {
-            // this should be expensive, move it somewhere in the mesh or submesh
-            auto push = resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(),
-                                                     .materialIndex = submesh.materialIndex };
+            m_vkCtx->swapchain->beginRendering( geometryData.renderingInfo.vkRenderingInfo );
+            m_vkCtx->swapchain->setupScissors( cmdBuffer );
+            m_vkCtx->swapchain->setupViewport( cmdBuffer );
 
-            vkCmdPushConstants( cmdBuffer,
-                                geometryPipeline.getLayout(),
-                                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                                0,
-                                sizeof( resources::MeshPushConstant ),
-                                &push );
+            geometryPipeline.bind( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
 
-            vkCmdDrawIndexed( cmdBuffer, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
-          }
+            core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+            uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
+
+            vkCmdBindDescriptorSets( cmdBuffer,
+                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                     geometryPipeline.getLayout(),
+                                     0,
+                                     1,
+                                     &m_cameraDescriptor->set[currentFrame],
+                                     0,
+                                     nullptr );
+
+            vkCmdBindDescriptorSets( cmdBuffer,
+                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                     geometryPipeline.getLayout(),
+                                     1,
+                                     1,
+                                     &assetManager->getBindlessDescriptorSet(),
+                                     0,
+                                     nullptr );
+
+            vkCmdBindDescriptorSets( cmdBuffer,
+                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                     geometryPipeline.getLayout(),
+                                     2,
+                                     1,
+                                     &assetManager->getMaterialsDescriptorSet(),
+                                     0,
+                                     nullptr );
+
+            // vkCmdBindDescriptorSets( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipeline.getLayout(), 3, 1,
+            //                          &shadowmapData.directionalLightDescriptor.set, 0, nullptr );
+
+            core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+            core::Scene* scene = sceneManager->getCurrentScene();
+
+            auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
+            view.each( [&]( const entt::entity& entityId,
+                            core::MeshComponent& meshComponent,
+                            core::TransformComponent& transform ) {
+                resources::Mesh* pMesh = meshComponent.pMesh;
+                if ( !pMesh )
+                    return;
+
+                if ( !pMesh->isLoaded() )
+                    return;
+
+                VkDeviceSize offsets[] = { 0 };
+
+                vkCmdBindVertexBuffers(
+                    cmdBuffer, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
+                vkCmdBindIndexBuffer(
+                    cmdBuffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
+                for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
+                {
+                    // this should be expensive, move it somewhere in the mesh or submesh
+                    auto push = resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(),
+                                                             .materialIndex = submesh.materialIndex };
+
+                    vkCmdPushConstants( cmdBuffer,
+                                        geometryPipeline.getLayout(),
+                                        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                        0,
+                                        sizeof( resources::MeshPushConstant ),
+                                        &push );
+
+                    vkCmdDrawIndexed( cmdBuffer, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
+                }
+            } );
+
+            m_vkCtx->device->endLabel( cmdBuffer );
+
+            m_vkCtx->swapchain->endRendering();
         } );
-
-      m_vkCtx->device->endLabel( cmdBuffer );
-
-      m_vkCtx->swapchain->endRendering();
-    } );
 }
 
 auto rendering::GeometryModule::createModuleResources( VkExtent2D extent ) -> void
 {
-  Blackboard* blackboard = m_graph->getBlackboard();
+    Blackboard* blackboard = m_graph->getBlackboard();
 
-  blackboard->addToStorage<GeometryModuleData>();
-  GeometryModuleData& geometryModuleData = blackboard->get<GeometryModuleData>();
+    blackboard->addToStorage<GeometryModuleData>();
+    GeometryModuleData& geometryModuleData = blackboard->get<GeometryModuleData>();
 
-  VkImageCreateInfo geometryColorInfo{
-    .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-    .imageType = VK_IMAGE_TYPE_2D,
-    .format = m_vkCtx->swapchain->getSwapchainImageFormat(),
-    .extent =
-      {
-        .width = extent.width,
-        .height = extent.height,
-        .depth = 1,
-      },
-    .mipLevels = 1,
-    .arrayLayers = 1,
-    .samples = VK_SAMPLE_COUNT_1_BIT,
-    .tiling = VK_IMAGE_TILING_OPTIMAL,
-    .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-    .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-  };
+    VkImageCreateInfo geometryColorInfo{
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = m_vkCtx->swapchain->getSwapchainImageFormat(),
+        .extent =
+            {
+                .width = extent.width,
+                .height = extent.height,
+                .depth = 1,
+            },
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = VK_IMAGE_TILING_OPTIMAL,
+        .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    };
 
-  VmaAllocationCreateInfo geometryColorAllocInfo{ .usage = VMA_MEMORY_USAGE_AUTO };
+    VmaAllocationCreateInfo geometryColorAllocInfo{ .usage = VMA_MEMORY_USAGE_AUTO };
 
-  geometryModuleData.color = m_graph->createResource( "geometryColor", geometryColorInfo, geometryColorAllocInfo );
+    geometryModuleData.color = m_graph->createResource( "geometryColor", geometryColorInfo, geometryColorAllocInfo );
 }
 
 auto rendering::GeometryModule::enableWireframe() -> void
 {
-  m_wireframe = true;
-  if ( !m_wireframeInit )
-  {
-    registerWireframePass();
-    m_wireframeInit = true;
-  }
-  // cull base pass
-  for ( std::unique_ptr<Node>& node : m_graph->getContainer().nodes )
-  {
-    if ( node->name == passId::Wireframe )
+    m_wireframe = true;
+    if ( !m_wireframeInit )
     {
-      node->culled = false;
+        registerWireframePass();
+        m_wireframeInit = true;
     }
-    if ( node->name == passId::Geometry )
+    // cull base pass
+    for ( std::unique_ptr<Node>& node : m_graph->getContainer().nodes )
     {
-      node->culled = true;
+        if ( node->name == passId::Wireframe )
+        {
+            node->culled = false;
+        }
+        if ( node->name == passId::Geometry )
+        {
+            node->culled = true;
+        }
     }
-  }
-  m_graph->recompile();
+    m_graph->recompile();
 }
 
 auto rendering::GeometryModule::disableWireframe() -> void
 {
-  m_wireframe = false;
-  // cull base pass
-  for ( std::unique_ptr<Node>& node : m_graph->getContainer().nodes )
-  {
-    if ( node->name == passId::Wireframe )
+    m_wireframe = false;
+    // cull base pass
+    for ( std::unique_ptr<Node>& node : m_graph->getContainer().nodes )
     {
-      node->culled = true;
+        if ( node->name == passId::Wireframe )
+        {
+            node->culled = true;
+        }
+        if ( node->name == passId::Geometry )
+        {
+            node->culled = false;
+        }
     }
-    if ( node->name == passId::Geometry )
-    {
-      node->culled = false;
-    }
-  }
-  m_graph->recompile();
+    m_graph->recompile();
 }
 
 auto rendering::GeometryModule::setExtent( VkExtent2D extent ) -> void
 {
-  m_extent = extent;
+    m_extent = extent;
 }

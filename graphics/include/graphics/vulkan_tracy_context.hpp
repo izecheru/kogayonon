@@ -10,19 +10,19 @@ namespace graphics
 {
 class VulkanTracyContext
 {
-public:
-  explicit VulkanTracyContext( VkDevice device,
-                               VkPhysicalDevice physicalDevice,
-                               VkQueue graphicsQueue,
-                               VkCommandPool cmdPool );
-  ~VulkanTracyContext();
+  public:
+    explicit VulkanTracyContext( VkDevice device,
+                                 VkPhysicalDevice physicalDevice,
+                                 VkQueue graphicsQueue,
+                                 VkCommandPool cmdPool );
+    ~VulkanTracyContext();
 
-  auto collect( VkCommandBuffer buffer ) -> void;
-  auto getCtx() -> tracy::VkCtx*;
-  auto getBuffer() -> VkCommandBuffer;
+    auto collect( VkCommandBuffer buffer ) -> void;
+    auto getCtx() -> tracy::VkCtx*;
+    auto getBuffer() -> VkCommandBuffer;
 
-private:
-  tracy::VkCtx* m_tracyContext;
-  VkCommandBuffer m_buffer;
+  private:
+    tracy::VkCtx* m_tracyContext;
+    VkCommandBuffer m_buffer;
 };
 } // namespace graphics

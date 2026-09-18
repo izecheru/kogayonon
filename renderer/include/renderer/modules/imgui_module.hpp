@@ -20,8 +20,8 @@ namespace rendering
 {
 struct ImGuiModuleData
 {
-  VkRenderingAttachmentInfo renderingAttachment{};
-  VkRenderingInfo renderingInfo{};
+    VkRenderingAttachmentInfo renderingAttachment{};
+    VkRenderingInfo renderingInfo{};
 };
 
 namespace passId
@@ -31,19 +31,19 @@ inline constexpr const char* ImGui = "imguiPass";
 
 class ImGuiModule
 {
-public:
-  explicit ImGuiModule( FrameGraph* graph, graphics::VulkanContext* vkCtx, gui::VulkanImguiRenderer* imguiRenderer );
-  ~ImGuiModule();
+  public:
+    explicit ImGuiModule( FrameGraph* graph, graphics::VulkanContext* vkCtx, gui::VulkanImguiRenderer* imguiRenderer );
+    ~ImGuiModule();
 
-  auto registerPasses() -> void;
-  auto setViewport() -> void;
+    auto registerPasses() -> void;
+    auto setViewport() -> void;
 
-private:
-  auto registerImGuiPass() -> void;
+  private:
+    auto registerImGuiPass() -> void;
 
-private:
-  graphics::VulkanContext* m_vkCtx;
-  gui::VulkanImguiRenderer* m_imguiRenderer;
-  FrameGraph* m_graph;
+  private:
+    graphics::VulkanContext* m_vkCtx;
+    gui::VulkanImguiRenderer* m_imguiRenderer;
+    FrameGraph* m_graph;
 };
 } // namespace rendering

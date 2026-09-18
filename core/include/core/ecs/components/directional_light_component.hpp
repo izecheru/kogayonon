@@ -9,31 +9,33 @@ namespace core
 {
 struct DirectionalLightComponent
 {
-  float nearPlane{ 0.1f };
-  float farPlane{ 300.0f };
-  float orthoSize{ 70.0f };
-  float positionFactor{ 20.0f };
+    float nearPlane{ 0.1f };
+    float farPlane{ 300.0f };
+    float orthoSize{ 70.0f };
+    float positionFactor{ 20.0f };
 
-  static void createLuaBindings( sol::state& lua )
-  {
-    lua.new_usertype<DirectionalLightComponent>(
-      "DirectionalLightComponent",
-      "typeId",
-      entt::type_hash<DirectionalLightComponent>::value,
-      sol::call_constructor,
-      sol::factories( []() { return DirectionalLightComponent{}; },
-                      []( float _near, float _far, float orthoSize, float posFactor ) {
-                        return DirectionalLightComponent{
-                          .nearPlane = _near, .farPlane = _far, .orthoSize = orthoSize, .positionFactor = posFactor };
-                      } ),
-      "nearPlane",
-      &DirectionalLightComponent::nearPlane,
-      "farPlane",
-      &DirectionalLightComponent::farPlane,
-      "orthoSize",
-      &DirectionalLightComponent::orthoSize,
-      "positionFactor",
-      &DirectionalLightComponent::positionFactor );
-  }
+    static void createLuaBindings( sol::state& lua )
+    {
+        lua.new_usertype<DirectionalLightComponent>(
+            "DirectionalLightComponent",
+            "typeId",
+            entt::type_hash<DirectionalLightComponent>::value,
+            sol::call_constructor,
+            sol::factories( []() { return DirectionalLightComponent{}; },
+                            []( float _near, float _far, float orthoSize, float posFactor ) {
+                                return DirectionalLightComponent{ .nearPlane = _near,
+                                                                  .farPlane = _far,
+                                                                  .orthoSize = orthoSize,
+                                                                  .positionFactor = posFactor };
+                            } ),
+            "nearPlane",
+            &DirectionalLightComponent::nearPlane,
+            "farPlane",
+            &DirectionalLightComponent::farPlane,
+            "orthoSize",
+            &DirectionalLightComponent::orthoSize,
+            "positionFactor",
+            &DirectionalLightComponent::positionFactor );
+    }
 };
 } // namespace core

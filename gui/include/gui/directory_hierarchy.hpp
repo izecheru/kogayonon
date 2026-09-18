@@ -8,52 +8,52 @@ namespace fs = std::filesystem;
 
 struct FileEntry
 {
-  fs::path path;
+    fs::path path;
 };
 
 struct DirectoryEntry
 {
-  fs::path path;
-  std::vector<DirectoryEntry> children;
-  std::vector<FileEntry> files;
-  bool open{ false };
+    fs::path path;
+    std::vector<DirectoryEntry> children;
+    std::vector<FileEntry> files;
+    bool open{ false };
 };
 
 class DirectoryHierarchy
 {
-public:
-  explicit DirectoryHierarchy( fs::path root );
+  public:
+    explicit DirectoryHierarchy( fs::path root );
 
-  [[nodiscard]] auto root() noexcept -> DirectoryEntry&
-  {
-    return m_root;
-  }
+    [[nodiscard]] auto root() noexcept -> DirectoryEntry&
+    {
+        return m_root;
+    }
 
-  [[nodiscard]] auto getRebuildNode() -> DirectoryEntry*;
-  [[nodiscard]] auto isInit() const -> bool;
-  [[nodiscard]] auto needRebuild() const -> bool;
+    [[nodiscard]] auto getRebuildNode() -> DirectoryEntry*;
+    [[nodiscard]] auto isInit() const -> bool;
+    [[nodiscard]] auto needRebuild() const -> bool;
 
-  auto setRebuild( bool value ) -> void;
-  auto setNode( DirectoryEntry* entry ) -> void;
+    auto setRebuild( bool value ) -> void;
+    auto setNode( DirectoryEntry* entry ) -> void;
 
-  /**
-   * @brief Build hierarchy from a single directory onwards
-   * @param entry
-   * @return
-   */
-  auto rebuildNode() -> void;
+    /**
+     * @brief Build hierarchy from a single directory onwards
+     * @param entry
+     * @return
+     */
+    auto rebuildNode() -> void;
 
-private:
-  /**
-   * @brief Build hierarchy from root
-   * @param path
-   * @return
-   */
-  auto build( const fs::path& path ) -> DirectoryEntry;
+  private:
+    /**
+     * @brief Build hierarchy from root
+     * @param path
+     * @return
+     */
+    auto build( const fs::path& path ) -> DirectoryEntry;
 
-private:
-  bool m_init;
-  bool m_needRebuild;
-  DirectoryEntry m_root;
-  DirectoryEntry* m_rebuild;
+  private:
+    bool m_init;
+    bool m_needRebuild;
+    DirectoryEntry m_root;
+    DirectoryEntry* m_rebuild;
 };

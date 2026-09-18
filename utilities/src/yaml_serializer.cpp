@@ -16,18 +16,18 @@ YamlSerializer::YamlSerializer()
 
 YamlSerializer::~YamlSerializer()
 {
-  if ( m_fileStream.is_open() )
-    m_fileStream.close();
+    if ( m_fileStream.is_open() )
+        m_fileStream.close();
 }
 
 void YamlSerializer::initFstream( const std::string& path )
 {
-  m_fileStream = std::fstream{ path, std::ios::out | std::ios::trunc };
+    m_fileStream = std::fstream{ path, std::ios::out | std::ios::trunc };
 }
 
 void YamlSerializer::writeToFile()
 {
-  m_fileStream << m_yamlEmitter.c_str();
-  m_fileStream.flush();
+    m_fileStream << m_yamlEmitter.c_str();
+    m_fileStream.flush();
 }
 } // namespace utilities
