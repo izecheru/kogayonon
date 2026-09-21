@@ -41,6 +41,20 @@ editor::Editor::Editor()
     KeyboardState::initState();
 
     init();
+
+    // create the editor dir
+    std::filesystem::path editorDir = std::filesystem::current_path() / "editor";
+    if ( !std::filesystem::exists( editorDir ) )
+    {
+        std::filesystem::create_directory( editorDir );
+    }
+
+    // scenes dir
+    std::filesystem::path scenesDir = std::filesystem::current_path() / "editor" / "scenes";
+    if ( !std::filesystem::exists( scenesDir ) )
+    {
+        std::filesystem::create_directory( scenesDir );
+    }
 }
 
 editor::Editor::~Editor()
@@ -256,6 +270,8 @@ bool editor::Editor::init()
 
 void editor::Editor::onWindowClose( const core::WindowCloseEvent& e )
 {
+    core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+    sceneManager->saveScenes();
 }
 
 bool editor::Editor::initMainRegistry()

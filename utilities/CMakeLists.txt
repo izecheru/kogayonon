@@ -1,5 +1,4 @@
-add_library(
-  utilities
+set(HEADER_FILES
   "include/utilities/tracy_utils/tracy_utils.hpp"
   "include/utilities/tracy_utils/tracy_vulkan_utils.hpp"
   "include/utilities/task_manager/task_manager.hpp"
@@ -16,6 +15,7 @@ add_library(
   "include/utilities/script/script.hpp"
   "include/utilities/yaml_serializer/yaml_serializer.hpp"
   "include/utilities/json_serializer/json_serializer.hpp"
+  "include/utilities/json_serializer/json_serializer.inl"
   "include/utilities/utils/yaml_utils.hpp"
 
   "include/utilities/fonts/fontawesome6Pro.hpp"
@@ -27,7 +27,9 @@ add_library(
   "include/utilities/fonts/forkawesome.hpp"
   "include/utilities/fonts/codicon.hpp"
   "include/utilities/fonts/lucide.hpp"
+)
 
+set(SOURCE_FILES
   "src/task_manager.cpp"
   "src/time_tracker.cpp"
   "src/directory_watcher.cpp"
@@ -36,6 +38,11 @@ add_library(
   "src/script.cpp"
   "src/yaml_serializer.cpp" 
   "src/json_serializer.cpp"
+)
+
+add_library(
+  utilities
+  ${SOURCE_FILES}
  )
 
 target_include_directories(utilities
