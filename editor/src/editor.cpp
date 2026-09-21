@@ -379,8 +379,7 @@ bool editor::Editor::initMainRegistry()
             if ( e.HasMember( "mesh" ) )
             {
                 core::AssetManager* assetManager = mainRegistry.getAssetManager();
-                std::filesystem::path meshPath =
-                    std::filesystem::current_path() / "engine_resources" / "models" / e["mesh"]["path"].GetString();
+                std::filesystem::path meshPath = e["mesh"]["path"].GetString();
                 resources::Mesh* mesh = assetManager->loadMesh( meshPath.stem().string(), meshPath.string() );
                 ent.addComponent<core::MeshComponent>( core::MeshComponent{ .pMesh = mesh } );
             }
