@@ -8,6 +8,7 @@ set(HEADER_FILES
     "include/core/ecs/main_registry.hpp"
     "include/core/scene/scene.hpp"
     "include/core/ecs/entity.hpp"
+    "include/core/ecs/entity.inl"
     "include/core/input/keyboard_events.hpp"
     "include/core/input/mouse_events.hpp"
     "include/core/ecs/components/texture_component.hpp"

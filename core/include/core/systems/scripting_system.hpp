@@ -5,34 +5,34 @@ namespace core
 {
 struct MainScriptFuncs
 {
-  MainScriptFuncs() = default;
-  ~MainScriptFuncs() = default;
+    MainScriptFuncs() = default;
+    ~MainScriptFuncs() = default;
 
-  sol::protected_function init;
-  sol::protected_function update;
-  sol::protected_function render;
+    sol::protected_function init;
+    sol::protected_function update;
+    sol::protected_function render;
 };
 
 class ScriptingSystem
 {
-public:
-  ScriptingSystem();
-  ~ScriptingSystem() = default;
+  public:
+    ScriptingSystem();
+    ~ScriptingSystem() = default;
 
-  /**
-   * @brief Registers the lua bindings from all the defined usertypes
-   * @param lua Lua state reference variable
-   */
-  static void registerBindings( sol::state& lua );
+    /**
+     * @brief Registers the lua bindings from all the defined usertypes
+     * @param lua Lua state reference variable
+     */
+    static void registerBindings( sol::state& lua );
 
-  bool isInit() const;
+    bool isInit() const;
 
-  void loadMainScript( const std::string& path );
+    void loadMainScript( const std::string& path );
 
-  auto getLuaState() -> sol::state&;
+    auto getLuaState() -> sol::state&;
 
-private:
-  sol::state m_luaState;
-  bool m_init;
+  private:
+    sol::state m_luaState;
+    bool m_init;
 };
 } // namespace core

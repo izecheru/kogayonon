@@ -5,10 +5,10 @@ namespace core
 {
 struct KogayononProject
 {
-  // title of the project
-  std::string title{ "none" };
+    // title of the project
+    std::string title{ "none" };
 
-  // path of the project file
-  std::filesystem::path path;
+    // path of the project file
+    std::filesystem::path path;
 };
 } // namespace core

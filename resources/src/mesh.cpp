@@ -4,35 +4,35 @@
 
 auto resources::Mesh::getVertices() -> std::vector<Vertex>&
 {
-  return m_vertices;
+    return m_vertices;
 }
 
 auto resources::Mesh::getIndices() -> std::vector<uint32_t>&
 {
-  return m_indices;
+    return m_indices;
 }
 
 auto resources::Mesh::getVertexBufferObject() -> graphics::VulkanBuffer&
 {
-  return m_verticesBuff;
+    return m_verticesBuff;
 }
 
 auto resources::Mesh::getVerticesAllocation() -> VmaAllocation&
 {
-  return m_verticesBuff.vmaAllocation;
+    return m_verticesBuff.vmaAllocation;
 }
 
 auto resources::Mesh::getIndicesBufferObject() -> graphics::VulkanBuffer&
 {
-  return m_indicesBuff;
+    return m_indicesBuff;
 }
 
 auto resources::Mesh::getIndicesAllocation() -> VmaAllocation&
 {
-  return m_indicesBuff.vmaAllocation;
+    return m_indicesBuff.vmaAllocation;
 }
 
 auto resources::Mesh::getSubmeshes() -> std::vector<Submesh>&
 {
-  return m_submeshes;
+    return m_submeshes;
 }

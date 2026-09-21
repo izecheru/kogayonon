@@ -9,39 +9,39 @@
 
 core::SceneEventHandler::SceneEventHandler( EventDispatcher* pDispatcher )
 {
-  pDispatcher->addHandler<core::DeleteEntityEvent, &SceneEventHandler::onDeleteEntity>( *this );
-  pDispatcher->addHandler<core::SelectEntityEvent, &SceneEventHandler::onSelectEntity>( *this );
-  pDispatcher->addHandler<core::AddEntityEvent, &SceneEventHandler::onAddEntity>( *this );
+    pDispatcher->addHandler<core::DeleteEntityEvent, &SceneEventHandler::onDeleteEntity>( *this );
+    pDispatcher->addHandler<core::SelectEntityEvent, &SceneEventHandler::onSelectEntity>( *this );
+    pDispatcher->addHandler<core::AddEntityEvent, &SceneEventHandler::onAddEntity>( *this );
 }
 
 auto core::SceneEventHandler::getCurrentEntityId() const -> entt::entity
 {
-  return m_selectedEntity;
+    return m_selectedEntity;
 }
 
 auto core::SceneEventHandler::onDeleteEntity( const core::DeleteEntityEvent& e ) -> void
 {
-  if ( m_selectedEntity == entt::null )
-  {
-    return;
-  }
+    if ( m_selectedEntity == entt::null )
+    {
+        return;
+    }
 
-  auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
-  auto scene = sceneManager->getCurrentScene();
+    auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
+    auto scene = sceneManager->getCurrentScene();
 
-  scene->removeEntity( m_selectedEntity );
+    scene->removeEntity( m_selectedEntity );
 
-  m_selectedEntity = entt::null;
+    m_selectedEntity = entt::null;
 }
 
 auto core::SceneEventHandler::onAddEntity( const core::AddEntityEvent& e ) -> void
 {
-  auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
-  auto scene = sceneManager->getCurrentScene();
-  m_selectedEntity = scene->addEntity();
+    auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
+    auto scene = sceneManager->getCurrentScene();
+    m_selectedEntity = scene->addEntity();
 }
 
 auto core::SceneEventHandler::onSelectEntity( const core::SelectEntityEvent& e ) -> void
 {
-  m_selectedEntity = e.getEntityId();
+    m_selectedEntity = e.getEntityId();
 }

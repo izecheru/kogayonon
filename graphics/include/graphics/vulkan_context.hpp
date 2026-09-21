@@ -14,13 +14,13 @@ namespace graphics
 
 struct VulkanContext
 {
-  std::unique_ptr<VulkanDevice> device;
-  std::unique_ptr<VulkanSwapchain> swapchain;
+    std::unique_ptr<VulkanDevice> device;
+    std::unique_ptr<VulkanSwapchain> swapchain;
 
 #ifdef TRACY_ENABLE
-  std::unique_ptr<VulkanTracyContext> tracyContext;
+    std::unique_ptr<VulkanTracyContext> tracyContext;
 #endif
 
-  VkDescriptorPool globalDescriptorPool;
+    VkDescriptorPool globalDescriptorPool;
 };
 } // namespace graphics

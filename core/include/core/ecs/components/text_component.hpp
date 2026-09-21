@@ -6,7 +6,7 @@ namespace core
 {
 struct TextComponent
 {
-  std::string text;
-  resources::Font* pFont;
+    std::string text;
+    resources::Font* pFont;
 };
 } // namespace core

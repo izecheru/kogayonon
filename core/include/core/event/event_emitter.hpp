@@ -5,33 +5,33 @@ namespace core
 {
 class EventEmitter
 {
-public:
-  EventEmitter() = default;
-  ~EventEmitter() = default;
+  public:
+    EventEmitter() = default;
+    ~EventEmitter() = default;
 
-  template <typename TEvent, typename Func>
-  void addListener( TEvent&& event, Func&& func )
-  {
-    m_emitter.on<TEvent>( func );
-  }
+    template <typename TEvent, typename Func>
+    void addListener( TEvent&& event, Func&& func )
+    {
+        m_emitter.on<TEvent>( func );
+    }
 
-  template <typename TEvent>
-  void publish( TEvent&& event )
-  {
-    m_emitter.publish<TEvent>( event );
-  }
+    template <typename TEvent>
+    void publish( TEvent&& event )
+    {
+        m_emitter.publish<TEvent>( event );
+    }
 
-  template <typename TEvent>
-  void removeListener()
-  {
-    m_emitter.erase<TEvent>();
-  }
+    template <typename TEvent>
+    void removeListener()
+    {
+        m_emitter.erase<TEvent>();
+    }
 
-private:
-  struct CustomEmitter : entt::emitter<CustomEmitter>
-  {
-  };
+  private:
+    struct CustomEmitter : entt::emitter<CustomEmitter>
+    {
+    };
 
-  CustomEmitter m_emitter{};
+    CustomEmitter m_emitter{};
 };
 } // namespace core

@@ -31,45 +31,44 @@ inline constexpr const char* PickingEntityRead = "pickingEntityReadPass";
 
 struct PickingModuleData
 {
-  FGResource* color{ VK_NULL_HANDLE };
-  graphics::VulkanPipeline pickingPipeline{};
-  graphics::FrameInFlightVulkanBuffer pickingBuffer;
-  ModuleRenderingInfo renderingInfo;
+    FGResource* color{ VK_NULL_HANDLE };
+    graphics::VulkanPipeline pickingPipeline{};
+    graphics::FrameInFlightVulkanBuffer pickingBuffer;
+    ModuleRenderingInfo renderingInfo;
 };
 
 class PickingModule : public BaseModule
 {
-public:
-  explicit PickingModule( FrameGraph* graph,
-                          graphics::VulkanContext* vkCtx,
-                          gui::VulkanImguiRenderer* imguiRenderer,
-                          VkExtent2D extent,
-                          graphics::FrameInFlightVulkanDescriptor* cameraDescriptor );
+  public:
+    explicit PickingModule( FrameGraph* graph,
+                            graphics::VulkanContext* vkCtx,
+                            gui::VulkanImguiRenderer* imguiRenderer,
+                            VkExtent2D extent,
+                            graphics::FrameInFlightVulkanDescriptor* cameraDescriptor );
 
-  ~PickingModule();
+    ~PickingModule();
 
-  auto registerPasses() -> void override;
-  auto setCoords( glm::ivec2 coords ) -> void;
-  auto setExtent( VkExtent2D extent ) -> void override;
-  auto recreate( VkExtent2D extent ) -> void override;
+    auto registerPasses() -> void override;
+    auto setCoords( glm::ivec2 coords ) -> void;
+    auto setExtent( VkExtent2D extent ) -> void override;
+    auto recreate( VkExtent2D extent ) -> void override;
 
-private:
-  auto createModuleResources( VkExtent2D extent ) -> void override;
-  auto destroyModuleResources() -> void override;
+  private:
+    auto createModuleResources( VkExtent2D extent ) -> void override;
+    auto destroyModuleResources() -> void override;
 
-  auto registerPickingPass() -> void;
-  auto registerPickingReadbackPass() -> void;
-  auto registerPickingEntityReadPass() -> void;
+    auto registerPickingPass() -> void;
+    auto registerPickingReadbackPass() -> void;
 
-private:
-  graphics::FrameInFlightVulkanDescriptor* m_cameraDescriptor;
-  glm::ivec2 m_mouseCoords;
-  bool m_pickRequested;
-  bool m_readyToCopy;
-  FrameGraph* m_graph;
-  graphics::VulkanContext* m_vkCtx;
-  VkExtent2D m_extent;
-  gui::VulkanImguiRenderer* m_imguiRenderer;
-  int32_t m_lastFrameIndex;
+  private:
+    graphics::FrameInFlightVulkanDescriptor* m_cameraDescriptor;
+    glm::ivec2 m_mouseCoords;
+    bool m_pickRequested;
+    bool m_readyToCopy;
+    FrameGraph* m_graph;
+    graphics::VulkanContext* m_vkCtx;
+    VkExtent2D m_extent;
+    gui::VulkanImguiRenderer* m_imguiRenderer;
+    int32_t m_lastFrameIndex;
 };
 } // namespace rendering

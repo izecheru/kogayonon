@@ -9,31 +9,31 @@ namespace core
 {
 TEST( CoreEntt, DeleteEntityTest )
 {
-  auto scene = std::make_shared<core::Scene>( "test" );
-  auto entity = scene->addEntity();
-  EXPECT_EQ( scene->getEntityCount(), 1 );
-  scene->removeEntity( entity );
-  EXPECT_EQ( scene->getEntityCount(), 0 );
+    auto scene = std::make_shared<core::Scene>( "test" );
+    auto entity = scene->addEntity();
+    EXPECT_EQ( scene->getEntityCount(), 1 );
+    scene->removeEntity( entity );
+    EXPECT_EQ( scene->getEntityCount(), 0 );
 }
 
 TEST( CoreEntt, AddComponentTest )
 {
-  auto scene = std::make_shared<core::Scene>( "test" );
-  auto entity = scene->addEntity();
-  core::Entity ent{ scene->getRegistry(), entity };
-  ent.addComponent<core::TextComponent>( core::TextComponent{ .text = "test", .pFont = nullptr } );
-  EXPECT_EQ( ent.hasComponent<core::TextComponent>(), true );
+    auto scene = std::make_shared<core::Scene>( "test" );
+    auto entity = scene->addEntity();
+    core::Entity ent{ scene->getRegistry(), entity };
+    ent.addComponent<core::TextComponent>( core::TextComponent{ .text = "test", .pFont = nullptr } );
+    EXPECT_EQ( ent.hasComponent<core::TextComponent>(), true );
 }
 
 TEST( CoreEntt, RemoveComponentTest )
 {
-  auto scene = std::make_shared<core::Scene>( "test" );
-  auto entity = scene->addEntity();
-  core::Entity ent{ scene->getRegistry(), entity };
-  ent.addComponent<core::TextComponent>( core::TextComponent{ .text = "test", .pFont = nullptr } );
-  EXPECT_EQ( ent.hasComponent<core::TextComponent>(), true );
-  ent.removeComponent<core::TextComponent>();
-  EXPECT_EQ( ent.hasComponent<core::TextComponent>(), false );
+    auto scene = std::make_shared<core::Scene>( "test" );
+    auto entity = scene->addEntity();
+    core::Entity ent{ scene->getRegistry(), entity };
+    ent.addComponent<core::TextComponent>( core::TextComponent{ .text = "test", .pFont = nullptr } );
+    EXPECT_EQ( ent.hasComponent<core::TextComponent>(), true );
+    ent.removeComponent<core::TextComponent>();
+    EXPECT_EQ( ent.hasComponent<core::TextComponent>(), false );
 }
 
 } // namespace core

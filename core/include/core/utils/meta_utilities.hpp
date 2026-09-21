@@ -18,10 +18,10 @@ namespace core
  */
 [[nodiscard]] static auto getTypeId( const sol::table& obj ) -> entt::id_type
 {
-  // the typeId is stored in the new_usertype for each object we expose to lua
-  const auto f = obj["typeId"].get<sol::function>();
-  assert( f.valid() && "type_id not exposed to lua!" );
-  return f.valid() ? f().get<entt::id_type>() : -1;
+    // the typeId is stored in the new_usertype for each object we expose to lua
+    const auto f = obj["typeId"].get<sol::function>();
+    assert( f.valid() && "type_id not exposed to lua!" );
+    return f.valid() ? f().get<entt::id_type>() : -1;
 }
 
 /**
@@ -33,17 +33,17 @@ namespace core
 template <typename T>
 [[nodiscard]] static auto deduceType( T&& obj ) -> entt::id_type
 {
-  switch ( obj.get_type() )
-  {
-  // if we have registry:has(entity, Transform.type_id()) in lua file then it is a number
-  case sol::type::number:
-    return obj.template as<entt::id_type>();
-  // if we have registry:has(entity, Transform) then we have a table, like struct {}
-  case sol::type::table:
-    return getTypeId( obj );
-  }
-  assert( false );
-  return -1;
+    switch ( obj.get_type() )
+    {
+    // if we have registry:has(entity, Transform.type_id()) in lua file then it is a number
+    case sol::type::number:
+        return obj.template as<entt::id_type>();
+    // if we have registry:has(entity, Transform) then we have a table, like struct {}
+    case sol::type::table:
+        return getTypeId( obj );
+    }
+    assert( false );
+    return -1;
 }
 
 /**
@@ -57,13 +57,13 @@ template <typename T>
 template <typename T, typename TData>
 static TData getField( entt::meta_any& object, const char* fieldName )
 {
-  auto type = entt::resolve<T>();
-  auto field = type.data( entt::hashed_string::value( fieldName ) );
+    auto type = entt::resolve<T>();
+    auto field = type.data( entt::hashed_string::value( fieldName ) );
 
-  if ( !field )
-    throw std::runtime_error( "Field not found, register it with meta_factory" );
+    if ( !field )
+        throw std::runtime_error( "Field not found, register it with meta_factory" );
 
-  return field.get( object ).cast<TData>();
+    return field.get( object ).cast<TData>();
 }
 
 /**
@@ -73,11 +73,11 @@ static TData getField( entt::meta_any& object, const char* fieldName )
  */
 static auto collectTypes( const sol::variadic_args& va ) -> std::set<entt::id_type>
 {
-  std::set<entt::id_type> types;
-  std::transform( va.cbegin(), va.cend(), std::inserter( types, types.begin() ), []( const auto& obj ) {
-    return deduceType( obj );
-  } );
-  return types;
+    std::set<entt::id_type> types;
+    std::transform( va.cbegin(), va.cend(), std::inserter( types, types.begin() ), []( const auto& obj ) {
+        return deduceType( obj );
+    } );
+    return types;
 }
 
 // https://github.com/skypjack/entt/wiki/Crash-Course:-runtime-reflection-system
@@ -93,22 +93,22 @@ static auto collectTypes( const sol::variadic_args& va ) -> std::set<entt::id_ty
 template <typename... Args>
 static inline auto invokeMetaFunc( entt::meta_type metaType, entt::id_type funcId, Args&&... args ) -> entt::meta_any
 {
-  if ( !metaType )
-  {
-    KERROR( "meta type is not registered in entt::meta" );
-  }
-  else
-  {
-    if ( auto&& metaFunction = metaType.func( funcId ); metaFunction )
-      return metaFunction.invoke( {}, std::forward<Args>( args )... );
-  }
-  return entt::meta_any{};
+    if ( !metaType )
+    {
+        KERROR( "meta type is not registered in entt::meta" );
+    }
+    else
+    {
+        if ( auto&& metaFunction = metaType.func( funcId ); metaFunction )
+            return metaFunction.invoke( {}, std::forward<Args>( args )... );
+    }
+    return entt::meta_any{};
 }
 
 template <typename... Args>
 static inline auto invokeMetaFunc( entt::id_type typeId, entt::id_type funcId, Args&&... args ) -> entt::meta_any
 {
-  return invokeMetaFunc( entt::resolve( typeId ), funcId, std::forward<Args>( args )... );
+    return invokeMetaFunc( entt::resolve( typeId ), funcId, std::forward<Args>( args )... );
 }
 
 } // namespace core

@@ -11,6 +11,6 @@ namespace core
 {
 struct MeshComponent
 {
-  resources::Mesh* pMesh{ nullptr };
+    resources::Mesh* pMesh{ nullptr };
 };
 } // namespace core

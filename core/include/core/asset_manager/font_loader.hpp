@@ -7,14 +7,14 @@ namespace core
 
 class FontLoader
 {
-public:
-  FontLoader();
-  ~FontLoader();
+  public:
+    FontLoader();
+    ~FontLoader();
 
-  void generateAtlas( const std::string_view path );
+    void generateAtlas( const std::string_view path );
 
-private:
-  msdf_atlas::Charset m_defaultCharset;
-  msdfgen::FreetypeHandle* m_pFreetypeHandle;
+  private:
+    msdf_atlas::Charset m_defaultCharset;
+    msdfgen::FreetypeHandle* m_pFreetypeHandle;
 };
 } // namespace core

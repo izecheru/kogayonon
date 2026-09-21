@@ -6,10 +6,10 @@
 
 graphics::VulkanTracyContext::~VulkanTracyContext()
 {
-  if ( m_tracyContext )
-  {
-    TracyVkDestroy( m_tracyContext );
-  }
+    if ( m_tracyContext )
+    {
+        TracyVkDestroy( m_tracyContext );
+    }
 }
 
 graphics::VulkanTracyContext::VulkanTracyContext( VkDevice device,
@@ -17,27 +17,27 @@ graphics::VulkanTracyContext::VulkanTracyContext( VkDevice device,
                                                   VkQueue graphicsQueue,
                                                   VkCommandPool cmdPool )
 {
-  VkCommandBufferAllocateInfo allocInfo{ .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                                         .commandPool = cmdPool,
-                                         .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                                         .commandBufferCount = 1 };
+    VkCommandBufferAllocateInfo allocInfo{ .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                                           .commandPool = cmdPool,
+                                           .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                                           .commandBufferCount = 1 };
 
-  vkAllocateCommandBuffers( device, &allocInfo, &m_buffer );
+    vkAllocateCommandBuffers( device, &allocInfo, &m_buffer );
 
-  m_tracyContext = TracyVkContext( physicalDevice, device, graphicsQueue, m_buffer );
+    m_tracyContext = TracyVkContext( physicalDevice, device, graphicsQueue, m_buffer );
 }
 
 auto graphics::VulkanTracyContext::getCtx() -> tracy::VkCtx*
 {
-  return m_tracyContext;
+    return m_tracyContext;
 }
 
 auto graphics::VulkanTracyContext::getBuffer() -> VkCommandBuffer
 {
-  return m_buffer;
+    return m_buffer;
 }
 
 auto graphics::VulkanTracyContext::collect( VkCommandBuffer buffer ) -> void
 {
-  TracyVkCollect( m_tracyContext, buffer );
+    TracyVkCollect( m_tracyContext, buffer );
 }

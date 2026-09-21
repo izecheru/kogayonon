@@ -20,34 +20,34 @@ namespace rendering
 
 struct PrepassModuleData
 {
-  FGResource* depth{ VK_NULL_HANDLE };
-  graphics::VulkanPipeline depthPrepassPipeline{};
-  ModuleRenderingInfo renderingInfo;
+    FGResource* depth{ VK_NULL_HANDLE };
+    graphics::VulkanPipeline depthPrepassPipeline{};
+    ModuleRenderingInfo renderingInfo;
 };
 
 class PrepassModule : public BaseModule
 {
-public:
-  explicit PrepassModule( FrameGraph* graph,
-                          graphics::VulkanContext* vkCtx,
-                          VkExtent2D extent,
-                          graphics::FrameInFlightVulkanDescriptor* cameraDescriptor );
-  ~PrepassModule();
+  public:
+    explicit PrepassModule( FrameGraph* graph,
+                            graphics::VulkanContext* vkCtx,
+                            VkExtent2D extent,
+                            graphics::FrameInFlightVulkanDescriptor* cameraDescriptor );
+    ~PrepassModule();
 
-  auto registerPasses() -> void override;
-  auto recreate( VkExtent2D extent ) -> void override;
-  auto setExtent( VkExtent2D extent ) -> void override;
+    auto registerPasses() -> void override;
+    auto recreate( VkExtent2D extent ) -> void override;
+    auto setExtent( VkExtent2D extent ) -> void override;
 
-protected:
-  auto registerDepthPrepass() -> void;
+  protected:
+    auto registerDepthPrepass() -> void;
 
-  auto createModuleResources( VkExtent2D extent ) -> void override;
-  auto destroyModuleResources() -> void override;
+    auto createModuleResources( VkExtent2D extent ) -> void override;
+    auto destroyModuleResources() -> void override;
 
-private:
-  FrameGraph* m_graph;
-  graphics::VulkanContext* m_vkCtx;
-  VkExtent2D m_extent;
-  graphics::FrameInFlightVulkanDescriptor* m_cameraDescriptor;
+  private:
+    FrameGraph* m_graph;
+    graphics::VulkanContext* m_vkCtx;
+    VkExtent2D m_extent;
+    graphics::FrameInFlightVulkanDescriptor* m_cameraDescriptor;
 };
 } // namespace rendering

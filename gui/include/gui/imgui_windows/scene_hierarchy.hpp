@@ -15,34 +15,34 @@ class MouseClickedEvent;
 
 struct SceneHierarchySpec
 {
-  std::unordered_map<std::string, ImFont*>* fonts;
+    std::unordered_map<std::string, ImFont*>* fonts;
 
-  VkDescriptorSet cubeIcon;
+    VkDescriptorSet cubeIcon;
 };
 
 namespace gui
 {
 class SceneHierarchy : public ImGuiWindow
 {
-public:
-  explicit SceneHierarchy( const std::string& name, const SceneHierarchySpec& spec );
-  ~SceneHierarchy() = default;
+  public:
+    explicit SceneHierarchy( const std::string& name, const SceneHierarchySpec& spec );
+    ~SceneHierarchy() = default;
 
-  void render() override;
+    void render() override;
 
-private:
-  void drawContextMenu();
+  private:
+    void drawContextMenu();
 
-  /**
-   * @brief Draws a context menu for the item we provide, we need the item id
-   * @param id Id of the element we draw the context menu for
-   * @param name Just a test parameter for the moment
-   */
-  void drawItemContexMenu( const std::string& itemId, entt::entity ent );
+    /**
+     * @brief Draws a context menu for the item we provide, we need the item id
+     * @param id Id of the element we draw the context menu for
+     * @param name Just a test parameter for the moment
+     */
+    void drawItemContexMenu( const std::string& itemId, entt::entity ent );
 
-  auto onKeyPressed( const core::KeyPressedEvent& e ) -> void;
+    auto onKeyPressed( const core::KeyPressedEvent& e ) -> void;
 
-private:
-  SceneHierarchySpec m_spec;
+  private:
+    SceneHierarchySpec m_spec;
 };
 } // namespace gui

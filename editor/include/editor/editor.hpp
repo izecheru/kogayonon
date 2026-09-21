@@ -33,35 +33,35 @@ namespace editor
 {
 class Editor
 {
-public:
-  Editor();
-  ~Editor();
-  auto cleanup() const -> void;
-  auto pollEvents() -> void;
-  auto run() -> void;
+  public:
+    Editor();
+    ~Editor();
+    auto cleanup() const -> void;
+    auto pollEvents() -> void;
+    auto run() -> void;
 
-  auto onUpdate() -> void;
+    auto onUpdate() -> void;
 
-  auto initMainRegistry() -> bool;
-  auto initMainWindow() -> bool;
-  auto initRenderer() -> bool;
+    auto initMainRegistry() -> bool;
+    auto initMainWindow() -> bool;
+    auto initRenderer() -> bool;
 
-  auto initSDL() -> bool;
-  auto init() -> bool;
+    auto initSDL() -> bool;
+    auto init() -> bool;
 
-private:
-  auto createDescriptorPool() -> void;
+  private:
+    auto createDescriptorPool() -> void;
 
-private:
-  auto onWindowClose( const core::WindowCloseEvent& e ) -> void;
-  auto onProjectLoad( const core::ProjectLoadEvent& e ) -> void;
-  auto onProjectCreate( const core::ProjectCreateEvent& e ) -> void;
+  private:
+    auto onWindowClose( const core::WindowCloseEvent& e ) -> void;
+    auto onProjectLoad( const core::ProjectLoadEvent& e ) -> void;
+    auto onProjectCreate( const core::ProjectCreateEvent& e ) -> void;
 
-private:
-  VkDescriptorPool m_globalDescriptorPool;
-  std::unique_ptr<window::Window> m_window;
-  std::unique_ptr<rendering::VulkanRenderer> m_vulkanRenderer;
+  private:
+    VkDescriptorPool m_globalDescriptorPool;
+    std::unique_ptr<window::Window> m_window;
+    std::unique_ptr<rendering::VulkanRenderer> m_vulkanRenderer;
 
-  bool m_running{ false };
+    bool m_running{ false };
 };
 } // namespace editor

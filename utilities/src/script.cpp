@@ -15,11 +15,11 @@ Script::Script( const std::string& path, const std::string& compilationPath )
 
 auto Script::getPath() -> std::string&
 {
-  return m_path;
+    return m_path;
 }
 
 auto Script::getCompilePath() -> std::string&
 {
-  return m_compilePath;
+    return m_compilePath;
 }
 } // namespace utilities

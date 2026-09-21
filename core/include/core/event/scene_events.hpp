@@ -11,63 +11,63 @@ namespace core
  */
 enum class SelectEntityEventSource
 {
-  None,
-  Viewport_Window,
-  Properties_Window,
-  Hierarchy_Window
+    None,
+    Viewport_Window,
+    Properties_Window,
+    Hierarchy_Window
 };
 
 class SelectEntityEvent : public IEvent
 {
-public:
-  SelectEntityEvent();
-  ~SelectEntityEvent() = default;
+  public:
+    SelectEntityEvent();
+    ~SelectEntityEvent() = default;
 
-  explicit SelectEntityEvent( const entt::entity& ent, const SelectEntityEventSource& source );
-  explicit SelectEntityEvent( const SelectEntityEventSource& source );
+    explicit SelectEntityEvent( const entt::entity& ent, const SelectEntityEventSource& source );
+    explicit SelectEntityEvent( const SelectEntityEventSource& source );
 
-  /**
-   * @brief Get selected entity Id
-   * @return
-   */
-  auto getEntityId() const -> entt::entity;
+    /**
+     * @brief Get selected entity Id
+     * @return
+     */
+    auto getEntityId() const -> entt::entity;
 
-  /**
-   * @brief We get the event source
-   * @return An enum value that can be used for event filtering
-   */
-  auto getEventSource() const -> SelectEntityEventSource;
+    /**
+     * @brief We get the event source
+     * @return An enum value that can be used for event filtering
+     */
+    auto getEventSource() const -> SelectEntityEventSource;
 
-private:
-  entt::entity m_entity;
-  SelectEntityEventSource m_source;
+  private:
+    entt::entity m_entity;
+    SelectEntityEventSource m_source;
 };
 
 class DeleteEntityEvent : public IEvent
 {
-public:
-  explicit DeleteEntityEvent( const entt::entity& entityId );
-  DeleteEntityEvent() = default;
+  public:
+    explicit DeleteEntityEvent( const entt::entity& entityId );
+    DeleteEntityEvent() = default;
 
-private:
-  entt::entity m_entityId{ entt::null };
+  private:
+    entt::entity m_entityId{ entt::null };
 };
 
 class AddEntityEvent : public IEvent
 {
-public:
-  AddEntityEvent()
-  {
-    m_name = "Default";
-  }
+  public:
+    AddEntityEvent()
+    {
+        m_name = "Default";
+    }
 
-  explicit AddEntityEvent( const std::string_view name )
-      : m_name{ name }
-  {
-  }
+    explicit AddEntityEvent( const std::string_view name )
+        : m_name{ name }
+    {
+    }
 
-private:
-  std::string m_name;
+  private:
+    std::string m_name;
 };
 
 } // namespace core

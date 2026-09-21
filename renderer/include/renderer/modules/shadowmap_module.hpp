@@ -15,42 +15,42 @@ constexpr const char* ShadowmapPass = "shadowmapPass";
 
 struct DirectionalLightUBO
 {
-  glm::mat4 projection;
-  glm::mat4 view;
+    glm::mat4 projection;
+    glm::mat4 view;
 };
 
 struct ShadowmapModuleData
 {
-  FGResource* depth{ VK_NULL_HANDLE };
-  graphics::VulkanPipeline shadowmapPipeline;
-  ModuleRenderingInfo renderingInfo;
+    FGResource* depth{ VK_NULL_HANDLE };
+    graphics::VulkanPipeline shadowmapPipeline;
+    ModuleRenderingInfo renderingInfo;
 
-  graphics::VulkanDescriptor directionalLightDescriptor;      // texture descriptor
-  graphics::VulkanDescriptor directionalLightPovDescriptor;   // light mvp matrix descriptor
-  graphics::FrameInFlightVulkanBuffer directionalLightBuffer; // ubo
+    graphics::VulkanDescriptor directionalLightDescriptor;      // texture descriptor
+    graphics::VulkanDescriptor directionalLightPovDescriptor;   // light mvp matrix descriptor
+    graphics::FrameInFlightVulkanBuffer directionalLightBuffer; // ubo
 };
 
 class ShadowmapModule : public BaseModule
 {
-public:
-  explicit ShadowmapModule( FrameGraph* graph, graphics::VulkanContext* vkCtx, VkExtent2D extent );
-  ~ShadowmapModule();
+  public:
+    explicit ShadowmapModule( FrameGraph* graph, graphics::VulkanContext* vkCtx, VkExtent2D extent );
+    ~ShadowmapModule();
 
-  auto registerPasses() -> void override;
-  auto getShadowmapDescriptor() -> graphics::VulkanDescriptor&;
+    auto registerPasses() -> void override;
+    auto getShadowmapDescriptor() -> graphics::VulkanDescriptor&;
 
-protected:
-  auto registerShadowmapPass() -> void;
+  protected:
+    auto registerShadowmapPass() -> void;
 
-  auto setExtent( VkExtent2D extent ) -> void override;
-  auto recreate( VkExtent2D extent ) -> void override;
-  auto createModuleResources( VkExtent2D extent ) -> void override;
-  auto destroyModuleResources() -> void override;
+    auto setExtent( VkExtent2D extent ) -> void override;
+    auto recreate( VkExtent2D extent ) -> void override;
+    auto createModuleResources( VkExtent2D extent ) -> void override;
+    auto destroyModuleResources() -> void override;
 
-private:
-  FrameGraph* m_graph;
-  graphics::VulkanContext* m_vkCtx;
-  VkExtent2D m_extent;
+  private:
+    FrameGraph* m_graph;
+    graphics::VulkanContext* m_vkCtx;
+    VkExtent2D m_extent;
 };
 
 } // namespace rendering

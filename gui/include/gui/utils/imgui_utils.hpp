@@ -6,9 +6,9 @@ namespace gui_utils
 {
 
 #define RenderDisabled( content )                                                                                      \
-  ImGui::BeginDisabled();                                                                                              \
-  content;                                                                                                             \
-  ImGui::EndDisabled();
+    ImGui::BeginDisabled();                                                                                            \
+    content;                                                                                                           \
+    ImGui::EndDisabled();
 
 // LA - low alpha
 
@@ -49,16 +49,16 @@ namespace gui_utils
 
 inline void renderWithSizedFont( ImFont* font, float size, auto&& func )
 {
-  ImGui::PushFont( font, size );
-  func();
-  ImGui::PopFont();
+    ImGui::PushFont( font, size );
+    func();
+    ImGui::PopFont();
 }
 
 inline void renderWithFont( ImFont* font, auto&& func )
 {
-  ImGui::PushFont( font );
-  func();
-  ImGui::PopFont();
+    ImGui::PushFont( font );
+    func();
+    ImGui::PopFont();
 }
 
 /**
@@ -69,37 +69,37 @@ inline void renderWithFont( ImFont* font, auto&& func )
  */
 inline void centerPopup( const ImVec2& coord, const ImVec2& size, const ImGuiCond& cond = ImGuiCond_None )
 {
-  ImGui::SetNextWindowPos( { coord.x / 2.0f, coord.y / 2.0f }, cond, { 0.5f, 0.5f } );
-  ImGui::SetNextWindowSize( size );
+    ImGui::SetNextWindowPos( { coord.x / 2.0f, coord.y / 2.0f }, cond, { 0.5f, 0.5f } );
+    ImGui::SetNextWindowSize( size );
 }
 
 inline auto truncateText( const std::string& text, uint32_t limit ) -> std::string
 {
-  auto trucatedText = text;
+    auto trucatedText = text;
 
-  const float textWidth = ImGui::CalcTextSize( text.c_str(), nullptr, true ).x;
+    const float textWidth = ImGui::CalcTextSize( text.c_str(), nullptr, true ).x;
 
-  if ( textWidth < limit )
-    return text;
+    if ( textWidth < limit )
+        return text;
 
-  constexpr const char* ELLIPSIS = "...";
-  const float ellipsisSize = ImGui::CalcTextSize( ELLIPSIS ).x;
+    constexpr const char* ELLIPSIS = "...";
+    const float ellipsisSize = ImGui::CalcTextSize( ELLIPSIS ).x;
 
-  int visibleCharacters = 0;
-  for ( auto i = 0u; i < text.size(); i++ )
-  {
-    const float currentWidth = ImGui::CalcTextSize( text.substr( 0, i ).c_str(), nullptr, true ).x;
-    if ( currentWidth + ellipsisSize > limit )
+    int visibleCharacters = 0;
+    for ( auto i = 0u; i < text.size(); i++ )
     {
-      break;
+        const float currentWidth = ImGui::CalcTextSize( text.substr( 0, i ).c_str(), nullptr, true ).x;
+        if ( currentWidth + ellipsisSize > limit )
+        {
+            break;
+        }
+
+        visibleCharacters = i;
     }
 
-    visibleCharacters = i;
-  }
+    trucatedText = ( text.substr( 0, visibleCharacters ) + ELLIPSIS ).c_str();
 
-  trucatedText = ( text.substr( 0, visibleCharacters ) + ELLIPSIS ).c_str();
-
-  return trucatedText;
+    return trucatedText;
 }
 
 /**
@@ -108,9 +108,9 @@ inline auto truncateText( const std::string& text, uint32_t limit ) -> std::stri
  */
 inline void moveTextToCenter( const std::string& text )
 {
-  ImGui::SetCursorPosX( ImGui::GetCursorPosX() +
-                        ( ( ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize( text.c_str() ).x ) * 0.5f ) +
-                        2.0f * ImGui::GetStyle().FramePadding.x );
+    ImGui::SetCursorPosX( ImGui::GetCursorPosX() +
+                          ( ( ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize( text.c_str() ).x ) * 0.5f ) +
+                          2.0f * ImGui::GetStyle().FramePadding.x );
 }
 
 /**
@@ -120,8 +120,8 @@ inline void moveTextToCenter( const std::string& text )
  */
 inline void moveTextToCenter( ImVec2 size, const std::string& text )
 {
-  ImGui::SetCursorPosX( ImGui::GetCursorPosX() + ( ( size.x - ImGui::CalcTextSize( text.c_str() ).x ) * 0.5f ) +
-                        2.0f * ImGui::GetStyle().FramePadding.x );
+    ImGui::SetCursorPosX( ImGui::GetCursorPosX() + ( ( size.x - ImGui::CalcTextSize( text.c_str() ).x ) * 0.5f ) +
+                          2.0f * ImGui::GetStyle().FramePadding.x );
 }
 
 } // namespace gui_utils

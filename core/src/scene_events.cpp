@@ -23,12 +23,12 @@ SelectEntityEvent::SelectEntityEvent( const SelectEntityEventSource& source )
 
 auto SelectEntityEvent::getEntityId() const -> entt::entity
 {
-  return m_entity;
+    return m_entity;
 }
 
 auto SelectEntityEvent::getEventSource() const -> SelectEntityEventSource
 {
-  return m_source;
+    return m_source;
 }
 
 DeleteEntityEvent::DeleteEntityEvent( const entt::entity& entityId )

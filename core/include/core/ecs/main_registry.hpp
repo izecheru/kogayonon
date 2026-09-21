@@ -37,92 +37,92 @@ namespace core
  */
 class MainRegistry
 {
-public:
-  inline static auto getInstance() -> MainRegistry&
-  {
-    static MainRegistry instance{};
-    if ( !m_init )
+  public:
+    inline static auto getInstance() -> MainRegistry&
     {
-      m_pRegistry = std::make_unique<Registry>();
-      m_init = true;
+        static MainRegistry instance{};
+        if ( !m_init )
+        {
+            m_pRegistry = std::make_unique<Registry>();
+            m_init = true;
+        }
+        return instance;
     }
-    return instance;
-  }
 
-  template <typename TContext>
-  void addToContext( TContext context )
-  {
-    m_pRegistry->addToContext<TContext>( context );
-  }
+    template <typename TContext>
+    void addToContext( TContext context )
+    {
+        m_pRegistry->addToContext<TContext>( context );
+    }
 
-  template <typename TContext>
-  TContext& getContext()
-  {
-    return m_pRegistry->getContext<TContext>();
-  }
+    template <typename TContext>
+    TContext& getContext()
+    {
+        return m_pRegistry->getContext<TContext>();
+    }
 
-  SceneManager* getSceneManager()
-  {
-    return getContext<std::shared_ptr<SceneManager>>().get();
-  }
+    SceneManager* getSceneManager()
+    {
+        return getContext<std::shared_ptr<SceneManager>>().get();
+    }
 
-  physics::JoltPhysics* getJoltPhysics()
-  {
-    return getContext<std::shared_ptr<physics::JoltPhysics>>().get();
-  }
+    physics::JoltPhysics* getJoltPhysics()
+    {
+        return getContext<std::shared_ptr<physics::JoltPhysics>>().get();
+    }
 
-  graphics::VulkanContext* getVulkanContext()
-  {
-    return getContext<std::shared_ptr<graphics::VulkanContext>>().get();
-  }
+    graphics::VulkanContext* getVulkanContext()
+    {
+        return getContext<std::shared_ptr<graphics::VulkanContext>>().get();
+    }
 
-  MainScriptFuncs* getMainScriptFuncs()
-  {
-    return getContext<std::shared_ptr<MainScriptFuncs>>().get();
-  }
+    MainScriptFuncs* getMainScriptFuncs()
+    {
+        return getContext<std::shared_ptr<MainScriptFuncs>>().get();
+    }
 
-  EventEmitter* getEventEmitter()
-  {
-    return getContext<std::shared_ptr<EventEmitter>>().get();
-  }
+    EventEmitter* getEventEmitter()
+    {
+        return getContext<std::shared_ptr<EventEmitter>>().get();
+    }
 
-  EventDispatcher* getEventDispatcher()
-  {
-    return getContext<std::shared_ptr<EventDispatcher>>().get();
-  }
+    EventDispatcher* getEventDispatcher()
+    {
+        return getContext<std::shared_ptr<EventDispatcher>>().get();
+    }
 
-  utilities::TimeTracker* getTimeTracker()
-  {
-    return getContext<std::shared_ptr<utilities::TimeTracker>>().get();
-  }
+    utilities::TimeTracker* getTimeTracker()
+    {
+        return getContext<std::shared_ptr<utilities::TimeTracker>>().get();
+    }
 
-  utilities::TaskManager* getTaskManager()
-  {
-    return getContext<std::shared_ptr<utilities::TaskManager>>().get();
-  }
+    utilities::TaskManager* getTaskManager()
+    {
+        return getContext<std::shared_ptr<utilities::TaskManager>>().get();
+    }
 
-  utilities::ShaderCompiler* getShaderManager()
-  {
-    return getContext<std::shared_ptr<utilities::ShaderCompiler>>().get();
-  }
+    utilities::ShaderCompiler* getShaderManager()
+    {
+        return getContext<std::shared_ptr<utilities::ShaderCompiler>>().get();
+    }
 
-  ScriptingSystem* getScriptingSystem()
-  {
-    return getContext<std::shared_ptr<ScriptingSystem>>().get();
-  }
+    ScriptingSystem* getScriptingSystem()
+    {
+        return getContext<std::shared_ptr<ScriptingSystem>>().get();
+    }
 
-  AssetManager* getAssetManager()
-  {
-    return getContext<std::shared_ptr<AssetManager>>().get();
-  }
+    AssetManager* getAssetManager()
+    {
+        return getContext<std::shared_ptr<AssetManager>>().get();
+    }
 
-private:
-  MainRegistry() = default;
-  ~MainRegistry();
-  MainRegistry( const MainRegistry& ) = delete;
-  MainRegistry& operator=( const MainRegistry& ) = delete;
+  private:
+    MainRegistry() = default;
+    ~MainRegistry();
+    MainRegistry( const MainRegistry& ) = delete;
+    MainRegistry& operator=( const MainRegistry& ) = delete;
 
-  inline static std::shared_ptr<Registry> m_pRegistry;
-  inline static bool m_init = false;
+    inline static std::shared_ptr<Registry> m_pRegistry;
+    inline static bool m_init = false;
 };
 } // namespace core

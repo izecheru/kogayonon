@@ -13,6 +13,7 @@ set(HEADER_FILES
     "include/renderer/vulkan_renderer.hpp"
     "include/renderer/frame_graph.hpp"
     "include/renderer/blackboard.hpp"
+    "include/renderer/blackboard.inl"
     "include/renderer/node.hpp"
     ${MODULE_HEADERS}
 )

@@ -11,16 +11,16 @@ namespace core
 {
 struct RigidbodyData
 {
-  physics::RigidbodyType type;
-  physics::RigidbodyShape shape;
-  uint32_t layer{};
-  JPH::EMotionType motionType{};
-  JPH::EActivation activation{};
+    physics::RigidbodyType type;
+    physics::RigidbodyShape shape;
+    uint32_t layer{};
+    JPH::EMotionType motionType{};
+    JPH::EActivation activation{};
 };
 
 struct RigidbodyComponent
 {
-  RigidbodyData data;
-  JPH::BodyID body;
+    RigidbodyData data;
+    JPH::BodyID body;
 };
 } // namespace core

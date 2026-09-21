@@ -5,10 +5,10 @@ namespace core
 {
 class ConfigChangedEvent : public IEvent
 {
-public:
-  ConfigChangedEvent() = default;
-  ~ConfigChangedEvent() = default;
+  public:
+    ConfigChangedEvent() = default;
+    ~ConfigChangedEvent() = default;
 
-private:
+  private:
 };
 } // namespace core
