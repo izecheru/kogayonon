@@ -68,12 +68,6 @@ auto core::SceneManager::getEventHandler() -> SceneEventHandler*
 
 auto core::SceneManager::saveScenes() -> void
 {
-    if ( !m_saveAllScenes )
-    {
-        // proceed and save the current set scene
-        return;
-    }
-
     auto saveEntityTransformComponent = []( utilities::JsonSerializer* s, core::TransformComponent& transform ) {
         s->startObject( "transform" )
             .saveVec3( "position", transform.translation )
@@ -88,6 +82,46 @@ auto core::SceneManager::saveScenes() -> void
 
         s->startObject( "mesh" ).addKeyValuePair( "path", meshComponent.pMesh->getPath() ).endObject();
     };
+
+    if ( !m_saveAllScenes )
+    {
+        Scene* scene = getCurrentScene();
+        std::string sceneFilename = scene->getName() + ".kscene";
+        std::filesystem::path scenePath = std::filesystem::current_path() / "editor" / "scenes" / sceneFilename;
+
+        // this also creates the output file
+        std::unique_ptr<utilities::JsonSerializer> serializer =
+            std::make_unique<utilities::JsonSerializer>( scenePath.string() );
+
+        serializer->startDocument().startArray( "entities" );
+
+        auto view = scene->getEnttRegistry().view<core::IdentifierComponent>();
+
+        view.each( [&]( const entt::entity& id, core::IdentifierComponent& idComponent ) {
+            Entity entity{ scene->getRegistry(), id };
+
+            // this could be useful since we can also unhash it so we can create each entity in order
+            // uint32_t entityId = static_cast<uint32_t>( entity.getEntityId() );
+            // std::string idHash = std::to_string( std::hash<uint32_t>{}( entityId ) );
+
+            serializer->startObject();
+
+            if ( entity.hasComponent<core::MeshComponent>() )
+            {
+                saveEntityMeshComponent( serializer.get(), entity.getComponent<core::MeshComponent>() );
+            }
+
+            if ( entity.hasComponent<core::TransformComponent>() )
+            {
+                saveEntityTransformComponent( serializer.get(), entity.getComponent<core::TransformComponent>() );
+            }
+
+            serializer->endObject();
+        } );
+
+        serializer->endArray().endDocument();
+        return;
+    }
 
     // serialize all scenes
     for ( const auto& [sceneName, scene] : m_scenes )
