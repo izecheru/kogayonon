@@ -33,7 +33,6 @@ rendering::PickingModule::PickingModule( FrameGraph* graph,
     , m_cameraDescriptor{ cameraDescriptor }
     , m_lastFrameIndex{ -1 }
 {
-    createModuleResources( extent );
     registerPasses();
 }
 
@@ -44,9 +43,9 @@ rendering::PickingModule::~PickingModule()
 
 auto rendering::PickingModule::registerPasses() -> void
 {
+    createModuleResources( m_extent );
     registerPickingPass();
     registerPickingReadbackPass();
-    registerPickingEntityReadPass();
 }
 
 auto rendering::PickingModule::setCoords( glm::ivec2 coords ) -> void
@@ -64,8 +63,8 @@ auto rendering::PickingModule::setExtent( VkExtent2D extent ) -> void
 
 auto rendering::PickingModule::recreate( VkExtent2D extent ) -> void
 {
+    m_extent = extent;
     destroyModuleResources();
-    createModuleResources( extent );
     registerPasses();
 }
 
@@ -129,7 +128,7 @@ auto rendering::PickingModule::registerPickingPass() -> void
                                            .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                                            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
                                            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                                           .clearValue = { { -1.0f, -1.0f, -1.0f, -1.0f } } };
+                                           .clearValue = { .color = { -1, -1, -1, -1 } } };
 
             pickingData.renderingInfo.depthAttachmentInfo =
                 VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -185,6 +184,7 @@ auto rendering::PickingModule::registerPickingPass() -> void
                     cmdBuffer, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
                 vkCmdBindIndexBuffer(
                     cmdBuffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
+
                 for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
                 {
                     resources::EntityPickingPushConstant push{ .modelMatrix = transform.getMatrix(),
@@ -223,77 +223,62 @@ auto rendering::PickingModule::registerPickingReadbackPass() -> void
             Blackboard* blackboard = m_graph->getBlackboard();
             PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
 
-            if ( !*pickRequested || *readyToCopy )
-                return;
-
-            uint32_t frameNumber = m_vkCtx->swapchain->getCurrentFrameNumber();
-            m_vkCtx->device->copyImageToBuffer( pickingData.color->vulkanImage.vkImage,
-                                                cmdBuffer,
-                                                pickingData.pickingBuffer.buffers.at( frameNumber ).vkBuffer,
-                                                { coords->x, coords->y, 0 },
-                                                { 1, 1, 1 },
-                                                false );
-
-            *lastFrameIndex = frameNumber;
-            *readyToCopy = true;
-            *pickRequested = false;
-        } );
-}
-
-auto rendering::PickingModule::registerPickingEntityReadPass() -> void
-{
-    m_graph->addNode(
-        std::string{ passId::PickingEntityRead },
-        []( NodeBuilder& b, Blackboard* blackboard ) {
-            PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
-            b.read( pickingData.color, FGResourceType::ColorTransfer );
-        },
-        [=,
-         lastFrameIndex = &m_lastFrameIndex,
-         coords = &m_mouseCoords,
-         pickRequested = &m_pickRequested,
-         readyToCopy = &m_readyToCopy]( VkCommandBuffer cmdBuffer ) {
-            TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::PickingEntityRead );
-
-            if ( *lastFrameIndex == -1 )
+            if ( *readyToCopy )
             {
-                *lastFrameIndex = m_vkCtx->swapchain->getCurrentFrameNumber();
-                return;
-            }
-
-            if ( !*readyToCopy )
-                return;
-
-            if ( *lastFrameIndex == m_vkCtx->swapchain->getCurrentFrameNumber() )
-                return;
-
-            Blackboard* blackboard = m_graph->getBlackboard();
-            PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
-            core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
-            core::Scene* scene = sceneManager->getCurrentScene();
-
-            int32_t id{ -1 };
-            m_vkCtx->device->copyFromBuffer( id, pickingData.pickingBuffer.buffers.at( *lastFrameIndex ) );
-
-            if ( id != -1 )
-            {
-                entt::entity entity = static_cast<entt::entity>( id );
-                if ( scene->getRegistry()->isValid( entity ) &&
-                     sceneManager->getEventHandler()->getCurrentEntityId() == entt::null )
+                if ( *lastFrameIndex == -1 )
                 {
-                    core::EventDispatcher* eventDispathcer = core::MainRegistry::getInstance().getEventDispatcher();
-                    eventDispathcer->dispatchEvent<core::SelectEntityEvent>(
-                        core::SelectEntityEvent{ entity, core::SelectEntityEventSource::Viewport_Window } );
+                    *lastFrameIndex = m_vkCtx->swapchain->getCurrentFrameNumber();
+                    return;
                 }
+
+                if ( *lastFrameIndex == m_vkCtx->swapchain->getCurrentFrameNumber() )
+                    return;
+
+                Blackboard* blackboard = m_graph->getBlackboard();
+                PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
+                core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+                core::Scene* scene = sceneManager->getCurrentScene();
+
+                int32_t id{ -1 };
+                m_vkCtx->device->copyFromBuffer( id, pickingData.pickingBuffer.buffers.at( *lastFrameIndex ) );
+
+                KINFO( "id {}", id );
+
+                if ( id != -1 )
+                {
+                    entt::entity entity = static_cast<entt::entity>( id );
+                    if ( scene->getRegistry()->isValid( entity ) &&
+                         entity != sceneManager->getEventHandler()->getCurrentEntityId() )
+                    {
+                        core::EventDispatcher* eventDispathcer = core::MainRegistry::getInstance().getEventDispatcher();
+                        eventDispathcer->dispatchEvent<core::SelectEntityEvent>(
+                            core::SelectEntityEvent{ entity, core::SelectEntityEventSource::Viewport_Window } );
+                    }
+                }
+
+                int32_t clearValue{ -1 };
+                m_vkCtx->device->copyToBuffer( clearValue, pickingData.pickingBuffer.buffers.at( *lastFrameIndex ) );
+
+                *lastFrameIndex = m_vkCtx->swapchain->getCurrentFrameNumber();
+                coords->x = -1;
+                coords->y = -1;
+                *readyToCopy = false;
             }
 
-            int32_t clearValue{ -1 };
-            m_vkCtx->device->copyToBuffer( clearValue, pickingData.pickingBuffer.buffers.at( *lastFrameIndex ) );
+            if ( *pickRequested )
+            {
+                uint32_t frameNumber = m_vkCtx->swapchain->getCurrentFrameNumber();
+                m_vkCtx->device->copyImageToBuffer( pickingData.color->vulkanImage.vkImage,
+                                                    cmdBuffer,
+                                                    pickingData.pickingBuffer.buffers.at( frameNumber ).vkBuffer,
+                                                    { coords->x, coords->y, 0 },
+                                                    { 1, 1, 1 },
+                                                    false );
 
-            *lastFrameIndex = m_vkCtx->swapchain->getCurrentFrameNumber();
-            coords->x = -1;
-            coords->y = -1;
-            *readyToCopy = false;
+                *lastFrameIndex = frameNumber;
+                *readyToCopy = true;
+                *pickRequested = false;
+            }
         } );
 }
 
@@ -305,7 +290,7 @@ auto rendering::PickingModule::createModuleResources( VkExtent2D extent ) -> voi
 
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = sizeof( uint32_t );
+    bufferInfo.size = sizeof( int32_t );
     bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
     VmaAllocationCreateInfo vmaAllocInfo{};
@@ -340,7 +325,8 @@ auto rendering::PickingModule::createModuleResources( VkExtent2D extent ) -> voi
 
 auto rendering::PickingModule::destroyModuleResources() -> void
 {
-    PickingModuleData& pickingData = m_graph->getBlackboard()->get<PickingModuleData>();
+    rendering::Blackboard* blackboard = m_graph->getBlackboard();
+    PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
 
     m_vkCtx->device->destroyBuffer( pickingData.pickingBuffer );
     m_vkCtx->device->destroyImageView( pickingData.color->vulkanImage.vkImageView );
@@ -348,4 +334,6 @@ auto rendering::PickingModule::destroyModuleResources() -> void
                                    pickingData.color->vulkanImage.vmaAllocation );
     m_vkCtx->device->destroyPipelineLayout( pickingData.pickingPipeline.getLayout() );
     m_vkCtx->device->destroyPipeline( pickingData.pickingPipeline.getPipeline() );
+
+    blackboard->removeFromStorage<PickingModuleData>();
 }

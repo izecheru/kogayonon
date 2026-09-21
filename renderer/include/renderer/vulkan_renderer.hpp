@@ -1,4 +1,6 @@
 #pragma once
+#include "core/event/app_event.hpp"
+#include "core/input/mouse_events.hpp"
 #include <vulkan/vulkan.h>
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
@@ -6,39 +8,16 @@
 #include "graphics/vulkan_descriptor.hpp"
 #include "graphics/vulkan_image.hpp"
 #include "graphics/vulkan_pipeline.hpp"
+#include "graphics/vulkan_context.hpp"
+#include "renderer/frame_graph.hpp"
+#include "renderer/modules/geometry_module.hpp"
+#include "renderer/modules/prepass_module.hpp"
+#include "renderer/modules/imgui_module.hpp"
+#include "renderer/modules/picking_module.hpp"
 #include "precompiled/pch.hpp"
 
 #define MAX_TEXTURE_NUM 1000
-
 struct SDL_Window;
-
-namespace rendering
-{
-class FrameGraph;
-class GeometryModule;
-class ImGuiModule;
-class PickingModule;
-class PrepassModule;
-class ShadowmapModule;
-} // namespace rendering
-
-namespace core
-{
-class Entity;
-class MouseClickedEvent;
-class SelectEntityEvent;
-class ImGuiWindowResizeEvent;
-} // namespace core
-
-namespace graphics
-{
-struct VulkanContext;
-} // namespace graphics
-
-namespace gui
-{
-class VulkanImguiRenderer;
-}
 
 namespace rendering
 {
@@ -58,8 +37,10 @@ class VulkanRenderer
      */
     auto initImgui() -> void;
     auto initModules() -> void;
+    auto destroyModules() -> void;
 
     auto onMouseClicked( const core::MouseClickedEvent& e ) -> void;
+    auto onWindowResize( const core::WindowResizeEvent& e ) -> void;
 
   private:
     auto createCameraBuffers() -> void;
@@ -74,6 +55,8 @@ class VulkanRenderer
     graphics::FrameInFlightVulkanDescriptor m_cameraDescriptor;
     std::shared_ptr<gui::VulkanImguiRenderer> m_pImguiRenderer;
     glm::ivec2 m_mouseCoords;
+    bool m_modulesInit;
+    bool m_resizeRequested;
     VkExtent2D m_extent;
 
     SDL_Window* m_wnd;
@@ -82,6 +65,6 @@ class VulkanRenderer
     std::unique_ptr<rendering::ImGuiModule> m_imguiModule;
     std::unique_ptr<rendering::PickingModule> m_pickingModule;
     std::unique_ptr<rendering::PrepassModule> m_prepassModule;
-    std::unique_ptr<rendering::ShadowmapModule> m_shadowmapModule;
+    // std::unique_ptr<rendering::ShadowmapModule> m_shadowmapModule;
 };
 } // namespace rendering

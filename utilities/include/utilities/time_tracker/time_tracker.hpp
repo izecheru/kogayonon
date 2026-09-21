@@ -20,7 +20,7 @@ class TimeTracker
     TimeTracker() = default;
     ~TimeTracker() = default;
 
-    void update( const std::string& key );
+    void update( const std::string& key, bool accumulate = false );
     void start( const std::string& key );
     void restart( const std::string& key );
     auto getDuration( const std::string& key ) -> duration;

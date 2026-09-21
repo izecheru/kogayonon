@@ -125,7 +125,7 @@ auto FileExplorerWindow::drawNodes( DirectoryEntry& e ) -> void
     ImGui::PushID( e.path.string().c_str() );
 
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
-    for ( auto const& f : e.files )
+    for ( const FileEntry& f : e.files )
     {
         ImGui::PushID( f.path.string().c_str() );
 
@@ -174,7 +174,7 @@ auto FileExplorerWindow::drawNodes( DirectoryEntry& e ) -> void
         ImGui::PopID();
     }
 
-    for ( auto& child : e.children )
+    for ( DirectoryEntry& child : e.children )
     {
         ImGui::SetNextItemOpen( child.open );
 
@@ -206,14 +206,15 @@ auto FileExplorerWindow::drawFromRoot( DirectoryEntry& e ) -> void
     std::string folderIcon( ICON_MDI_FOLDER );
     folderIcon += e.path.stem().string();
 
-    bool const open =
+    const bool open =
         ImGui::TreeNodeEx( folderIcon.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoArrowDraw );
 
     if ( ImGui::IsItemToggledOpen() )
     {
         e.open = open;
 
-        // if this is uncommented, when a dir is closed then all subdirs are
+        // If this is uncommented, when a dir is closed then all subdirs are
+
         // if ( !open )
         //{
         //   setOpenRecursive( e, false );

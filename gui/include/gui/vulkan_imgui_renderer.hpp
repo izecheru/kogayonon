@@ -70,7 +70,7 @@ class VulkanImguiRenderer
 
     // Used to pass the rendered output to a texture and display it in the viewport window
     auto setViewport( VkImageView viewportView ) -> void;
-    auto getViewportSize() -> VkExtent2D;
+    auto getViewportExtent() -> VkExtent2D;
 
   private:
     auto onConfigChange( const core::ConfigChangedEvent& e ) -> void;

@@ -11,13 +11,16 @@ using namespace entt::literals;
 namespace core
 {
 
+/**
+ * @brief Just a wrapper for entity related functions for the registry
+ */
 class Entity
 {
   public:
     explicit Entity( Registry* registry, const std::string& name );
     explicit Entity( Registry* registry );
     explicit Entity( Registry* registry, entt::entity entity );
-    // explicit Entity( Registry* registry, entt::entity entity, const std::string& name );
+    explicit Entity( Registry* registry, entt::entity entity, const std::string& name );
 
     Entity( const Entity& other );
     Entity( Entity&& other ) noexcept;
@@ -38,13 +41,6 @@ class Entity
     bool isType( const EntityType& type );
     bool isGroup( const std::string& group );
 
-    template <typename TComponent>
-    inline bool hasComponent()
-    {
-        auto& registry = m_registry->getRegistry();
-        return registry.any_of<TComponent>( m_entity );
-    }
-
     inline void removeEntity()
     {
         auto& registry = m_registry->getRegistry();
@@ -52,49 +48,22 @@ class Entity
     }
 
     template <typename TComponent>
-    inline auto tryGetComponent() -> TComponent*
-    {
-        auto& registry = m_registry->getRegistry();
-        return registry.try_get<TComponent>( m_entity );
-    }
+    inline bool hasComponent();
 
     template <typename TComponent>
-    inline auto getComponent() -> TComponent&
-    {
-        auto& registry = m_registry->getRegistry();
-        return registry.get<TComponent>( m_entity );
-    }
-
-    template <typename TComponent, typename... Args>
-    inline auto addComponent( Args&&... args ) -> TComponent&
-    {
-        auto& registry = m_registry->getRegistry();
-        if ( hasComponent<TComponent>() )
-            return getComponent<TComponent>();
-
-        return registry.emplace<TComponent>( m_entity, std::forward<Args>( args )... );
-    }
+    inline auto tryGetComponent() -> TComponent*;
 
     template <typename TComponent>
-    inline void removeComponent()
-    {
-        auto& registry = m_registry->getRegistry();
-        registry.remove<TComponent>( m_entity );
-    }
+    inline auto getComponent() -> TComponent&;
 
     template <typename TComponent, typename... Args>
-    inline void replaceComponent( Args&&... args )
-    {
-        auto& registry = m_registry->getRegistry();
-        if ( registry.all_of<TComponent>( m_entity ) )
-        {
-            registry.replace<TComponent>( m_entity, std::forward<Args>( args )... );
-        }
-        else
-        {
-            registry.emplace<TComponent>( m_entity, std::forward<Args>( args )... );
-        }
-    }
+    inline auto addComponent( Args&&... args ) -> TComponent&;
+
+    template <typename TComponent>
+    inline void removeComponent();
+
+    template <typename TComponent, typename... Args>
+    inline void replaceComponent( Args&&... args );
 
     inline auto getEntityId() const -> entt::entity
     {
@@ -158,4 +127,5 @@ void registerMetaComponent()
         .template func<&emplace_component<TComponent>>( "emplace_component"_hs );
 }
 
+#include "core/ecs/entity.inl"
 } // namespace core

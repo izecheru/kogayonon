@@ -2,15 +2,18 @@
 #include "utilities/utils/utils.hpp"
 #include "utilities/utils/utils.hpp"
 
-void utilities::TimeTracker::update( const std::string& key )
+void utilities::TimeTracker::update( const std::string& key, bool accumulate )
 {
+
     std::lock_guard lock( m_timeMutex );
     auto it = m_durationMap.find( key );
     auto now = std::chrono::high_resolution_clock::now();
     if ( it != m_durationMap.end() )
     {
         it->second.second = now - it->second.first;
-        it->second.first = now;
+
+        if ( !accumulate )
+            it->second.first = now;
     }
 }
 

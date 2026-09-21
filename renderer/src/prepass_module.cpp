@@ -18,7 +18,6 @@ rendering::PrepassModule::PrepassModule( FrameGraph* graph,
     , m_cameraDescriptor{ cameraDescriptor }
     , m_extent{ extent }
 {
-    createModuleResources( extent );
     registerPasses();
 }
 
@@ -29,6 +28,7 @@ rendering::PrepassModule::~PrepassModule()
 
 auto rendering::PrepassModule::registerPasses() -> void
 {
+    createModuleResources( m_extent );
     registerDepthPrepass();
 }
 
@@ -179,7 +179,8 @@ auto rendering::PrepassModule::createModuleResources( VkExtent2D extent ) -> voi
 
 auto rendering::PrepassModule::destroyModuleResources() -> void
 {
-    PrepassModuleData& prepassData = m_graph->getBlackboard()->get<PrepassModuleData>();
+    rendering::Blackboard* blackboard = m_graph->getBlackboard();
+    PrepassModuleData& prepassData = blackboard->get<PrepassModuleData>();
 
     m_vkCtx->device->destroyImageView( prepassData.depth->vulkanImage.vkImageView );
     m_vkCtx->device->destroyImage( prepassData.depth->vulkanImage.vkImage,
@@ -187,6 +188,8 @@ auto rendering::PrepassModule::destroyModuleResources() -> void
 
     m_vkCtx->device->destroyPipelineLayout( prepassData.depthPrepassPipeline.getLayout() );
     m_vkCtx->device->destroyPipeline( prepassData.depthPrepassPipeline.getPipeline() );
+
+    blackboard->removeFromStorage<PrepassModuleData>();
 }
 
 auto rendering::PrepassModule::setExtent( VkExtent2D extent ) -> void
@@ -197,6 +200,5 @@ auto rendering::PrepassModule::setExtent( VkExtent2D extent ) -> void
 auto rendering::PrepassModule::recreate( VkExtent2D extent ) -> void
 {
     destroyModuleResources();
-    createModuleResources( extent );
     registerPasses();
 }

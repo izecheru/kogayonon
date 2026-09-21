@@ -17,11 +17,6 @@
 #include "physics/jolt_physics.hpp"
 #include "renderer/blackboard.hpp"
 #include "renderer/frame_graph.hpp"
-#include "renderer/modules/geometry_module.hpp"
-#include "renderer/modules/imgui_module.hpp"
-#include "renderer/modules/picking_module.hpp"
-#include "renderer/modules/prepass_module.hpp"
-#include "renderer/modules/shadowmap_module.hpp"
 #include "resources/mesh_push_constant.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
 #include "utilities/tracy_utils/tracy_vulkan_utils.hpp"
@@ -31,12 +26,15 @@ rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Wi
     : m_vkCtx{ pCtx }
     , m_wnd{ window }
     , m_mouseCoords{ -1, -1 }
+    , m_modulesInit{ false }
+    , m_resizeRequested{ false }
+    , m_extent{ m_vkCtx->swapchain->getSwapchainExtent() } // careful with order of initialization
+    , m_frameGraph{ std::make_unique<FrameGraph>( m_vkCtx->device.get() ) }
 {
     core::EventDispatcher* eventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
-    utilities::TimeTracker* timeTracker = core::MainRegistry::getInstance().getTimeTracker();
 
-    timeTracker->start( "resize" );
     eventDispatcher->addHandler<core::MouseClickedEvent, &VulkanRenderer::onMouseClicked>( *this );
+    eventDispatcher->addHandler<core::WindowResizeEvent, &VulkanRenderer::onWindowResize>( *this );
 
     createCameraBuffers();
     createCameraDescriptorSetLayout();
@@ -55,27 +53,31 @@ auto rendering::VulkanRenderer::onUpdate() -> void
 {
     render();
     presentToScreen();
+
+    if ( !m_resizeRequested )
+        return;
+
+    m_resizeRequested = false;
+
+    destroyModules();
+
+    m_extent = m_vkCtx->swapchain->getSwapchainExtent();
+    initModules();
 }
 
 auto rendering::VulkanRenderer::initModules() -> void
 {
-    m_frameGraph = std::make_unique<FrameGraph>( m_vkCtx->device.get() );
-
     core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
-
-    m_extent = m_vkCtx->swapchain->getSwapchainExtent();
 
     m_imguiModule = std::make_unique<ImGuiModule>( m_frameGraph.get(), m_vkCtx, m_pImguiRenderer.get() );
     m_prepassModule = std::make_unique<PrepassModule>( m_frameGraph.get(), m_vkCtx, m_extent, &m_cameraDescriptor );
 
-    // m_shadowmapModule = std::make_unique<ShadowmapModule>( m_frameGraph.get(), m_vkCtx, m_extent, &m_cameraDescriptor
-    // );
-
     m_geometryModule = std::make_unique<GeometryModule>(
         m_frameGraph.get(), m_vkCtx, m_extent, &m_cameraDescriptor, glm::vec4{ 0.5f, 0.5f, 0.5f, 1.0f } );
 
-    m_pickingModule = std::make_unique<PickingModule>(
-        m_frameGraph.get(), m_vkCtx, m_pImguiRenderer.get(), m_extent, &m_cameraDescriptor );
+    // WIP
+    // m_pickingModule = std::make_unique<PickingModule>(
+    //     m_frameGraph.get(), m_vkCtx, m_pImguiRenderer.get(), m_extent, &m_cameraDescriptor );
 
     m_imguiModule->setViewport();
 
@@ -133,12 +135,21 @@ auto rendering::VulkanRenderer::updateCameraBuffer() -> void
             return;
         }
 
+        VkExtent2D extent = m_pImguiRenderer->getViewportExtent();
+        if ( ( cameraComp.props.extent.x != extent.width || cameraComp.props.extent.y != extent.height ) &&
+             extent.width > 1 && extent.height > 1 )
+        {
+            cameraComp.props.extent = glm::ivec2{ extent.width, extent.height };
+            cameraComp.props.changed = true;
+        }
+
         if ( cameraComp.props.changed )
         {
             cameraComp.updateUbo();
         }
 
         uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
+
         m_vkCtx->device->copyToBuffer( cameraComp.ubo, m_cameraBuffers.buffers.at( currentFrame ) );
     } );
 }
@@ -182,8 +193,7 @@ auto rendering::VulkanRenderer::createCameraDescriptorSet() -> void
         writeDescriptors.push_back( uniformBufferDescriptor );
     }
 
-    vkUpdateDescriptorSets(
-        m_vkCtx->device->getLogicalDevice(), writeDescriptors.size(), writeDescriptors.data(), 0, nullptr );
+    m_vkCtx->device->updateDescriptorSet( writeDescriptors );
 }
 
 auto rendering::VulkanRenderer::createCameraDescriptorSetLayout() -> void
@@ -221,6 +231,9 @@ auto rendering::VulkanRenderer::initImgui() -> void
 
 auto rendering::VulkanRenderer::onMouseClicked( const core::MouseClickedEvent& e ) -> void
 {
+    if ( !m_pickingModule )
+        return;
+
     core::SceneEventHandler* sceneHandler = core::MainRegistry::getInstance().getSceneManager()->getEventHandler();
     entt::entity currentEntity = sceneHandler->getCurrentEntityId();
 
@@ -232,15 +245,31 @@ auto rendering::VulkanRenderer::onMouseClicked( const core::MouseClickedEvent& e
 
     gui::ImGuiProps* props = viewport->getProps();
 
-    VkExtent2D extent = m_vkCtx->swapchain->getSwapchainExtent();
-
     float localX = ( mouseX - props->x ) / props->width;
     float localY = ( mouseY - props->y ) / props->height;
 
     if ( localX >= 0.0f && localX <= 1.0f && localY >= 0.0f && localY <= 1.0f )
     {
-        m_mouseCoords.x = static_cast<int>( localX * extent.width );
-        m_mouseCoords.y = static_cast<int>( localY * extent.height );
+        m_mouseCoords.x = static_cast<int>( localX * m_extent.width );
+        m_mouseCoords.y = static_cast<int>( localY * m_extent.height );
+        KINFO( "x {} y {}", m_mouseCoords.x, m_mouseCoords.y );
         m_pickingModule->setCoords( m_mouseCoords );
     }
+}
+
+auto rendering::VulkanRenderer::onWindowResize( const core::WindowResizeEvent& e ) -> void
+{
+    m_resizeRequested = true;
+}
+
+auto rendering::VulkanRenderer::destroyModules() -> void
+{
+    m_vkCtx->device->waitIdle();
+
+    m_geometryModule.reset();
+    m_pickingModule.reset();
+    m_imguiModule.reset();
+    m_prepassModule.reset();
+
+    m_frameGraph->clearGraph();
 }

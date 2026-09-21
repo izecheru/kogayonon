@@ -102,7 +102,7 @@ void gui::VulkanImguiRenderer::setupDockspace( ImGuiViewport* viewport )
         ImGuiID bottomRightNodeId =
             ImGui::DockBuilderSplitNode( rightNodeId, ImGuiDir_Down, 0.30f, nullptr, &rightNodeId );
 
-        ImGui::DockBuilderDockWindow( "File explorer", leftNodeId );
+        ImGui::DockBuilderDockWindow( "File explorer", bottomNodeId );
         ImGui::DockBuilderDockWindow( "Viewport", centerNodeId );
         ImGui::DockBuilderDockWindow( "Hierarchy", rightNodeId );
         ImGui::DockBuilderDockWindow( "Properties", bottomRightNodeId );
@@ -1152,7 +1152,7 @@ auto gui::VulkanImguiRenderer::getImGuiWindows() -> std::unordered_map<ImGuiWind
     return m_windows;
 }
 
-auto gui::VulkanImguiRenderer::getViewportSize() -> VkExtent2D
+auto gui::VulkanImguiRenderer::getViewportExtent() -> VkExtent2D
 {
     const auto& props = m_windows.at( gui::ImGuiWindowName::Viewport )->getProps();
     return VkExtent2D{ .width = props->width, .height = props->height };

@@ -12,7 +12,7 @@ Entity::Entity( Registry* registry, const std::string& name )
 }
 
 Entity::Entity( Registry* registry )
-    : Entity{ registry, "EntityName" }
+    : Entity{ registry, "DefaultEntity" }
 {
 }
 
@@ -20,14 +20,14 @@ Entity::Entity( Registry* registry, entt::entity entity )
     : m_registry{ registry }
     , m_entity{ entity }
 {
-    if ( hasComponent<IdentifierComponent>() )
-        return;
+}
 
-    if ( hasComponent<IdentifierComponent>() )
-        return;
-
+core::Entity::Entity( Registry* registry, entt::entity entity, const std::string& name )
+    : Entity{ registry, entity }
+{
+    removeComponent<IdentifierComponent>();
     addComponent<IdentifierComponent>(
-        IdentifierComponent{ .name = "DefaultEntity", .type = EntityType::None, .group = "DefaultGroup" } );
+        IdentifierComponent{ .name = name, .type = EntityType::None, .group = "DefaultGroup" } );
 }
 
 Entity::Entity( const Entity& other )

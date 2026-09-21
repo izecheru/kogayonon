@@ -14,8 +14,6 @@
 #include "utilities/tracy_utils/tracy_utils.hpp"
 #endif
 
-// this is just for testing purposes
-
 core::AssetManager::AssetManager( graphics::VulkanContext* vkCtx )
     : m_bindlessTexturesIndex{ 0u }
     , m_samplerIndex{ 0u }
@@ -27,6 +25,7 @@ core::AssetManager::AssetManager( graphics::VulkanContext* vkCtx )
 
 core::AssetManager::~AssetManager()
 {
+    // wait for the gpu to be done using resources
     m_vkCtx->device->waitIdle();
 
     m_vkCtx->device->destroyBuffer( m_materialsBuffer );

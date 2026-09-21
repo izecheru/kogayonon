@@ -181,7 +181,7 @@ void gui::EntityProperties::renderMesh()
             core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
             resources::Mesh* pMesh = assetManager->loadMesh( p.stem().string(), p.string() );
 
-            core::Entity ent{ scene->getRegistry(), currentEntity };
+            core::Entity ent{ scene->getRegistry(), currentEntity, p.stem().string() };
 
             ent.removeComponent<core::TransformComponent>();
             ent.removeComponent<core::MeshComponent>();

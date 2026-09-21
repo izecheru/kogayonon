@@ -59,7 +59,6 @@ class PickingModule : public BaseModule
 
     auto registerPickingPass() -> void;
     auto registerPickingReadbackPass() -> void;
-    auto registerPickingEntityReadPass() -> void;
 
   private:
     graphics::FrameInFlightVulkanDescriptor* m_cameraDescriptor;

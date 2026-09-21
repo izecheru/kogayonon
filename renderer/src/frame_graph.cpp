@@ -59,22 +59,19 @@ auto rendering::FrameGraph::compile() -> void
     resloveDependencies();
     topoSort();
     resolveResourceBarriers();
+
+    for ( auto& n : m_container.executionOrder )
+    {
+        KINFO( "{}", n->name );
+    }
     m_compiled = true;
 }
 
 auto rendering::FrameGraph::clearGraph() -> void
 {
     m_container.executionOrder.clear();
-
-    for ( std::unique_ptr<FGResource>& resource : m_container.resources )
-    {
-        resource->resetState();
-    }
-
-    for ( std::unique_ptr<Node>& node : m_container.nodes )
-    {
-        node->resetState();
-    }
+    m_container.resources.clear();
+    m_container.nodes.clear();
 }
 
 auto rendering::FrameGraph::setupNodes() -> void
@@ -118,11 +115,6 @@ auto rendering::FrameGraph::resloveDependencies() -> void
 {
     for ( std::unique_ptr<FGResource>& resource : m_container.resources )
     {
-        if ( resource->writerNodes.empty() )
-        {
-            continue;
-        }
-
         for ( Node* writer : resource->writerNodes )
         {
             for ( Node* reader : resource->readerNodes )
@@ -133,7 +125,7 @@ auto rendering::FrameGraph::resloveDependencies() -> void
                 if ( reader->culled || writer->culled )
                     continue;
 
-                KINFO( "[FrameGraph] Node {} needs {}", reader->name, writer->name );
+                KINFO( "( reader ) {}  -> ( writer ) {}", reader->name, writer->name );
                 addEdge( writer, reader );
             }
         }

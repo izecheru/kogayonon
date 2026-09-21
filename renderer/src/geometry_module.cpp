@@ -28,7 +28,6 @@ rendering::GeometryModule::GeometryModule( FrameGraph* graph,
     , m_clearColor{ clearColor }
     , m_extent{ extent }
 {
-    createModuleResources( extent );
     registerPasses();
 }
 
@@ -52,6 +51,8 @@ auto rendering::GeometryModule::setClearColor( glm::vec4 clearColor ) -> void
 
 void rendering::GeometryModule::registerPasses()
 {
+    createModuleResources( m_extent );
+
     registerBaseGeometryPass();
     if ( m_wireframe )
     {
@@ -61,8 +62,9 @@ void rendering::GeometryModule::registerPasses()
 
 auto rendering::GeometryModule::recreate( VkExtent2D extent ) -> void
 {
+    m_extent = extent;
+
     destroyModuleResources();
-    createModuleResources( extent );
     registerPasses();
 }
 
@@ -80,13 +82,15 @@ auto rendering::GeometryModule::destroyModuleResources() -> void
     m_vkCtx->device->destroyImageView( geometryModuleData.color->vulkanImage.vkImageView );
     m_vkCtx->device->destroyImage( geometryModuleData.color->vulkanImage.vkImage,
                                    geometryModuleData.color->vulkanImage.vmaAllocation );
+
+    blackboard->removeFromStorage<GeometryModuleData>();
 }
 
 auto rendering::GeometryModule::registerWireframePass() -> void
 {
     Blackboard* blackboard = m_graph->getBlackboard();
 
-    GeometryModuleData& geometryInfo{ blackboard->get<GeometryModuleData>() };
+    GeometryModuleData& geometryInfo = blackboard->get<GeometryModuleData>();
 
     VkShaderModule vertex = m_vkCtx->device->createShaderModule( "basic_shader", "vertexMain" );
     VkShaderModule fragment = m_vkCtx->device->createShaderModule( "basic_shader", "fragmentMain" );

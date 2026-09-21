@@ -50,6 +50,8 @@ void gui::Viewport::render()
     viewportClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar;
 
     ImGui::SetNextWindowClass( &viewportClass );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f } );
+    ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, { 0.0f, 0.0f } );
 
     if ( !begin() )
         return;
@@ -153,6 +155,7 @@ void gui::Viewport::render()
         }
     }
     end();
+    ImGui::PopStyleVar( 2 );
 }
 
 auto gui::Viewport::setViewport( VkImageView imageView ) -> void
@@ -367,10 +370,10 @@ void gui::Viewport::drawEntityMenu()
 
             if ( selected )
             {
+                core::Entity ent{ scene->getRegistry(), filename };
+
                 filename += ".gltf";
                 std::filesystem::path p{ std::filesystem::absolute( "." ) / "engine_resources" / "models" / filename };
-
-                core::Entity ent{ scene->getRegistry(), "object" };
 
                 ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
                 ent.addComponent<core::MeshComponent>(

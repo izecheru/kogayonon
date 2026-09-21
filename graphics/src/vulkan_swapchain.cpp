@@ -73,7 +73,7 @@ void graphics::VulkanSwapchain::recreateSwapchain()
         SDL_WaitEvent( &e );
     }
 
-    vkDeviceWaitIdle( m_pDevice->getLogicalDevice() );
+    m_pDevice->waitIdle();
 
     destroy();
     createSwapchain();

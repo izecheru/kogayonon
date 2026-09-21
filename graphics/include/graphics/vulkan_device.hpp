@@ -123,16 +123,18 @@ class VulkanDevice
      * @param allocation
      * @param imageName Name of the image, "" if not presented
      */
-    void createImage( VkImage& image,
+    auto createImage( VkImage& image,
                       VkImageCreateInfo& imageCreateInfo,
                       VmaAllocationCreateInfo& usage,
                       VmaAllocation& allocation,
-                      std::string_view imageName = "" );
+                      std::string_view imageName = "" ) -> void;
 
-    void createImage( VulkanImage& image,
+    // auto createCubemapImage() -> void;
+
+    auto createImage( VulkanImage& image,
                       VkImageCreateInfo& imageCreateInfo,
                       VmaAllocationCreateInfo& usage,
-                      std::string_view imageName = "" );
+                      std::string_view imageName = "" ) -> void;
 
     auto createImageView( VkImageView& imageView,
                           VkImage& image,
