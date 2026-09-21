@@ -14,20 +14,22 @@ namespace core
 class SceneManager
 {
   public:
-    SceneManager( EventDispatcher* pDispatcher );
-    ~SceneManager() = default;
+    explicit SceneManager( EventDispatcher* pDispatcher, bool saveAllScenes = true );
+    ~SceneManager();
 
     auto addScene( std::string_view name = "" ) -> Scene*;
     auto removeScene( const std::string& name ) -> void;
     auto getCurrentScene() -> Scene*;
-    auto getScenes() -> std::unordered_map<std::string, std::unique_ptr<Scene>>&;
     auto setCurrentScene( const std::string& sceneName ) -> void;
-
     auto getEventHandler() -> SceneEventHandler*;
+    auto getScenes() -> std::unordered_map<std::string, std::unique_ptr<Scene>>&;
+
+    auto saveScenes() -> void;
 
   private:
+    bool m_saveAllScenes;
     std::unordered_map<std::string, std::unique_ptr<Scene>> m_scenes;
-    std::string m_currentScene{ "none" };
+    std::string m_currentScene;
     std::unique_ptr<SceneEventHandler> m_eventHandler;
 };
 } // namespace core
