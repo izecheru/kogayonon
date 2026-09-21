@@ -12,7 +12,8 @@ Entity::Entity( Registry* registry, const std::string& name )
 }
 
 Entity::Entity( Registry* registry )
-    : Entity{ registry, "DefaultEntity" }
+    : m_registry{ registry }
+    , m_entity{ registry->createEntity() }
 {
 }
 

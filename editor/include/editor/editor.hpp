@@ -54,8 +54,6 @@ class Editor
 
   private:
     auto onWindowClose( const core::WindowCloseEvent& e ) -> void;
-    auto onProjectLoad( const core::ProjectLoadEvent& e ) -> void;
-    auto onProjectCreate( const core::ProjectCreateEvent& e ) -> void;
 
   private:
     VkDescriptorPool m_globalDescriptorPool;

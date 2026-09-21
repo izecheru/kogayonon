@@ -326,13 +326,69 @@ bool editor::Editor::initMainRegistry()
     mainRegistry.addToContext<std::shared_ptr<utilities::TaskManager>>( std::move( taskManager ) );
 
     auto sceneManager = std::make_shared<core::SceneManager>( mainRegistry.getEventDispatcher() );
+    // check for the default scene
+    std::filesystem::path defaultScenePath =
+        std::filesystem::current_path() / "editor" / "scenes" / "defaultScene.kscene";
+
     sceneManager->addScene( "defaultScene" );
-    auto scene = sceneManager->getCurrentScene();
+    core::Scene* scene = sceneManager->getCurrentScene();
     core::Entity entity{ scene->getRegistry(), "DefaultCamera" };
+
     sceneManager->setCurrentScene( scene->getName() );
 
-    auto ctx = mainRegistry.getVulkanContext();
-    auto extent = ctx->swapchain->getSwapchainExtent();
+    // deserialize scene
+    if ( std::filesystem::exists( defaultScenePath ) )
+    {
+        // TODO write this block of code as a json deserializer
+        std::ifstream in{ defaultScenePath, std::ios::in | std::ios::binary };
+        rapidjson::IStreamWrapper isw{ in };
+        rapidjson::Document doc{};
+        doc.ParseStream( isw );
+        if ( doc.HasParseError() )
+        {
+            KERROR( "Error at parsing json file for default scene" );
+        }
+
+        auto getVec3 = []( const rapidjson::Value& v ) -> glm::vec3 {
+            if ( !v.IsArray() || v.Size() != 3 )
+                throw std::runtime_error( "Expected array with size 3" );
+
+            return glm::vec3{ v[0].GetFloat(), v[1].GetFloat(), v[2].GetFloat() };
+        };
+
+        uint32_t entityId{ 0u };
+        for ( const auto& e : doc["entities"].GetArray() )
+        {
+            // no id entity
+            core::Entity ent{ scene->getRegistry() };
+            ent.addComponent<core::IdentifierComponent>(
+                core::IdentifierComponent{ .name = std::string{ "entity_" + std::to_string( entityId++ ) },
+                                           .type = core::EntityType::Object,
+                                           .group = "DefaultGroup" } );
+
+            if ( e.HasMember( "transform" ) )
+            {
+                glm::vec3 translation = getVec3( e["transform"]["translation"] );
+                glm::vec3 rotation = getVec3( e["transform"]["rotation"] );
+                glm::vec3 scale = getVec3( e["transform"]["scale"] );
+                core::TransformComponent transform{ .translation = translation, .rotation = rotation, .scale = scale };
+                transform.computeMatrix();
+                ent.addComponent<core::TransformComponent>( transform );
+            }
+
+            if ( e.HasMember( "mesh" ) )
+            {
+                core::AssetManager* assetManager = mainRegistry.getAssetManager();
+                std::filesystem::path meshPath =
+                    std::filesystem::current_path() / "engine_resources" / "models" / e["mesh"]["path"].GetString();
+                resources::Mesh* mesh = assetManager->loadMesh( meshPath.stem().string(), meshPath.string() );
+                ent.addComponent<core::MeshComponent>( core::MeshComponent{ .pMesh = mesh } );
+            }
+        }
+    }
+
+    graphics::VulkanContext* ctx = mainRegistry.getVulkanContext();
+    VkExtent2D extent = ctx->swapchain->getSwapchainExtent();
 
     core::DirectionalLightComponent directionalLight{};
     core::Entity direciontalLightEnt{ scene->getRegistry(), "DefaultDirecitonalLight" };
@@ -361,8 +417,8 @@ bool editor::Editor::initMainRegistry()
 void editor::Editor::createDescriptorPool()
 {
     std::vector<VkDescriptorPoolSize> poolSizes{
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 500 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 500 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_TEXTURE_NUM },
     };
 

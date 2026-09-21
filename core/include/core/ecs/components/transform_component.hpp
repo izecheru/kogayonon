@@ -33,9 +33,7 @@ struct TransformComponent
     void computeMatrix()
     {
         modelMatrix = glm::translate( { 1.0f }, translation );
-
         modelMatrix *= glm::mat4_cast( getOrientation() );
-
         modelMatrix = glm::scale( modelMatrix, scale );
     }
 

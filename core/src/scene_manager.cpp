@@ -1,4 +1,6 @@
 #include "core/scene/scene_manager.hpp"
+#include "core/ecs/components/directional_light_component.hpp"
+#include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "utilities/json_serializer/json_serializer.hpp"
@@ -70,7 +72,7 @@ auto core::SceneManager::saveScenes() -> void
 {
     auto saveEntityTransformComponent = []( utilities::JsonSerializer* s, core::TransformComponent& transform ) {
         s->startObject( "transform" )
-            .saveVec3( "position", transform.translation )
+            .saveVec3( "translation", transform.translation )
             .saveVec3( "rotation", transform.rotation )
             .saveVec3( "scale", transform.scale )
             .endObject();
@@ -95,7 +97,8 @@ auto core::SceneManager::saveScenes() -> void
 
         serializer->startDocument().startArray( "entities" );
 
-        auto view = scene->getEnttRegistry().view<core::IdentifierComponent>();
+        auto view = scene->getEnttRegistry().view<core::IdentifierComponent>(
+            entt::exclude<core::DirectionalLightComponent, core::PerspectiveCameraComponent> );
 
         view.each( [&]( const entt::entity& id, core::IdentifierComponent& idComponent ) {
             Entity entity{ scene->getRegistry(), id };
@@ -135,7 +138,9 @@ auto core::SceneManager::saveScenes() -> void
 
         serializer->startDocument().startArray( "entities" );
 
-        auto view = scene->getEnttRegistry().view<core::IdentifierComponent>();
+        // serialize except cameras and lights for now
+        auto view = scene->getEnttRegistry().view<core::IdentifierComponent>(
+            entt::exclude<core::DirectionalLightComponent, core::PerspectiveCameraComponent> );
 
         view.each( [&]( const entt::entity& id, core::IdentifierComponent& idComponent ) {
             Entity entity{ scene->getRegistry(), id };
