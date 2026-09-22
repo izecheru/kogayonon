@@ -1,8 +1,8 @@
 #include "editor/editor.hpp"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_vulkan.h>
 #include <imgui.h>
-#include <imgui_impl_sdl2.h>
+#include <imgui_impl_sdl3.h>
 #include <imgui_impl_vulkan.h>
 #include <rapidjson/istreamwrapper.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -75,31 +75,24 @@ void editor::Editor::pollEvents()
     SDL_Event e;
     while ( SDL_PollEvent( &e ) )
     {
-        ImGui_ImplSDL2_ProcessEvent( &e );
+        ImGui_ImplSDL3_ProcessEvent( &e );
         switch ( e.type )
         {
-        case SDL_WINDOWEVENT: {
-            if ( e.window.event == SDL_WINDOWEVENT_RESIZED )
-            {
-                int newWidth = e.window.data1;
-                int newHeight = e.window.data2;
-                KINFO( "Resized wind" );
-                pEventDispatcher->dispatchEvent( core::WindowResizeEvent{ newWidth, newHeight } );
-            }
-
-            if ( e.window.event == SDL_WINDOWEVENT_RESTORED )
-                KINFO( "Restored wind" );
-
+        case SDL_EVENT_WINDOW_RESIZED: {
+            int newWidth = e.window.data1;
+            int newHeight = e.window.data2;
+            KINFO( "Resized wind" );
+            pEventDispatcher->dispatchEvent( core::WindowResizeEvent{ newWidth, newHeight } );
             break;
         }
-        case SDL_QUIT: {
+        case SDL_EVENT_WINDOW_CLOSE_REQUESTED: {
             pEventDispatcher->dispatchEvent( core::WindowCloseEvent{} );
             m_running = false;
             break;
         }
-        case SDL_KEYDOWN: {
+        case SDL_EVENT_KEY_DOWN: {
             KeyboardState::updateState();
-            KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.keysym.scancode );
+            KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.key );
 
             core::KeyPressedEvent keyPressEvent{ scanCode, KeyScanCode::None, 0 };
 
@@ -116,13 +109,13 @@ void editor::Editor::pollEvents()
             pEventDispatcher->dispatchEvent( keyPressEvent );
             break;
         }
-        case SDL_KEYUP: {
+        case SDL_EVENT_KEY_UP: {
             KeyboardState::updateState();
-            KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.keysym.scancode );
+            KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.key );
             pEventDispatcher->dispatchEvent( core::KeyReleasedEvent{ scanCode, KeyScanCode::None } );
             break;
         }
-        case SDL_MOUSEMOTION: {
+        case SDL_EVENT_MOUSE_MOTION: {
             double x = e.motion.x;
             double y = e.motion.y;
             double xRel = e.motion.xrel;
@@ -130,29 +123,29 @@ void editor::Editor::pollEvents()
             pEventDispatcher->dispatchEvent( core::MouseMovedEvent{ x, y, xRel, yRel } );
             break;
         }
-        case SDL_MOUSEWHEEL: {
+        case SDL_EVENT_MOUSE_WHEEL: {
             double xOff = e.wheel.x;
             double yOff = e.wheel.y;
             pEventDispatcher->dispatchEvent( core::MouseScrolledEvent{ xOff, yOff } );
             break;
         }
-        case SDL_MOUSEBUTTONDOWN: {
-            uint32_t buttonState = SDL_GetMouseState( NULL, NULL );
-            if ( buttonState & SDL_BUTTON( SDL_BUTTON_MIDDLE ) )
+        case SDL_EVENT_MOUSE_BUTTON_DOWN: {
+            uint32_t buttonState = SDL_MouseButtonFlags();
+            if ( buttonState & SDL_BUTTON_MASK( SDL_BUTTON_LEFT ) )
             {
                 core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_MIDDLE ),
                                                       static_cast<int>( MouseAction::Press ),
                                                       static_cast<int>( MouseModifier::None ) };
                 pEventDispatcher->dispatchEvent( mouseClicked );
             }
-            if ( buttonState & SDL_BUTTON( SDL_BUTTON_LEFT ) )
+            if ( buttonState & SDL_BUTTON_MASK( SDL_BUTTON_LEFT ) )
             {
                 core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_LEFT ),
                                                       static_cast<int>( MouseAction::Press ),
                                                       static_cast<int>( MouseModifier::None ) };
                 pEventDispatcher->dispatchEvent( mouseClicked );
             }
-            if ( buttonState & SDL_BUTTON( SDL_BUTTON_RIGHT ) )
+            if ( buttonState & SDL_BUTTON_MASK( SDL_BUTTON_RIGHT ) )
             {
                 core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_RIGHT ),
                                                       static_cast<int>( MouseAction::Press ),
@@ -161,8 +154,9 @@ void editor::Editor::pollEvents()
             }
             break;
         }
-        default:
+        default: {
             break;
+        }
         }
     }
 }
@@ -204,13 +198,18 @@ auto editor::Editor::onUpdate() -> void
 
 bool editor::Editor::initSDL()
 {
-    if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_EVENTS ) != 0 )
+    if ( !SDL_Init( SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO ) )
     {
         KERROR( "SDL_Init Error: {}", SDL_GetError() );
         throw std::runtime_error( "SDL_Init failed" );
     }
 
-    if ( SDL_Vulkan_LoadLibrary( nullptr ) != 0 )
+    SDL_SetHint( SDL_HINT_VULKAN_LIBRARY, "vulkan-1.dll" );
+
+    const char* driver = SDL_GetCurrentVideoDriver();
+    KINFO( "Current video driver: {}", driver );
+
+    if ( !SDL_Vulkan_LoadLibrary( nullptr ) )
     {
         KERROR( "SDL Vulkan load failed: {}", SDL_GetError() );
         throw std::runtime_error( "could not load lib vulkan" );

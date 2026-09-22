@@ -54,13 +54,14 @@ target_link_libraries(utilities
 	cgltf 
 	enkiTS::enkiTS
 	PRIVATE
+	SDL3::SDL3
 	glm::glm-header-only 
 	yaml-cpp::yaml-cpp
-	lua 
 	rapidjson
 	resources
 	precompiled
-	slang::gfx slang::slang 
+	slang::gfx
+	slang::slang 
 )
 
 if(KOGAYONON_ENABLE_TRACY)

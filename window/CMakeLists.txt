@@ -13,6 +13,5 @@ target_include_directories(
 
 target_link_libraries(
   window
-  PUBLIC $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
-         $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static> lua
-  PRIVATE )
+  SDL3::SDL3
+)

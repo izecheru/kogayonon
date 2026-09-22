@@ -68,7 +68,3 @@ target_include_directories(lua
     PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
-
-# if (WIN32)
-#     target_compile_definitions(lua PRIVATE LUA_BUILD_AS_DLL)
-# endif()

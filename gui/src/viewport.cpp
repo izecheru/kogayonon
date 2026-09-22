@@ -2,7 +2,7 @@
 #include "utilities/task_manager/task_manager.hpp"
 #include <cmath>
 #include "ImOGuizmo.hpp"
-#include "SDL2/SDL.h"
+#include "SDL3/SDL.h"
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"

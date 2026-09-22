@@ -1,5 +1,5 @@
 #pragma once
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include <vulkan/vulkan.h>
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
@@ -9,7 +9,6 @@
 
 namespace core
 {
-
 class Scene;
 class RenderingSystem;
 

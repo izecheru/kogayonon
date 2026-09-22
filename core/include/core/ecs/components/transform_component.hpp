@@ -41,27 +41,6 @@ struct TransformComponent
     {
         return modelMatrix;
     }
-
-    static void createLuaBindings( sol::state& lua )
-    {
-        lua.new_usertype<TransformComponent>(
-            "TransformComponent",
-            "typeId",
-            entt::type_hash<TransformComponent>::value,
-            sol::call_constructor,
-            sol::factories(
-                []( glm::vec3 translation, glm::vec3 rotation, glm::vec3 scale ) {
-                    return TransformComponent{ .translation = translation, .rotation = rotation, .scale = scale };
-                },
-                []() { return TransformComponent{}; } ),
-
-            "translation",
-            &TransformComponent::translation,
-            "rotation",
-            &TransformComponent::rotation,
-            "scale",
-            &TransformComponent::scale );
-    }
 };
 
 } // namespace core

@@ -1,5 +1,5 @@
 #include "renderer/vulkan_renderer.hpp"
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
@@ -237,8 +237,8 @@ auto rendering::VulkanRenderer::onMouseClicked( const core::MouseClickedEvent& e
     core::SceneEventHandler* sceneHandler = core::MainRegistry::getInstance().getSceneManager()->getEventHandler();
     entt::entity currentEntity = sceneHandler->getCurrentEntityId();
 
-    int mouseX, mouseY;
-    SDL_GetMouseState( &mouseX, &mouseY );
+    float mouseX, mouseY;
+    SDL_GetGlobalMouseState( &mouseX, &mouseY );
 
     gui::Viewport* viewport =
         dynamic_cast<gui::Viewport*>( m_pImguiRenderer->getImGuiWindows().at( gui::ImGuiWindowName::Viewport ).get() );

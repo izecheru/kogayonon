@@ -1,6 +1,5 @@
 #pragma once
 #include "precompiled/pch.hpp"
-#include <sol/sol.hpp>
 
 #define DELTA_TIME "deltaTime"
 
@@ -25,8 +24,6 @@ class TimeTracker
     void restart( const std::string& key );
     auto getDuration( const std::string& key ) -> duration;
     float getDurationInSeconds( const std::string& key );
-
-    static void createLuaBindings( sol::state& lua );
 
   private:
     std::mutex m_timeMutex;

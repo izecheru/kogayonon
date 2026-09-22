@@ -58,8 +58,7 @@ endif()
 #find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
 find_package(GTest CONFIG REQUIRED)
 find_package(Freetype CONFIG REQUIRED)
-find_package(SDL2 CONFIG REQUIRED)
-find_package(sol2 CONFIG REQUIRED)
+find_package(SDL3 CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
@@ -77,7 +76,7 @@ add_subdirectory("dependencies/cgltf")
 add_subdirectory("dependencies/imguizmo")
 # using lua 5.4 since sol is not yet compatible with latest 5.5 and vcpkg
 # verison is indeed 5.5
-add_subdirectory("dependencies/lua")
+#add_subdirectory("dependencies/lua")
 add_subdirectory("dependencies/tinygltf")
 
 # My own modules

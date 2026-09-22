@@ -3,7 +3,6 @@
 #include "precompiled/pch.hpp"
 #include "utilities/utils/utils.hpp"
 #include <entt/entt.hpp>
-#include <sol/sol.hpp>
 #include "core/event/event.hpp"
 #include "precompiled/pch.hpp"
 #include "utilities/utils/utils.hpp"
@@ -82,85 +81,8 @@ class EventDispatcher
         return m_pDispatcher;
     }
 
-    static void createLuaBindings( sol::state& lua );
-
   private:
     std::shared_ptr<entt::dispatcher> m_pDispatcher;
 };
 
-struct LuaEvent
-{
-    sol::object data;
-};
-
-template <typename TEvent>
-struct LuaEventHandler
-{
-    sol::function callback;
-    entt::connection connection;
-
-    void release()
-    {
-        connection.release();
-        callback.abandon();
-    }
-
-    void handle( const TEvent& event )
-    {
-        if ( connection && callback.valid() )
-            callback( event );
-    }
-};
-
-// Event meta functions
-
-template <typename TEvent>
-auto add_handler( EventDispatcher& dispatcher, const sol::object& func )
-{
-    if ( !func.valid() )
-    {
-        KINFO( "Invalid func!!!" );
-        return;
-    }
-
-    auto* funcRef{ func.as<LuaEventHandler<TEvent>*>() };
-    funcRef->connection = dispatcher.addHandler<TEvent, &LuaEventHandler<TEvent>::handle>( *funcRef );
-}
-
-template <typename TEvent>
-auto remove_handler( EventDispatcher& dispatcher, const sol::object& func )
-{
-    if ( !func.valid() )
-    {
-        KERROR( "Invalid func!!!" );
-        return;
-    }
-
-    auto* funcRef{ func.as<LuaEventHandler<TEvent>*>() };
-    dispatcher.removeListener<TEvent, &LuaEventHandler<TEvent>::handle>( *funcRef );
-}
-
-template <typename TEvent>
-void dispatch_event( EventDispatcher& dispatcher, const sol::table& evt )
-{
-    dispatcher.dispatchEvent( evt.as<TEvent>() );
-}
-
-template <typename TEvent>
-bool has_handlers( EventDispatcher& dispatcher )
-{
-    return dispatcher.hasHandlers<TEvent>();
-}
-
-template <typename TEvent>
-void registerMetaEvent()
-{
-    using namespace entt::literals;
-    entt::meta_factory<TEvent>()
-        .type( entt::type_hash<TEvent>::value() )
-        .template func<&add_handler<TEvent>>( "add_handler"_hs )
-        .template func<&has_handlers<TEvent>>( "has_handlers"_hs )
-        .template func<&remove_handler<TEvent>>( "remove_handler"_hs )
-        .template func<&dispatch_event<TEvent>>( "dispatch_event"_hs );
-}
 } // namespace core

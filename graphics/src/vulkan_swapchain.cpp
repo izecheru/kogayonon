@@ -1,6 +1,6 @@
 #include "graphics/vulkan_swapchain.hpp"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_vulkan.h>
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_device.hpp"
 #include "precompiled/pch.hpp"

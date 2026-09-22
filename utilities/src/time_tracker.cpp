@@ -52,17 +52,3 @@ float utilities::TimeTracker::getDurationInSeconds( const std::string& key )
 {
     return getDuration( key ).count();
 }
-
-void utilities::TimeTracker::createLuaBindings( sol::state& lua )
-{
-    lua.new_usertype<TimeTracker>(
-        "TimeTracker",
-        "update",
-        []( TimeTracker& self, const std::string& key ) { self.update( key ); },
-        "start",
-        []( TimeTracker& self, const std::string& key ) { self.start( key ); },
-        "getDuration",
-        []( TimeTracker& self, const std::string& key, sol::this_state currentState ) -> sol::object {
-            return sol::make_object( currentState, self.getDuration( key ).count() );
-        } );
-}

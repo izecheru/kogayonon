@@ -1,7 +1,6 @@
 #pragma once
 #include <entt/entt.hpp>
 #include <memory>
-#include <sol/sol.hpp>
 using namespace entt::literals;
 
 namespace core
@@ -100,8 +99,6 @@ class Registry
     {
         return m_pRegistry->storage();
     }
-
-    static void createLuaBindings( sol::state& lua );
 
   private:
     std::unique_ptr<entt::registry> m_pRegistry;

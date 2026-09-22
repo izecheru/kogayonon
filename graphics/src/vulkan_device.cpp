@@ -1,8 +1,8 @@
 #define VMA_IMPLEMENTATION
 
 #include "graphics/vulkan_device.hpp"
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_vulkan.h>
 #include "graphics/shader_compiler.hpp"
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_buffer.hpp"
@@ -170,10 +170,12 @@ auto graphics::VulkanDevice::isDeviceSuitable( VkPhysicalDevice& device ) -> boo
 auto graphics::VulkanDevice::getRequiredExtensions() -> std::vector<const char*>
 {
     uint32_t extensionCount{ 0u };
-    SDL_Vulkan_GetInstanceExtensions( m_window, &extensionCount, nullptr );
+    auto ext = SDL_Vulkan_GetInstanceExtensions( &extensionCount );
     KINFO( "extension count from SDL_Vulkan_GetInstanceExtensions {}", extensionCount );
+
     std::vector<const char*> extensions( extensionCount );
-    SDL_Vulkan_GetInstanceExtensions( m_window, &extensionCount, extensions.data() );
+    for ( uint32_t i = 0; i < extensionCount; ++i )
+        extensions[i] = ext[i];
 
     if ( enableValidationLayers )
         extensions.push_back( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
@@ -434,7 +436,7 @@ void graphics::VulkanDevice::createInstance()
 
 void graphics::VulkanDevice::createWindowSurface()
 {
-    if ( SDL_Vulkan_CreateSurface( m_window, m_platform.instance, &m_platform.surface ) != SDL_TRUE )
+    if ( !SDL_Vulkan_CreateSurface( m_window, m_platform.instance, nullptr, &m_platform.surface ) )
     {
         throw std::runtime_error( "could not create surface" );
     }

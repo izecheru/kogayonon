@@ -1,7 +1,7 @@
 #include "gui/vulkan_imgui_renderer.hpp"
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include <imgui.h>
-#include <imgui_impl_sdl2.h>
+#include <imgui_impl_sdl3.h>
 #include <imgui_impl_vulkan.h>
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
@@ -56,7 +56,7 @@ void gui::VulkanImguiRenderer::createIconSampler( graphics::VulkanDevice* device
 gui::VulkanImguiRenderer::~VulkanImguiRenderer()
 {
     ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 
     m_device->destroyDescriptorPool( m_descriptorPool );
@@ -66,7 +66,7 @@ gui::VulkanImguiRenderer::~VulkanImguiRenderer()
 void gui::VulkanImguiRenderer::begin()
 {
     ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplSDL2_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
     ImGuizmo::BeginFrame();
     setupDockspace( ImGui::GetMainViewport() );
@@ -310,7 +310,7 @@ void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
     utilities::ColorConfig& colorCfg = utilities::EditorConfigManager::getColorConfig();
     setColorPallete( colorCfg );
 
-    ImGui_ImplSDL2_InitForVulkan( wnd );
+    ImGui_ImplSDL3_InitForVulkan( wnd );
 
     ImGui_ImplVulkan_InitInfo initInfo = {};
     initInfo.Instance = device->getInstance();

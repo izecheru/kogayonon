@@ -1,5 +1,5 @@
 #pragma once
-#include <SDL2/SDL.h>
+#include <SDL3/SDL_keyboard.h>
 #include "key_codes.hpp"
 #include "precompiled/pch.hpp"
 
@@ -23,7 +23,7 @@ class KeyboardState
 
     static inline bool getKeyState( const KeyScanCode& code )
     {
-        return m_keyboardState[static_cast<int>( code )];
+        return m_keyboardState[static_cast<int>( code )] != 0;
     }
 
     static inline bool getKeyCombinationState( const std::vector<KeyScanCode>& codes )
@@ -31,13 +31,12 @@ class KeyboardState
         bool result = true;
         for ( auto& code : codes )
         {
-            // if all are true &=
-            result &= static_cast<bool>( m_keyboardState[static_cast<int>( code )] );
+            result &= ( m_keyboardState[static_cast<int>( code )] != 0 );
         }
         return result;
     }
 
   private:
-    static inline const Uint8* m_keyboardState;
+    static inline const bool* m_keyboardState{ nullptr };
 };
 } // namespace utilities

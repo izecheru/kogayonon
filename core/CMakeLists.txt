@@ -69,7 +69,7 @@ target_include_directories(
 target_precompile_headers(core REUSE_FROM precompiled)
 target_link_libraries(
   core
-  PUBLIC EnTT::EnTT glm::glm-header-only lua physics precompiled msdf-atlas-gen  PRIVATE  window yaml-cpp::yaml-cpp utilities
+  PUBLIC EnTT::EnTT glm::glm-header-only physics precompiled msdf-atlas-gen  PRIVATE  window yaml-cpp::yaml-cpp utilities
           resources tinygltf
 )
 

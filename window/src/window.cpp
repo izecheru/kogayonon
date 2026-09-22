@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <assert.h>
 #include "window/window.hpp"
 
 auto window_hit_test( SDL_Window* wnd, const SDL_Point* pos, void* ) -> SDL_HitTestResult
@@ -21,8 +20,6 @@ Window::Window( const char* t_title, int t_width, int t_height, bool t_vsync, bo
     if ( t_maximized )
     {
         m_window = SDL_CreateWindow( m_pWindowProps->title,
-                                     SDL_WINDOWPOS_CENTERED,
-                                     SDL_WINDOWPOS_CENTERED,
                                      m_pWindowProps->width,
                                      m_pWindowProps->height,
                                      SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED );
@@ -30,8 +27,6 @@ Window::Window( const char* t_title, int t_width, int t_height, bool t_vsync, bo
     else
     {
         m_window = SDL_CreateWindow( m_pWindowProps->title,
-                                     SDL_WINDOWPOS_CENTERED,
-                                     SDL_WINDOWPOS_CENTERED,
                                      m_pWindowProps->width,
                                      m_pWindowProps->height,
                                      SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE );
@@ -74,7 +69,7 @@ void Window::setHeight( int h )
 void Window::resize()
 {
     int w, h;
-    SDL_GL_GetDrawableSize( m_window, &w, &h );
+    SDL_GetWindowMaximumSize( m_window, &w, &h );
 }
 
 void Window::resize( int w, int h )
@@ -98,12 +93,12 @@ void Window::setTitle( const char* title )
 
 void Window::setBordered( bool value )
 {
-    SDL_SetWindowBordered( m_window, value == true ? SDL_TRUE : SDL_FALSE );
+    SDL_SetWindowBordered( m_window, value == true ? true : false );
 }
 
 void Window::setResizable( bool value )
 {
-    SDL_SetWindowResizable( m_window, value == true ? SDL_TRUE : SDL_FALSE );
+    SDL_SetWindowResizable( m_window, value == true ? true : false );
 }
 
 void Window::centerWindow()
@@ -149,25 +144,4 @@ auto Window::getWindowProps() -> WindowProperties*
     return m_pWindowProps.get();
 }
 
-void Window::createLuaBindings( sol::state& lua )
-{
-    lua.new_usertype<Window>(
-        "Window",
-        "setResizable",
-        []( Window& self, bool value ) { return self.setResizable( value ); },
-        "setBordered",
-        []( Window& self, bool value ) { return self.setBordered( value ); },
-        "setTitle",
-        []( Window& self, const std::string& title ) { return self.setTitle( title.c_str() ); },
-        "resize",
-        []( Window& self, int w, int h ) { return self.resize( w, h ); },
-        "setHeight",
-        []( Window& self, int h ) { return self.setHeight( h ); },
-        "setWidth",
-        []( Window& self, int w ) { return self.setWidth( w ); },
-        "getHeight",
-        []( Window& self ) { return self.getHeight(); },
-        "getWidth",
-        []( Window& self ) { return self.getWidth(); } );
-}
 } // namespace window

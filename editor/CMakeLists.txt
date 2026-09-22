@@ -18,8 +18,7 @@ target_include_directories(editor
 target_link_libraries(
   editor
   PRIVATE 
-	  SDL2::SDL2main
-	  SDL2::SDL2
+	  SDL3::SDL3
 	  utilities
 	  resources
 	  renderer

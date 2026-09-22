@@ -40,11 +40,11 @@ target_link_libraries(graphics
 	Vulkan::Headers
 	GPUOpen::VulkanMemoryAllocator
 	utilities
- PRIVATE $<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>
-         $<IF:$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>
- precompiled
- resources
- core
+	PRIVATE 
+	SDL3::SDL3
+	precompiled
+	resources
+	core
 )
 
 if(KOGAYONON_ENABLE_TRACY)

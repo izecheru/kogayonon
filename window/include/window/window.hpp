@@ -1,8 +1,7 @@
 #pragma once
-#include <SDL2/SDL.h>
+#include "SDL3/SDL.h"
 #include <functional>
 #include <memory>
-#include <sol/sol.hpp>
 
 namespace window
 {
@@ -114,8 +113,6 @@ class Window
 
     auto getWindow() -> SDL_Window*;
     void setWindow( SDL_Window* wnd );
-
-    static void createLuaBindings( sol::state& lua );
 
   private:
     SDL_Window* m_window = nullptr;

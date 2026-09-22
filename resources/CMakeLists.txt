@@ -1,5 +1,4 @@
-set(
- targetSources 
+set(HEADER_FILES
   "include/resources/mesh.hpp"
   "include/resources/vertex.hpp"
   "include/resources/texture.hpp"
@@ -11,12 +10,14 @@ set(
   "include/resources/mesh_push_constant.hpp"
   "include/resources/material.hpp"
   "include/resources/font.hpp"
-
+)
+set(SOURCE_FILES 
   "src/mesh.cpp"
   "src/font.cpp"
-  "src/texture.cpp")
+  "src/texture.cpp"
+)
 
-  add_library(resources ${targetSources})
+  add_library(resources ${SOURCE_FILES})
 
 
 target_include_directories(resources

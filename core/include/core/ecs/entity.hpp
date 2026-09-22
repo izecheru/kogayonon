@@ -1,6 +1,5 @@
 #pragma once
 #include <entt/entt.hpp>
-#include <sol/sol.hpp>
 #include "core/ecs/components/identifier_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/ecs/entity_types.hpp"
@@ -70,62 +69,10 @@ class Entity
         return m_entity;
     }
 
-    static void createLuaBindings( sol::state& lua );
-
   private:
     Registry* m_registry;
     entt::entity m_entity;
 };
-
-template <typename TComponent>
-bool has_component( Entity& entity )
-{
-    return entity.hasComponent<TComponent>();
-}
-
-template <typename TComponent>
-auto add_component( Entity& entity, const sol::table& comp, sol::this_state currentState )
-{
-    auto& component =
-        entity.addComponent<TComponent>( comp.valid() ? std::move( comp.as<TComponent>() ) : TComponent{} );
-    // this is what we need the current lua state for
-    return sol::make_reference( currentState, std::ref( component ) );
-}
-
-template <typename TComponent>
-auto get_component( Entity& entity, sol::this_state currentState )
-{
-    auto& component = entity.getComponent<TComponent>();
-    return sol::make_reference( currentState, std::ref( component ) );
-}
-
-template <typename TComponent>
-auto emplace_component( Entity& entity, const sol::table& comp, sol::this_state currentState )
-{
-    auto& component =
-        entity.addComponent<TComponent>( comp.valid() ? std::move( comp.as<TComponent&&>() ) : TComponent{} );
-
-    // this is what we need the current lua state for
-    return sol::make_reference( currentState, std::ref( component ) );
-}
-
-template <typename TComponent>
-auto remove_component( Entity& entity )
-{
-    entity.removeComponent<TComponent>();
-}
-
-template <typename TComponent>
-void registerMetaComponent()
-{
-    entt::meta_factory<TComponent>()
-        .type( entt::type_hash<TComponent>::value() )
-        .template func<&add_component<TComponent>>( "add_component"_hs )
-        .template func<&get_component<TComponent>>( "get_component"_hs )
-        .template func<&has_component<TComponent>>( "has_component"_hs )
-        .template func<&remove_component<TComponent>>( "remove_component"_hs )
-        .template func<&emplace_component<TComponent>>( "emplace_component"_hs );
-}
 
 #include "core/ecs/entity.inl"
 } // namespace core
