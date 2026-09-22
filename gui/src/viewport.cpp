@@ -622,35 +622,23 @@ void gui::Viewport::onKeyPressed( const core::KeyPressedEvent& e )
     using enum GuizmoMode;
     using enum AxisLock;
 
-    if ( e.getKeyModifier() == KeyScanCode::LeftShift )
-    {
-        switch ( e.getKeyScanCode() )
-        {
-        case KeyScanCode::T: {
-            m_guizmoMode = Translate;
-            break;
-        }
-        case KeyScanCode::R: {
-            m_guizmoMode = Rotate;
-            break;
-        }
-        case KeyScanCode::S: {
-            m_guizmoMode = Scale;
-            break;
-        }
+    const bool shift = e.getKeyModifier() == KeyScanCode::LeftShift || e.getKeyModifier() == KeyScanCode::RightShift;
 
-        case KeyScanCode::X: {
-            m_guizmoAxisLock = ( m_guizmoAxisLock == X_axis ) ? None : X_axis;
-            break;
-        }
-        case KeyScanCode::Y: {
-            m_guizmoAxisLock = ( m_guizmoAxisLock == Y_axis ) ? None : Y_axis;
-            break;
-        }
-        case KeyScanCode::Z: {
-            m_guizmoAxisLock = ( m_guizmoAxisLock == Z_axis ) ? None : Z_axis;
-            break;
-        }
-        }
+    if ( !shift )
+    {
+        return;
+    }
+
+    if ( KeyboardState::getKeyCombinationState( { KeyScanCode::LeftShift, KeyScanCode::T } ) )
+    {
+        m_guizmoMode = Translate;
+    }
+    else if ( KeyboardState::getKeyCombinationState( { KeyScanCode::LeftShift, KeyScanCode::R } ) )
+    {
+        m_guizmoMode = Rotate;
+    }
+    else if ( KeyboardState::getKeyCombinationState( { KeyScanCode::LeftShift, KeyScanCode::S } ) )
+    {
+        m_guizmoMode = Scale;
     }
 }

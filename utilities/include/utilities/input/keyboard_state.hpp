@@ -31,7 +31,7 @@ class KeyboardState
         bool result = true;
         for ( auto& code : codes )
         {
-            result &= ( m_keyboardState[static_cast<int>( code )] != 0 );
+            result &= ( m_keyboardState[static_cast<SDL_Scancode>( code )] != 0 );
         }
         return result;
     }

@@ -1,5 +1,5 @@
 #include "renderer/modules/picking_module.hpp"
-#include "SDL3/SDL.h"
+#include "SDL2/SDL.h"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"

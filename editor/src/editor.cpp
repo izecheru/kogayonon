@@ -91,6 +91,9 @@ void editor::Editor::pollEvents()
             break;
         }
         case SDL_EVENT_KEY_DOWN: {
+            if ( e.key.repeat )
+                break;
+
             KeyboardState::updateState();
             KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.key );
 
@@ -107,6 +110,7 @@ void editor::Editor::pollEvents()
             }
 
             pEventDispatcher->dispatchEvent( keyPressEvent );
+
             break;
         }
         case SDL_EVENT_KEY_UP: {
