@@ -356,15 +356,18 @@ bool editor::Editor::initMainRegistry()
             return glm::vec3{ v[0].GetFloat(), v[1].GetFloat(), v[2].GetFloat() };
         };
 
-        uint32_t entityId{ 0u };
         for ( const auto& e : doc["entities"].GetArray() )
         {
-            // no id entity
             core::Entity ent{ scene->getRegistry() };
-            ent.addComponent<core::IdentifierComponent>(
-                core::IdentifierComponent{ .name = std::string{ "entity_" + std::to_string( entityId++ ) },
-                                           .type = core::EntityType::Object,
-                                           .group = "DefaultGroup" } );
+
+            if ( e.HasMember( "identifier" ) )
+            {
+                std::string name = e["identifier"]["name"].GetString();
+                std::string group = e["identifier"]["group"].GetString();
+
+                ent.addComponent<core::IdentifierComponent>(
+                    core::IdentifierComponent{ .name = name, .type = core::EntityType::Object, .group = group } );
+            }
 
             if ( e.HasMember( "transform" ) )
             {

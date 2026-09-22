@@ -1,13 +1,8 @@
 #pragma once
 #include "core/scene/scene_event_handler.hpp"
 #include "precompiled/pch.hpp"
+#include "core/scene/scene.hpp"
 #include <entt/entt.hpp>
-
-namespace core
-{
-class Scene;
-class EventDispatcher;
-} // namespace core
 
 namespace core
 {
@@ -25,6 +20,9 @@ class SceneManager
     auto getScenes() -> std::unordered_map<std::string, std::unique_ptr<Scene>>&;
 
     auto saveScenes() -> void;
+
+  private:
+    auto saveScene( core::Scene* scene ) -> void;
 
   private:
     bool m_saveAllScenes;

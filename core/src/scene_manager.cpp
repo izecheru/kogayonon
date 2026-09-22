@@ -4,7 +4,6 @@
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "utilities/json_serializer/json_serializer.hpp"
-#include "core/scene/scene.hpp"
 
 core::SceneManager::SceneManager( EventDispatcher* pDispatcher, bool saveAllScenes )
     : m_eventHandler{ std::make_unique<core::SceneEventHandler>( pDispatcher ) }
@@ -70,7 +69,31 @@ auto core::SceneManager::getEventHandler() -> SceneEventHandler*
 
 auto core::SceneManager::saveScenes() -> void
 {
-    auto saveEntityTransformComponent = []( utilities::JsonSerializer* s, core::TransformComponent& transform ) {
+    if ( !m_saveAllScenes )
+    {
+        Scene* scene = getCurrentScene();
+        saveScene( scene );
+    }
+    else
+    {
+        // serialize all scenes
+        for ( const auto& [sceneName, scene] : m_scenes )
+        {
+            saveScene( scene.get() );
+        }
+    }
+}
+
+auto core::SceneManager::saveScene( core::Scene* scene ) -> void
+{
+    auto saveEntityIdComponent = []( utilities::JsonSerializer* s, const core::IdentifierComponent& idComponent ) {
+        s->startObject( "identifier" )
+            .addKeyValuePair( "name", idComponent.name )
+            .addKeyValuePair( "group", idComponent.group )
+            .endObject();
+    };
+
+    auto saveEntityTransformComponent = []( utilities::JsonSerializer* s, const core::TransformComponent& transform ) {
         s->startObject( "transform" )
             .saveVec3( "translation", transform.translation )
             .saveVec3( "rotation", transform.rotation )
@@ -78,92 +101,49 @@ auto core::SceneManager::saveScenes() -> void
             .endObject();
     };
 
-    auto saveEntityMeshComponent = []( utilities::JsonSerializer* s, core::MeshComponent& meshComponent ) {
+    auto saveEntityMeshComponent = []( utilities::JsonSerializer* s, const core::MeshComponent& meshComponent ) {
         if ( !meshComponent.pMesh )
             return;
 
         s->startObject( "mesh" ).addKeyValuePair( "path", meshComponent.pMesh->getPath() ).endObject();
     };
 
-    if ( !m_saveAllScenes )
-    {
-        Scene* scene = getCurrentScene();
-        std::string sceneFilename = scene->getName() + ".kscene";
-        std::filesystem::path scenePath = std::filesystem::current_path() / "editor" / "scenes" / sceneFilename;
+    std::string sceneFilename = scene->getName() + ".kscene";
+    std::filesystem::path scenePath = std::filesystem::current_path() / "editor" / "scenes" / sceneFilename;
 
-        // this also creates the output file
-        std::unique_ptr<utilities::JsonSerializer> serializer =
-            std::make_unique<utilities::JsonSerializer>( scenePath.string() );
+    // this also creates the output file
+    std::unique_ptr<utilities::JsonSerializer> serializer =
+        std::make_unique<utilities::JsonSerializer>( scenePath.string() );
 
-        serializer->startDocument().startArray( "entities" );
+    serializer->startDocument().startArray( "entities" );
 
-        auto view = scene->getEnttRegistry().view<core::IdentifierComponent>(
-            entt::exclude<core::DirectionalLightComponent, core::PerspectiveCameraComponent> );
+    // serialize except cameras and lights for now
+    auto view = scene->getEnttRegistry().view<core::IdentifierComponent>(
+        entt::exclude<core::DirectionalLightComponent, core::PerspectiveCameraComponent> );
 
-        view.each( [&]( const entt::entity& id, core::IdentifierComponent& idComponent ) {
-            Entity entity{ scene->getRegistry(), id };
+    view.each( [&]( const entt::entity& id, core::IdentifierComponent& idComponent ) {
+        Entity entity{ scene->getRegistry(), id };
 
-            // this could be useful since we can also unhash it so we can create each entity in order
-            // uint32_t entityId = static_cast<uint32_t>( entity.getEntityId() );
-            // std::string idHash = std::to_string( std::hash<uint32_t>{}( entityId ) );
+        // this could be useful since we can also unhash it so we can create each entity in order
+        // uint32_t entityId = static_cast<uint32_t>( entity.getEntityId() );
+        // std::string idHash = std::to_string( std::hash<uint32_t>{}( entityId ) );
 
-            serializer->startObject();
+        serializer->startObject();
 
-            if ( entity.hasComponent<core::MeshComponent>() )
-            {
-                saveEntityMeshComponent( serializer.get(), entity.getComponent<core::MeshComponent>() );
-            }
+        saveEntityIdComponent( serializer.get(), idComponent );
 
-            if ( entity.hasComponent<core::TransformComponent>() )
-            {
-                saveEntityTransformComponent( serializer.get(), entity.getComponent<core::TransformComponent>() );
-            }
+        if ( entity.hasComponent<core::MeshComponent>() )
+        {
+            saveEntityMeshComponent( serializer.get(), entity.getComponent<core::MeshComponent>() );
+        }
 
-            serializer->endObject();
-        } );
+        if ( entity.hasComponent<core::TransformComponent>() )
+        {
+            saveEntityTransformComponent( serializer.get(), entity.getComponent<core::TransformComponent>() );
+        }
 
-        serializer->endArray().endDocument();
-        return;
-    }
+        serializer->endObject();
+    } );
 
-    // serialize all scenes
-    for ( const auto& [sceneName, scene] : m_scenes )
-    {
-        std::string sceneFilename = sceneName + ".kscene";
-        std::filesystem::path scenePath = std::filesystem::current_path() / "editor" / "scenes" / sceneFilename;
-
-        // this also creates the output file
-        std::unique_ptr<utilities::JsonSerializer> serializer =
-            std::make_unique<utilities::JsonSerializer>( scenePath.string() );
-
-        serializer->startDocument().startArray( "entities" );
-
-        // serialize except cameras and lights for now
-        auto view = scene->getEnttRegistry().view<core::IdentifierComponent>(
-            entt::exclude<core::DirectionalLightComponent, core::PerspectiveCameraComponent> );
-
-        view.each( [&]( const entt::entity& id, core::IdentifierComponent& idComponent ) {
-            Entity entity{ scene->getRegistry(), id };
-
-            // this could be useful since we can also unhash it so we can create each entity in order
-            // uint32_t entityId = static_cast<uint32_t>( entity.getEntityId() );
-            // std::string idHash = std::to_string( std::hash<uint32_t>{}( entityId ) );
-
-            serializer->startObject();
-
-            if ( entity.hasComponent<core::MeshComponent>() )
-            {
-                saveEntityMeshComponent( serializer.get(), entity.getComponent<core::MeshComponent>() );
-            }
-
-            if ( entity.hasComponent<core::TransformComponent>() )
-            {
-                saveEntityTransformComponent( serializer.get(), entity.getComponent<core::TransformComponent>() );
-            }
-
-            serializer->endObject();
-        } );
-
-        serializer->endArray().endDocument();
-    }
+    serializer->endArray().endDocument();
 }
