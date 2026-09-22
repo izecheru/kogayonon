@@ -21,17 +21,15 @@ auto core::SceneEventHandler::getCurrentEntityId() const -> entt::entity
 
 auto core::SceneEventHandler::onDeleteEntity( const core::DeleteEntityEvent& e ) -> void
 {
-    if ( m_selectedEntity == entt::null )
+    if ( e.getEntityId() == entt::null )
     {
         return;
     }
 
-    auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
-    auto scene = sceneManager->getCurrentScene();
+    core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+    core::Scene* scene = sceneManager->getCurrentScene();
 
-    scene->removeEntity( m_selectedEntity );
-
-    m_selectedEntity = entt::null;
+    scene->removeEntity( e.getEntityId() );
 }
 
 auto core::SceneEventHandler::onAddEntity( const core::AddEntityEvent& e ) -> void

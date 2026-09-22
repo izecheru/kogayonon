@@ -49,6 +49,11 @@ class DeleteEntityEvent : public IEvent
     explicit DeleteEntityEvent( const entt::entity& entityId );
     DeleteEntityEvent() = default;
 
+    inline auto getEntityId() const -> entt::entity
+    {
+        return m_entityId;
+    }
+
   private:
     entt::entity m_entityId{ entt::null };
 };
