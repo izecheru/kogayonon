@@ -140,7 +140,8 @@ auto gui::FileExplorerWindow::drawNodes( DirectoryEntry& e ) -> void
         std::string folderIcon = isLeaf ? ICON_MDI_FOLDER_OPEN : ICON_MDI_FOLDER;
         folderIcon += child.path.stem().string();
 
-        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoArrowDraw;
+        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoArrowDraw |
+                                   ImGuiTreeNodeFlags_DrawLinesFull | ImGuiTreeNodeFlags_DrawLinesToNodes;
 
         if ( isLeaf )
         {
@@ -194,8 +195,9 @@ auto gui::FileExplorerWindow::drawFromRoot( DirectoryEntry& e ) -> void
     std::string folderIcon( ICON_MDI_FOLDER );
     folderIcon += e.path.stem().string();
 
-    const bool open =
-        ImGui::TreeNodeEx( folderIcon.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoArrowDraw );
+    const bool open = ImGui::TreeNodeEx( folderIcon.c_str(),
+                                         ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoArrowDraw |
+                                             ImGuiTreeNodeFlags_DrawLinesFull | ImGuiTreeNodeFlags_DrawLinesToNodes );
 
     if ( ImGui::IsItemToggledOpen() )
     {
@@ -252,22 +254,52 @@ auto gui::FileExplorerWindow::drawFiles() -> void
     if ( !m_currentDirectory )
         return;
 
-    constexpr int kColumns = 10;
+    constexpr int columns = 10;
+    constexpr float itemWidth = 100.0f;
 
-    if ( ImGui::BeginTable( "##fileTable", kColumns ) )
+    ImGui::PushStyleVar( ImGuiStyleVar_CellPadding, ImVec2{ 15.0f, 8.0f } );
+    if ( ImGui::BeginTable( "##fileTable", columns ) )
     {
         for ( size_t i = 0; i < m_currentDirectory->files.size(); ++i )
         {
-            if ( i % kColumns == 0 )
+            if ( i % columns == 0 )
             {
                 ImGui::TableNextRow();
             }
 
             ImGui::TableNextColumn();
 
+            ImGui::BeginGroup();
             FileEntry& f = m_currentDirectory->files[i];
-            ImGui::Text( "%s", f.path.stem().string().c_str() );
+            ImGui::PushItemWidth( itemWidth );
+            ImVec2 cursorPos = ImGui::GetCursorPos();
+            ImGui::SetCursorPos( { cursorPos.x + ( ( itemWidth - 50.0f ) / 2 ), cursorPos.y } );
+            ImGui::Image( m_spec.fileIcons.at( ".gltf" ), ImVec2{ 50.0f, 50.0f } );
+            cursorPos = ImGui::GetCursorPos();
+            std::string filename = f.path.filename().string();
+            float textWidth = ImGui::CalcTextSize( filename.c_str() ).x;
+
+            // make sure text is not getting clamped
+            if ( textWidth <= itemWidth - 20.0f )
+            {
+                ImGui::SetCursorPos( { cursorPos.x + ( ( itemWidth - textWidth ) / 2 ), cursorPos.y } );
+            }
+
+            ImGui::TextWrapped( "%s", f.path.filename().string().c_str() );
+            ImGui::PopItemWidth();
+            ImGui::EndGroup();
+            std::string popupId{ "##fileContextMenu" + f.path.string() };
+            if ( ImGui::BeginPopupContextItem( popupId.c_str() ) )
+            {
+                if ( ImGui::MenuItem( "Delete file" ) )
+                {
+                    std::filesystem::remove( f.path );
+                    m_hierarchy.setNode( m_currentDirectory );
+                }
+                ImGui::EndPopup();
+            }
         }
         ImGui::EndTable();
+        ImGui::PopStyleVar();
     }
 }

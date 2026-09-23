@@ -22,6 +22,7 @@ auto DirectoryHierarchy::setRebuild( bool value ) -> void
 auto DirectoryHierarchy::setNode( DirectoryEntry* entry ) -> void
 {
     m_rebuild = entry;
+    setRebuild( true );
 }
 
 auto DirectoryHierarchy::needRebuild() const -> bool

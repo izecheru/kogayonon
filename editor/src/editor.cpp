@@ -238,12 +238,14 @@ bool editor::Editor::initMainWindow()
 
 bool editor::Editor::initRenderer()
 {
-    auto vkCtx = core::MainRegistry::getInstance().getVulkanContext();
+    graphics::VulkanContext* vkCtx = core::MainRegistry::getInstance().getVulkanContext();
 
     m_vulkanRenderer = std::make_unique<rendering::VulkanRenderer>( vkCtx, m_window->getWindow() );
 
     if ( !m_vulkanRenderer )
+    {
         return false;
+    }
 
     return true;
 }
