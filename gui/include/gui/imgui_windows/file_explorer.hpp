@@ -62,10 +62,11 @@ class FileExplorerWindow : public ImGuiWindow
 
     auto drawDirectoryHierarchy() -> void;
     auto drawNodes( DirectoryEntry& e ) -> void;
+    auto drawFiles() -> void;
 
   private:
     DirectoryHierarchy m_hierarchy;
-    std::filesystem::path m_currentPath;
+    DirectoryEntry* m_currentDirectory;
     std::unique_ptr<utilities::DirectoryWatcher> m_pDirWatcher;
     std::unique_ptr<core::EventDispatcher> m_pDispatcher;
     std::string m_searchStr;

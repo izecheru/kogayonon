@@ -140,6 +140,7 @@ void editor::Editor::pollEvents()
                 core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_MIDDLE ),
                                                       static_cast<int>( MouseAction::Press ),
                                                       static_cast<int>( MouseModifier::None ) };
+
                 pEventDispatcher->dispatchEvent( mouseClicked );
             }
             if ( buttonState & SDL_BUTTON_MASK( SDL_BUTTON_LEFT ) )
@@ -147,6 +148,7 @@ void editor::Editor::pollEvents()
                 core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_LEFT ),
                                                       static_cast<int>( MouseAction::Press ),
                                                       static_cast<int>( MouseModifier::None ) };
+
                 pEventDispatcher->dispatchEvent( mouseClicked );
             }
             if ( buttonState & SDL_BUTTON_MASK( SDL_BUTTON_RIGHT ) )
@@ -154,6 +156,7 @@ void editor::Editor::pollEvents()
                 core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_RIGHT ),
                                                       static_cast<int>( MouseAction::Press ),
                                                       static_cast<int>( MouseModifier::None ) };
+
                 pEventDispatcher->dispatchEvent( mouseClicked );
             }
             break;

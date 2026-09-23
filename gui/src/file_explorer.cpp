@@ -21,11 +21,9 @@
 using namespace core;
 using namespace utilities;
 
-namespace gui
-{
-FileExplorerWindow::FileExplorerWindow( std::string const& name, FileExplorerSpec const& spec )
+gui::FileExplorerWindow::FileExplorerWindow( std::string const& name, FileExplorerSpec const& spec )
     : ImGuiWindow{ name }
-    , m_currentPath{ std::filesystem::absolute( "." ) / "engine_resources" }
+    , m_currentDirectory{ nullptr }
     , m_pDirWatcher{ std::make_unique<DirectoryWatcher>( std::filesystem::absolute( "." ) ) }
     , m_pDispatcher{ std::make_unique<EventDispatcher>() }
     , m_hierarchy{ fs::current_path() / "engine_resources" }
@@ -36,26 +34,26 @@ FileExplorerWindow::FileExplorerWindow( std::string const& name, FileExplorerSpe
     setCallback();
 }
 
-void FileExplorerWindow::installHandlers()
+void gui::FileExplorerWindow::installHandlers()
 {
     m_pDispatcher->addHandler<FileEvent, &FileExplorerWindow::onFileEvent>( *this );
 }
 
-void FileExplorerWindow::setCallback()
+void gui::FileExplorerWindow::setCallback()
 {
     m_pDirWatcher->setCallback( [this]( std::string const& path, std::string const& name, FileEventType const& type ) {
         m_pDispatcher->dispatchEvent<FileEvent>( FileEvent{ path, name, type } );
     } );
 }
 
-bool FileExplorerWindow::isTexture( std::string const& path )
+bool gui::FileExplorerWindow::isTexture( std::string const& path )
 {
     std::filesystem::path p{ path };
     auto ext = p.extension().string();
     return ext == ".jpg" || ext == ".png";
 }
 
-void FileExplorerWindow::onFileEvent( FileEvent& e )
+void gui::FileExplorerWindow::onFileEvent( FileEvent& e )
 {
     core::EventDispatcher* eventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
     switch ( e.getType() )
@@ -83,7 +81,7 @@ void FileExplorerWindow::onFileEvent( FileEvent& e )
     }
 }
 
-void FileExplorerWindow::drawFileContextMenu( FileEntry const& file, std::string const& id )
+void gui::FileExplorerWindow::drawFileContextMenu( FileEntry const& file, std::string const& id )
 {
     if ( ImGui::BeginPopupContextItem( id.c_str() ) )
     {
@@ -108,88 +106,78 @@ void FileExplorerWindow::drawFileContextMenu( FileEntry const& file, std::string
     }
 }
 
-auto FileExplorerWindow::drawDirectoryHierarchy() -> void
+auto gui::FileExplorerWindow::drawDirectoryHierarchy() -> void
 {
     if ( !m_hierarchy.isInit() )
     {
         throw std::runtime_error( "directory hierarchy was not initialized prior" );
     }
-    else
-    {
-        drawFromRoot( m_hierarchy.root() );
-    }
+
+    const float height = ImGui::GetContentRegionAvail().y;
+
+    ImGui::BeginChild( "##dirExplorer", ImVec2{ 300.0f, height }, true );
+    drawFromRoot( m_hierarchy.root() );
+    ImGui::EndChild();
+
+    ImGui::SameLine();
+
+    ImGui::BeginChild( "##filesPanel", ImVec2{ 0.0f, height }, true );
+    drawFiles();
+    ImGui::EndChild();
 }
 
-auto FileExplorerWindow::drawNodes( DirectoryEntry& e ) -> void
+auto gui::FileExplorerWindow::drawNodes( DirectoryEntry& e ) -> void
 {
     ImGui::PushID( e.path.string().c_str() );
 
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth;
-    for ( const FileEntry& f : e.files )
-    {
-        ImGui::PushID( f.path.string().c_str() );
-
-        if ( ImGui::TreeNodeEx( f.path.filename().string().c_str(),
-                                ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen |
-                                    ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoArrowDraw ) )
-        {
-            if ( ImGui::BeginDragDropSource( ImGuiDragDropFlags_None ) )
-            {
-                std::string resultPath = f.path.string();
-                ImGui::SetDragDropPayload( ASSET_DROP, resultPath.c_str(), resultPath.size() + 1, ImGuiCond_Once );
-                ImGui::EndDragDropSource();
-            }
-            if ( ImGui::BeginPopupContextItem( "##fileMenu" ) )
-            {
-                if ( f.path.extension().string() == ".slang" )
-                {
-                    if ( ImGui::BeginMenu( "Open with" ) )
-                    {
-                        // TODO actually check if we have those programs installed
-                        if ( ImGui::MenuItem( "Vs Code" ) )
-                        {
-                            ShellExecute( NULL, "open", "code", f.path.string().c_str(), NULL, SW_HIDE );
-                        }
-                        if ( ImGui::MenuItem( "Notepad" ) )
-                        {
-                            ShellExecute( NULL, "open", "notepad", f.path.string().c_str(), NULL, SW_HIDE );
-                        }
-                        if ( ImGui::MenuItem( "Notepad++" ) )
-                        {
-                            ShellExecute( NULL, "open", "notepad++", f.path.string().c_str(), NULL, SW_HIDE );
-                        }
-
-                        ImGui::EndMenu();
-                    }
-                }
-                if ( ImGui::MenuItem( "Delete file" ) )
-                {
-                    std::filesystem::remove( f.path );
-                    m_hierarchy.setRebuild( true );
-                    m_hierarchy.setNode( &e );
-                }
-                ImGui::EndPopup();
-            }
-        }
-        ImGui::PopID();
-    }
-
     for ( DirectoryEntry& child : e.children )
     {
         ImGui::SetNextItemOpen( child.open );
 
-        std::string folderIcon( ICON_MDI_FOLDER );
+        const bool isLeaf = child.children.empty();
+
+        std::string folderIcon = isLeaf ? ICON_MDI_FOLDER_OPEN : ICON_MDI_FOLDER;
         folderIcon += child.path.stem().string();
 
-        bool open =
-            ImGui::TreeNodeEx( folderIcon.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoArrowDraw );
+        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_NoArrowDraw;
 
-        if ( ImGui::IsItemToggledOpen() )
+        if ( isLeaf )
         {
-            child.open = open;
+            flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
         }
 
-        if ( open )
+        const bool open = ImGui::TreeNodeEx( folderIcon.c_str(), flags );
+
+        if ( !isLeaf && ImGui::IsItemToggledOpen() )
+        {
+            child.open = open;
+
+            if ( !open )
+            {
+                m_currentDirectory = nullptr;
+            }
+        }
+
+        const bool clicked = ImGui::IsItemClicked( ImGuiMouseButton_Left );
+        const bool doubleClicked = ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) && ImGui::IsItemHovered();
+
+        if ( !isLeaf )
+        {
+            if ( clicked && !open )
+            {
+                m_currentDirectory = &child;
+            }
+        }
+        else
+        {
+            if ( doubleClicked )
+            {
+                m_currentDirectory = &child;
+            }
+        }
+
+        if ( open && !isLeaf )
         {
             drawNodes( child );
             ImGui::TreePop();
@@ -199,7 +187,7 @@ auto FileExplorerWindow::drawNodes( DirectoryEntry& e ) -> void
     ImGui::PopID();
 }
 
-auto FileExplorerWindow::drawFromRoot( DirectoryEntry& e ) -> void
+auto gui::FileExplorerWindow::drawFromRoot( DirectoryEntry& e ) -> void
 {
     ImGui::SetNextItemOpen( e.open );
 
@@ -212,7 +200,6 @@ auto FileExplorerWindow::drawFromRoot( DirectoryEntry& e ) -> void
     if ( ImGui::IsItemToggledOpen() )
     {
         e.open = open;
-
         // If this is uncommented, when a dir is closed then all subdirs are
 
         // if ( !open )
@@ -228,7 +215,7 @@ auto FileExplorerWindow::drawFromRoot( DirectoryEntry& e ) -> void
     }
 }
 
-void FileExplorerWindow::render()
+void gui::FileExplorerWindow::render()
 {
     if ( !begin() )
     {
@@ -246,7 +233,7 @@ void FileExplorerWindow::render()
     ImGui::End();
 }
 
-auto FileExplorerWindow::fileTexture( FileEntry const& file ) -> VkDescriptorSet&
+auto gui::FileExplorerWindow::fileTexture( FileEntry const& file ) -> VkDescriptorSet&
 {
     std::string extension = file.path.extension().string();
 
@@ -260,4 +247,27 @@ auto FileExplorerWindow::fileTexture( FileEntry const& file ) -> VkDescriptorSet
     return it->second;
 }
 
-} // namespace gui
+auto gui::FileExplorerWindow::drawFiles() -> void
+{
+    if ( !m_currentDirectory )
+        return;
+
+    constexpr int kColumns = 10;
+
+    if ( ImGui::BeginTable( "##fileTable", kColumns ) )
+    {
+        for ( size_t i = 0; i < m_currentDirectory->files.size(); ++i )
+        {
+            if ( i % kColumns == 0 )
+            {
+                ImGui::TableNextRow();
+            }
+
+            ImGui::TableNextColumn();
+
+            FileEntry& f = m_currentDirectory->files[i];
+            ImGui::Text( "%s", f.path.stem().string().c_str() );
+        }
+        ImGui::EndTable();
+    }
+}
