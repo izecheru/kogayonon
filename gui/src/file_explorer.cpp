@@ -262,6 +262,7 @@ auto gui::FileExplorerWindow::drawFiles() -> void
 
     ImGui::PushStyleVar( ImGuiStyleVar_CellPadding, ImVec2{ 15.0f, 8.0f } );
 
+    utilities::Config& config = utilities::EditorConfigManager::getConfig();
     uint32_t visibleColumn{ 0u };
     if ( ImGui::BeginTable( "##fileTable", columns ) )
     {
@@ -269,7 +270,12 @@ auto gui::FileExplorerWindow::drawFiles() -> void
         {
             FileEntry& f = m_currentDirectory->files[i];
 
-            if ( !f.render )
+            auto it = std::ranges::find_if( config.fileFilters, [&]( const std::string& filter ) {
+                return filter == f.path.extension().string();
+            } );
+
+            // apply the config file filters too
+            if ( !f.render || it != config.fileFilters.end() )
             {
                 continue;
             }
