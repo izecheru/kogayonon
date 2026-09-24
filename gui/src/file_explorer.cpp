@@ -255,12 +255,12 @@ auto gui::FileExplorerWindow::drawFiles() -> void
         return;
 
     constexpr int columns = 10;
-    constexpr float itemWidth = 100.0f;
 
     ImGui::PushStyleVar( ImGuiStyleVar_CellPadding, ImVec2{ 15.0f, 8.0f } );
+
     if ( ImGui::BeginTable( "##fileTable", columns ) )
     {
-        for ( size_t i = 0; i < m_currentDirectory->files.size(); ++i )
+        for ( auto i = 0u; i < m_currentDirectory->files.size(); ++i )
         {
             if ( i % columns == 0 )
             {
@@ -269,25 +269,45 @@ auto gui::FileExplorerWindow::drawFiles() -> void
 
             ImGui::TableNextColumn();
 
-            ImGui::BeginGroup();
             FileEntry& f = m_currentDirectory->files[i];
-            ImGui::PushItemWidth( itemWidth );
-            ImVec2 cursorPos = ImGui::GetCursorPos();
-            ImGui::SetCursorPos( { cursorPos.x + ( ( itemWidth - 50.0f ) / 2 ), cursorPos.y } );
-            ImGui::Image( m_spec.fileIcons.at( ".gltf" ), ImVec2{ 50.0f, 50.0f } );
-            cursorPos = ImGui::GetCursorPos();
             std::string filename = f.path.filename().string();
-            float textWidth = ImGui::CalcTextSize( filename.c_str() ).x;
 
-            // make sure text is not getting clamped
-            if ( textWidth <= itemWidth - 20.0f )
+            float columnWidth = ImGui::GetColumnWidth();
+
+            ImGui::BeginGroup();
+
+            const float imageSize = 90.0f;
+            float imageOffset = ( columnWidth - imageSize ) * 0.5f;
+
+            if ( imageOffset < 0.0f )
             {
-                ImGui::SetCursorPos( { cursorPos.x + ( ( itemWidth - textWidth ) / 2 ), cursorPos.y } );
+                imageOffset = 0.0f;
             }
 
-            ImGui::TextWrapped( "%s", f.path.filename().string().c_str() );
-            ImGui::PopItemWidth();
+            ImVec2 imageCursor = ImGui::GetCursorPos();
+            ImGui::SetCursorPosX( imageCursor.x + imageOffset );
+            ImGui::Image( fileTexture( f ), ImVec2{ imageSize, imageSize } );
+
+            ImGui::Separator();
+
+            float textWidth = ImGui::CalcTextSize( filename.c_str() ).x;
+            float availWidth = columnWidth - 4.0f;
+            float textOffset = ( columnWidth - std::min( textWidth, availWidth ) ) * 0.5f;
+
+            if ( textOffset < 0.0f )
+            {
+                textOffset = 0.0f;
+            }
+
+            ImVec2 textCursor = ImGui::GetCursorPos();
+            ImGui::SetCursorPosX( textCursor.x + textOffset );
+
+            ImGui::PushTextWrapPos( textCursor.x + columnWidth - 4.0f );
+            ImGui::TextWrapped( "%s", filename.c_str() );
+            ImGui::PopTextWrapPos();
+
             ImGui::EndGroup();
+
             std::string popupId{ "##fileContextMenu" + f.path.string() };
             if ( ImGui::BeginPopupContextItem( popupId.c_str() ) )
             {
