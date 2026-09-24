@@ -1,4 +1,5 @@
 #include "gui/imgui_windows/viewport.hpp"
+#include "gui/utils/imgui_dragdrop_defines.hpp"
 #include "utilities/task_manager/task_manager.hpp"
 #include <cmath>
 #include "ImOGuizmo.hpp"
@@ -62,10 +63,34 @@ void gui::Viewport::render()
         return;
     }
 
+    core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+    core::Scene* scene = sceneManager->getCurrentScene();
+
     ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 
     ImGui::SetNextItemAllowOverlap();
     ImGui::Image( m_viewportDescriptor, viewportPanelSize );
+
+    if ( ImGui::BeginDragDropTarget() )
+    {
+        auto payload = ImGui::AcceptDragDropPayload( MODEL_DROP );
+        if ( payload )
+        {
+            std::string dropResult{ static_cast<const char*>( payload->Data ) };
+            std::filesystem::path p{ dropResult };
+            core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+            resources::Mesh* pMesh = assetManager->loadMesh( p.stem().string(), p.string() );
+
+            core::Entity ent{ scene->getRegistry(), p.stem().string() };
+
+            ent.removeComponent<core::TransformComponent>();
+            ent.removeComponent<core::MeshComponent>();
+
+            ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
+            ent.addComponent<core::MeshComponent>( core::MeshComponent{ .pMesh = pMesh } );
+        }
+        ImGui::EndDragDropTarget();
+    }
 
     ImVec2 min = ImGui::GetItemRectMin();
     ImVec2 max = ImGui::GetItemRectMax();
@@ -73,8 +98,6 @@ void gui::Viewport::render()
     drawToolbar();
     drawEntityMenu();
 
-    core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
-    core::Scene* scene = sceneManager->getCurrentScene();
     auto view = scene->getEnttRegistry().view<core::PerspectiveCameraComponent>();
 
     // Camera guizmo top right
@@ -154,6 +177,7 @@ void gui::Viewport::render()
             }
         }
     }
+
     end();
     ImGui::PopStyleVar( 2 );
 }

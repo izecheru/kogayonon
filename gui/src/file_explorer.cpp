@@ -308,6 +308,20 @@ auto gui::FileExplorerWindow::drawFiles() -> void
 
             ImGui::EndGroup();
 
+            // drag and drop paylaod
+            if ( ImGui::BeginDragDropSource( ImGuiDragDropFlags_SourceAllowNullID ) )
+            {
+                std::string path{ f.path.string().c_str() };
+                ImGui::SetDragDropPayload( MODEL_DROP, path.c_str(), std::size( path ) + 1, ImGuiCond_Once );
+
+                if ( f.path.extension().string() != ".gltf" )
+                {
+                    ImGui::Text( "%s extension not implemented", f.path.extension().string().c_str() );
+                }
+
+                ImGui::EndDragDropSource();
+            }
+
             std::string popupId{ "##fileContextMenu" + f.path.string() };
             if ( ImGui::BeginPopupContextItem( popupId.c_str() ) )
             {

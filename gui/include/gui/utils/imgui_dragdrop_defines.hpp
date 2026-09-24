@@ -1,3 +1,3 @@
 #pragma once
 
-#define ASSET_DROP "ModelDrop"
+#define MODEL_DROP "ModelDrop"

@@ -169,7 +169,7 @@ void gui::EntityProperties::renderMesh()
 
         if ( ImGui::BeginDragDropTarget() )
         {
-            auto payload = ImGui::AcceptDragDropPayload( ASSET_DROP );
+            auto payload = ImGui::AcceptDragDropPayload( MODEL_DROP );
 
             if ( !payload )
             {
