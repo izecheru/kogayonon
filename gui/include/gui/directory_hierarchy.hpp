@@ -9,6 +9,7 @@ namespace fs = std::filesystem;
 struct FileEntry
 {
     fs::path path;
+    bool render{ true };
 };
 
 struct DirectoryEntry

@@ -121,9 +121,13 @@ auto gui::FileExplorerWindow::drawDirectoryHierarchy() -> void
 
     ImGui::SameLine();
 
-    ImGui::BeginChild( "##filesPanel", ImVec2{ 0.0f, height }, true );
+    ImGui::BeginGroup();
+    drawSearchBar();
+
+    ImGui::BeginChild( "##filesPanel", ImVec2{ 0.0f, 0.0f }, true );
     drawFiles();
     ImGui::EndChild();
+    ImGui::EndGroup();
 }
 
 auto gui::FileExplorerWindow::drawNodes( DirectoryEntry& e ) -> void
@@ -258,18 +262,26 @@ auto gui::FileExplorerWindow::drawFiles() -> void
 
     ImGui::PushStyleVar( ImGuiStyleVar_CellPadding, ImVec2{ 15.0f, 8.0f } );
 
+    uint32_t visibleColumn{ 0u };
     if ( ImGui::BeginTable( "##fileTable", columns ) )
     {
         for ( auto i = 0u; i < m_currentDirectory->files.size(); ++i )
         {
-            if ( i % columns == 0 )
+            FileEntry& f = m_currentDirectory->files[i];
+
+            if ( !f.render )
+            {
+                continue;
+            }
+
+            if ( visibleColumn % columns == 0 )
             {
                 ImGui::TableNextRow();
             }
 
             ImGui::TableNextColumn();
+            ++visibleColumn;
 
-            FileEntry& f = m_currentDirectory->files[i];
             std::string filename = f.path.filename().string();
 
             float columnWidth = ImGui::GetColumnWidth();
@@ -314,9 +326,11 @@ auto gui::FileExplorerWindow::drawFiles() -> void
                 std::string path{ f.path.string().c_str() };
                 ImGui::SetDragDropPayload( MODEL_DROP, path.c_str(), std::size( path ) + 1, ImGuiCond_Once );
 
-                if ( f.path.extension().string() != ".gltf" )
+                std::string extension = f.path.extension().string();
+
+                if ( extension != ".gltf" )
                 {
-                    ImGui::Text( "%s extension not implemented", f.path.extension().string().c_str() );
+                    ImGui::Text( "%s extension not implemented", extension.c_str() );
                 }
 
                 ImGui::EndDragDropSource();
@@ -335,5 +349,63 @@ auto gui::FileExplorerWindow::drawFiles() -> void
         }
         ImGui::EndTable();
         ImGui::PopStyleVar();
+    }
+}
+
+auto gui::FileExplorerWindow::drawSearchBar() -> void
+{
+    if ( !m_currentDirectory )
+        return;
+
+    ImGui::BeginGroup();
+    ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4{ 0, 0, 0, 0 } );
+
+    ImGui::Text( ICON_MDI_FILE_SEARCH "" );
+    ImGui::PushFont( m_spec.fonts->at( INTER_I ) );
+    ImGui::SameLine();
+    ImGui::PushItemWidth( 200.0f );
+    if ( ImGui::InputText( "##searchId", &m_searchStr ) )
+    {
+        searchFor( m_searchStr );
+    }
+    ImGui::PopItemWidth();
+    ImGui::PopFont();
+    ImGui::PopStyleColor();
+    ImGui::EndGroup();
+}
+
+auto gui::FileExplorerWindow::searchFor( const std::string& search ) -> void
+{
+    if ( !m_currentDirectory )
+        return;
+
+    // avoid looping through the files at every run
+    static bool stop{ true };
+
+    if ( search.empty() && stop )
+    {
+        for ( auto& file : m_currentDirectory->files )
+        {
+            file.render = true;
+        }
+
+        stop = false;
+    }
+
+    if ( !search.empty() )
+    {
+        stop = true;
+        for ( auto& file : m_currentDirectory->files )
+        {
+            auto filename = file.path.filename().stem().string();
+            if ( filename.find( search ) != std::string::npos )
+            {
+                file.render = true;
+            }
+            else
+            {
+                file.render = false;
+            }
+        }
     }
 }

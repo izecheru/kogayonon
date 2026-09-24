@@ -63,6 +63,8 @@ class FileExplorerWindow : public ImGuiWindow
     auto drawDirectoryHierarchy() -> void;
     auto drawNodes( DirectoryEntry& e ) -> void;
     auto drawFiles() -> void;
+    auto drawSearchBar() -> void;
+    auto searchFor( const std::string& search )->void;
 
   private:
     DirectoryHierarchy m_hierarchy;
