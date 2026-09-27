@@ -1,7 +1,6 @@
 #pragma once
 #include <cstdint>
 #include <entt/entt.hpp>
-#include <sol/sol.hpp>
 
 namespace core
 {

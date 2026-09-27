@@ -47,6 +47,8 @@ target_include_directories(utilities
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
                            PRIVATE ${SOL2_INCLUDE_DIRS})
 
+target_precompile_headers(utilities REUSE_FROM precompiled)
+
 target_link_libraries(utilities 
 	PUBLIC 
 	cgltf 
@@ -57,7 +59,6 @@ target_link_libraries(utilities
 	yaml-cpp::yaml-cpp
 	rapidjson
 	resources
-	precompiled
 	slang::gfx
 	slang::slang 
 )

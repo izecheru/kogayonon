@@ -1,6 +1,5 @@
 #pragma once
 #include <entt/entt.hpp>
-#include <sol/sol.hpp>
 #include <yaml-cpp/yaml.h>
 #include "core/ecs/entity_types.hpp"
 #include "precompiled/pch.hpp"

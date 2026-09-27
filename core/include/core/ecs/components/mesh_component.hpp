@@ -1,7 +1,6 @@
 #pragma once
 #include <cinttypes>
 #include <entt/entt.hpp>
-#include <sol/sol.hpp>
 #include "precompiled/pch.hpp"
 #include "resources/mesh.hpp"
 #include "resources/texture.hpp"

@@ -23,9 +23,10 @@ set(SOURCE_FILES
 add_library(gui ${SOURCE_FILES} ${HEADER_FILES})
 
 target_include_directories(gui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_precompile_headers(gui REUSE_FROM precompiled)
 target_link_libraries(gui 
 PUBLIC imgui imguizmo 
-PRIVATE Vulkan::Vulkan graphics core utilities  resources EnTT::EnTT tinyfiledialogs::tinyfiledialogs)
+PRIVATE Vulkan::Vulkan graphics core utilities resources EnTT::EnTT tinyfiledialogs::tinyfiledialogs)
 
 
 

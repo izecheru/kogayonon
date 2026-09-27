@@ -7,12 +7,13 @@ add_library(physics
 target_include_directories(physics PUBLIC 
 		"${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
+
 target_precompile_headers(physics REUSE_FROM precompiled)
+
 target_link_libraries(physics
 	PUBLIC	
 	glm::glm-header-only
 	Jolt::Jolt
 	utilities
-	precompiled
 )
 

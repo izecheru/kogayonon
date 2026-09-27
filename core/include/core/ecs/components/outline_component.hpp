@@ -1,7 +1,6 @@
 #pragma once
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
-#include <sol/sol.hpp>
 
 namespace core
 {

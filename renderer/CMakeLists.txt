@@ -41,6 +41,7 @@ target_include_directories(renderer PUBLIC
 )
 
 target_compile_definitions(renderer PUBLIC PICKING)
+target_precompile_headers(renderer REUSE_FROM precompiled)
 target_link_libraries(renderer PRIVATE gui SDL3::SDL3 Vulkan::Vulkan graphics core utilities resources EnTT::EnTT)
 
 if(KOGAYONON_ENABLE_TRACY)

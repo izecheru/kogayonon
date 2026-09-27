@@ -17,10 +17,9 @@ set(SOURCE_FILES
   "src/texture.cpp"
 )
 
-  add_library(resources ${SOURCE_FILES})
-
+add_library(resources ${SOURCE_FILES})
 
 target_include_directories(resources
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_precompile_headers(resources REUSE_FROM precompiled)
-target_link_libraries(resources PUBLIC glm::glm-header-only Vulkan::Vulkan precompiled graphics rapidjson)
+target_link_libraries(resources PUBLIC glm::glm-header-only precompiled Vulkan::Vulkan graphics rapidjson)

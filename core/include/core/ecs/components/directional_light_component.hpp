@@ -1,7 +1,6 @@
 #pragma once
 #include <yaml-cpp/yaml.h>
 #include <entt/entt.hpp>
-#include <sol/sol.hpp>
 #include "resources/directional_light.hpp"
 #include "utilities/utils/yaml_utils.hpp"
 

@@ -32,6 +32,7 @@ endif()
 add_library(graphics ${HEADER_FILES} ${SOURCE_FILES})
 
 target_compile_definitions(graphics PUBLIC VERTEX_PROVIDED)
+target_precompile_headers(graphics REUSE_FROM precompiled)
 
 target_include_directories(graphics PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(graphics 
@@ -42,7 +43,6 @@ target_link_libraries(graphics
 	utilities
 	PRIVATE 
 	SDL3::SDL3
-	precompiled
 	resources
 	core
 )

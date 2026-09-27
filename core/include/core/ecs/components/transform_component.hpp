@@ -5,7 +5,6 @@
 #include <entt/entt.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <sol/sol.hpp>
 #include <yaml-cpp/yaml.h>
 
 namespace core

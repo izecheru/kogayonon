@@ -15,6 +15,8 @@ endif()
 target_include_directories(editor
                            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
+target_precompile_headers(editor REUSE_FROM precompiled)
+
 target_link_libraries(
   editor
   PRIVATE 
