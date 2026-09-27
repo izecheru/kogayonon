@@ -422,38 +422,39 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
     std::filesystem::path p{ meshPath };
     std::string filename{ p.stem().string() + "_collision.gltf" };
     std::filesystem::path collision = p.parent_path() / filename;
+
     if ( std::filesystem::exists( collision ) )
     {
         m_loadedMeshes.emplace( collision.string(), std::make_unique<resources::Mesh>() );
-        utilities::CallbackTask* collisionCallback =
-            taskManager->addTask( [this, meshPath, meshPtr = m_loadedMeshes[collision.string()].get()]() -> void {
-                ZoneScopedN( "Threaded loadMesh" );
-                auto tinyLoader = std::make_unique<TinyGltfLoader>( meshPath );
-                {
-                    std::lock_guard lock{ m_mutex };
-                    tinyLoader->processVertexData( meshPtr );
-                    enqueueMesh( meshPtr );
-                    m_readyForUpdate.store( true );
-                }
-            } );
-
-        taskManager->addTaskSetToPipe( collisionCallback );
-    }
-
-    utilities::CallbackTask* callbackPtr =
-        taskManager->addTask( [this, meshPath, meshPtr = m_loadedMeshes[meshPath].get()]() -> void {
+        utilities::CallbackTask* collisionCallback = taskManager->addTask( [this, collision]() -> void {
             ZoneScopedN( "Threaded loadMesh" );
-            auto tinyLoader = std::make_unique<TinyGltfLoader>( meshPath );
+            auto tinyLoader = std::make_unique<TinyGltfLoader>( collision.string() );
             {
                 std::lock_guard lock{ m_mutex };
+                resources::Mesh* meshPtr = m_loadedMeshes[collision.string()].get();
                 tinyLoader->processVertexData( meshPtr );
-                auto parsedData = tinyLoader->parseTextureData( meshPtr );
-                m_parsedMaterialsQueue.push(
-                    ParsedMaterials{ .pMesh = meshPtr, .parsedMaterialData = std::move( parsedData ) } );
                 enqueueMesh( meshPtr );
                 m_readyForUpdate.store( true );
             }
         } );
+
+        taskManager->addTaskSetToPipe( collisionCallback );
+    }
+
+    utilities::CallbackTask* callbackPtr = taskManager->addTask( [this, meshPath]() -> void {
+        ZoneScopedN( "Threaded loadMesh" );
+        auto tinyLoader = std::make_unique<TinyGltfLoader>( meshPath );
+        {
+            std::lock_guard lock{ m_mutex };
+            resources::Mesh* meshPtr = m_loadedMeshes[meshPath].get();
+            tinyLoader->processVertexData( meshPtr );
+            auto parsedData = tinyLoader->parseTextureData( meshPtr );
+            m_parsedMaterialsQueue.push(
+                ParsedMaterials{ .pMesh = meshPtr, .parsedMaterialData = std::move( parsedData ) } );
+            enqueueMesh( meshPtr );
+            m_readyForUpdate.store( true );
+        }
+    } );
 
     taskManager->addTaskSetToPipe( callbackPtr );
 
