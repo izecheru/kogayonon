@@ -88,6 +88,10 @@ void gui::Viewport::render()
 
             ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
             ent.addComponent<core::MeshComponent>( core::MeshComponent{ .pMesh = pMesh } );
+            core::EventDispatcher* dispatcher = core::MainRegistry::getInstance().getEventDispatcher();
+
+            dispatcher->dispatchEvent<core::SelectEntityEvent>(
+                core::SelectEntityEvent{ ent.getEntityId(), core::SelectEntityEventSource::Viewport_Window } );
         }
         ImGui::EndDragDropTarget();
     }

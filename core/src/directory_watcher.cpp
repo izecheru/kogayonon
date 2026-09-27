@@ -4,6 +4,7 @@
 
 namespace utilities
 {
+
 DirectoryWatcher::DirectoryWatcher( std::filesystem::path root )
     : m_root{ root }
 {
@@ -25,7 +26,7 @@ DirectoryWatcher::DirectoryWatcher( std::filesystem::path root )
     }
 
     // Launch watcher thread
-    m_watcherThread = std::thread( [this]() { run( m_root ); } );
+    m_watcherThread = std::jthread( [this]() { run( m_root ); } );
 }
 
 DirectoryWatcher::~DirectoryWatcher()
@@ -55,7 +56,7 @@ DirectoryWatcher::~DirectoryWatcher()
     }
 }
 
-void DirectoryWatcher::run( std::filesystem::path root )
+auto DirectoryWatcher::run( std::filesystem::path root ) -> void
 {
     uint8_t buffer[8192];
 

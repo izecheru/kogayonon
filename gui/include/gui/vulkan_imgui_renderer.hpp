@@ -1,24 +1,13 @@
 #pragma once
-#include <vulkan/vulkan.h>
+#include "vulkan/vulkan.h"
 #include "precompiled/pch.hpp"
+#include "graphics/vulkan_context.hpp"
+#include "core/input/keyboard_events.hpp"
+#include "SDL3/SDL.h"
+#include "imgui.h"
 #include "core/event/config_event.hpp"
 
-struct SDL_Window;
-struct ImGuiViewport;
-struct ImFont;
-
 #define IMGUI_VULKAN_MAX_DESCRIPTORS 200
-
-namespace graphics
-{
-class VulkanDevice;
-class VulkanSwapchain;
-} // namespace graphics
-
-namespace core
-{
-class KeyPressedEvent;
-}
 
 namespace utilities
 {
@@ -30,7 +19,6 @@ namespace gui
 enum class ImGuiWindowName
 {
     File_Explorer,
-    // If we have multiple viewports we change from map<enum,pWindow> to map<enum,vector<pWindow>> or smth
     Viewport,
     Scene_Hierarchy,
     Entity_Properties
@@ -40,7 +28,6 @@ enum class ImGuiWindowName
 namespace gui
 {
 class ImGuiWindow;
-class IWidget;
 
 struct Popups
 {

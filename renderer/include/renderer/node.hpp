@@ -42,13 +42,6 @@ struct FGResource
     FGResourceState lastState;
     std::set<Node*> writerNodes;
     std::set<Node*> readerNodes;
-
-    inline auto resetState() -> void
-    {
-        lastState = FGResourceState{ .type = FGResourceType::None, .accessType = FGResourceAccessType::None };
-        readerNodes.clear();
-        writerNodes.clear();
-    }
 };
 
 struct Node
@@ -114,19 +107,6 @@ struct Node
      */
     std::vector<std::tuple<FGResource*, VkImageMemoryBarrier2>> resourceBarriers;
     std::vector<VkImageMemoryBarrier2> barriers;
-
-    inline auto resetState() -> void
-    {
-        resourceExpectedState.clear();
-        resourceBarriers.clear();
-        resourceBarriers.clear();
-        consumers.clear();
-        dependsOn.clear();
-        barriers.clear();
-        writes.clear();
-        reads.clear();
-        indegree = 0u;
-    }
 };
 
 /**

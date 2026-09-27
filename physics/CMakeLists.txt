@@ -12,6 +12,7 @@ target_precompile_headers(physics REUSE_FROM precompiled)
 
 target_link_libraries(physics
 	PUBLIC	
+	precompiled
 	glm::glm-header-only
 	Jolt::Jolt
 	utilities

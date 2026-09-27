@@ -11,27 +11,27 @@ class DirectoryWatcher
     using FileEventCallback = std::function<void( std::string, std::string, core::FileEventType type )>;
 
   public:
-    DirectoryWatcher( std::filesystem::path root );
+    explicit DirectoryWatcher( std::filesystem::path root );
     ~DirectoryWatcher();
 
     /**
      * @brief Starts the directory watcher in the path pointed by the root param
      * @param root
      */
-    void run( std::filesystem::path root );
+    auto run( std::filesystem::path root ) -> void;
 
     /**
      * @brief Sets the callback func
      * @param callback
      */
-    void setCallback( FileEventCallback callback )
+    inline auto setCallback( FileEventCallback callback ) -> void
     {
         m_eventCallbackFunc = callback;
     }
 
   private:
     FileEventCallback m_eventCallbackFunc;
-    std::thread m_watcherThread;
+    std::jthread m_watcherThread;
     std::mutex m_mutex;
     std::filesystem::path m_root;
     HANDLE m_dirHandle{ nullptr };
