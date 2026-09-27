@@ -4,13 +4,8 @@
 #include "core/event/event_dispatcher.hpp"
 #include "gui/imgui_windows/imgui_base.hpp"
 #include "precompiled/pch.hpp"
-#include "utilities/directory_watcher/directory_watcher.hpp"
+#include "core/directory_watcher/directory_watcher.hpp"
 #include "gui/directory_hierarchy.hpp"
-
-namespace core
-{
-class FileEvent;
-} // namespace core
 
 struct FileExplorerSpec
 {
@@ -51,8 +46,6 @@ class FileExplorerWindow : public ImGuiWindow
      */
     auto installHandlers() -> void;
 
-    auto isTexture( const std::string& path ) -> bool;
-
     /**
      * @brief Draws the context menu for files, here are defined funcs like Delete file and more to come
      * @param file The file we draw the context menu for
@@ -64,7 +57,7 @@ class FileExplorerWindow : public ImGuiWindow
     auto drawNodes( DirectoryEntry& e ) -> void;
     auto drawFiles() -> void;
     auto drawSearchBar() -> void;
-    auto searchFor( const std::string& search )->void;
+    auto searchFor( const std::string& search ) -> void;
 
   private:
     DirectoryHierarchy m_hierarchy;
@@ -73,7 +66,6 @@ class FileExplorerWindow : public ImGuiWindow
     std::unique_ptr<core::EventDispatcher> m_pDispatcher;
     std::string m_searchStr;
     bool init;
-
     FileExplorerSpec m_spec;
 };
 } // namespace gui

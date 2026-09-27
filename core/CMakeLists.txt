@@ -36,6 +36,7 @@ set(HEADER_FILES
     "include/core/asset_manager/asset_manager.hpp"
     "include/core/asset_manager/font_loader.hpp"
     "include/core/asset_manager/tinygltf_loader.hpp"
+    "include/core/directory_watcher/directory_watcher.hpp"
 )
 
 set(SOURCE_FILES
@@ -55,6 +56,7 @@ set(SOURCE_FILES
     "src/scene_rendering_system.cpp"
     "src/scene_event_handler.cpp"
     "src/tinygltf_loader.cpp"
+    "src/directory_watcher.cpp"
  )
 
 add_library(core ${SOURCE_FILES} ${HEADER_FILES})

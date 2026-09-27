@@ -11,7 +11,7 @@
 #include "gui/utils/imgui_utils.hpp"
 #include "precompiled/pch.hpp"
 #include "utilities/config_manager/config_manager.hpp"
-#include "utilities/directory_watcher/directory_watcher.hpp"
+#include "core/directory_watcher/directory_watcher.hpp"
 #include "utilities/fonts/materialdesign.hpp"
 #include "utilities/task_manager/task.hpp"
 #include "utilities/task_manager/task_manager.hpp"
@@ -44,13 +44,6 @@ void gui::FileExplorerWindow::setCallback()
     m_pDirWatcher->setCallback( [this]( std::string const& path, std::string const& name, FileEventType const& type ) {
         m_pDispatcher->dispatchEvent<FileEvent>( FileEvent{ path, name, type } );
     } );
-}
-
-bool gui::FileExplorerWindow::isTexture( std::string const& path )
-{
-    std::filesystem::path p{ path };
-    auto ext = p.extension().string();
-    return ext == ".jpg" || ext == ".png";
 }
 
 void gui::FileExplorerWindow::onFileEvent( FileEvent& e )

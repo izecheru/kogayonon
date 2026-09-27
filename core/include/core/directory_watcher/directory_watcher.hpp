@@ -1,12 +1,8 @@
 #pragma once
+#include "precompiled/pch.hpp"
 #include <Windows.h>
 #include <shellapi.h>
-#include "precompiled/pch.hpp"
-
-namespace core
-{
-enum FileEventType;
-}
+#include "core/event/file_events.hpp"
 
 namespace utilities
 {
@@ -41,6 +37,6 @@ class DirectoryWatcher
     HANDLE m_dirHandle{ nullptr };
     HANDLE m_shutdownHandle{ nullptr };
     OVERLAPPED m_overlapped{};
-    std::atomic_bool m_stop = false;
+    std::atomic_bool m_stop{ false };
 };
 } // namespace utilities

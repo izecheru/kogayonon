@@ -1,23 +1,16 @@
-#include "utilities/directory_watcher/directory_watcher.hpp"
+#include "core/directory_watcher/directory_watcher.hpp"
 #include <stdexcept>
 #include "utilities/utils/utils.hpp"
 
 namespace utilities
 {
 DirectoryWatcher::DirectoryWatcher( std::filesystem::path root )
-    : m_root( root )
+    : m_root{ root }
 {
     m_shutdownHandle = CreateEvent( nullptr, TRUE, FALSE, nullptr );
     m_overlapped.hEvent = CreateEvent( nullptr, FALSE, FALSE, nullptr );
 
     // Open handle to directory
-    m_dirHandle = CreateFileW( m_root.c_str(),
-                               FILE_LIST_DIRECTORY,
-                               FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                               nullptr,
-                               OPEN_EXISTING,
-                               FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
-                               nullptr );
     m_dirHandle = CreateFileW( m_root.c_str(),
                                FILE_LIST_DIRECTORY,
                                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
@@ -45,14 +38,17 @@ DirectoryWatcher::~DirectoryWatcher()
             m_watcherThread.join();
         }
     }
+
     if ( m_dirHandle && m_dirHandle != INVALID_HANDLE_VALUE )
     {
         CloseHandle( m_dirHandle );
     }
+
     if ( m_shutdownHandle )
     {
         CloseHandle( m_shutdownHandle );
     }
+
     if ( m_overlapped.hEvent )
     {
         CloseHandle( m_overlapped.hEvent );
