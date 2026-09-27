@@ -73,7 +73,8 @@ void gui::Viewport::render()
 
     if ( ImGui::BeginDragDropTarget() )
     {
-        auto payload = ImGui::AcceptDragDropPayload( MODEL_DROP );
+        const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( MODEL_DROP );
+
         if ( payload )
         {
             std::string dropResult{ static_cast<const char*>( payload->Data ) };
@@ -458,50 +459,61 @@ void gui::Viewport::drawEntityMenu()
                         core::MeshComponent& meshComponent =
                             scene->getRegistry()->getComponent<core::MeshComponent>( currentEntity );
 
-                        utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
+                        std::filesystem::path meshPath = meshComponent.pMesh->getPath();
+                        std::string filename = { meshPath.stem().string() + "_collision.gltf" };
+                        auto collisionMeshPath = meshPath.parent_path() / filename;
 
-                        auto callback = taskManager->addTask( [=, meshPtr = meshComponent.pMesh]() {
-                            JPH::VertexList vertices{};
-                            JPH::IndexedTriangleList indices{};
+                        if ( std::filesystem::exists( collisionMeshPath ) )
+                        {
+                            utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
+                            resources::Mesh* collisionMesh = assetManager->getMesh( collisionMeshPath.string() );
+                            auto callback = taskManager->addTask( [=, meshPtr = collisionMesh]() {
+                                JPH::VertexList vertices{};
+                                JPH::IndexedTriangleList indices{};
 
-                            auto& vert = meshPtr->getVertices();
-                            auto& ind = meshPtr->getIndices();
+                                auto& vert = meshPtr->getVertices();
+                                auto& ind = meshPtr->getIndices();
 
-                            vertices.reserve( vert.size() );
-                            indices.reserve( ind.size() / 3 );
+                                vertices.reserve( vert.size() );
+                                indices.reserve( ind.size() / 3 );
 
-                            for ( const resources::Vertex& v : vert )
-                            {
-                                vertices.push_back( { v.translation.x, v.translation.y, v.translation.z } );
-                            }
+                                for ( const resources::Vertex& v : vert )
+                                {
+                                    vertices.push_back( { v.translation.x, v.translation.y, v.translation.z } );
+                                }
 
-                            for ( size_t i = 0; i < ind.size(); i += 3 )
-                            {
-                                indices.push_back( { ind[i], ind[i + 1], ind[i + 2] } );
-                            }
+                                for ( size_t i = 0; i < ind.size(); i += 3 )
+                                {
+                                    indices.push_back( { ind[i], ind[i + 1], ind[i + 2] } );
+                                }
 
-                            {
-                                std::lock_guard lock{ scene->getRegistryMutex() };
-                                scene->getRegistry()->addComponent<core::RigidbodyComponent>(
-                                    currentEntity,
-                                    core::RigidbodyComponent{
-                                        .data = { .type = physics::RigidbodyType::Static },
-                                        .body = jolt->createRigidTerrainBody(
-                                            vertices,
-                                            indices,
-                                            { transform.translation.x,
-                                              transform.translation.y,
-                                              transform.translation.z },
-                                            { transform.scale.x,
-                                              transform.scale.y,
-                                              transform.scale.z }, // TODO(kogayonon) detemrine size somehow, with a
-                                                                   // bounding box i guess
-                                            transform.getOrientation() ) } );
+                                {
+                                    std::lock_guard lock{ scene->getRegistryMutex() };
+                                    scene->getRegistry()->addComponent<core::RigidbodyComponent>(
+                                        currentEntity,
+                                        core::RigidbodyComponent{
+                                            .data = { .type = physics::RigidbodyType::Static },
+                                            .body = jolt->createRigidTerrainBody(
+                                                vertices,
+                                                indices,
+                                                { transform.translation.x,
+                                                  transform.translation.y,
+                                                  transform.translation.z },
+                                                { transform.scale.x,
+                                                  transform.scale.y,
+                                                  transform.scale.z }, // TODO(kogayonon) detemrine size somehow, with a
+                                                                       // bounding box i guess
+                                                transform.getOrientation() ) } );
 
-                                KINFO( "rigid body created" );
-                            }
-                        } );
-                        taskManager->addTaskSetToPipe( callback );
+                                    KINFO( "rigid body created" );
+                                }
+                            } );
+                            taskManager->addTaskSetToPipe( callback );
+                        }
+                        else
+                        {
+                            KERROR( "No collision mesh for {}", meshComponent.pMesh->getPath() );
+                        }
 
                         m_entityMenu = false;
                         m_mouseCoords = { 0.0f, 0.0f };

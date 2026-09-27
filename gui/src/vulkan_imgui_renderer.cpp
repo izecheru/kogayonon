@@ -111,36 +111,29 @@ void gui::VulkanImguiRenderer::setupDockspace( ImGuiViewport* viewport )
 
 auto gui::VulkanImguiRenderer::customTitleBar() -> void
 {
-    // Get window width for layout
     float windowWidth = ImGui::GetWindowWidth();
     float titleBarHeight = 30.0f;
 
-    // Start the title bar area
     ImGui::Begin(
         "Top bar", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize );
     ImGui::BeginGroup();
     ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
 
-    // Reserve space for title bar
     ImGui::Dummy( ImVec2( 0, 0 ) );
     ImGui::SameLine();
 
-    // Title text (centered)
     float titleWidth = ImGui::CalcTextSize( "Your Application Name" ).x;
     ImGui::SetCursorPosX( ( windowWidth - titleWidth ) * 0.5f );
     ImGui::Text( "Your Application Name" );
 
-    // Window control buttons (right-aligned)
     ImGui::SameLine( windowWidth - 120.0f ); // Adjust based on your needs
 
-    // Minimize button
     if ( ImGui::Button( ICON_MDI_MINUS, ImVec2( 30, 25 ) ) )
     {
         SDL_MinimizeWindow( m_wnd );
     }
     ImGui::SameLine();
 
-    // Maximize/Restore button
     if ( ImGui::Button( ICON_MDI_WINDOW_MAXIMIZE, ImVec2( 30, 25 ) ) )
     {
         // Toggle maximize
@@ -153,7 +146,6 @@ auto gui::VulkanImguiRenderer::customTitleBar() -> void
     }
     ImGui::SameLine();
 
-    // Close button (with color)
     ImVec4 closeColor = ImGui::GetStyle().Colors[ImGuiCol_Button];
     closeColor.x = 1.0f; // Make it red
     ImGui::PushStyleColor( ImGuiCol_Button, closeColor );
@@ -196,7 +188,7 @@ void gui::VulkanImguiRenderer::render()
 
 void gui::VulkanImguiRenderer::renderDrawData( VkCommandBuffer& buffer )
 {
-    auto drawData = ImGui::GetDrawData();
+    ImDrawData* drawData = ImGui::GetDrawData();
     const bool isMinimized = ( drawData->DisplaySize.x <= 0.0f || drawData->DisplaySize.y <= 0.0f );
 
     if ( !isMinimized )
