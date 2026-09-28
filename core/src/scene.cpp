@@ -1,4 +1,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
+#include "core/ecs/components/camera_component.hpp"
+#include "rapidjson/rapidjson.h"
+#include "rapidjson/istreamwrapper.h"
 #include "physics/jolt_physics.hpp"
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/scene/scene.hpp"
@@ -115,4 +118,122 @@ auto core::Scene::onUpdate() -> void
 
         transformComponent.computeMatrix();
     } );
+}
+
+auto core::Scene::deserialize( const std::filesystem::path& p ) -> void
+{
+    // TODO write this block of code as a json deserializer
+    std::ifstream in{ p, std::ios::in | std::ios::binary };
+    rapidjson::IStreamWrapper isw{ in };
+    rapidjson::Document doc{};
+    doc.ParseStream( isw );
+    if ( doc.HasParseError() )
+    {
+        KERROR( "Error at parsing json file for default scene" );
+    }
+
+    auto getVec3 = []( const rapidjson::Value& v ) -> glm::vec3 {
+        if ( !v.IsArray() || v.Size() != 3 )
+        {
+            throw std::runtime_error( "Expected array with size 3" );
+        }
+
+        return glm::vec3{ v[0].GetFloat(), v[1].GetFloat(), v[2].GetFloat() };
+    };
+
+    for ( const auto& e : doc["entities"].GetArray() )
+    {
+        core::Entity ent{ getRegistry() };
+
+        if ( e.HasMember( "identifier" ) )
+        {
+            std::string name = e["identifier"]["name"].GetString();
+            std::string group = e["identifier"]["group"].GetString();
+
+            ent.addComponent<core::IdentifierComponent>(
+                core::IdentifierComponent{ .name = name, .type = core::EntityType::Object, .group = group } );
+        }
+
+        if ( e.HasMember( "transform" ) )
+        {
+            glm::vec3 translation = getVec3( e["transform"]["translation"] );
+            glm::vec3 rotation = getVec3( e["transform"]["rotation"] );
+            glm::vec3 scale = getVec3( e["transform"]["scale"] );
+            core::TransformComponent transform{ .translation = translation, .rotation = rotation, .scale = scale };
+            transform.computeMatrix();
+            ent.addComponent<core::TransformComponent>( transform );
+        }
+
+        if ( e.HasMember( "mesh" ) )
+        {
+            core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+            std::filesystem::path meshPath = e["mesh"]["path"].GetString();
+            resources::Mesh* mesh = assetManager->loadMesh( meshPath.stem().string(), meshPath.string() );
+            ent.addComponent<core::MeshComponent>( core::MeshComponent{ .pMesh = mesh } );
+        }
+    }
+}
+
+auto core::Scene::serialize() -> void
+{
+    auto saveEntityIdComponent = []( utilities::JsonSerializer* s, const core::IdentifierComponent& idComponent ) {
+        s->startObject( "identifier" )
+            .addKeyValuePair( "name", idComponent.name )
+            .addKeyValuePair( "group", idComponent.group )
+            .endObject();
+    };
+
+    auto saveEntityTransformComponent = []( utilities::JsonSerializer* s, const core::TransformComponent& transform ) {
+        s->startObject( "transform" )
+            .saveVec3( "translation", transform.translation )
+            .saveVec3( "rotation", transform.rotation )
+            .saveVec3( "scale", transform.scale )
+            .endObject();
+    };
+
+    auto saveEntityMeshComponent = []( utilities::JsonSerializer* s, const core::MeshComponent& meshComponent ) {
+        if ( !meshComponent.pMesh )
+            return;
+
+        s->startObject( "mesh" ).addKeyValuePair( "path", meshComponent.pMesh->getPath() ).endObject();
+    };
+
+    std::string sceneFilename = m_name + ".kscene";
+    std::filesystem::path scenePath = std::filesystem::current_path() / "editor" / "scenes" / sceneFilename;
+
+    // this also creates the output file
+    std::unique_ptr<utilities::JsonSerializer> serializer =
+        std::make_unique<utilities::JsonSerializer>( scenePath.string() );
+
+    serializer->startDocument().startArray( "entities" );
+
+    // serialize except cameras and lights for now
+    auto view = getEnttRegistry().view<core::IdentifierComponent>(
+        entt::exclude<core::DirectionalLightComponent, core::PerspectiveCameraComponent> );
+
+    view.each( [&]( const entt::entity& id, core::IdentifierComponent& idComponent ) {
+        Entity entity{ getRegistry(), id };
+
+        // this could be useful since we can also unhash it so we can create each entity in order
+        // uint32_t entityId = static_cast<uint32_t>( entity.getEntityId() );
+        // std::string idHash = std::to_string( std::hash<uint32_t>{}( entityId ) );
+
+        serializer->startObject();
+
+        saveEntityIdComponent( serializer.get(), idComponent );
+
+        if ( entity.hasComponent<core::MeshComponent>() )
+        {
+            saveEntityMeshComponent( serializer.get(), entity.getComponent<core::MeshComponent>() );
+        }
+
+        if ( entity.hasComponent<core::TransformComponent>() )
+        {
+            saveEntityTransformComponent( serializer.get(), entity.getComponent<core::TransformComponent>() );
+        }
+
+        serializer->endObject();
+    } );
+
+    serializer->endArray().endDocument();
 }

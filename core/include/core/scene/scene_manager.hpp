@@ -19,7 +19,7 @@ class SceneManager
     auto setCurrentScene( const std::string& sceneName ) -> void;
     auto getEventHandler() -> SceneEventHandler*;
     auto getScenes() -> std::unordered_map<std::string, std::unique_ptr<Scene>>&;
-
+    auto switchToScene( const std::filesystem::path& p ) -> void;
     auto getAvailableScenes() -> std::vector<std::filesystem::path>&;
 
     auto saveScenes() -> void;

@@ -347,54 +347,7 @@ bool editor::Editor::initMainRegistry()
     // deserialize scene
     if ( std::filesystem::exists( defaultScenePath ) )
     {
-        // TODO write this block of code as a json deserializer
-        std::ifstream in{ defaultScenePath, std::ios::in | std::ios::binary };
-        rapidjson::IStreamWrapper isw{ in };
-        rapidjson::Document doc{};
-        doc.ParseStream( isw );
-        if ( doc.HasParseError() )
-        {
-            KERROR( "Error at parsing json file for default scene" );
-        }
-
-        auto getVec3 = []( const rapidjson::Value& v ) -> glm::vec3 {
-            if ( !v.IsArray() || v.Size() != 3 )
-                throw std::runtime_error( "Expected array with size 3" );
-
-            return glm::vec3{ v[0].GetFloat(), v[1].GetFloat(), v[2].GetFloat() };
-        };
-
-        for ( const auto& e : doc["entities"].GetArray() )
-        {
-            core::Entity ent{ scene->getRegistry() };
-
-            if ( e.HasMember( "identifier" ) )
-            {
-                std::string name = e["identifier"]["name"].GetString();
-                std::string group = e["identifier"]["group"].GetString();
-
-                ent.addComponent<core::IdentifierComponent>(
-                    core::IdentifierComponent{ .name = name, .type = core::EntityType::Object, .group = group } );
-            }
-
-            if ( e.HasMember( "transform" ) )
-            {
-                glm::vec3 translation = getVec3( e["transform"]["translation"] );
-                glm::vec3 rotation = getVec3( e["transform"]["rotation"] );
-                glm::vec3 scale = getVec3( e["transform"]["scale"] );
-                core::TransformComponent transform{ .translation = translation, .rotation = rotation, .scale = scale };
-                transform.computeMatrix();
-                ent.addComponent<core::TransformComponent>( transform );
-            }
-
-            if ( e.HasMember( "mesh" ) )
-            {
-                core::AssetManager* assetManager = mainRegistry.getAssetManager();
-                std::filesystem::path meshPath = e["mesh"]["path"].GetString();
-                resources::Mesh* mesh = assetManager->loadMesh( meshPath.stem().string(), meshPath.string() );
-                ent.addComponent<core::MeshComponent>( core::MeshComponent{ .pMesh = mesh } );
-            }
-        }
+        scene->deserialize( defaultScenePath );
     }
 
     graphics::VulkanContext* ctx = mainRegistry.getVulkanContext();

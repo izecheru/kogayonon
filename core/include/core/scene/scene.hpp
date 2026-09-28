@@ -28,6 +28,9 @@ class Scene
     auto getName() const -> std::string;
     auto changeName( const std::string& name ) -> void;
 
+    auto deserialize( const std::filesystem::path& p ) -> void;
+    auto serialize() -> void;
+
     inline auto getRegistryMutex() -> std::mutex&
     {
         return m_registryMutex;
