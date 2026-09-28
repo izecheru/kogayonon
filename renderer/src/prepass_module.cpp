@@ -67,8 +67,19 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
         },
         [=]( VkCommandBuffer cmdBuffer ) {
             TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::DepthPrepass );
-            if ( m_extent.width == 0 || m_extent.height == 0 )
+
+            core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+            core::Scene* scene = sceneManager->getCurrentScene();
+
+            if ( !scene )
+            {
                 return;
+            }
+
+            if ( m_extent.width == 0 || m_extent.height == 0 )
+            {
+                return;
+            }
 
             PrepassModuleData& prepassData = m_graph->getBlackboard()->get<PrepassModuleData>();
 
@@ -106,26 +117,31 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
                                      0,
                                      nullptr );
 
-            core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
-            core::Scene* scene = sceneManager->getCurrentScene();
-
             auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
+
             view.each( [&]( const entt::entity& entityId,
                             core::MeshComponent& meshComponent,
                             core::TransformComponent& transform ) {
                 resources::Mesh* pMesh = meshComponent.pMesh;
+
                 if ( !pMesh )
+                {
                     return;
+                }
 
                 if ( !pMesh->isLoaded() )
+                {
                     return;
+                }
 
                 VkDeviceSize offsets[] = { 0 };
 
                 vkCmdBindVertexBuffers(
                     cmdBuffer, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
+
                 vkCmdBindIndexBuffer(
                     cmdBuffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
+
                 for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
                 {
                     // this should be expensive, move it somewhere in the mesh or submesh

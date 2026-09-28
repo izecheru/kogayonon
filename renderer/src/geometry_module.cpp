@@ -129,6 +129,15 @@ auto rendering::GeometryModule::registerWireframePass() -> void
         },
         [=]( VkCommandBuffer cmdBuffer ) {
             TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::Wireframe );
+
+            core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+            core::Scene* scene = sceneManager->getCurrentScene();
+
+            if ( !scene )
+            {
+                return;
+            }
+
             GeometryModuleData& geometryData = m_graph->getBlackboard()->get<GeometryModuleData>();
             PrepassModuleData& prepassData = m_graph->getBlackboard()->get<PrepassModuleData>();
 
@@ -194,10 +203,6 @@ auto rendering::GeometryModule::registerWireframePass() -> void
                                      &assetManager->getMaterialsDescriptorSet(),
                                      0,
                                      nullptr );
-
-            core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
-            core::Scene* scene = sceneManager->getCurrentScene();
-
             auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
             view.each( [&]( const entt::entity& entityId,
                             core::MeshComponent& meshComponent,

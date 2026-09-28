@@ -48,7 +48,7 @@ auto core::SceneManager::getCurrentScene() -> Scene*
 
     if ( it == m_scenes.end() )
     {
-        throw std::runtime_error( "Current scene is not set!!!" );
+        return nullptr;
     }
 
     return it->second.get();
