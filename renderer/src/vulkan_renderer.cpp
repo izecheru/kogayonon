@@ -94,6 +94,10 @@ auto rendering::VulkanRenderer::render() -> void
 {
     m_vkCtx->swapchain->waitForFences();
     m_vkCtx->swapchain->resetFences();
+
+    core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+    sceneManager->applyPendingSwitch();
+
     updateCameraBuffer();
 
     VkCommandBuffer cmdBuffer = m_vkCtx->swapchain->getCurrentCommandBuffer();

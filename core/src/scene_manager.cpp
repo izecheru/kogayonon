@@ -13,6 +13,7 @@
 core::SceneManager::SceneManager( EventDispatcher* pDispatcher, bool saveAllScenes )
     : m_eventHandler{ std::make_unique<core::SceneEventHandler>( pDispatcher ) }
     , m_saveAllScenes{ saveAllScenes }
+    , m_pendingSwitch{ false }
 {
     pDispatcher->addHandler<core::FileEvent, &SceneManager::onFileEvent>( *this );
     populateAvailableScenes();
@@ -129,6 +130,18 @@ auto core::SceneManager::populateAvailableScenes() -> void
 auto core::SceneManager::switchToScene( const std::filesystem::path& p ) -> void
 {
     getCurrentScene()->serialize();
+    m_pendingScenePath = p;
+    m_pendingSwitch = true;
+}
+
+auto core::SceneManager::applyPendingSwitch() -> void
+{
+    if ( !m_pendingSwitch )
+    {
+        return;
+    }
+
+    m_pendingSwitch = false;
 
     core::Scene* currentScene = getCurrentScene();
     std::string currentSceneName = currentScene->getName();
@@ -138,9 +151,9 @@ auto core::SceneManager::switchToScene( const std::filesystem::path& p ) -> void
 
     assetManager->recreate();
 
-    core::Scene* newScene = addScene( p.stem().string() );
+    core::Scene* newScene = addScene( m_pendingScenePath.stem().string() );
     setCurrentScene( newScene->getName() );
-    newScene->deserialize( p );
+    newScene->deserialize( m_pendingScenePath );
 
     graphics::VulkanContext* ctx = core::MainRegistry::getInstance().getVulkanContext();
     VkExtent2D extent = ctx->swapchain->getSwapchainExtent();

@@ -21,6 +21,7 @@ class SceneManager
     auto getScenes() -> std::unordered_map<std::string, std::unique_ptr<Scene>>&;
     auto switchToScene( const std::filesystem::path& p ) -> void;
     auto getAvailableScenes() -> std::vector<std::filesystem::path>&;
+    auto applyPendingSwitch() -> void;
 
     auto saveScenes() -> void;
 
@@ -36,5 +37,8 @@ class SceneManager
     Scene* m_currentScene;
     std::unique_ptr<SceneEventHandler> m_eventHandler;
     std::vector<std::filesystem::path> m_availableScenes;
+
+    std::filesystem::path m_pendingScenePath;
+    bool m_pendingSwitch;
 };
 } // namespace core
