@@ -10,7 +10,7 @@
 
 namespace gui
 {
-class VulkanImguiRenderer;
+class VulkanImGuiRenderer;
 }
 
 namespace core
@@ -42,7 +42,7 @@ class PickingModule : public BaseModule
   public:
     explicit PickingModule( FrameGraph* graph,
                             graphics::VulkanContext* vkCtx,
-                            gui::VulkanImguiRenderer* imguiRenderer,
+                            gui::VulkanImGuiRenderer* imguiRenderer,
                             VkExtent2D extent,
                             graphics::FrameInFlightVulkanDescriptor* cameraDescriptor );
 
@@ -68,7 +68,7 @@ class PickingModule : public BaseModule
     FrameGraph* m_graph;
     graphics::VulkanContext* m_vkCtx;
     VkExtent2D m_extent;
-    gui::VulkanImguiRenderer* m_imguiRenderer;
+    gui::VulkanImGuiRenderer* m_imguiRenderer;
     int32_t m_lastFrameIndex;
 };
 } // namespace rendering

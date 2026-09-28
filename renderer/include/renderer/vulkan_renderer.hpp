@@ -53,7 +53,7 @@ class VulkanRenderer
     std::unique_ptr<FrameGraph> m_frameGraph;
     graphics::FrameInFlightVulkanBuffer m_cameraBuffers;
     graphics::FrameInFlightVulkanDescriptor m_cameraDescriptor;
-    std::shared_ptr<gui::VulkanImguiRenderer> m_pImguiRenderer;
+    std::shared_ptr<gui::VulkanImGuiRenderer> m_pImguiRenderer;
     glm::ivec2 m_mouseCoords;
     bool m_modulesInit;
     bool m_resizeRequested;

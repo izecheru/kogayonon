@@ -226,7 +226,7 @@ auto rendering::VulkanRenderer::createCameraDescriptorSetLayout() -> void
 auto rendering::VulkanRenderer::initImgui() -> void
 {
     m_pImguiRenderer =
-        std::make_shared<gui::VulkanImguiRenderer>( m_wnd, m_vkCtx->device.get(), m_vkCtx->swapchain.get() );
+        std::make_shared<gui::VulkanImGuiRenderer>( m_wnd, m_vkCtx->device.get(), m_vkCtx->swapchain.get() );
 }
 
 auto rendering::VulkanRenderer::onMouseClicked( const core::MouseClickedEvent& e ) -> void

@@ -13,7 +13,7 @@ class FrameGraph;
 
 namespace gui
 {
-class VulkanImguiRenderer;
+class VulkanImGuiRenderer;
 }
 
 namespace rendering
@@ -32,7 +32,7 @@ inline constexpr const char* ImGui = "imguiPass";
 class ImGuiModule
 {
   public:
-    explicit ImGuiModule( FrameGraph* graph, graphics::VulkanContext* vkCtx, gui::VulkanImguiRenderer* imguiRenderer );
+    explicit ImGuiModule( FrameGraph* graph, graphics::VulkanContext* vkCtx, gui::VulkanImGuiRenderer* imguiRenderer );
     ~ImGuiModule();
 
     auto registerPasses() -> void;
@@ -43,7 +43,7 @@ class ImGuiModule
 
   private:
     graphics::VulkanContext* m_vkCtx;
-    gui::VulkanImguiRenderer* m_imguiRenderer;
+    gui::VulkanImGuiRenderer* m_imguiRenderer;
     FrameGraph* m_graph;
 };
 } // namespace rendering

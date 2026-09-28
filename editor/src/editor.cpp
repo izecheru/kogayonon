@@ -42,18 +42,20 @@ editor::Editor::Editor()
 
     init();
 
+    namespace fs = std::filesystem;
+
     // create the editor dir
-    std::filesystem::path editorDir = std::filesystem::current_path() / "editor";
-    if ( !std::filesystem::exists( editorDir ) )
+    fs::path editorDir = fs::current_path() / "editor";
+    if ( !fs::exists( editorDir ) )
     {
-        std::filesystem::create_directory( editorDir );
+        fs::create_directory( editorDir );
     }
 
     // scenes dir
-    std::filesystem::path scenesDir = std::filesystem::current_path() / "editor" / "scenes";
-    if ( !std::filesystem::exists( scenesDir ) )
+    fs::path scenesDir = fs::current_path() / "editor" / "scenes";
+    if ( !fs::exists( scenesDir ) )
     {
-        std::filesystem::create_directory( scenesDir );
+        fs::create_directory( scenesDir );
     }
 }
 
@@ -338,11 +340,9 @@ bool editor::Editor::initMainRegistry()
     std::filesystem::path defaultScenePath =
         std::filesystem::current_path() / "editor" / "scenes" / "defaultScene.kscene";
 
-    sceneManager->addScene( "defaultScene" );
-    core::Scene* scene = sceneManager->getCurrentScene();
-    core::Entity entity{ scene->getRegistry(), "DefaultCamera" };
-
+    core::Scene* scene = sceneManager->addScene( "defaultScene" );
     sceneManager->setCurrentScene( scene->getName() );
+    core::Entity entity{ scene->getRegistry(), "DefaultCamera" };
 
     // deserialize scene
     if ( std::filesystem::exists( defaultScenePath ) )

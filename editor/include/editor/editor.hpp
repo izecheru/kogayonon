@@ -9,7 +9,7 @@ class Window;
 
 namespace gui
 {
-class VulkanImguiRenderer;
+class VulkanImGuiRenderer;
 }
 
 namespace core

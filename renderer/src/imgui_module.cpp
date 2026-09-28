@@ -8,7 +8,7 @@
 
 rendering::ImGuiModule::ImGuiModule( FrameGraph* graph,
                                      graphics::VulkanContext* vkCtx,
-                                     gui::VulkanImguiRenderer* imguiRenderer )
+                                     gui::VulkanImGuiRenderer* imguiRenderer )
     : m_vkCtx{ vkCtx }
     , m_imguiRenderer{ imguiRenderer }
     , m_graph{ graph }

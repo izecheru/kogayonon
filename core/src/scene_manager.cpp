@@ -1,4 +1,7 @@
 #include "core/scene/scene_manager.hpp"
+#include "core/asset_manager/asset_manager.hpp"
+#include "core/ecs/main_registry.hpp"
+#include "rapidjson/istreamwrapper.h"
 #include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
@@ -11,7 +14,7 @@ core::SceneManager::SceneManager( EventDispatcher* pDispatcher, bool saveAllScen
     , m_saveAllScenes{ saveAllScenes }
 {
     pDispatcher->addHandler<core::FileEvent, &SceneManager::onFileEvent>( *this );
-    populateScenes();
+    populateAvailableScenes();
 }
 
 core::SceneManager::~SceneManager()
@@ -21,10 +24,9 @@ core::SceneManager::~SceneManager()
 auto core::SceneManager::addScene( std::string_view name ) -> Scene*
 {
     std::string sceneName = name.empty() ? "defaultScene" : std::string{ name };
-    std::unique_ptr<Scene> scene = std::make_unique<Scene>( sceneName );
+    auto scene = std::make_unique<Scene>( sceneName );
     m_scenes.emplace( sceneName, std::move( scene ) );
 
-    setCurrentScene( sceneName );
     return m_scenes.at( sceneName ).get();
 }
 
@@ -44,14 +46,7 @@ auto core::SceneManager::getCurrentScene() -> Scene*
         throw std::runtime_error( "No scenes present!!!" );
     }
 
-    auto it = m_scenes.find( m_currentScene );
-
-    if ( it == m_scenes.end() )
-    {
-        return nullptr;
-    }
-
-    return it->second.get();
+    return m_currentScene;
 }
 
 auto core::SceneManager::getScenes() -> std::unordered_map<std::string, std::unique_ptr<Scene>>&
@@ -61,8 +56,7 @@ auto core::SceneManager::getScenes() -> std::unordered_map<std::string, std::uni
 
 void core::SceneManager::setCurrentScene( const std::string& sceneName )
 {
-    // TODO this might not be ok, i'd like to set it with a Scene* or reference
-    m_currentScene = sceneName;
+    m_currentScene = m_scenes[sceneName].get();
 }
 
 auto core::SceneManager::getEventHandler() -> SceneEventHandler*
@@ -103,7 +97,7 @@ auto core::SceneManager::onFileEvent( core::FileEvent& e ) -> void
         return;
     }
 
-    populateScenes();
+    populateAvailableScenes();
 }
 
 auto core::SceneManager::getAvailableScenes() -> std::vector<std::filesystem::path>&
@@ -111,7 +105,7 @@ auto core::SceneManager::getAvailableScenes() -> std::vector<std::filesystem::pa
     return m_availableScenes;
 }
 
-auto core::SceneManager::populateScenes() -> void
+auto core::SceneManager::populateAvailableScenes() -> void
 {
     namespace fs = std::filesystem;
     m_availableScenes.clear();
@@ -133,10 +127,39 @@ auto core::SceneManager::populateScenes() -> void
 
 auto core::SceneManager::switchToScene( const std::filesystem::path& p ) -> void
 {
-    // save the current scene
     getCurrentScene()->serialize();
 
-    // now clear everything that this scene had, buffers and images and all that
-    // but if the new scene has them
-    // just skip so we don't waste time loading again
+    core::Scene* currentScene = getCurrentScene();
+    std::string currentSceneName = currentScene->getName();
+    m_scenes.erase( currentSceneName );
+
+    core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+
+    assetManager->recreate();
+
+    core::Scene* newScene = addScene( p.stem().string() );
+    setCurrentScene( newScene->getName() );
+    newScene->deserialize( p );
+
+    graphics::VulkanContext* ctx = core::MainRegistry::getInstance().getVulkanContext();
+    VkExtent2D extent = ctx->swapchain->getSwapchainExtent();
+
+    core::DirectionalLightComponent directionalLight{};
+    core::Entity direciontalLightEnt{ newScene->getRegistry(), "DefaultDirecitonalLight" };
+    direciontalLightEnt.addComponent<core::DirectionalLightComponent>( directionalLight );
+
+    core::PerspectiveCameraComponent cameraComponent{};
+    cameraComponent.props.farView = 500.0f;
+    cameraComponent.ubo.view =
+        glm::lookAt( cameraComponent.props.eye, cameraComponent.props.center, cameraComponent.props.up );
+    cameraComponent.ubo.projection = glm::perspective( glm::radians( cameraComponent.props.fov ),
+                                                       extent.width / (float)( extent.height ),
+                                                       cameraComponent.props.nearView,
+                                                       cameraComponent.props.farView );
+    cameraComponent.ubo.projection[1][1] *= -1;
+    cameraComponent.props.extent = { (float)extent.width, (float)extent.height };
+    cameraComponent.isUsed = true;
+
+    core::Entity entity{ newScene->getRegistry(), "DefaultCamera" };
+    entity.addComponent<core::PerspectiveCameraComponent>( cameraComponent );
 }

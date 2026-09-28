@@ -1,4 +1,5 @@
 #include "gui/vulkan_imgui_renderer.hpp"
+#include "core/event/scene_events.hpp"
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_vulkan.h>
 #include <imgui_internal.h>
@@ -25,7 +26,7 @@
 
 #include <ImGuizmo.h>
 
-gui::VulkanImguiRenderer::VulkanImguiRenderer( SDL_Window* wnd,
+gui::VulkanImGuiRenderer::VulkanImGuiRenderer( SDL_Window* wnd,
                                                graphics::VulkanDevice* device,
                                                graphics::VulkanSwapchain* swapchain )
     : m_device{ device }
@@ -36,22 +37,28 @@ gui::VulkanImguiRenderer::VulkanImguiRenderer( SDL_Window* wnd,
     initWindows();
 
     core::EventDispatcher* eventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
-    eventDispatcher->addHandler<core::ConfigChangedEvent, &VulkanImguiRenderer::onConfigChange>( *this );
+    eventDispatcher->addHandler<core::ConfigChangedEvent, &VulkanImGuiRenderer::onConfigChange>( *this );
+    eventDispatcher->addHandler<core::SwitchSceneEvent, &VulkanImGuiRenderer::onSwitchSceneEvent>( *this );
 }
 
-auto gui::VulkanImguiRenderer::onConfigChange( const core::ConfigChangedEvent& e ) -> void
+auto gui::VulkanImGuiRenderer::onConfigChange( const core::ConfigChangedEvent& e ) -> void
 {
     utilities::EditorConfigManager::parseConfig();
     utilities::ColorConfig& config = utilities::EditorConfigManager::getColorConfig();
     setColorPallete( config );
 }
 
-void gui::VulkanImguiRenderer::createIconSampler( graphics::VulkanDevice* device )
+auto gui::VulkanImGuiRenderer::onSwitchSceneEvent( const core::SwitchSceneEvent& e ) -> void
+{
+    // here we should reload all textures that the UI uses
+}
+
+void gui::VulkanImGuiRenderer::createIconSampler( graphics::VulkanDevice* device )
 {
     device->createSampler( m_iconSampler );
 }
 
-gui::VulkanImguiRenderer::~VulkanImguiRenderer()
+gui::VulkanImGuiRenderer::~VulkanImGuiRenderer()
 {
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplSDL3_Shutdown();
@@ -61,7 +68,7 @@ gui::VulkanImguiRenderer::~VulkanImguiRenderer()
     m_device->destroySampler( m_iconSampler );
 }
 
-void gui::VulkanImguiRenderer::begin()
+void gui::VulkanImGuiRenderer::begin()
 {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplSDL3_NewFrame();
@@ -70,12 +77,12 @@ void gui::VulkanImguiRenderer::begin()
     setupDockspace( ImGui::GetMainViewport() );
 }
 
-void gui::VulkanImguiRenderer::end()
+void gui::VulkanImGuiRenderer::end()
 {
     ImGui::Render();
 }
 
-void gui::VulkanImguiRenderer::setupDockspace( ImGuiViewport* viewport )
+void gui::VulkanImGuiRenderer::setupDockspace( ImGuiViewport* viewport )
 {
 
     const ImGuiID dockSpaceId = ImGui::DockSpaceOverViewport( 0, viewport );
@@ -109,7 +116,7 @@ void gui::VulkanImguiRenderer::setupDockspace( ImGuiViewport* viewport )
     }
 }
 
-auto gui::VulkanImguiRenderer::customTitleBar() -> void
+auto gui::VulkanImGuiRenderer::customTitleBar() -> void
 {
     float windowWidth = ImGui::GetWindowWidth();
     float titleBarHeight = 30.0f;
@@ -167,7 +174,7 @@ auto gui::VulkanImguiRenderer::customTitleBar() -> void
     ImGui::End();
 }
 
-void gui::VulkanImguiRenderer::render()
+void gui::VulkanImGuiRenderer::render()
 {
     begin();
 
@@ -186,7 +193,7 @@ void gui::VulkanImguiRenderer::render()
     end();
 }
 
-void gui::VulkanImguiRenderer::renderDrawData( VkCommandBuffer& buffer )
+void gui::VulkanImGuiRenderer::renderDrawData( VkCommandBuffer& buffer )
 {
     ImDrawData* drawData = ImGui::GetDrawData();
     const bool isMinimized = ( drawData->DisplaySize.x <= 0.0f || drawData->DisplaySize.y <= 0.0f );
@@ -201,7 +208,7 @@ void gui::VulkanImguiRenderer::renderDrawData( VkCommandBuffer& buffer )
     }
 }
 
-void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
+void gui::VulkanImGuiRenderer::initImgui( SDL_Window* wnd,
                                           graphics::VulkanDevice* device,
                                           graphics::VulkanSwapchain* swapchain )
 {
@@ -325,15 +332,15 @@ void gui::VulkanImguiRenderer::initImgui( SDL_Window* wnd,
     ImGui_ImplVulkan_Init( &initInfo );
 }
 
-void gui::VulkanImguiRenderer::initWindows()
+void gui::VulkanImGuiRenderer::initWindows()
 {
     auto assetManager = core::MainRegistry::getInstance().getAssetManager();
 
     auto folderPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\folder.png";
-    auto folderTexture = assetManager->loadTexture( "logo.png", folderPath.string() );
+    auto folderTexture = assetManager->loadTexture( "folder.png", folderPath.string() );
 
     auto filePath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\file.png";
-    auto fileTexture = assetManager->loadTexture( "logo.png", filePath.string() );
+    auto fileTexture = assetManager->loadTexture( "file.png", filePath.string() );
 
     auto gltfIconPath = std::filesystem::absolute( "." ) / "engine_resources\\textures\\gltf_file.png";
     auto gltfTexture = assetManager->loadTexture( "gltf_file.png", gltfIconPath.string() );
@@ -398,7 +405,7 @@ void gui::VulkanImguiRenderer::initWindows()
                        std::make_unique<EntityProperties>( "Properties", EntityPropertiesSpec{ .fonts = &m_fonts } ) );
 }
 
-void gui::VulkanImguiRenderer::mainMenu()
+void gui::VulkanImGuiRenderer::mainMenu()
 {
     if ( ImGui::BeginMainMenuBar() )
     {
@@ -448,7 +455,7 @@ void gui::VulkanImguiRenderer::mainMenu()
         ImGui::OpenPopup( "GPU properties" );
 }
 
-void gui::VulkanImguiRenderer::colorChanger()
+void gui::VulkanImGuiRenderer::colorChanger()
 {
     auto& style = ImGui::GetStyle();
     ImGui::ColorEdit4( "Window bg", (float*)&style.Colors[ImGuiCol_WindowBg], ImGuiColorEditFlags_NoInputs );
@@ -536,7 +543,7 @@ void gui::VulkanImguiRenderer::colorChanger()
                        ImGuiColorEditFlags_NoInputs );
 }
 
-void gui::VulkanImguiRenderer::colorModal()
+void gui::VulkanImGuiRenderer::colorModal()
 {
     static int w{ 0 };
     static int h{ 0 };
@@ -576,7 +583,7 @@ void gui::VulkanImguiRenderer::colorModal()
     }
 }
 
-void gui::VulkanImguiRenderer::imguiChanger()
+void gui::VulkanImGuiRenderer::imguiChanger()
 {
     auto& style = ImGui::GetStyle();
 
@@ -650,7 +657,7 @@ void gui::VulkanImguiRenderer::imguiChanger()
     ImGui::DragFloat( "##windowRounding", &style.WindowRounding );
 }
 
-void gui::VulkanImguiRenderer::imguiModal()
+void gui::VulkanImGuiRenderer::imguiModal()
 {
     static int w{ 0 };
     static int h{ 0 };
@@ -672,7 +679,7 @@ void gui::VulkanImguiRenderer::imguiModal()
     }
 }
 
-void gui::VulkanImguiRenderer::configChanger()
+void gui::VulkanImGuiRenderer::configChanger()
 {
     auto& cfg = utilities::EditorConfigManager::getConfig();
 
@@ -719,7 +726,7 @@ void gui::VulkanImguiRenderer::configChanger()
     ImGui::Checkbox( "Maximized", &cfg.maximized );
 }
 
-void gui::VulkanImguiRenderer::configModal()
+void gui::VulkanImGuiRenderer::configModal()
 {
     static int w{ 0 };
     static int h{ 0 };
@@ -752,7 +759,7 @@ void gui::VulkanImguiRenderer::configModal()
     }
 }
 
-auto gui::VulkanImguiRenderer::setColorPallete( const utilities::ColorConfig& cfg ) -> void
+auto gui::VulkanImGuiRenderer::setColorPallete( const utilities::ColorConfig& cfg ) -> void
 {
     auto& style = ImGui::GetStyle();
 
@@ -952,7 +959,7 @@ auto gui::VulkanImguiRenderer::setColorPallete( const utilities::ColorConfig& cf
                                               cfg.ImGuiCol_TextSelectedBg.alpha };
 }
 
-void gui::VulkanImguiRenderer::changeColorConfig()
+void gui::VulkanImGuiRenderer::changeColorConfig()
 {
     auto& cfg = utilities::EditorConfigManager::getColorConfig();
     auto& style = ImGui::GetStyle();
@@ -1130,25 +1137,25 @@ void gui::VulkanImguiRenderer::changeColorConfig()
     utilities::EditorConfigManager::writeColorConfig();
 }
 
-void gui::VulkanImguiRenderer::setViewport( VkImageView viewportView )
+void gui::VulkanImGuiRenderer::setViewport( VkImageView viewportView )
 {
     KASSERT( viewportView != VK_NULL_HANDLE );
     ImGuiWindow* viewport = m_windows.at( gui::ImGuiWindowName::Viewport ).get();
     dynamic_cast<gui::Viewport*>( viewport )->setViewport( viewportView );
 }
 
-auto gui::VulkanImguiRenderer::getImGuiWindows() -> std::unordered_map<ImGuiWindowName, std::unique_ptr<ImGuiWindow>>&
+auto gui::VulkanImGuiRenderer::getImGuiWindows() -> std::unordered_map<ImGuiWindowName, std::unique_ptr<ImGuiWindow>>&
 {
     return m_windows;
 }
 
-auto gui::VulkanImguiRenderer::getViewportExtent() -> VkExtent2D
+auto gui::VulkanImGuiRenderer::getViewportExtent() -> VkExtent2D
 {
     const auto& props = m_windows.at( gui::ImGuiWindowName::Viewport )->getProps();
     return VkExtent2D{ .width = props->width, .height = props->height };
 }
 
-auto gui::VulkanImguiRenderer::showDeviceProperties() -> void
+auto gui::VulkanImGuiRenderer::showDeviceProperties() -> void
 {
     auto properties = m_device->getDeviceProperties();
     auto memoryProperties = m_device->getDeviceMemoryProperties();
@@ -1159,7 +1166,7 @@ auto gui::VulkanImguiRenderer::showDeviceProperties() -> void
     ImGui::Text( "Device ID: %d", properties.deviceID );
 }
 
-auto gui::VulkanImguiRenderer::deviceModal() -> void
+auto gui::VulkanImGuiRenderer::deviceModal() -> void
 {
     static int w{ 0 };
     static int h{ 0 };

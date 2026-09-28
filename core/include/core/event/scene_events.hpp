@@ -75,4 +75,12 @@ class AddEntityEvent : public IEvent
     std::string m_name;
 };
 
+class SwitchSceneEvent : public IEvent
+{
+  public:
+    SwitchSceneEvent() = default;
+
+  private:
+};
+
 } // namespace core

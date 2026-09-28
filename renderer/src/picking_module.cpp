@@ -20,7 +20,7 @@
 
 rendering::PickingModule::PickingModule( FrameGraph* graph,
                                          graphics::VulkanContext* vkCtx,
-                                         gui::VulkanImguiRenderer* imguiRenderer,
+                                         gui::VulkanImGuiRenderer* imguiRenderer,
                                          VkExtent2D extent,
                                          graphics::FrameInFlightVulkanDescriptor* cameraDescriptor )
     : m_graph{ graph }

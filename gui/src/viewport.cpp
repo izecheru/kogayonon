@@ -103,7 +103,11 @@ void gui::Viewport::render()
     drawToolbar();
     drawEntityMenu();
 
-    auto view = scene->getEnttRegistry().view<core::PerspectiveCameraComponent>();
+    // since we might delete the old scene and create a new one in the
+    // draw tool bar function above, we querry for the current scene again
+    core::Scene* currentScene = sceneManager->getCurrentScene();
+    entt::registry& sceneRegistry = currentScene->getEnttRegistry();
+    auto view = sceneRegistry.view<core::PerspectiveCameraComponent>();
 
     // Camera guizmo top right
     view.each( [&]( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComp ) {
@@ -127,7 +131,7 @@ void gui::Viewport::render()
     {
         ImGuizmo::Enable( true );
         core::TransformComponent* transformComp =
-            scene->getRegistry()->tryGetComponent<core::TransformComponent>( currentEntity );
+            currentScene->getRegistry()->tryGetComponent<core::TransformComponent>( currentEntity );
         if ( transformComp )
         {
             ImGuizmo::SetOrthographic( false );
@@ -135,7 +139,7 @@ void gui::Viewport::render()
 
             ImGuizmo::SetRect( min.x, min.y, max.x - min.x, max.y - min.y );
 
-            auto view = scene->getEnttRegistry().view<core::PerspectiveCameraComponent>();
+            auto view = currentScene->getEnttRegistry().view<core::PerspectiveCameraComponent>();
             entt::entity cameraEntity = entt::null;
             view.each( [&]( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComp ) {
                 if ( cameraComp.isUsed )
@@ -165,7 +169,7 @@ void gui::Viewport::render()
 
                 // If the entity has a rigid body then update the position and rotation of that too
                 core::RigidbodyComponent* joltBody =
-                    scene->getRegistry()->tryGetComponent<core::RigidbodyComponent>( currentEntity );
+                    currentScene->getRegistry()->tryGetComponent<core::RigidbodyComponent>( currentEntity );
 
                 if ( joltBody )
                 {
@@ -224,13 +228,15 @@ void gui::Viewport::drawToolbar()
 
         for ( const std::filesystem::path& p : scenes )
         {
-
-            if ( p.extension().string() != ".kscene" )
+            if ( p.extension().string() != ".kscene" || currentSceneName == p.stem().string() )
+            {
                 continue;
+            }
 
             if ( ImGui::MenuItem( p.stem().string().c_str() ) )
             {
                 KINFO( "switching to scene {}", p.stem().string() );
+                sceneManager->switchToScene( p );
             }
         }
 

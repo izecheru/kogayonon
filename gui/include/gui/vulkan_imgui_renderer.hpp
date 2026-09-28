@@ -1,13 +1,23 @@
 #pragma once
-#include "vulkan/vulkan.h"
 #include "precompiled/pch.hpp"
-#include "graphics/vulkan_context.hpp"
-#include "core/input/keyboard_events.hpp"
+#include "vulkan/vulkan.h"
 #include "SDL3/SDL.h"
 #include "imgui.h"
 #include "core/event/config_event.hpp"
 
 #define IMGUI_VULKAN_MAX_DESCRIPTORS 200
+
+namespace core
+{
+class SwitchSceneEvent;
+class ConfigChangedEvent;
+} // namespace core
+
+namespace graphics
+{
+class VulkanDevice;
+class VulkanSwapchain;
+} // namespace graphics
 
 namespace utilities
 {
@@ -41,13 +51,13 @@ struct Popups
 namespace gui
 {
 
-class VulkanImguiRenderer
+class VulkanImGuiRenderer
 {
   public:
-    explicit VulkanImguiRenderer( SDL_Window* wnd,
+    explicit VulkanImGuiRenderer( SDL_Window* wnd,
                                   graphics::VulkanDevice* device,
                                   graphics::VulkanSwapchain* swapchain );
-    ~VulkanImguiRenderer();
+    ~VulkanImGuiRenderer();
 
     auto initImgui( SDL_Window* wnd, graphics::VulkanDevice* device, graphics::VulkanSwapchain* swapchain ) -> void;
     auto render() -> void;
@@ -61,6 +71,8 @@ class VulkanImguiRenderer
 
   private:
     auto onConfigChange( const core::ConfigChangedEvent& e ) -> void;
+    auto onSwitchSceneEvent( const core::SwitchSceneEvent& e ) -> void;
+
     auto createIconSampler( graphics::VulkanDevice* device ) -> void;
     auto initWindows() -> void;
     auto mainMenu() -> void;

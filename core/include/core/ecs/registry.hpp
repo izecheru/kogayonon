@@ -9,7 +9,7 @@ class Registry
 {
   public:
     Registry()
-        : m_pRegistry{ std::make_unique<entt::registry>() }
+        : m_registry{}
     {
     }
 
@@ -17,91 +17,91 @@ class Registry
 
     inline bool isValid( entt::entity entity ) const
     {
-        return m_pRegistry->valid( entity );
+        return m_registry.valid( entity );
     }
 
     void removeEntity( entt::entity entity )
     {
         if ( isValid( entity ) )
-            m_pRegistry->destroy( entity );
+            m_registry.destroy( entity );
     }
 
     template <typename TComponent, typename... Args>
     inline auto emplaceComponent( entt::entity entity, Args&&... args ) -> TComponent&
     {
-        return m_pRegistry->emplace_or_replace<TComponent>( entity, std::forward<Args>( args )... );
+        return m_registry.emplace_or_replace<TComponent>( entity, std::forward<Args>( args )... );
     }
 
     template <typename TComponent>
     inline auto removeComponent( entt::entity entity )
     {
-        m_pRegistry->remove<TComponent>( entity );
+        m_registry.remove<TComponent>( entity );
     }
 
     template <typename TComponent, typename... Args>
     auto addComponent( entt::entity entity, Args&&... args ) -> TComponent&
     {
-        return m_pRegistry->emplace<TComponent>( entity, std::forward<Args>( args )... );
+        return m_registry.emplace<TComponent>( entity, std::forward<Args>( args )... );
     }
 
     template <typename TComponent>
     inline auto getComponent( entt ::entity entityId ) -> TComponent&
     {
-        return m_pRegistry->get<TComponent>( entityId );
+        return m_registry.get<TComponent>( entityId );
     }
 
     template <typename TComponent>
     inline auto tryGetComponent( entt ::entity entityId ) -> TComponent*
     {
-        return m_pRegistry->try_get<TComponent>( entityId );
+        return m_registry.try_get<TComponent>( entityId );
     }
 
     template <typename TComponent>
     inline bool hasComponent( entt ::entity entityId )
     {
-        return m_pRegistry->any_of<TComponent>( entityId );
+        return m_registry.any_of<TComponent>( entityId );
     }
 
     inline auto createEntity() -> entt::entity
     {
-        return m_pRegistry->create();
+        return m_registry.create();
     }
 
     inline auto getRegistry() -> entt::registry&
     {
-        return *m_pRegistry.get();
+        return m_registry;
     }
 
     inline void clearRegistry()
     {
-        m_pRegistry->clear();
+        m_registry.clear();
     }
 
     template <typename TContext>
     inline auto addToContext( TContext context ) -> void
     {
-        m_pRegistry->ctx().emplace<TContext>( context );
+        m_registry.ctx().emplace<TContext>( context );
     }
 
     template <typename TContext>
     inline auto getContext() -> TContext&
     {
-        return m_pRegistry->ctx().get<TContext>();
+        return m_registry.ctx().get<TContext>();
     }
 
     template <typename TContext>
     inline bool eraseContext()
     {
-        return m_pRegistry->ctx().erase<TContext>();
+        return m_registry.ctx().erase<TContext>();
     }
 
     auto storage()
     {
-        return m_pRegistry->storage();
+        return m_registry.storage();
     }
 
   private:
-    std::unique_ptr<entt::registry> m_pRegistry;
+    entt::registry m_registry;
 };
 
 } // namespace core

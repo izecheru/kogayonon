@@ -19,13 +19,23 @@ core::AssetManager::AssetManager( graphics::VulkanContext* vkCtx )
     , m_samplerIndex{ 0u }
     , m_vkCtx{ vkCtx }
 {
+    init();
+}
+
+auto core::AssetManager::recreate() -> void
+{
+    destroyResources();
+    init();
+}
+
+auto core::AssetManager::init() -> void
+{
     initDescriptors();
     initSampler();
 }
 
-core::AssetManager::~AssetManager()
+auto core::AssetManager::destroyResources() -> void
 {
-    // wait for the gpu to be done using resources
     m_vkCtx->device->waitIdle();
 
     m_vkCtx->device->destroyBuffer( m_materialsBuffer );
@@ -43,6 +53,15 @@ core::AssetManager::~AssetManager()
         m_vkCtx->device->destroyBuffer( mesh->getIndicesBufferObject() );
         m_vkCtx->device->destroyBuffer( mesh->getVertexBufferObject() );
     }
+
+    m_loadedTextures.clear();
+    m_loadedMeshes.clear();
+    m_layoutInit = false;
+}
+
+core::AssetManager::~AssetManager()
+{
+    destroyResources();
 }
 
 auto core::AssetManager::loadTextures( const std::vector<std::tuple<std::string, std::string>>& textures ) -> void

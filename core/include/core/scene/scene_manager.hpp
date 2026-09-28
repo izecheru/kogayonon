@@ -26,14 +26,14 @@ class SceneManager
 
   private:
     auto saveScene( core::Scene* scene ) -> void;
-    auto populateScenes() -> void;
+    auto populateAvailableScenes() -> void;
 
     auto onFileEvent( core::FileEvent& e ) -> void;
 
   private:
     bool m_saveAllScenes;
     std::unordered_map<std::string, std::unique_ptr<Scene>> m_scenes;
-    std::string m_currentScene;
+    Scene* m_currentScene;
     std::unique_ptr<SceneEventHandler> m_eventHandler;
     std::vector<std::filesystem::path> m_availableScenes;
 };

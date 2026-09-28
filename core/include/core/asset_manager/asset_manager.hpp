@@ -30,6 +30,11 @@ class AssetManager
     explicit AssetManager( graphics::VulkanContext* vkCtx );
     ~AssetManager();
 
+    auto recreate() -> void;
+
+    auto init() -> void;
+    auto destroyResources() -> void;
+
     /**
      * @brief Get the texture sampler of the AssetManager, this is for convenience
      * @return
@@ -115,6 +120,19 @@ class AssetManager
     auto getTextures() -> std::unordered_map<std::string, std::unique_ptr<resources::Texture>>&;
 
     auto createMeshResources( resources::Mesh* pMesh ) -> void;
+
+    template <typename T>
+    auto hasResource( const std::string& resourceKey ) -> bool
+    {
+        if constexpr ( std::is_same_v<resources::Mesh, T> )
+        {
+            return m_loadedMeshes.find( resourceKey ) != m_loadedMeshes.end();
+        }
+        else if constexpr ( std::is_same_v<resources::Texture, T> )
+        {
+            return m_loadedTextures.find( resourceKey ) != m_loadedTextures.end();
+        }
+    }
 
   private:
     /**
