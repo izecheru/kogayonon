@@ -1,4 +1,5 @@
 #include "core/scene/scene_manager.hpp"
+#include "core/event/scene_events.hpp"
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "rapidjson/istreamwrapper.h"
@@ -162,4 +163,7 @@ auto core::SceneManager::switchToScene( const std::filesystem::path& p ) -> void
 
     core::Entity entity{ newScene->getRegistry(), "DefaultCamera" };
     entity.addComponent<core::PerspectiveCameraComponent>( cameraComponent );
+
+    core::EventDispatcher* dispatcher = MainRegistry::getInstance().getEventDispatcher();
+    dispatcher->dispatchEvent<core::SelectEntityEvent>( core::SelectEntityEvent() );
 }
