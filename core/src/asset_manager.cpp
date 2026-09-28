@@ -428,10 +428,13 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
         m_loadedMeshes.emplace( collision.string(), std::make_unique<resources::Mesh>() );
         utilities::CallbackTask* collisionCallback = taskManager->addTask( [this, collision]() -> void {
             ZoneScopedN( "Threaded loadMesh" );
-            auto tinyLoader = std::make_unique<TinyGltfLoader>( collision.string() );
+            std::unique_ptr<TinyGltfLoader> tinyLoader = std::make_unique<TinyGltfLoader>( collision.string() );
             {
                 std::lock_guard lock{ m_mutex };
                 resources::Mesh* meshPtr = m_loadedMeshes[collision.string()].get();
+
+                meshPtr->setPath( collision.string() );
+
                 tinyLoader->processVertexData( meshPtr );
                 enqueueMesh( meshPtr );
                 m_readyForUpdate.store( true );
@@ -443,7 +446,7 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
 
     utilities::CallbackTask* callbackPtr = taskManager->addTask( [this, meshPath]() -> void {
         ZoneScopedN( "Threaded loadMesh" );
-        auto tinyLoader = std::make_unique<TinyGltfLoader>( meshPath );
+        std::unique_ptr<TinyGltfLoader> tinyLoader = std::make_unique<TinyGltfLoader>( meshPath );
         {
             std::lock_guard lock{ m_mutex };
             resources::Mesh* meshPtr = m_loadedMeshes[meshPath].get();

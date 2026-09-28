@@ -4,11 +4,14 @@
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "utilities/json_serializer/json_serializer.hpp"
+#include "core/event/event_dispatcher.hpp"
 
 core::SceneManager::SceneManager( EventDispatcher* pDispatcher, bool saveAllScenes )
     : m_eventHandler{ std::make_unique<core::SceneEventHandler>( pDispatcher ) }
     , m_saveAllScenes{ saveAllScenes }
 {
+    pDispatcher->addHandler<core::FileEvent, &SceneManager::onFileEvent>( *this );
+    populateScenes();
 }
 
 core::SceneManager::~SceneManager()
@@ -146,4 +149,43 @@ auto core::SceneManager::saveScene( core::Scene* scene ) -> void
     } );
 
     serializer->endArray().endDocument();
+}
+
+auto core::SceneManager::onFileEvent( core::FileEvent& e ) -> void
+{
+    namespace fs = std::filesystem;
+    static fs::path scenesPath = fs::current_path() / "editor" / "scenes";
+    fs::path p{ e.getPath() };
+
+    if ( p.parent_path() != scenesPath )
+    {
+        return;
+    }
+
+    populateScenes();
+}
+
+auto core::SceneManager::getAvailableScenes() -> std::vector<std::filesystem::path>&
+{
+    return m_availableScenes;
+}
+
+auto core::SceneManager::populateScenes() -> void
+{
+    namespace fs = std::filesystem;
+    m_availableScenes.clear();
+
+    static fs::path scenesPath = fs::current_path() / "editor" / "scenes";
+    std::error_code ec{};
+    fs::directory_iterator it{ scenesPath, fs::directory_options::skip_permission_denied, ec };
+
+    if ( ec )
+    {
+        throw std::runtime_error( "could not iterate directory" );
+    }
+
+    for ( const fs::directory_entry& entry : it )
+    {
+        m_availableScenes.push_back( entry.path() );
+    }
 }

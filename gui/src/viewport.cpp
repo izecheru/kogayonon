@@ -200,108 +200,99 @@ auto gui::Viewport::setViewport( VkImageView imageView ) -> void
 
 void gui::Viewport::drawToolbar()
 {
-    auto& style = ImGui::GetStyle();
+    ImGuiStyle& style = ImGui::GetStyle();
     physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
 
-    ImGui::SetCursorPos( { 20.0f, 20.0f } );
+    const ImVec2 avail = ImGui::GetContentRegionAvail();
 
-    ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, { 8.0f, 8.0f } );
-    ImGui::PushStyleVar( ImGuiStyleVar_ChildRounding, 10.0f );
-    ImGui::PushStyleColor( ImGuiCol_ChildBg, { 0.15f, 0.15f, 0.15f, 0.75f } );
+    constexpr float yOffset{ 15.0f };
 
-    uint32_t buttonCount = 4u;
-    float toolbarWidth = style.WindowPadding.x * 2.0f + ( 14.0f * buttonCount ) +
-                         ( style.ItemSpacing.x * buttonCount ) + ( 2.0f * 5.0f );
+    // scene changer
+    ImGui::SetCursorPos( { 20.0f, yOffset } );
+    core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+    std::string currentSceneName = sceneManager->getCurrentScene()->getName();
 
-    ImGui::BeginGroup();
+    ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2{ 4.0f, 4.0f } );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2{ 4.0f, 4.0f } );
+    ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, { 4.0f, 4.0f } );
+    ImGui::PushFont( m_spec.fonts->at( INTER_I ), 15.0f );
+    ImGui::PushItemWidth( 150.0f );
+
+    if ( ImGui::BeginCombo( "##selectScene", currentSceneName.c_str() ) )
+    {
+        const std::vector<std::filesystem::path>& scenes = sceneManager->getAvailableScenes();
+
+        for ( const std::filesystem::path& p : scenes )
+        {
+
+            if ( p.extension().string() != ".kscene" )
+                continue;
+
+            if ( ImGui::MenuItem( p.stem().string().c_str() ) )
+            {
+                KINFO( "switching to scene {}", p.stem().string() );
+            }
+        }
+
+        ImGui::EndCombo();
+    }
+    ImGui::PopItemWidth();
+    ImGui::PopFont();
+    ImGui::PopStyleVar( 3 );
+
+    // play and stop physics in the middle of the viewport
+    ImGui::SetCursorPos( { avail.x * 0.5f, yOffset } );
+
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, { 10.0f, 10.0f } );
+    ImGui::PushStyleVar( ImGuiStyleVar_ChildBorderSize, 2.0f );
+    ImGui::PushStyleVar( ImGuiStyleVar_ChildRounding, 4.0f );
+    ImGui::PushStyleColor( ImGuiCol_ChildBg, { 0.15f, 0.15f, 0.15f, 1.0f } );
+
+    constexpr uint32_t buttonCount{ 2u };
+    constexpr float buttonSize{ 14.0f };
+    constexpr float spacing{ 10.0f };
+
+    const ImVec2 childSize{ style.WindowPadding.x * 2.0f + ( buttonSize * buttonCount ) + spacing,
+                            buttonSize + ( spacing * 0.7f ) };
+
     if ( ImGui::BeginChild( "Toolbar",
-                            { toolbarWidth, 70.0f },
-                            false,
-                            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse ) )
+                            childSize,
+                            ImGuiChildFlags_Borders,
+                            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
+                                ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize ) )
     {
 
         ImGui::PushStyleColor( ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f } );
         ImGui::PushStyleColor( ImGuiCol_Border, { 0.0f, 0.0f, 0.0f, 0.0f } );
 
-        ImGui::SetCursorPos( { 5.0f, 5.5f } );
+        const float rowWidth = buttonSize * buttonCount + spacing;
+        const ImVec2 avail = ImGui::GetContentRegionAvail();
+        const ImVec2 currentPos = ImGui::GetCursorPos();
+        const ImVec2 start{ currentPos.x + ( avail.x - rowWidth ) * 0.5f,
+                            currentPos.y + ( avail.y - buttonSize ) * 0.5f };
+        ImGui::SetCursorPos( start );
+
         physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
 
-        if ( ImGui::ImageButton( "##stopButton", m_spec.stopIcon, { 14.0f, 14.0f } ) )
+        if ( ImGui::ImageButton( "##stopButton", m_spec.stopIcon, { buttonSize, buttonSize } ) )
         {
             jolt->stop();
         }
-        ImGui::SameLine();
 
-        if ( ImGui::ImageButton( "##startButton", m_spec.playIcon, { 14.0f, 14.0f } ) )
+        ImGui::SameLine( 0.0f, spacing );
+
+        if ( ImGui::ImageButton( "##startButton", m_spec.playIcon, { buttonSize, buttonSize } ) )
         {
             jolt->start();
         }
-
-        using enum AxisLock;
-        auto currentPos = ImGui::GetCursorPos();
-        ImGui::SetCursorPos( { currentPos.x + 5.0f, currentPos.y } );
-        gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, []() { ImGui::Text( "Axis lock" ); } );
-        ImGui::SameLine();
-        if ( m_guizmoAxisLock == X_axis )
-        {
-            gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, []() {
-                ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "X" );
-            } );
-        }
-        else
-        {
-            gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, []() {
-                ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "X" );
-            } );
-        }
-        ImGui::SameLine();
-        if ( m_guizmoAxisLock == Y_axis )
-        {
-            gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, []() {
-                ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "Y" );
-            } );
-        }
-        else
-        {
-            gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, []() {
-                ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "Y" );
-            } );
-        }
-        ImGui::SameLine();
-        if ( m_guizmoAxisLock == Z_axis )
-        {
-            gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, []() {
-                ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "Z" );
-            } );
-        }
-        else
-        {
-            gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, []() {
-                ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "Z" );
-            } );
-        }
-
-        currentPos = ImGui::GetCursorPos();
-        ImGui::SetCursorPos( { currentPos.x + 5.0f, currentPos.y } );
-        gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 12.0f, [&]() {
-            if ( jolt->isRunning() )
-            {
-                ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f }, "Physics ON" );
-            }
-            else
-            {
-                ImGui::TextColored( ImVec4{ 1.0f, 1.0f, 1.0f, 0.3f }, "Physics OFF" );
-            }
-        } );
     }
 
     ImGui::PopStyleColor( 2 );
 
     ImGui::EndChild();
-    ImGui::EndGroup();
 
     ImGui::PopStyleColor();
-    ImGui::PopStyleVar( 2 );
+    ImGui::PopStyleVar( 3 );
 }
 
 void gui::Viewport::drawEntityMenu()
@@ -442,8 +433,8 @@ void gui::Viewport::drawEntityMenu()
                                     { transform.translation.x, transform.translation.y, transform.translation.z },
                                     { transform.scale.x,
                                       transform.scale.y,
-                                      transform.scale
-                                          .z }, // TODO(kogayonon) detemrine size somehow, with a bounding box i guess
+                                      transform.scale.z }, // TODO(kogayonon) detemrine size somehow, with a
+                                                           // bounding box i guess
                                     transform.getOrientation() ) } );
 
                         m_entityMenu = false;
@@ -501,8 +492,8 @@ void gui::Viewport::drawEntityMenu()
                                                   transform.translation.z },
                                                 { transform.scale.x,
                                                   transform.scale.y,
-                                                  transform.scale.z }, // TODO(kogayonon) detemrine size somehow, with a
-                                                                       // bounding box i guess
+                                                  transform.scale.z }, // TODO(kogayonon) detemrine size somehow,
+                                                                       // with a bounding box i guess
                                                 transform.getOrientation() ) } );
 
                                     KINFO( "rigid body created" );
@@ -537,8 +528,8 @@ void gui::Viewport::drawEntityMenu()
                                     { transform.translation.x, transform.translation.y, transform.translation.z },
                                     { transform.scale.x,
                                       transform.scale.y,
-                                      transform.scale
-                                          .z }, // TODO(kogayonon) detemrine size somehow, with a bounding box i guess
+                                      transform.scale.z }, // TODO(kogayonon) detemrine size somehow, with a
+                                                           // bounding box i guess
                                     transform.getOrientation() ) } );
 
                         m_entityMenu = false;
