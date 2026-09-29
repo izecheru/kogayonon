@@ -523,3 +523,8 @@ void gui::EntityProperties::renderColoredAxis( const std::string& axis, const Im
     ImGui::Button( axis.c_str() );
     ImGui::PopStyleColor( 4 );
 }
+
+auto gui::EntityProperties::getSpec() -> EntityPropertiesSpec&
+{
+    return m_spec;
+}

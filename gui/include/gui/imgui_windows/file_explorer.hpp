@@ -28,12 +28,12 @@ class FileExplorerWindow : public ImGuiWindow
     ~FileExplorerWindow() = default;
 
     auto drawFromRoot( DirectoryEntry& e ) -> void;
-
     auto render() -> void override;
-
-    auto onFileEvent( core::FileEvent& e ) -> void;
+    auto getSpec() -> FileExplorerSpec&;
 
   private:
+    auto onFileEvent( core::FileEvent& e ) -> void;
+
     auto fileTexture( const FileEntry& file ) -> VkDescriptorSet&;
 
     /**

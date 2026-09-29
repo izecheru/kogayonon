@@ -22,40 +22,41 @@ class EntityProperties : public ImGuiWindow
     explicit EntityProperties( const std::string& name, const EntityPropertiesSpec& spec );
     ~EntityProperties() = default;
 
-    void render();
+    auto render() -> void;
+    auto getSpec() -> EntityPropertiesSpec&;
 
   private:
-    void contextMenu();
+    auto contextMenu() -> void;
 
-    void renderMesh();
+    auto renderMesh() -> void;
 
-    void renderCamera();
-    void renderCameraFov( bool& changed, float& fov );
-    void renderCameraNear( bool& changed, float& camNear );
-    void renderCameraFar( bool& changed, float& camFar );
+    auto renderCamera() -> void;
+    auto renderCameraFov( bool& changed, float& fov ) -> void;
+    auto renderCameraNear( bool& changed, float& camNear ) -> void;
+    auto renderCameraFar( bool& changed, float& camFar ) -> void;
 
-    void renderRigidbody();
+    auto renderRigidbody() -> void;
 
     /**
      * @brief Render all the details about the transform component
      */
-    void renderTransform();
+    auto renderTransform() -> void;
 
-    void renderTranslation( bool& translationChanged, glm::vec3& translation );
-    void renderScale( bool& scaleChanged, glm::vec3& scale );
-    void renderRotation( bool& rotationChanged, glm::vec3& rotation );
+    auto renderTranslation( bool& translationChanged, glm::vec3& translation ) -> void;
+    auto renderScale( bool& scaleChanged, glm::vec3& scale ) -> void;
+    auto renderRotation( bool& rotationChanged, glm::vec3& rotation ) -> void;
 
     /**
      * @brief Renders details about the IdentifierComponent of the currently selected entity
      */
-    void renderIdentification();
+    auto renderIdentification() -> void;
 
     /**
      * @brief Renders the X, Y, Z for the translation, rotation and scale
      * @param axis Label for the axis
      * @param color Color of the text background
      */
-    void renderColoredAxis( const std::string& axis, const ImU32& color );
+    auto renderColoredAxis( const std::string& axis, const ImU32& color ) -> void;
 
   private:
     EntityPropertiesSpec m_spec;

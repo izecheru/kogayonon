@@ -408,3 +408,8 @@ auto gui::FileExplorerWindow::searchFor( const std::string& search ) -> void
         }
     }
 }
+
+auto gui::FileExplorerWindow::getSpec() -> FileExplorerSpec&
+{
+    return m_spec;
+}

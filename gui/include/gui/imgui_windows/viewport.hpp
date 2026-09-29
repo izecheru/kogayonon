@@ -59,7 +59,8 @@ class Viewport : public ImGuiWindow
     explicit Viewport( SDL_Window* mainWindow, const std::string& name, const ViewportSpec& spec );
     ~Viewport() = default;
 
-    void render() override;
+    auto render() -> void override;
+    auto getSpec() -> ViewportSpec&;
 
     /**
      * @brief Removes the current viewport descriptor and assigns it to imageView

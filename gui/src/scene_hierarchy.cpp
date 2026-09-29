@@ -128,6 +128,11 @@ void gui::SceneHierarchy::render()
     ImGui::End();
 }
 
+auto gui::SceneHierarchy::getSpec() -> SceneHierarchySpec&
+{
+    return m_spec;
+}
+
 void gui::SceneHierarchy::drawItemContexMenu( const std::string& itemId, entt::entity ent )
 {
     auto sceneManager = core::MainRegistry::getInstance().getSceneManager();

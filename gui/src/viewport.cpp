@@ -191,6 +191,11 @@ void gui::Viewport::render()
     ImGui::PopStyleVar( 2 );
 }
 
+auto gui::Viewport::getSpec() -> ViewportSpec&
+{
+    return m_spec;
+}
+
 auto gui::Viewport::setViewport( VkImageView imageView ) -> void
 {
     if ( m_viewportDescriptor != VK_NULL_HANDLE )
