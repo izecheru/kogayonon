@@ -17,6 +17,7 @@ namespace core
 class WindowCloseEvent;
 class ProjectLoadEvent;
 class ProjectCreateEvent;
+class SwitchSceneEvent;
 } // namespace core
 
 namespace rendering
@@ -54,6 +55,7 @@ class Editor
 
   private:
     auto onWindowClose( const core::WindowCloseEvent& e ) -> void;
+    auto onSwitchScene( const core::SwitchSceneEvent& e ) -> void;
 
   private:
     VkDescriptorPool m_globalDescriptorPool;

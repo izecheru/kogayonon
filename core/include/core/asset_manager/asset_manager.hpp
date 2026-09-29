@@ -9,7 +9,6 @@
 #include "precompiled/pch.hpp"
 #include "resources/texture.hpp"
 #include "resources/material.hpp"
-#include "resources/texture.hpp"
 #include "resources/mesh.hpp"
 #include "resources/font.hpp"
 #include "graphics/vulkan_context.hpp"
@@ -121,6 +120,8 @@ class AssetManager
 
     auto createMeshResources( resources::Mesh* pMesh ) -> void;
 
+    auto addUiTexture( const std::filesystem::path p ) -> void;
+
     template <typename T>
     auto hasResource( const std::string& resourceKey ) -> bool
     {
@@ -197,9 +198,6 @@ class AssetManager
 
   private:
     VkDescriptorPool m_pDescriptorPool{ nullptr };
-
-    bool m_layoutInit{ false };
-
     graphics::VulkanDescriptor m_bindlessTexturesDescriptor;
     graphics::VulkanDescriptor m_materialsDescriptor;
 
@@ -219,6 +217,8 @@ class AssetManager
     FontLoader m_fontLoader;
 
     std::atomic<bool> m_readyForUpdate{ false };
+
+    std::vector<std::filesystem::path> m_uiTexturePaths;
 
     // used for assigning the values to material indices in the mesh
     uint32_t m_bindlessTexturesIndex;

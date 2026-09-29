@@ -145,7 +145,6 @@ auto core::SceneManager::applyPendingSwitch() -> void
 
     core::Scene* currentScene = getCurrentScene();
     std::string currentSceneName = currentScene->getName();
-    m_scenes.erase( currentSceneName );
 
     core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
 
@@ -153,6 +152,7 @@ auto core::SceneManager::applyPendingSwitch() -> void
 
     core::Scene* newScene = addScene( m_pendingScenePath.stem().string() );
     setCurrentScene( newScene->getName() );
+    m_scenes.erase( currentSceneName );
     newScene->deserialize( m_pendingScenePath );
 
     graphics::VulkanContext* ctx = core::MainRegistry::getInstance().getVulkanContext();

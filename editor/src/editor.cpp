@@ -324,6 +324,7 @@ bool editor::Editor::initMainRegistry()
 
     auto eventDispatcher = std::make_shared<core::EventDispatcher>();
     eventDispatcher->addHandler<core::WindowCloseEvent, &editor::Editor::onWindowClose>( *this );
+
     KASSERT( eventDispatcher && "could not init event dispathcer" );
     mainRegistry.addToContext<std::shared_ptr<core::EventDispatcher>>( std::move( eventDispatcher ) );
 
@@ -380,9 +381,9 @@ bool editor::Editor::initMainRegistry()
 void editor::Editor::createDescriptorPool()
 {
     std::vector<VkDescriptorPoolSize> poolSizes{
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_TEXTURE_NUM },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 5000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 5000 },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5000 },
     };
 
     VkDescriptorPoolCreateInfo poolInfo{};

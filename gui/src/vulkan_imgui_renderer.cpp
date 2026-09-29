@@ -38,7 +38,6 @@ gui::VulkanImGuiRenderer::VulkanImGuiRenderer( SDL_Window* wnd,
 
     core::EventDispatcher* eventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
     eventDispatcher->addHandler<core::ConfigChangedEvent, &VulkanImGuiRenderer::onConfigChange>( *this );
-    eventDispatcher->addHandler<core::SwitchSceneEvent, &VulkanImGuiRenderer::onSwitchSceneEvent>( *this );
 }
 
 auto gui::VulkanImGuiRenderer::onConfigChange( const core::ConfigChangedEvent& e ) -> void
@@ -46,11 +45,6 @@ auto gui::VulkanImGuiRenderer::onConfigChange( const core::ConfigChangedEvent& e
     utilities::EditorConfigManager::parseConfig();
     utilities::ColorConfig& config = utilities::EditorConfigManager::getColorConfig();
     setColorPallete( config );
-}
-
-auto gui::VulkanImGuiRenderer::onSwitchSceneEvent( const core::SwitchSceneEvent& e ) -> void
-{
-    // here we should reload all textures that the UI uses
 }
 
 void gui::VulkanImGuiRenderer::createIconSampler( graphics::VulkanDevice* device )
@@ -84,7 +78,6 @@ void gui::VulkanImGuiRenderer::end()
 
 void gui::VulkanImGuiRenderer::setupDockspace( ImGuiViewport* viewport )
 {
-
     const ImGuiID dockSpaceId = ImGui::DockSpaceOverViewport( 0, viewport );
 
     if ( static auto firstTime = true; firstTime ) [[unlikely]]
@@ -386,8 +379,8 @@ void gui::VulkanImGuiRenderer::initWindows()
                                                    "Viewport",
                                                    ViewportSpec{ .fonts = &m_fonts,
                                                                  .renderModeIcon = std::move( renderMode ),
-                                                                 .playIcon = std::move( play ),
-                                                                 .stopIcon = std::move( stop ),
+                                                                 .playIcon = play,
+                                                                 .stopIcon = stop,
                                                                  .viewportTexture = m_viewportView,
                                                                  .sampler = m_iconSampler } ) );
 
@@ -399,10 +392,17 @@ void gui::VulkanImGuiRenderer::initWindows()
 
     m_windows.emplace( ImGuiWindowName::Scene_Hierarchy,
                        std::make_unique<SceneHierarchy>(
-                           "Hierarchy", SceneHierarchySpec{ .fonts = &m_fonts, .cubeIcon = std::move( cubeIcon ) } ) );
+                           "Hierarchy", SceneHierarchySpec{ .fonts = &m_fonts, .cubeIcon = cubeIcon } ) );
 
     m_windows.emplace( ImGuiWindowName::Entity_Properties,
                        std::make_unique<EntityProperties>( "Properties", EntityPropertiesSpec{ .fonts = &m_fonts } ) );
+
+    assetManager->addUiTexture( hierarchyCubeIcon );
+    assetManager->addUiTexture( folderPath );
+    assetManager->addUiTexture( filePath );
+    assetManager->addUiTexture( playPath );
+    assetManager->addUiTexture( stopPath );
+    assetManager->addUiTexture( gltfIconPath );
 }
 
 void gui::VulkanImGuiRenderer::mainMenu()

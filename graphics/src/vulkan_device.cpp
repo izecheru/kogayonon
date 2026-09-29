@@ -240,7 +240,7 @@ auto graphics::VulkanDevice::checkValidationLayerSupport() -> bool
 
 auto graphics::VulkanDevice::shutdown() const -> void
 {
-    // printLeaks();
+    printLeaks();
     waitIdle();
 
     destroyCommandPool( m_commandPool );

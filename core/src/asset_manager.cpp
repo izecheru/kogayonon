@@ -24,8 +24,32 @@ core::AssetManager::AssetManager( graphics::VulkanContext* vkCtx )
 
 auto core::AssetManager::recreate() -> void
 {
-    destroyResources();
-    init();
+    m_vkCtx->device->waitIdle();
+    m_bindlessTexturesIndex = 0u;
+
+    for ( auto& [path, texture] : m_loadedTextures )
+    {
+        auto it = std::ranges::find_if( m_uiTexturePaths, [&]( const std::filesystem::path& p ) { return p == path; } );
+        if ( it != m_uiTexturePaths.end() )
+        {
+            continue;
+        }
+        m_vkCtx->device->destroyImageView( texture->getView() );
+        m_vkCtx->device->destroyImage( texture->getImage(), texture->getAllocation() );
+    }
+
+    for ( auto& [path, mesh] : m_loadedMeshes )
+    {
+        m_vkCtx->device->destroyBuffer( mesh->getIndicesBufferObject() );
+        m_vkCtx->device->destroyBuffer( mesh->getVertexBufferObject() );
+    }
+
+    std::erase_if( m_loadedTextures, [&]( const auto& kv ) {
+        return std::ranges::find( m_uiTexturePaths, std::filesystem::path{ kv.first } ) == m_uiTexturePaths.end();
+    } );
+
+    m_loadedMeshes.clear();
+    m_materials.clear();
 }
 
 auto core::AssetManager::init() -> void
@@ -42,12 +66,14 @@ auto core::AssetManager::destroyResources() -> void
     m_vkCtx->device->destroySampler( m_textureSampler );
     m_vkCtx->device->destroyDescriptorSetLayout( m_bindlessTexturesDescriptor.layout );
     m_vkCtx->device->destroyDescriptorSetLayout( m_materialsDescriptor.layout );
+    m_bindlessTexturesIndex = 0u;
 
     for ( auto& [path, texture] : m_loadedTextures )
     {
         m_vkCtx->device->destroyImageView( texture->getView() );
         m_vkCtx->device->destroyImage( texture->getImage(), texture->getAllocation() );
     }
+
     for ( auto& [path, mesh] : m_loadedMeshes )
     {
         m_vkCtx->device->destroyBuffer( mesh->getIndicesBufferObject() );
@@ -56,11 +82,12 @@ auto core::AssetManager::destroyResources() -> void
 
     m_loadedTextures.clear();
     m_loadedMeshes.clear();
-    m_layoutInit = false;
+    m_materials.clear();
 }
 
 core::AssetManager::~AssetManager()
 {
+    // now destroy ALL textures
     destroyResources();
 }
 
@@ -370,18 +397,13 @@ auto core::AssetManager::getTextureSampler() -> VkSampler&
 
 auto core::AssetManager::initDescriptors() -> void
 {
-    if ( !m_layoutInit )
-    {
-        createBindlessDescriptorSetLayout();
-        allocateBindlessDescriptorSet();
+    createBindlessDescriptorSetLayout();
+    allocateBindlessDescriptorSet();
 
-        // materials
-        createMaterialsBuffers( 1000 * sizeof( resources::Material ) );
-        createMaterialsDescriptorSetLayout();
-        allocateMaterialsDescriptorSet();
-
-        m_layoutInit = true;
-    }
+    // materials
+    createMaterialsBuffers( 1000 * sizeof( resources::Material ) );
+    createMaterialsDescriptorSetLayout();
+    allocateMaterialsDescriptorSet();
 }
 
 auto core::AssetManager::getTexture( const std::string& texturePath ) -> resources::Texture*
@@ -962,4 +984,9 @@ auto core::AssetManager::createMeshResources( resources::Mesh* pMesh ) -> void
 auto core::AssetManager::enqueueMesh( resources::Mesh* mesh ) -> void
 {
     m_queuedMeshes.push( mesh );
+}
+
+auto core::AssetManager::addUiTexture( const std::filesystem::path p ) -> void
+{
+    m_uiTexturePaths.push_back( p );
 }

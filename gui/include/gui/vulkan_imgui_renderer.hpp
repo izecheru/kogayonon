@@ -71,7 +71,13 @@ class VulkanImGuiRenderer
 
   private:
     auto onConfigChange( const core::ConfigChangedEvent& e ) -> void;
-    auto onSwitchSceneEvent( const core::SwitchSceneEvent& e ) -> void;
+    auto onSwitchScene( const core::SwitchSceneEvent& e ) -> void;
+
+    template <class T>
+    auto getWindow( ImGuiWindowName name ) -> T*
+    {
+        return dynamic_cast<T*>( m_windows[name].get() );
+    }
 
     auto createIconSampler( graphics::VulkanDevice* device ) -> void;
     auto initWindows() -> void;
