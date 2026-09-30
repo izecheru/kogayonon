@@ -40,8 +40,6 @@ editor::Editor::Editor()
 
     KeyboardState::initState();
 
-    init();
-
     namespace fs = std::filesystem;
 
     // create the editor dir
@@ -57,6 +55,8 @@ editor::Editor::Editor()
     {
         fs::create_directory( scenesDir );
     }
+
+    init();
 }
 
 editor::Editor::~Editor()
