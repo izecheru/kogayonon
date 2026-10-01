@@ -37,15 +37,8 @@ auto core::AssetManager::recreate() -> void
             continue;
         }
 
-        if ( texture->isKtx )
-        {
-            m_vkCtx->device->destroyImageView( texture->image.vkImageView );
-            m_ktxTextureManager->destroyTexture( texture.get() );
-            continue;
-        }
-
-        m_vkCtx->device->destroyImageView( texture->image.vkImageView );
-        m_vkCtx->device->destroyImage( texture->image.vkImage, texture->image.vmaAllocation );
+        m_vkCtx->device->destroyImageView( texture->vulkanImage.vkImageView );
+        m_vkCtx->device->destroyImage( texture->vulkanImage.vkImage, texture->vulkanImage.vmaAllocation );
     }
 
     for ( auto& [path, mesh] : m_loadedMeshes )
@@ -80,15 +73,8 @@ auto core::AssetManager::destroyResources() -> void
 
     for ( auto& [path, texture] : m_loadedTextures )
     {
-        if ( texture->isKtx )
-        {
-            m_vkCtx->device->destroyImageView( texture->image.vkImageView );
-            m_ktxTextureManager->destroyTexture( texture.get() );
-            continue;
-        }
-
-        m_vkCtx->device->destroyImageView( texture->image.vkImageView );
-        m_vkCtx->device->destroyImage( texture->image.vkImage, texture->image.vmaAllocation );
+        m_vkCtx->device->destroyImageView( texture->vulkanImage.vkImageView );
+        m_vkCtx->device->destroyImage( texture->vulkanImage.vkImage, texture->vulkanImage.vmaAllocation );
     }
 
     for ( auto& [path, mesh] : m_loadedMeshes )
@@ -117,7 +103,7 @@ auto core::AssetManager::loadTextures( const std::vector<std::tuple<std::string,
         int w;
         int h;
         int c;
-        stbi_uc* data;
+        uint8_t* data;
         VkDeviceSize size;
         resources::Texture* texture;
     };
@@ -138,44 +124,39 @@ auto core::AssetManager::loadTextures( const std::vector<std::tuple<std::string,
         for ( const auto& [path, name] : textures )
         {
             ImageData img{};
-
             std::filesystem::path p{ path };
-            bool ktxExists = p.extension().string() == ".ktx2";
-            if ( ktxExists )
+            std::string ktxFilename = p.stem().string() + ".ktx2";
+            std::filesystem::path ktxPath = p.parent_path() / "ktx" / ktxFilename;
+            bool ktxExists = std::filesystem::exists( ktxPath );
+
+            // first generate ktx2 texture then load
+            if ( !ktxExists )
             {
-                // load ktx texture
-                std::unique_ptr<resources::Texture> texture = std::make_unique<resources::Texture>();
-                m_ktxTextureManager->loadTexture( p, texture.get() );
-                texture->isKtx = true;
-
-                m_vkCtx->device->createImageView( texture->image.vkImageView,
-                                                  texture->ktxImage.vulkanTexture.image,
-                                                  VK_FORMAT_R8G8B8A8_UNORM,
-                                                  VK_IMAGE_ASPECT_COLOR_BIT,
-                                                  p.stem().string() );
-
-                img.texture = texture.get();
-
-                m_loadedTextures.emplace( path, std::move( texture ) );
-                imageData.push_back( img );
-                continue;
+                int w, c, h;
+                // reconstruct the normal path
+                uint8_t* data = stbi_load( path.c_str(), &w, &h, &c, STBI_rgb_alpha );
+                m_ktxTextureManager->saveToKtx( p, KtxTextureData{ .w = w, .h = h, .c = 4, .pixels = data } );
             }
 
+            std::unique_ptr<resources::Texture> texture = std::make_unique<resources::Texture>();
+
+            if ( m_ktxTextureManager->loadTexture( ktxPath, texture.get() ) != KTX_SUCCESS )
             {
-                ZoneScopedN( "stbi_load" );
-                img.data = stbi_load( path.c_str(), &img.w, &img.h, &img.c, STBI_rgb_alpha );
+                throw std::runtime_error( "something went wrong man" );
             }
 
-            img.size = img.w * img.h * 4;
+            img.data = m_ktxTextureManager->getTextureData( texture.get() );
+            img.size = m_ktxTextureManager->getDataSize( texture.get() );
+            img.w = texture->ktxImage.texture->baseWidth;
+            img.h = texture->ktxImage.texture->baseHeight;
+            img.texture = texture.get();
+
             requiredStageBufferSize += img.size;
 
             if ( !img.data )
             {
-                throw std::runtime_error( "failed to load texture image!" );
+                throw std::runtime_error( "failed to load texture vulkanImage!" );
             }
-
-            m_ktxTextureManager->convertToKtx( p,
-                                               KtxTextureData{ .w = img.w, .h = img.h, .c = 4, .pixels = img.data } );
 
             VkImageCreateInfo imageInfo{};
             imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -195,14 +176,11 @@ auto core::AssetManager::loadTextures( const std::vector<std::tuple<std::string,
             VmaAllocationCreateInfo imageAllocInfo{};
             imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-            std::unique_ptr<resources::Texture> texture = std::make_unique<resources::Texture>();
-            img.texture = texture.get();
-
             m_vkCtx->device->createImage(
-                texture->image.vkImage, imageInfo, imageAllocInfo, texture->image.vmaAllocation, name );
+                texture->vulkanImage.vkImage, imageInfo, imageAllocInfo, texture->vulkanImage.vmaAllocation, name );
 
-            m_vkCtx->device->createImageView( texture->image.vkImageView,
-                                              texture->image.vkImage,
+            m_vkCtx->device->createImageView( texture->vulkanImage.vkImageView,
+                                              texture->vulkanImage.vkImage,
                                               VK_FORMAT_R8G8B8A8_UNORM,
                                               VK_IMAGE_ASPECT_COLOR_BIT );
 
@@ -213,7 +191,7 @@ auto core::AssetManager::loadTextures( const std::vector<std::tuple<std::string,
                                                                 .dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
                                                                 .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
                                                                 .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                                                .image = texture->image.vkImage,
+                                                                .image = texture->vulkanImage.vkImage,
                                                                 .subresourceRange = {
                                                                     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                                                                     .baseMipLevel = 0,
@@ -235,7 +213,7 @@ auto core::AssetManager::loadTextures( const std::vector<std::tuple<std::string,
                                                                .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
                                                                .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                                                .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                                               .image = texture->image.vkImage,
+                                                               .image = texture->vulkanImage.vkImage,
                                                                .subresourceRange = {
                                                                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                                                                    .baseMipLevel = 0,
@@ -249,17 +227,6 @@ auto core::AssetManager::loadTextures( const std::vector<std::tuple<std::string,
             imageData.push_back( img );
             m_loadedTextures.emplace( path, std::move( texture ) );
         }
-    }
-
-    // if we only have ktx textures
-    if ( requiredStageBufferSize == 0 )
-    {
-        for ( ImageData& img : imageData )
-        {
-            updateBindlessTextures( img.texture );
-            stbi_image_free( img.data );
-        }
-        return;
     }
 
     // set all the undefined barriers here
@@ -287,11 +254,6 @@ auto core::AssetManager::loadTextures( const std::vector<std::tuple<std::string,
 
     for ( auto& img : imageData )
     {
-        if ( img.texture->isKtx )
-        {
-            continue;
-        }
-
         m_vkCtx->device->copyMemoryToAllocation( img.data, stageBuffer.vmaAllocation, currentOffset, img.size );
 
         VkBufferImageCopy region{};
@@ -309,7 +271,7 @@ auto core::AssetManager::loadTextures( const std::vector<std::tuple<std::string,
 
         vkCmdCopyBufferToImage( commandBuffer,
                                 stageBuffer.vkBuffer,
-                                img.texture->image.vkImage,
+                                img.texture->vulkanImage.vkImage,
                                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                 1,
                                 &region );
@@ -333,7 +295,7 @@ auto core::AssetManager::loadTextures( const std::vector<std::tuple<std::string,
     for ( ImageData& img : imageData )
     {
         updateBindlessTextures( img.texture );
-        stbi_image_free( img.data );
+        m_ktxTextureManager->destroyTexture( img.texture );
     }
 }
 
@@ -357,7 +319,7 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
 
     if ( !pixels )
     {
-        throw std::runtime_error( "failed to load texture image!" );
+        throw std::runtime_error( "failed to load texture vulkanImage!" );
     }
 
     std::unique_ptr<resources::Texture> texture = std::make_unique<resources::Texture>();
@@ -393,10 +355,12 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
     imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
     m_vkCtx->device->createImage(
-        texture->image.vkImage, imageInfo, imageAllocInfo, texture->image.vmaAllocation, textureName );
+        texture->vulkanImage.vkImage, imageInfo, imageAllocInfo, texture->vulkanImage.vmaAllocation, textureName );
 
-    m_vkCtx->device->createImageView(
-        texture->image.vkImageView, texture->image.vkImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT );
+    m_vkCtx->device->createImageView( texture->vulkanImage.vkImageView,
+                                      texture->vulkanImage.vkImage,
+                                      VK_FORMAT_R8G8B8A8_UNORM,
+                                      VK_IMAGE_ASPECT_COLOR_BIT );
 
     // transfer barrier
     VkImageMemoryBarrier2 transferLayoutBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -406,7 +370,7 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
                                                  .dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
                                                  .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
                                                  .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                                 .image = texture->image.vkImage,
+                                                 .image = texture->vulkanImage.vkImage,
                                                  .subresourceRange = {
                                                      .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                                                      .baseMipLevel = 0,
@@ -415,7 +379,7 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
                                                      .layerCount = 1,
                                                  } };
 
-    m_vkCtx->device->transitionImageLayout( texture->image.vkImage, transferLayoutBarrier );
+    m_vkCtx->device->transitionImageLayout( texture->vulkanImage.vkImage, transferLayoutBarrier );
 
     m_vkCtx->device->copyMemoryToAllocation( pixels, stageBuffer.vmaAllocation, 0, imageSize );
 
@@ -429,7 +393,7 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
                                             .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
                                             .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                             .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                            .image = texture->image.vkImage,
+                                            .image = texture->vulkanImage.vkImage,
                                             .subresourceRange = {
                                                 .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                                                 .baseMipLevel = 0,
@@ -439,7 +403,7 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
                                             } };
 
     m_vkCtx->device->copyBufferToImage( stageBuffer.vkBuffer,
-                                        texture->image.vkImage,
+                                        texture->vulkanImage.vkImage,
                                         static_cast<uint32_t>( texWidth ),
                                         static_cast<uint32_t>( texHeight ),
                                         copyImageBarrier );
@@ -728,7 +692,7 @@ auto core::AssetManager::updateBindlessTextures( const std::vector<resources::Te
     {
         imageInfo.push_back( VkDescriptorImageInfo{
             .sampler = m_textureSampler,
-            .imageView = tex->image.vkImageView,
+            .imageView = tex->vulkanImage.vkImageView,
             .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         } );
 
@@ -755,7 +719,7 @@ auto core::AssetManager::updateBindlessTextures( resources::Texture* texture ) -
 {
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = texture->image.vkImageView;
+    imageInfo.imageView = texture->vulkanImage.vkImageView;
     imageInfo.sampler = m_textureSampler;
 
     VkWriteDescriptorSet bindlessDescriptor{ .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,

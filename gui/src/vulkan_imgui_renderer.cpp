@@ -339,13 +339,13 @@ void gui::VulkanImGuiRenderer::initWindows()
     auto gltfTexture = assetManager->loadTexture( "gltf_file.png", gltfIconPath.string() );
 
     auto folder = ImGui_ImplVulkan_AddTexture(
-        m_iconSampler, folderTexture->image.vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+        m_iconSampler, folderTexture->vulkanImage.vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
     auto file = ImGui_ImplVulkan_AddTexture(
-        m_iconSampler, fileTexture->image.vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+        m_iconSampler, fileTexture->vulkanImage.vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
     auto gltfFile = ImGui_ImplVulkan_AddTexture(
-        m_iconSampler, gltfTexture->image.vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+        m_iconSampler, gltfTexture->vulkanImage.vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
     m_windows.emplace(
         ImGuiWindowName::File_Explorer,
@@ -366,13 +366,13 @@ void gui::VulkanImGuiRenderer::initWindows()
     auto renderModeTexture = assetManager->loadTexture( "render_mode_icon.png", renderModePath.string() );
 
     auto play = ImGui_ImplVulkan_AddTexture(
-        m_iconSampler, playTexture->image.vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+        m_iconSampler, playTexture->vulkanImage.vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
     auto stop = ImGui_ImplVulkan_AddTexture(
-        m_iconSampler, stopTexture->image.vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+        m_iconSampler, stopTexture->vulkanImage.vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
     auto renderMode = ImGui_ImplVulkan_AddTexture(
-        m_iconSampler, renderModeTexture->image.vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+        m_iconSampler, renderModeTexture->vulkanImage.vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
     m_windows.emplace( ImGuiWindowName::Viewport,
                        std::make_unique<Viewport>( m_wnd,
@@ -388,7 +388,7 @@ void gui::VulkanImGuiRenderer::initWindows()
     auto hierarchyCubeIconTexture = assetManager->loadTexture( "3d-cube.png", hierarchyCubeIcon.string() );
 
     auto cubeIcon = ImGui_ImplVulkan_AddTexture(
-        m_iconSampler, hierarchyCubeIconTexture->image.vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
+        m_iconSampler, hierarchyCubeIconTexture->vulkanImage.vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
 
     m_windows.emplace( ImGuiWindowName::Scene_Hierarchy,
                        std::make_unique<SceneHierarchy>(

@@ -9,18 +9,11 @@ struct KtxImage
 {
     ktxTexture2* texture;
     ktxVulkanTexture vulkanTexture;
-    bool uploaded{ false };
-
-    /**
-     * @brief This is to retrieve the normal texture from the asset manager map
-     * to update the texture if needed
-     */
-    std::filesystem::path normalTexturePath{};
 };
 
 struct Texture
 {
-    graphics::VulkanImage image;
+    graphics::VulkanImage vulkanImage;
     KtxImage ktxImage;
     uint32_t textureIndex{ 0u };
     uint32_t samplerIndex{ 0u };
@@ -30,6 +23,5 @@ struct Texture
     int height{ 0 };
     int numComponents{ 0 };
     bool loaded{ false };
-    bool isKtx{ false };
 };
 } // namespace resources

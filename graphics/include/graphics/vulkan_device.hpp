@@ -113,6 +113,9 @@ class VulkanDevice
     template <typename T>
     auto copyToBuffer( std::vector<T>& data, VulkanBuffer& buffer ) -> void;
 
+    template <typename T>
+    auto copyToBuffer( T& data, VulkanBuffer& buffer, VkDeviceSize size ) -> void;
+
     auto invalidateAllocation( VulkanBuffer& vulkanBuffer, VkDeviceSize offset, VkDeviceSize size ) const -> void;
 
     /**

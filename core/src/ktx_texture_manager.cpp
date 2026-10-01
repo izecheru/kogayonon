@@ -1,12 +1,17 @@
 #include "core/asset_manager/ktx_texture_manager.hpp"
 #include "utilities/utils/utils.hpp"
 #include "graphics/vulkan_device.hpp"
+#include <vma/vk_mem_alloc.h>
 #include <stb_image.h>
 #include "resources/texture.hpp"
 
 core::KtxTextureManager::KtxTextureManager( graphics::VulkanDevice* device )
     : m_device{ device }
+    , m_subAllocatorCallbacks{}
+
 {
+    // g_Allocator = device->getAllocator();
+
     ktxVulkanDeviceInfo_Construct( &m_vulkanDeviceInfo,
                                    device->getPhysicalDevice(),
                                    device->getLogicalDevice(),
@@ -23,30 +28,10 @@ core::KtxTextureManager::~KtxTextureManager()
 auto core::KtxTextureManager::loadTexture( const std::filesystem::path p, resources::Texture* texture )
     -> KTX_error_code
 {
-    auto result =
-        ktxTexture2_CreateFromNamedFile( p.string().c_str(), KTX_TEXTURE_CREATE_NO_FLAGS, &texture->ktxImage.texture );
+    KTX_error_code result = ktxTexture2_CreateFromNamedFile(
+        p.string().c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &texture->ktxImage.texture );
 
-    if ( result != KTX_SUCCESS )
-    {
-        return result;
-    }
-
-    result = ktxTexture2_VkUploadEx( texture->ktxImage.texture,
-                                     &m_vulkanDeviceInfo,
-                                     &texture->ktxImage.vulkanTexture,
-                                     VK_IMAGE_TILING_OPTIMAL,
-                                     VK_IMAGE_USAGE_SAMPLED_BIT,
-                                     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
-
-    if ( result != KTX_SUCCESS )
-    {
-        ktxTexture2_Destroy( texture->ktxImage.texture );
-        return result;
-    }
-
-    texture->ktxImage.uploaded = true;
-
-    return KTX_SUCCESS;
+    return result;
 }
 
 auto core::KtxTextureManager::saveTexture( const std::filesystem::path p, resources::Texture* texture )
@@ -60,10 +45,8 @@ auto core::KtxTextureManager::saveTexture( const std::filesystem::path p, resour
     return ktxTexture2_WriteToNamedFile( texture->ktxImage.texture, p.string().c_str() );
 }
 
-auto core::KtxTextureManager::convertToKtx( const std::filesystem::path p, KtxTextureData data ) -> KTX_error_code
+auto core::KtxTextureManager::saveToKtx( const std::filesystem::path p, KtxTextureData data ) -> KTX_error_code
 {
-    KINFO( "Converting texture {} to KTX format", p.stem().string() );
-
     if ( !data.pixels )
     {
         return KTX_FILE_OPEN_FAILED;
@@ -109,13 +92,18 @@ auto core::KtxTextureManager::destroyTexture( resources::Texture* texture ) -> v
         return;
     }
 
-    if ( texture->ktxImage.uploaded )
-    {
-        ktxVulkanTexture_Destruct( &texture->ktxImage.vulkanTexture, m_device->getLogicalDevice(), nullptr );
-    }
-
     if ( texture->ktxImage.texture )
     {
         ktxTexture2_Destroy( texture->ktxImage.texture );
     }
+}
+
+auto core::KtxTextureManager::getTextureData( resources::Texture* texture ) -> uint8_t*
+{
+    return ktxTexture_GetData( ktxTexture( texture->ktxImage.texture ) );
+}
+
+auto core::KtxTextureManager::getDataSize( resources::Texture* texture ) -> uint32_t
+{
+    return ktxTexture_GetDataSize( ktxTexture( texture->ktxImage.texture ) );
 }

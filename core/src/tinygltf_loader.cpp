@@ -140,17 +140,13 @@ auto core::TinyGltfLoader::parseTextureData( resources::Mesh* pMesh )
         if ( texturePathFromLoader.empty() )
             return { "" };
 
-        fs::path p{ texturePathFromLoader };
+        std::filesystem::path p{ texturePathFromLoader };
+        auto path = std::filesystem::current_path() / "engine_resources" / "textures" / p.filename();
 
         // check for ktx counterpart
-        std::string ktxFilename = p.stem().string() + ".ktx2";
-        fs::path ktxPath = fs::current_path() / "engine_resources" / "textures" / "ktx" / ktxFilename;
-        if ( fs::exists( ktxPath ) )
-        {
-            return ktxPath.string();
-        }
+        // std::string ktxFilename = p.stem().string() + ".ktx2";
+        // fs::path ktxPath = fs::current_path() / "engine_resources" / "textures" / "ktx" / ktxFilename;
 
-        fs::path path = std::filesystem::current_path() / "engine_resources" / "textures" / p.filename();
         return path.string();
     };
 
@@ -167,19 +163,22 @@ auto core::TinyGltfLoader::parseTextureData( resources::Mesh* pMesh )
         if ( submesh.submeshMaterial.diffuseTextureIndex != -1 )
         {
             const tg3_str* uri = &m_model.images[submesh.submeshMaterial.diffuseTextureIndex].uri;
-            diffusePath = std::string{ uri->data, uri->len };
+            if ( uri->data && uri->len > 0 )
+                diffusePath = std::string{ uri->data, uri->len };
         }
 
         if ( submesh.submeshMaterial.normalTextureIndex != -1 )
         {
             const tg3_str* uri = &m_model.images[submesh.submeshMaterial.normalTextureIndex].uri;
-            normalPath = std::string{ uri->data, uri->len };
+            if ( uri->data && uri->len > 0 )
+                normalPath = std::string{ uri->data, uri->len };
         }
 
         if ( submesh.submeshMaterial.emissiveTextureIndex != -1 )
         {
             const tg3_str* uri = &m_model.images[submesh.submeshMaterial.emissiveTextureIndex].uri;
-            emissivePath = std::string{ uri->data, uri->len };
+            if ( uri->data && uri->len > 0 )
+                emissivePath = std::string{ uri->data, uri->len };
         }
 
         KINFO( "Material {}, {}, {}", normalPath, emissivePath, diffusePath );

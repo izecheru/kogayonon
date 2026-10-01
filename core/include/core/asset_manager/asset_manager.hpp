@@ -131,8 +131,18 @@ class AssetManager
     auto getMeshes() -> std::unordered_map<std::string, std::unique_ptr<resources::Mesh>>&;
     auto getTextures() -> std::unordered_map<std::string, std::unique_ptr<resources::Texture>>&;
 
+    /**
+     * @brief Create vertex and indices buffers
+     * @param pMesh
+     * @return
+     */
     auto createMeshResources( resources::Mesh* pMesh ) -> void;
 
+    /**
+     * @brief Populates a vector of texture paths and protects them from runtime destruction
+     * @param p
+     * @return
+     */
     auto addUiTexture( const std::filesystem::path p ) -> void;
 
     template <typename T>
