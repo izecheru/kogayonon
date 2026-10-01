@@ -217,10 +217,6 @@ static std::unordered_map<VkResult, std::string> ErrorDescriptions = {
       "An unknown error has occurred; either the application has provided invalid input, or an implementation failure "
       "has occurred." } };
 
-#define VK_CALL( x ) VK_CHECK_CALL( x )
-
-#define VK_CHECK_CALL( x ) VulkanCheckErrorStatus( x, __FILE__, __LINE__ )
-
 static bool VulkanCheckErrorStatus( VkResult x, const char* file, int line )
 {
     if ( x != VK_SUCCESS )
@@ -234,6 +230,10 @@ static bool VulkanCheckErrorStatus( VkResult x, const char* file, int line )
         return false;
     }
 }
+
+#define VK_CHECK_CALL( x ) VulkanCheckErrorStatus( x, __FILE__, __LINE__ )
+
+#define VK_CALL( x ) VK_CHECK_CALL( x )
 
 static auto findMemoryType( VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties )
     -> uint32_t

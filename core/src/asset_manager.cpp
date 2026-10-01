@@ -251,6 +251,17 @@ auto core::AssetManager::loadTextures( const std::vector<std::tuple<std::string,
         }
     }
 
+    // if we only have ktx textures
+    if ( requiredStageBufferSize == 0 )
+    {
+        for ( ImageData& img : imageData )
+        {
+            updateBindlessTextures( img.texture );
+            stbi_image_free( img.data );
+        }
+        return;
+    }
+
     // set all the undefined barriers here
     VkDependencyInfo before{};
     before.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
