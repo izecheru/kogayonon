@@ -13,9 +13,7 @@
 #include "graphics/vulkan_swapchain.hpp"
 #include "utilities/utils/utils.hpp"
 
-#ifdef TRACY_ENABLE
 #include "utilities/tracy_utils/tracy_utils.hpp"
-#endif
 
 core::AssetManager::AssetManager( graphics::VulkanContext* vkCtx )
     : m_bindlessTexturesIndex{ 0u }

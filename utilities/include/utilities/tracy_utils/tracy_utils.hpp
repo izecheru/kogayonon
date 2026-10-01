@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef TRACY_ENABLE
-#define ZoneScoped
+#define ZoneScoped()
 #define ZoneScopedN( name )
 #define ZoneScopedC( color )
 #define ZoneScopedNC( name, color )
