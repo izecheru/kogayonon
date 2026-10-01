@@ -134,13 +134,23 @@ auto core::TinyGltfLoader::parseTextureData( resources::Mesh* pMesh )
     -> std::unordered_map<uint32_t, std::map<TextureType, std::string>>
 {
     std::unordered_map<uint32_t, std::map<TextureType, std::string>> submeshMaterials;
+    namespace fs = std::filesystem;
 
     auto getEnginePath = []( const std::string& texturePathFromLoader ) -> std::string {
         if ( texturePathFromLoader.empty() )
             return { "" };
 
-        std::filesystem::path p{ texturePathFromLoader };
-        auto path = std::filesystem::current_path() / "engine_resources" / "textures" / p.filename();
+        fs::path p{ texturePathFromLoader };
+
+        // check for ktx counterpart
+        std::string ktxFilename = p.stem().string() + ".ktx2";
+        fs::path ktxPath = fs::current_path() / "engine_resources" / "textures" / "ktx" / ktxFilename;
+        if ( fs::exists( ktxPath ) )
+        {
+            return ktxPath.string();
+        }
+
+        fs::path path = std::filesystem::current_path() / "engine_resources" / "textures" / p.filename();
         return path.string();
     };
 

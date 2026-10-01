@@ -1,47 +1,62 @@
-set(HEADER_FILES
-    "include/core/systems/undo_redo_system.hpp"
+set(EVENT_FILES
     "include/core/event/imgui_event.hpp"
     "include/core/event/app_event.hpp"
     "include/core/event/event.hpp"
     "include/core/event/event_dispatcher.hpp"
-    "include/core/ecs/registry.hpp"
-    "include/core/ecs/main_registry.hpp"
-    "include/core/scene/scene.hpp"
-    "include/core/ecs/entity.hpp"
-    "include/core/ecs/entity.inl"
     "include/core/input/keyboard_events.hpp"
     "include/core/input/mouse_events.hpp"
+	"include/core/event/event_emitter.hpp"
+	"include/core/scene/scene_event_handler.hpp"
+    "include/core/event/file_events.hpp"
+    "include/core/event/config_event.hpp"
+    "include/core/event/project_event.hpp"
+)
+
+set(ECS_FILES
     "include/core/ecs/components/texture_component.hpp"
-    "include/core/ecs/entity_types.hpp"
     "include/core/ecs/components/mesh_component.hpp"
     "include/core/ecs/components/identifier_component.hpp"
-    "include/core/scene/scene_manager.hpp"
-    "include/core/scene/scene_event_handler.hpp"
     "include/core/ecs/components/transform_component.hpp"
     "include/core/ecs/components/pointlight_component.hpp"
     "include/core/ecs/components/camera_component.hpp"
-    "include/core/event/file_events.hpp"
-    "include/core/event/config_event.hpp"
     "include/core/ecs/components/index_component.hpp"
     "include/core/ecs/components/text_component.hpp"
-    "include/core/event/project_event.hpp"
-    "include/core/project/project.hpp"
-    "include/core/project/project_manager.hpp"
     "include/core/ecs/components/rigidbody_component.hpp"
     "include/core/ecs/components/outline_component.hpp"
-    "include/core/event/event_emitter.hpp"
+    "include/core/ecs/components/player_component.hpp"
+    "include/core/ecs/components/npc_component.hpp"
+
+	"include/core/ecs/registry.hpp"
+    "include/core/ecs/main_registry.hpp"
+    "include/core/ecs/entity.hpp"
+    "include/core/ecs/entity.inl"
+    "include/core/ecs/entity_types.hpp"
+)
+
+set(HEADER_FILES
+    "include/core/systems/undo_redo_system.hpp"
+    "include/core/scene/scene.hpp"
+
+    ${ECS_FILES}
+    ${EVENT_FILES}
+
+    "include/core/scene/scene_manager.hpp"
+    "include/core/project/project.hpp"
+    "include/core/project/project_manager.hpp"
     "include/core/utils/meta_utilities.hpp"
     "include/core/systems/scripting_system.hpp"
     "include/core/systems/scene_rendering_system.hpp"
     "include/core/asset_manager/asset_manager.hpp"
     "include/core/asset_manager/font_loader.hpp"
     "include/core/asset_manager/tinygltf_loader.hpp"
+    "include/core/asset_manager/ktx_texture_manager.hpp"
     "include/core/directory_watcher/directory_watcher.hpp"
 )
 
 set(SOURCE_FILES
     "src/main_registry.cpp"
     "src/undo_redo_system.cpp"
+    "src/ktx_texture_manager.cpp"
     "src/entity.cpp"
     "src/scene.cpp"
     "src/scene_manager.cpp"
@@ -66,13 +81,14 @@ target_include_directories(
   core
   PUBLIC 
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
-  PRIVATE ${SOL2_INCLUDE_DIRS})
+  PRIVATE ${SOL2_INCLUDE_DIRS}
+)
 
 target_precompile_headers(core REUSE_FROM precompiled)
 target_link_libraries(
   core
-  PUBLIC EnTT::EnTT glm::glm-header-only physics precompiled msdf-atlas-gen  PRIVATE  window yaml-cpp::yaml-cpp utilities
-          resources tinygltf
+  PUBLIC EnTT::EnTT glm::glm-header-only physics precompiled msdf-atlas-gen KTX::ktx 
+  PRIVATE yaml-cpp::yaml-cpp utilities resources tinygltf 
 )
 
 

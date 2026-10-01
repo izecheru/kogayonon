@@ -14,7 +14,6 @@ set(HEADER_FILES
 set(SOURCE_FILES 
   "src/mesh.cpp"
   "src/font.cpp"
-  "src/texture.cpp"
 )
 
 add_library(resources ${SOURCE_FILES})

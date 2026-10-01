@@ -1,4 +1,5 @@
 #include "core/scene/scene_manager.hpp"
+#include "graphics/vulkan_context.hpp"
 #include "core/event/scene_events.hpp"
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/main_registry.hpp"

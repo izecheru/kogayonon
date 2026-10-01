@@ -1,54 +1,35 @@
 #pragma once
-#include "graphics/vulkan_image.hpp"
-#include "precompiled/pch.hpp"
-#include <vma/vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
+#include <ktxvulkan.h>
+#include "graphics/vulkan_image.hpp"
 
 namespace resources
 {
-class Texture
+struct KtxImage
 {
-  public:
-    Texture() = default;
+    ktxTexture2* texture;
+    ktxVulkanTexture vulkanTexture;
+    bool uploaded{ false };
 
-    // without index
-    explicit Texture( const std::string& p, const std::string& name );
-    explicit Texture( const std::string& p, int w, int h, int n );
+    /**
+     * @brief This is to retrieve the normal texture from the asset manager map
+     * to update the texture if needed
+     */
+    std::filesystem::path normalTexturePath{};
+};
 
-    // with index for bindless texture buffer
-    explicit Texture( const std::string& p, const std::string& name, uint32_t textureIndex );
-    explicit Texture( const std::string& p, int w, int h, int n, uint32_t textureIndex );
-
-    auto getPath() const -> std::string;
-    auto getName() const -> std::string;
-    auto getWidth() const -> int;
-    auto getHeight() const -> int;
-    auto isLoaded() const -> bool;
-
-    auto setPath( const std::string& path ) -> void;
-    auto setWidth( int width ) -> void;
-    auto setHeight( int height ) -> void;
-    auto setLoaded( bool value ) -> void;
-
-    auto getImage() -> VkImage&;
-    auto getView() -> VkImageView&;
-    auto getAllocation() -> VmaAllocation&;
-
-    auto getIndex() const -> uint32_t;
-    auto setIndex( uint32_t index ) -> void;
-    auto setSamplerIndex( uint32_t index ) -> void;
-
-  private:
-    graphics::VulkanImage m_image;
-
-    uint32_t m_textureIndex;
-    uint32_t m_samplerIndex;
-
-    std::string m_path;
-    std::string m_name;
-    int m_width{ 0 };
-    int m_height{ 0 };
-    int m_numComponents{ 0 };
-    bool m_loaded{ false };
+struct Texture
+{
+    graphics::VulkanImage image;
+    KtxImage ktxImage;
+    uint32_t textureIndex{ 0u };
+    uint32_t samplerIndex{ 0u };
+    std::string path{ "" };
+    std::string name{ "" };
+    int width{ 0 };
+    int height{ 0 };
+    int numComponents{ 0 };
+    bool loaded{ false };
+    bool isKtx{ false };
 };
 } // namespace resources

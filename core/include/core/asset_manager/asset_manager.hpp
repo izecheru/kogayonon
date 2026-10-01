@@ -3,15 +3,28 @@
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
 #include "core/asset_manager/font_loader.hpp"
-#include "core/asset_manager/tinygltf_loader.hpp"
 #include "graphics/vulkan_buffer.hpp"
 #include "graphics/vulkan_descriptor.hpp"
+#include "core/asset_manager/tinygltf_loader.hpp"
 #include "precompiled/pch.hpp"
-#include "resources/texture.hpp"
-#include "resources/material.hpp"
-#include "resources/mesh.hpp"
-#include "resources/font.hpp"
-#include "graphics/vulkan_context.hpp"
+
+namespace resources
+{
+struct Texture;
+class Mesh;
+class Font;
+struct Material;
+} // namespace resources
+
+namespace graphics
+{
+struct VulkanContext;
+}
+
+namespace core
+{
+class KtxTextureManager;
+}
 
 #define MAX_TEXTURE_SUPPORT 1000
 
@@ -215,6 +228,7 @@ class AssetManager
     VkSampler m_textureSampler;
 
     FontLoader m_fontLoader;
+    std::unique_ptr<KtxTextureManager> m_ktxTextureManager;
 
     std::atomic<bool> m_readyForUpdate{ false };
 

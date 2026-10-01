@@ -70,6 +70,7 @@ find_package(Jolt CONFIG REQUIRED)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 find_package(Vulkan)
 find_package(enkiTS CONFIG REQUIRED)
+find_package(Ktx CONFIG REQUIRED)
 
 add_subdirectory("dependencies/imgui")
 add_subdirectory("dependencies/cgltf")

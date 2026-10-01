@@ -1,6 +1,5 @@
 #include "renderer/vulkan_renderer.hpp"
 #include <SDL3/SDL.h>
-#include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/rigidbody_component.hpp"
@@ -55,7 +54,9 @@ auto rendering::VulkanRenderer::onUpdate() -> void
     presentToScreen();
 
     if ( !m_resizeRequested )
+    {
         return;
+    }
 
     m_resizeRequested = false;
 

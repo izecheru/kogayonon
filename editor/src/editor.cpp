@@ -42,19 +42,25 @@ editor::Editor::Editor()
 
     namespace fs = std::filesystem;
 
-    // create the editor dir
-    fs::path editorDir = fs::current_path() / "editor";
-    if ( !fs::exists( editorDir ) )
-    {
-        fs::create_directory( editorDir );
-    }
+    auto checkAndCreate = []( const std::initializer_list<fs::path>& paths ) {
+        for ( const fs::path& i : paths )
+        {
+            if ( fs::exists( i ) )
+            {
+                continue;
+            }
 
-    // scenes dir
-    fs::path scenesDir = fs::current_path() / "editor" / "scenes";
-    if ( !fs::exists( scenesDir ) )
-    {
-        fs::create_directory( scenesDir );
-    }
+            fs::create_directories( i );
+        }
+    };
+
+    fs::path current = fs::current_path();
+
+    fs::path ktxTexturesDir = current / "engine_resources" / "textures" / "ktx";
+    fs::path editorDir = current / "editor";
+    fs::path scenesDir = editorDir / "scenes";
+
+    checkAndCreate( { editorDir, ktxTexturesDir, scenesDir } );
 
     init();
 }

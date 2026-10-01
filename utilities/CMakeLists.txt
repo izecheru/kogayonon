@@ -61,6 +61,7 @@ target_link_libraries(utilities
 	resources
 	slang::gfx
 	slang::slang 
+	precompiled
 )
 
 if(KOGAYONON_ENABLE_TRACY)
