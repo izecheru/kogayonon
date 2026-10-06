@@ -1,5 +1,4 @@
 #include "utilities/config_manager/config_manager.hpp"
-#include <yaml-cpp/yaml.h>
 #include "utilities/utils/utils.hpp"
 #include "utilities/yaml_serializer/yaml_serializer.hpp"
 

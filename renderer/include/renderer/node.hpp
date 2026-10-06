@@ -1,8 +1,5 @@
 #pragma once
-#include <entt/entt.hpp>
 #include "graphics/vulkan_image.hpp"
-#include "precompiled/pch.hpp"
-#include "utilities/utils/utils.hpp"
 
 namespace rendering
 {

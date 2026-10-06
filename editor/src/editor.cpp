@@ -1,16 +1,10 @@
 #include "editor/editor.hpp"
-#include <SDL3/SDL.h>
+#include <SDL3/SDL_error.h>
 #include <SDL3/SDL_vulkan.h>
-#include <imgui.h>
 #include <imgui_impl_sdl3.h>
-#include <imgui_impl_vulkan.h>
-#include <rapidjson/istreamwrapper.h>
-#include <glm/gtc/type_ptr.hpp>
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/directional_light_component.hpp"
-#include "core/ecs/components/mesh_component.hpp"
-#include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/event/app_event.hpp"
 #include "core/event/event_dispatcher.hpp"
@@ -18,16 +12,11 @@
 #include "core/input/mouse_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
-#include "core/systems/scene_rendering_system.hpp"
 #include "graphics/vulkan_context.hpp"
 #include "graphics/vulkan_device.hpp"
 #include "graphics/vulkan_swapchain.hpp"
-#include "gui/vulkan_imgui_renderer.hpp"
 #include "physics/jolt_physics.hpp"
 #include "renderer/vulkan_renderer.hpp"
-#include "resources/mesh_push_constant.hpp"
-#include "resources/texture.hpp"
-#include "resources/vertex.hpp"
 #include "utilities/config_manager/config_manager.hpp"
 #include "utilities/task_manager/task_manager.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
@@ -86,92 +75,100 @@ void editor::Editor::pollEvents()
         ImGui_ImplSDL3_ProcessEvent( &e );
         switch ( e.type )
         {
-        case SDL_EVENT_WINDOW_RESIZED: {
-            int newWidth = e.window.data1;
-            int newHeight = e.window.data2;
-            KINFO( "Resized wind" );
-            pEventDispatcher->dispatchEvent( core::WindowResizeEvent{ newWidth, newHeight } );
-            break;
-        }
-        case SDL_EVENT_WINDOW_CLOSE_REQUESTED: {
-            pEventDispatcher->dispatchEvent( core::WindowCloseEvent{} );
-            m_running = false;
-            break;
-        }
-        case SDL_EVENT_KEY_DOWN: {
-            if ( e.key.repeat )
+            case SDL_EVENT_WINDOW_RESIZED:
+            {
+                int newWidth = e.window.data1;
+                int newHeight = e.window.data2;
+                KINFO( "Resized wind" );
+                pEventDispatcher->dispatchEvent( core::WindowResizeEvent{ newWidth, newHeight } );
                 break;
-
-            KeyboardState::updateState();
-            KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.key );
-
-            core::KeyPressedEvent keyPressEvent{ scanCode, KeyScanCode::None, 0 };
-
-            if ( KeyboardState::getKeyState( KeyScanCode::LeftControl ) )
-            {
-                keyPressEvent.setKeyModifier( KeyScanCode::LeftControl );
             }
-
-            if ( KeyboardState::getKeyState( KeyScanCode::LeftShift ) )
+            case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
             {
-                keyPressEvent.setKeyModifier( KeyScanCode::LeftShift );
+                pEventDispatcher->dispatchEvent( core::WindowCloseEvent{} );
+                m_running = false;
+                break;
             }
-
-            pEventDispatcher->dispatchEvent( keyPressEvent );
-
-            break;
-        }
-        case SDL_EVENT_KEY_UP: {
-            KeyboardState::updateState();
-            KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.key );
-            pEventDispatcher->dispatchEvent( core::KeyReleasedEvent{ scanCode, KeyScanCode::None } );
-            break;
-        }
-        case SDL_EVENT_MOUSE_MOTION: {
-            double x = e.motion.x;
-            double y = e.motion.y;
-            double xRel = e.motion.xrel;
-            double yRel = e.motion.yrel;
-            pEventDispatcher->dispatchEvent( core::MouseMovedEvent{ x, y, xRel, yRel } );
-            break;
-        }
-        case SDL_EVENT_MOUSE_WHEEL: {
-            double xOff = e.wheel.x;
-            double yOff = e.wheel.y;
-            pEventDispatcher->dispatchEvent( core::MouseScrolledEvent{ xOff, yOff } );
-            break;
-        }
-        case SDL_EVENT_MOUSE_BUTTON_DOWN: {
-            uint32_t buttonState = SDL_MouseButtonFlags();
-            if ( buttonState & SDL_BUTTON_MASK( SDL_BUTTON_LEFT ) )
+            case SDL_EVENT_KEY_DOWN:
             {
-                core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_MIDDLE ),
-                                                      static_cast<int>( MouseAction::Press ),
-                                                      static_cast<int>( MouseModifier::None ) };
+                if ( e.key.repeat )
+                    break;
 
-                pEventDispatcher->dispatchEvent( mouseClicked );
+                KeyboardState::updateState();
+                KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.key );
+
+                core::KeyPressedEvent keyPressEvent{ scanCode, KeyScanCode::None, 0 };
+
+                if ( KeyboardState::getKeyState( KeyScanCode::LeftControl ) )
+                {
+                    keyPressEvent.setKeyModifier( KeyScanCode::LeftControl );
+                }
+
+                if ( KeyboardState::getKeyState( KeyScanCode::LeftShift ) )
+                {
+                    keyPressEvent.setKeyModifier( KeyScanCode::LeftShift );
+                }
+
+                pEventDispatcher->dispatchEvent( keyPressEvent );
+
+                break;
             }
-            if ( buttonState & SDL_BUTTON_MASK( SDL_BUTTON_LEFT ) )
+            case SDL_EVENT_KEY_UP:
             {
-                core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_LEFT ),
-                                                      static_cast<int>( MouseAction::Press ),
-                                                      static_cast<int>( MouseModifier::None ) };
-
-                pEventDispatcher->dispatchEvent( mouseClicked );
+                KeyboardState::updateState();
+                KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.key );
+                pEventDispatcher->dispatchEvent( core::KeyReleasedEvent{ scanCode, KeyScanCode::None } );
+                break;
             }
-            if ( buttonState & SDL_BUTTON_MASK( SDL_BUTTON_RIGHT ) )
+            case SDL_EVENT_MOUSE_MOTION:
             {
-                core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_RIGHT ),
-                                                      static_cast<int>( MouseAction::Press ),
-                                                      static_cast<int>( MouseModifier::None ) };
-
-                pEventDispatcher->dispatchEvent( mouseClicked );
+                double x = e.motion.x;
+                double y = e.motion.y;
+                double xRel = e.motion.xrel;
+                double yRel = e.motion.yrel;
+                pEventDispatcher->dispatchEvent( core::MouseMovedEvent{ x, y, xRel, yRel } );
+                break;
             }
-            break;
-        }
-        default: {
-            break;
-        }
+            case SDL_EVENT_MOUSE_WHEEL:
+            {
+                double xOff = e.wheel.x;
+                double yOff = e.wheel.y;
+                pEventDispatcher->dispatchEvent( core::MouseScrolledEvent{ xOff, yOff } );
+                break;
+            }
+            case SDL_EVENT_MOUSE_BUTTON_DOWN:
+            {
+                uint32_t buttonState = SDL_MouseButtonFlags();
+                if ( buttonState & SDL_BUTTON_MASK( SDL_BUTTON_LEFT ) )
+                {
+                    core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_MIDDLE ),
+                                                          static_cast<int>( MouseAction::Press ),
+                                                          static_cast<int>( MouseModifier::None ) };
+
+                    pEventDispatcher->dispatchEvent( mouseClicked );
+                }
+                if ( buttonState & SDL_BUTTON_MASK( SDL_BUTTON_LEFT ) )
+                {
+                    core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_LEFT ),
+                                                          static_cast<int>( MouseAction::Press ),
+                                                          static_cast<int>( MouseModifier::None ) };
+
+                    pEventDispatcher->dispatchEvent( mouseClicked );
+                }
+                if ( buttonState & SDL_BUTTON_MASK( SDL_BUTTON_RIGHT ) )
+                {
+                    core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_RIGHT ),
+                                                          static_cast<int>( MouseAction::Press ),
+                                                          static_cast<int>( MouseModifier::None ) };
+
+                    pEventDispatcher->dispatchEvent( mouseClicked );
+                }
+                break;
+            }
+            default:
+            {
+                break;
+            }
         }
     }
 }
@@ -203,7 +200,6 @@ auto editor::Editor::onUpdate() -> void
     pollEvents();
 
     jolt->onUpdate( delta );
-    taskManager->onUpdate();
     assetManager->onUpdate();
     sceneManager->getCurrentScene()->onUpdate();
     m_vulkanRenderer->onUpdate();

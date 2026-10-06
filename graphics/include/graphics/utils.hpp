@@ -1,7 +1,6 @@
 #pragma once
 #include <vulkan/vulkan.h>
 
-#include "precompiled/pch.hpp"
 #include "utilities/utils/utils.hpp"
 
 inline auto formatSize( VkDeviceSize size ) -> std::string

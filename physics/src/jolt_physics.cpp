@@ -4,10 +4,7 @@
 #include "Jolt/Physics/Collision/Shape/ScaledShape.h"
 #include "utilities/utils/utils.hpp"
 #include <cstdarg>
-#include <glm/gtc/constants.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <iostream>
+#include <glm/detail/type_vec3.hpp>
 using namespace JPH;
 
 static void TraceImpl( const char* inFMT, ... )
@@ -22,7 +19,7 @@ static void TraceImpl( const char* inFMT, ... )
 }
 
 physics::JoltPhysics::JoltPhysics()
-    : m_deltaUpdate{ 1.0f / 60.0f }
+    : m_timeStep{ 1.0f / 60.0f }
     , m_isRunning{ false }
     , m_timeAccumulator{ 0.0f }
 {
@@ -32,6 +29,7 @@ physics::JoltPhysics::JoltPhysics()
     Factory::sInstance = new Factory();
     RegisterTypes();
 
+    // 200mb
     m_tempAlloc = std::make_unique<JPH::TempAllocatorImpl>( 200 * 1024 * 1024 );
 
     m_jobSystem = std::make_unique<JPH::JobSystemThreadPool>(
@@ -82,10 +80,10 @@ void physics::JoltPhysics::onUpdate( float delta )
 
     m_timeAccumulator += delta;
 
-    while ( m_timeAccumulator >= m_deltaUpdate )
+    while ( m_timeAccumulator >= m_timeStep )
     {
-        m_physicsSystem.Update( m_deltaUpdate, 1, m_tempAlloc.get(), m_jobSystem.get() );
-        m_timeAccumulator -= m_deltaUpdate;
+        m_physicsSystem.Update( m_timeStep, 1, m_tempAlloc.get(), m_jobSystem.get() );
+        m_timeAccumulator -= m_timeStep;
     }
 }
 
@@ -115,88 +113,89 @@ auto physics::JoltPhysics::createRigidBody( const RigidbodyType& type,
                                             const glm::vec3& size,
                                             const glm::quat& rotation ) -> BodyID
 {
-    auto& interface = m_physicsSystem.GetBodyInterface();
+    JPH::BodyInterface& interface = m_physicsSystem.GetBodyInterface();
     JPH::BodyID r{};
 
     switch ( shape )
     {
-    case RigidbodyShape::Sphere: {
-        JPH::SphereShapeSettings shpereSettings{ static_cast<float>( size.x ) };
-
-        JPH::ShapeSettings::ShapeResult shapeResult = shpereSettings.Create();
-        JPH::Ref<JPH::Shape> s = shapeResult.Get();
-
-        uint32_t layer{};
-        EMotionType motionType{};
-        EActivation activation{};
-
-        if ( type == RigidbodyType::Dynamic )
+        case RigidbodyShape::Sphere:
         {
-            layer = Layers::MOVING;
-            motionType = EMotionType::Dynamic;
-            activation = EActivation::Activate;
+            JPH::SphereShapeSettings shpereSettings{ static_cast<float>( size.x ) };
+
+            JPH::ShapeSettings::ShapeResult shapeResult = shpereSettings.Create();
+            JPH::Ref<JPH::Shape> s = shapeResult.Get();
+
+            uint32_t layer{};
+            EMotionType motionType{};
+            EActivation activation{};
+
+            if ( type == RigidbodyType::Dynamic )
+            {
+                layer = Layers::MOVING;
+                motionType = EMotionType::Dynamic;
+                activation = EActivation::Activate;
+            }
+            else
+            {
+                layer = Layers::NON_MOVING;
+                motionType = EMotionType::Static;
+                activation = EActivation::DontActivate;
+            }
+
+            BodyCreationSettings settings( s,
+                                           RVec3{ pos.x, pos.y, pos.z },
+                                           Quat{ rotation.x, rotation.y, rotation.z, rotation.w },
+                                           motionType,
+                                           layer );
+
+            r = interface.CreateAndAddBody( settings, activation );
+
+            m_deletionQueue.push( [this, r, &interface]() {
+                interface.RemoveBody( r );
+                interface.DestroyBody( r );
+            } );
+
+            break;
         }
-        else
+        case RigidbodyShape::Box:
         {
-            layer = Layers::NON_MOVING;
-            motionType = EMotionType::Static;
-            activation = EActivation::DontActivate;
+            JPH::BoxShapeSettings boxSettings{ Vec3{ size.x, size.y, size.z } };
+
+            JPH::ShapeSettings::ShapeResult shapeResult = boxSettings.Create();
+            JPH::Ref<JPH::Shape> s = shapeResult.Get();
+
+            uint32_t layer{};
+            EMotionType motionType{};
+            EActivation activation{};
+
+            if ( type == RigidbodyType::Dynamic )
+            {
+                layer = Layers::MOVING;
+                motionType = EMotionType::Dynamic;
+                activation = EActivation::Activate;
+            }
+            else
+            {
+                layer = Layers::NON_MOVING;
+                motionType = EMotionType::Static;
+                activation = EActivation::DontActivate;
+            }
+
+            BodyCreationSettings settings( s,
+                                           RVec3{ pos.x, pos.y, pos.z },
+                                           Quat{ rotation.x, rotation.y, rotation.z, rotation.w },
+                                           motionType,
+                                           layer );
+
+            r = interface.CreateAndAddBody( settings, activation );
+
+            m_deletionQueue.push( [this, r, &interface]() {
+                interface.RemoveBody( r );
+                interface.DestroyBody( r );
+            } );
+
+            break;
         }
-
-        BodyCreationSettings settings( s,
-                                       RVec3{ pos.x, pos.y, pos.z },
-                                       Quat{ rotation.x, rotation.y, rotation.z, rotation.w },
-                                       motionType,
-                                       layer );
-
-        r = interface.CreateAndAddBody( settings, activation );
-
-        m_deletionQueue.push( [this, r, &interface]() {
-            interface.RemoveBody( r );
-            interface.DestroyBody( r );
-        } );
-
-        break;
-    }
-        // Box shape, both static and dynamic
-    case RigidbodyShape::Box: {
-        JPH::BoxShapeSettings boxSettings{ Vec3{ size.x, size.y, size.z } };
-
-        JPH::ShapeSettings::ShapeResult shapeResult = boxSettings.Create();
-        JPH::Ref<JPH::Shape> s = shapeResult.Get();
-
-        uint32_t layer{};
-        EMotionType motionType{};
-        EActivation activation{};
-
-        if ( type == RigidbodyType::Dynamic )
-        {
-            layer = Layers::MOVING;
-            motionType = EMotionType::Dynamic;
-            activation = EActivation::Activate;
-        }
-        else
-        {
-            layer = Layers::NON_MOVING;
-            motionType = EMotionType::Static;
-            activation = EActivation::DontActivate;
-        }
-
-        BodyCreationSettings settings( s,
-                                       RVec3{ pos.x, pos.y, pos.z },
-                                       Quat{ rotation.x, rotation.y, rotation.z, rotation.w },
-                                       motionType,
-                                       layer );
-
-        r = interface.CreateAndAddBody( settings, activation );
-
-        m_deletionQueue.push( [this, r, &interface]() {
-            interface.RemoveBody( r );
-            interface.DestroyBody( r );
-        } );
-
-        break;
-    }
     }
 
     return r;

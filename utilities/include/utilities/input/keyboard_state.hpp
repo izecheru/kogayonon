@@ -1,7 +1,6 @@
 #pragma once
 #include <SDL3/SDL_keyboard.h>
 #include "key_codes.hpp"
-#include "precompiled/pch.hpp"
 
 namespace utilities
 {

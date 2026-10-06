@@ -1,5 +1,4 @@
 #pragma once
-#include "precompiled/pch.hpp"
 
 namespace resources
 {

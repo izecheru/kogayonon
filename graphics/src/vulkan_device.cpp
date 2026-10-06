@@ -139,6 +139,12 @@ auto graphics::VulkanDevice::findQueueFamilies( VkPhysicalDevice& device ) -> Qu
 
         i++;
     }
+
+    KINFO( "Families found graphics {}, transfer {}, present {}",
+           indices.graphicsFamily.value(),
+           indices.transferFamily.value(),
+           indices.presentFamily.value() );
+
     return indices;
 }
 
@@ -472,20 +478,27 @@ void graphics::VulkanDevice::createLogicalDevice()
 {
     // get the indices of the phisycal device we picked earlier
     QueueFamilyIndices indices = findQueueFamilies( m_platform.physicalDevice );
+    std::unordered_map<uint32_t, uint32_t> familyQueueCounts;
+
+    familyQueueCounts[indices.graphicsFamily.value()]++;
+    familyQueueCounts[indices.transferFamily.value()]++;
+    familyQueueCounts[indices.presentFamily.value()]++;
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::set<uint32_t> uniqueQueueFamilies = {
-        indices.graphicsFamily.value(), indices.transferFamily.value(), indices.presentFamily.value() };
+    std::vector<std::vector<float>> priorities; // keep storage alive!
+    priorities.reserve( familyQueueCounts.size() );
 
     float queuePriority = 1.0f;
-    for ( uint32_t queueFamily : uniqueQueueFamilies )
+    for ( auto& [family, count] : familyQueueCounts )
     {
-        VkDeviceQueueCreateInfo queueCreateInfo{};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = queueFamily;
-        queueCreateInfo.queueCount = 1;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
-        queueCreateInfos.push_back( queueCreateInfo );
+        priorities.emplace_back( count, queuePriority );
+
+        VkDeviceQueueCreateInfo info{};
+        info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        info.queueFamilyIndex = family;
+        info.queueCount = count;
+        info.pQueuePriorities = priorities.back().data();
+        queueCreateInfos.push_back( info );
     }
 
     // features
@@ -537,8 +550,8 @@ void graphics::VulkanDevice::createLogicalDevice()
     }
 
     vkGetDeviceQueue( m_platform.device, indices.graphicsFamily.value(), 0, &m_graphicsQueue.handle );
-    vkGetDeviceQueue( m_platform.device, indices.presentFamily.value(), 0, &m_presentQueue.handle );
-    vkGetDeviceQueue( m_platform.device, indices.transferFamily.value(), 0, &m_transferQueue.handle );
+    vkGetDeviceQueue( m_platform.device, indices.presentFamily.value(), 1, &m_presentQueue.handle );
+    vkGetDeviceQueue( m_platform.device, indices.transferFamily.value(), 2, &m_transferQueue.handle );
 }
 
 auto graphics::VulkanDevice::getInstance() const -> VkInstance
@@ -865,6 +878,24 @@ auto graphics::VulkanDevice::beginSingleTimeCommands() const -> VkCommandBuffer
     return commandBuffer;
 }
 
+auto graphics::VulkanDevice::allocateCommandBuffers( VkCommandBufferAllocateInfo allocInfo,
+                                                     VkCommandPool commandPool,
+                                                     uint32_t count ) -> std::vector<VkCommandBuffer>
+{
+    std::vector<VkCommandBuffer> buffers( count );
+    VK_CALL( vkAllocateCommandBuffers( m_platform.device, &allocInfo, buffers.data() ) );
+    return buffers;
+}
+
+auto graphics::VulkanDevice::beginCommandBuffer( VkCommandBuffer buffer ) -> void
+{
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    VK_CALL( vkBeginCommandBuffer( buffer, &beginInfo ) );
+}
+
 auto graphics::VulkanDevice::beginSingleTimeCommands( VkCommandPool pool ) const -> VkCommandBuffer
 {
     VkCommandBufferAllocateInfo allocInfo{};
@@ -888,6 +919,16 @@ auto graphics::VulkanDevice::beginSingleTimeCommands( VkCommandPool pool ) const
 auto graphics::VulkanDevice::createFence( VkFence& fence, VkFenceCreateInfo info ) const -> void
 {
     VK_CALL( vkCreateFence( m_platform.device, &info, nullptr, &fence ) );
+}
+
+auto graphics::VulkanDevice::getFenceStatus( VkFence fence ) const -> VkResult
+{
+    return vkGetFenceStatus( m_platform.device, fence );
+}
+
+auto graphics::VulkanDevice::resetFence( VkFence fence ) const -> VkResult
+{
+    return vkResetFences( m_platform.device, 1, &fence );
 }
 
 auto graphics::VulkanDevice::getCommandPool() -> VkCommandPool
@@ -918,7 +959,6 @@ auto graphics::VulkanDevice::endSingleTimeCommands( VkCommandBuffer commandBuffe
                                                     VkCommandPool pool ) const -> void
 {
     vkEndCommandBuffer( commandBuffer );
-
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
@@ -930,15 +970,65 @@ auto graphics::VulkanDevice::endSingleTimeCommands( VkCommandBuffer commandBuffe
     vkFreeCommandBuffers( m_platform.device, pool, 1, &commandBuffer );
 }
 
+auto graphics::VulkanDevice::endSingleTimeCommands( VkCommandBuffer commandBuffer,
+                                                    VkQueue queue,
+                                                    VkCommandPool pool,
+                                                    VkSemaphore timeline,
+                                                    uint64_t& signal ) const -> void
+{
+    vkEndCommandBuffer( commandBuffer );
+
+    ++signal;
+    VkTimelineSemaphoreSubmitInfo tlInfo{ VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO };
+    tlInfo.signalSemaphoreValueCount = 1;
+    tlInfo.pSignalSemaphoreValues = &signal;
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.pNext = &tlInfo;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = &timeline;
+
+    VK_CALL( vkQueueSubmit( queue, 1, &submitInfo, VK_NULL_HANDLE ) );
+}
+
+auto graphics::VulkanDevice::endSingleTimeCommands( VkCommandBuffer commandBuffer,
+                                                    VkQueue queue,
+                                                    VkCommandPool pool,
+                                                    VkFence fence ) const -> void
+{
+    vkEndCommandBuffer( commandBuffer );
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    VK_CALL( vkQueueSubmit( queue, 1, &submitInfo, fence ) );
+}
+
 auto graphics::VulkanDevice::copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size ) const -> void
 {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands( m_commandPool );
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands( m_transferCommandPool );
 
     VkBufferCopy copyRegion{};
     copyRegion.size = size;
     vkCmdCopyBuffer( commandBuffer, src, dst, 1, &copyRegion );
 
-    endSingleTimeCommands( commandBuffer, m_graphicsQueue.handle, m_commandPool );
+    endSingleTimeCommands( commandBuffer, m_transferQueue.handle, m_transferCommandPool );
+}
+
+auto graphics::VulkanDevice::copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size, VkFence fence ) const -> void
+{
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands( m_transferCommandPool );
+
+    VkBufferCopy copyRegion{};
+    copyRegion.size = size;
+    vkCmdCopyBuffer( commandBuffer, src, dst, 1, &copyRegion );
+
+    endSingleTimeCommands( commandBuffer, m_transferQueue.handle, m_transferCommandPool, fence );
 }
 
 auto graphics::VulkanDevice::createSampler( VkSampler& sampler, std::string_view samplerName ) -> void
@@ -1222,9 +1312,9 @@ auto graphics::VulkanDevice::getDeviceMemoryProperties() const -> VkPhysicalDevi
     return m_physicalDeviceMemoryProps;
 }
 
-auto graphics::VulkanDevice::createTimelineSemaphore( VkSemaphore& timeline,
-                                                      VkSemaphoreTypeCreateInfo info,
-                                                      VkSemaphoreCreateInfo createInfo ) const -> void
+auto graphics::VulkanDevice::createSemaphore( VkSemaphore& timeline,
+                                              VkSemaphoreTypeCreateInfo info,
+                                              VkSemaphoreCreateInfo createInfo ) const -> void
 {
     VK_CALL( vkCreateSemaphore( m_platform.device, &createInfo, NULL, &timeline ) );
 }
@@ -1250,4 +1340,16 @@ auto graphics::VulkanDevice::copyMemoryToAllocation( const void* pSrcHostPointer
                                                      VkDeviceSize size ) -> void
 {
     VK_CALL( vmaCopyMemoryToAllocation( m_allocator, pSrcHostPointer, dstAllocation, dstAllocationLocalOffset, size ) );
+}
+
+auto graphics::VulkanDevice::freeCmdBuffer( VkCommandPool commandPool,
+                                            uint32_t commandBufferCount,
+                                            const VkCommandBuffer* pCommandBuffers ) -> void
+{
+    vkFreeCommandBuffers( m_platform.device, commandPool, commandBufferCount, pCommandBuffers );
+}
+
+auto graphics::VulkanDevice::getSemaphoreCounterValue( VkSemaphore semaphore, uint64_t& value ) -> void
+{
+    VK_CALL( vkGetSemaphoreCounterValue( m_platform.device, semaphore, &value ) );
 }

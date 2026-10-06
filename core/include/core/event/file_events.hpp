@@ -1,6 +1,5 @@
 #pragma once
 #include "event.hpp"
-#include "precompiled/pch.hpp"
 
 namespace core
 {

@@ -1,5 +1,4 @@
 #include "graphics/shader_compiler.hpp"
-#include "precompiled/pch.hpp"
 #include "utilities/utils/utils.hpp"
 
 graphics::ShaderCompiler::ShaderCompiler( VkDevice d )

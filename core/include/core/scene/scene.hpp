@@ -1,5 +1,4 @@
 #pragma once
-#include "precompiled/pch.hpp"
 #include <entt/entt.hpp>
 #include "core/ecs/entity.hpp"
 #include "resources/mesh.hpp"

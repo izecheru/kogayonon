@@ -1,6 +1,5 @@
 #pragma once
 #include "core/scene/scene_event_handler.hpp"
-#include "precompiled/pch.hpp"
 #include "core/scene/scene.hpp"
 #include "core/event/file_events.hpp"
 #include <entt/entt.hpp>

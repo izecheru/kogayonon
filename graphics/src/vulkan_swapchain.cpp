@@ -3,7 +3,6 @@
 #include <SDL3/SDL_vulkan.h>
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_device.hpp"
-#include "precompiled/pch.hpp"
 
 auto graphics::VulkanSwapchain::querySwapchainSupport() -> SwapchainSupportDetails
 {
@@ -465,7 +464,7 @@ auto graphics::VulkanSwapchain::prepareAttachment() -> void
     VkImageMemoryBarrier2& currentState = currentImage.currentState;
 
     VkImageMemoryBarrier2 newBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                                      .srcStageMask = VK_PIPELINE_STAGE_2_NONE,
+                                      .srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                                       .srcAccessMask = VK_ACCESS_2_NONE,
                                       .dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                                       .dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,

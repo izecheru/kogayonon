@@ -1,24 +1,20 @@
 #include "gui/imgui_windows/entity_properties.hpp"
 #include "core/asset_manager/asset_manager.hpp"
+#include "core/scene/scene_manager.hpp"
 #include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/rigidbody_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
 #include "core/ecs/main_registry.hpp"
-#include "core/event/event_dispatcher.hpp"
-#include "core/event/scene_events.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_event_handler.hpp"
 #include "core/scene/scene_manager.hpp"
-#include "graphics/vulkan_context.hpp"
 #include "gui/utils/font_keys.hpp"
 #include "gui/utils/imgui_dragdrop_defines.hpp"
 #include "gui/utils/imgui_utils.hpp"
 #include "physics/jolt_physics.hpp"
 #include "utilities/fonts/materialdesign.hpp"
-#include "utilities/task_manager/task_manager.hpp"
-#include "utilities/utils/utils.hpp"
 #include <imgui_stdlib.h>
 
 gui::EntityProperties::EntityProperties( const std::string& name, const EntityPropertiesSpec& spec )
@@ -58,10 +54,10 @@ void gui::EntityProperties::contextMenu()
     ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
     if ( ImGui::BeginCombo( "##", "Add component" ) )
     {
-        auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
-        auto scene = sceneManager->getCurrentScene();
-        auto currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
-        auto meshComp = scene->getRegistry()->tryGetComponent<core::MeshComponent>( currentEntity );
+        core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+        core::Scene* scene = sceneManager->getCurrentScene();
+        entt::entity currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+        core::MeshComponent* meshComp = scene->getRegistry()->tryGetComponent<core::MeshComponent>( currentEntity );
 
         if ( !meshComp )
         {
@@ -140,13 +136,13 @@ void gui::EntityProperties::contextMenu()
 
 void gui::EntityProperties::renderMesh()
 {
-    auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
-    auto currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+    core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+    entt::entity currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
     if ( currentEntity == entt::null )
         return;
 
-    auto scene = sceneManager->getCurrentScene();
-    auto meshComponent = scene->getRegistry()->tryGetComponent<core::MeshComponent>( currentEntity );
+    core::Scene* scene = sceneManager->getCurrentScene();
+    core::MeshComponent* meshComponent = scene->getRegistry()->tryGetComponent<core::MeshComponent>( currentEntity );
 
     if ( !meshComponent )
         return;
@@ -201,14 +197,15 @@ void gui::EntityProperties::renderMesh()
 
 void gui::EntityProperties::renderCamera()
 {
-    auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
-    auto currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+    core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+    entt::entity currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
 
     if ( currentEntity == entt::null )
         return;
 
-    auto scene = sceneManager->getCurrentScene();
-    auto camera = scene->getRegistry()->tryGetComponent<core::PerspectiveCameraComponent>( currentEntity );
+    core::Scene* scene = sceneManager->getCurrentScene();
+    core::PerspectiveCameraComponent* camera =
+        scene->getRegistry()->tryGetComponent<core::PerspectiveCameraComponent>( currentEntity );
 
     if ( !camera )
         return;

@@ -1,7 +1,6 @@
 #pragma once
 #include <vulkan/vulkan.h>
 #include "graphics/vulkan_buffer.hpp"
-#include "precompiled/pch.hpp"
 
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
@@ -168,6 +167,7 @@ class VulkanDevice
 
     auto createSampler( VkSampler& sampler, std::string_view samplerName = "" ) -> void;
     auto copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size ) const -> void;
+    auto copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size, VkFence fence ) const -> void;
 
     auto copyBufferToImage(
         VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkImageMemoryBarrier2 imageBarrier ) -> void;
@@ -188,15 +188,28 @@ class VulkanDevice
 
     auto cmdPipelineBarrier2( VkCommandBuffer cmdBuffer, VkDependencyInfo dependencyInfo ) -> void;
 
-    auto endSingleTimeCommands( VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool ) const -> void;
+    auto freeCmdBuffer( VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers )
+        -> void;
+
+    auto endSingleTimeCommands( VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool, VkFence fence ) const
+        -> void;
 
     auto endSingleTimeCommands( VkCommandBuffer commandBuffer,
                                 VkQueue queue,
                                 VkSubmitInfo submitInfo,
                                 VkCommandPool pool ) const -> void;
 
+    auto endSingleTimeCommands( VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool ) const -> void;
+    auto endSingleTimeCommands( VkCommandBuffer commandBuffer,
+                                VkQueue queue,
+                                VkCommandPool pool,
+                                VkSemaphore timeline,
+                                uint64_t& signal ) const -> void;
+    auto getSemaphoreCounterValue( VkSemaphore semaphore, uint64_t& value ) -> void;
+
     auto beginSingleTimeCommands( VkCommandPool pool ) const -> VkCommandBuffer;
     auto beginSingleTimeCommands() const -> VkCommandBuffer;
+    auto beginCommandBuffer( VkCommandBuffer buffer ) -> void;
 
     auto destroyDescriptorSetLayout( VkDescriptorSetLayout layout ) const -> void;
     auto destroyDescriptorPool( VkDescriptorPool pool ) const -> void;
@@ -251,6 +264,8 @@ class VulkanDevice
         -> void;
     auto createDescriptorSet() -> void;
     auto allocateDescriptorSet( VkDescriptorSet& descriptor, VkDescriptorSetAllocateInfo& info ) const -> void;
+    auto allocateCommandBuffers( VkCommandBufferAllocateInfo allocInfo, VkCommandPool commandPool, uint32_t count )
+        -> std::vector<VkCommandBuffer>;
     auto updateDescriptorSet( std::vector<VkWriteDescriptorSet> writes, uint32_t copyCount = 0u ) const -> void;
 
     template <typename T>
@@ -392,10 +407,12 @@ class VulkanDevice
     auto getLimits() -> VkPhysicalDeviceLimits&;
 
     auto createFence( VkFence& fence, VkFenceCreateInfo info ) const -> void;
+    auto getFenceStatus( VkFence fence ) const -> VkResult;
+    auto resetFence( VkFence fence ) const -> VkResult;
 
-    auto createTimelineSemaphore( VkSemaphore& timeline,
-                                  VkSemaphoreTypeCreateInfo info,
-                                  VkSemaphoreCreateInfo createInfo ) const -> void;
+    auto createSemaphore( VkSemaphore& timeline,
+                          VkSemaphoreTypeCreateInfo info,
+                          VkSemaphoreCreateInfo createInfo ) const -> void;
 
     auto createShaderModule( const std::string& shaderName, const std::string& shaderEntryFunc ) -> VkShaderModule;
     auto destroyShaderModule( VkShaderModule module ) -> void;

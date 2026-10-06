@@ -1,6 +1,5 @@
 #include "utilities/time_tracker/time_tracker.hpp"
 #include "utilities/utils/utils.hpp"
-#include "utilities/utils/utils.hpp"
 
 void utilities::TimeTracker::update( const std::string& key, bool accumulate )
 {

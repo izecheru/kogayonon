@@ -1,10 +1,8 @@
 #pragma once
 #include "physics/rigidbody_type.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
-#include <functional>
-#include <glm/glm.hpp>
-#include <memory>
-#include <queue>
+#include <glm/vec3.hpp>
+#include "glm/ext/quaternion_float.hpp"
 
 #include <Jolt/Jolt.h>
 
@@ -194,7 +192,7 @@ class JoltPhysics
 
   private:
     bool m_isRunning;
-    float m_deltaUpdate;
+    float m_timeStep;
     JPH::PhysicsSystem m_physicsSystem;
     std::unique_ptr<JPH::TempAllocatorImpl> m_tempAlloc;
     std::unique_ptr<JPH::JobSystemThreadPool> m_jobSystem;

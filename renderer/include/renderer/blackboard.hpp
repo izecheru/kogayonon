@@ -1,6 +1,5 @@
 #pragma once
-#include "precompiled/pch.hpp"
-#include <entt/entt.hpp>
+#include "entt/meta/meta.hpp"
 
 namespace rendering
 {
@@ -11,13 +10,13 @@ class Blackboard
     ~Blackboard() = default;
 
     template <typename T, typename... Args>
-    inline auto addToStorage( Args&&... args ) -> void;
+    auto addToStorage( Args&&... args ) -> void;
 
     template <typename T>
-    inline auto removeFromStorage() -> void;
+    auto removeFromStorage() -> void;
 
     template <typename T>
-    inline T& get();
+    auto get() -> T&;
 
   private:
     std::unordered_map<entt::id_type, entt::meta_any> m_storage;

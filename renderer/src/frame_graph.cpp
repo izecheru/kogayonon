@@ -1,5 +1,4 @@
 #include "renderer/frame_graph.hpp"
-#include "graphics/vulkan_swapchain.hpp"
 #include "renderer/node.hpp"
 #include "utilities/utils/utils.hpp"
 
@@ -243,7 +242,8 @@ auto rendering::FrameGraph::resolveResourceBarriers() -> void
                         VkImageMemoryBarrier2{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                                                .srcStageMask = currentState.dstStageMask,
                                                .srcAccessMask = currentState.dstAccessMask,
-                                               .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                               .dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                                                               VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
                                                .dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
                                                .oldLayout = currentState.newLayout,
                                                .newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL,
@@ -298,7 +298,7 @@ auto rendering::FrameGraph::resolveResourceBarriers() -> void
         for ( FGResource* resource : node->writes )
         {
             // undefined barriers
-            if ( resource->lastState.accessType == FGResourceAccessType::None ) // Undefined case
+            if ( resource->lastState.accessType == FGResourceAccessType::None )
             {
                 const FGResourceState& desiredState = node->resourceExpectedState[resource];
 
@@ -329,10 +329,13 @@ auto rendering::FrameGraph::resolveResourceBarriers() -> void
                 {
                     transitionBarrier =
                         VkImageMemoryBarrier2{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                                               .srcStageMask = VK_PIPELINE_STAGE_2_NONE,
-                                               .srcAccessMask = VK_ACCESS_2_NONE,
-                                               .dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
-                                               .dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                               .srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                                                               VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                                               .srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                               .dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT |
+                                                               VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                                               .dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+                                                                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
                                                .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
                                                .newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
                                                .image = resource->vulkanImage.vkImage,
@@ -360,10 +363,13 @@ auto rendering::FrameGraph::resolveResourceBarriers() -> void
                     .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                     .srcStageMask = currentState.dstStageMask,
                     .srcAccessMask = currentState.dstAccessMask,
+
                     .dstStageMask = depth ? VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT
                                           : VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+
                     .dstAccessMask =
                         depth ? VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+
                     .oldLayout = currentState.newLayout,
                     .newLayout =
                         depth ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -386,7 +392,7 @@ auto rendering::FrameGraph::resolveResourceBarriers() -> void
                 const FGResourceState& desiredState = node->resourceExpectedState[resource];
                 bool depth = desiredState.type == FGResourceType::Depth;
 
-                VkImageMemoryBarrier2 currentState = resource->vulkanImage.currentState;
+                VkImageMemoryBarrier2& currentState = resource->vulkanImage.currentState;
 
                 VkImageMemoryBarrier2 transitionBarrier{
                     .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,

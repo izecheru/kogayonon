@@ -1,10 +1,8 @@
 #pragma once
-#include <SDL3/SDL.h>
-#include <vulkan/vulkan.h>
-#include <entt/entt.hpp>
-#include <glm/glm.hpp>
+#include "glm/vec2.hpp"
+#include <SDL3/SDL_video.h>
+#include <vulkan/vulkan_core.h>
 #include "imgui_base.hpp"
-#include "precompiled/pch.hpp"
 #include <ImGuizmo.h>
 
 namespace core

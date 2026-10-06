@@ -1,7 +1,6 @@
 #define SDL_MAIN_HANDLED
 #include <SDL3/SDL.h>
 #include <Windows.h>
-#include <iostream>
 #include "editor/editor.hpp"
 #include "utilities/utils/utils.hpp"
 
@@ -18,4 +17,9 @@ int main( int argc, char** argv )
     }
     editor.cleanup();
     return 0;
+}
+
+int WINAPI WinMain( HINSTANCE, HINSTANCE, LPSTR, int )
+{
+    return main( __argc, __argv );
 }

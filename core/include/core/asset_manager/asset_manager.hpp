@@ -1,12 +1,17 @@
 #pragma once
 #include <vma/vk_mem_alloc.h>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 #include <glm/glm.hpp>
 #include "core/asset_manager/font_loader.hpp"
 #include "graphics/vulkan_buffer.hpp"
 #include "graphics/vulkan_descriptor.hpp"
 #include "core/asset_manager/tinygltf_loader.hpp"
-#include "precompiled/pch.hpp"
+#include "core/asset_manager/threadsafe_resource_manager.hpp"
+
+namespace enki
+{
+struct ITaskSet;
+}
 
 namespace resources
 {
@@ -24,18 +29,44 @@ struct VulkanContext;
 namespace core
 {
 class KtxTextureManager;
-}
 
-#define MAX_TEXTURE_SUPPORT 1000
-
-namespace core
-{
 struct ParsedMaterials
 {
     resources::Mesh* pMesh{ nullptr };
     std::unordered_map<uint32_t, std::map<TextureType, std::string>> parsedMaterialData;
 };
 
+struct ImageData
+{
+    int w;
+    int h;
+    int c;
+    uint8_t* data;
+    VkDeviceSize size;
+    std::unique_ptr<resources::Texture> texture;
+};
+
+struct TextureTaskData
+{
+    std::vector<ImageData> imageData;
+    std::vector<VkImageMemoryBarrier2> beforeBarriers;
+    std::vector<VkImageMemoryBarrier2> afterBarriers;
+    VkDeviceSize stageBufferSize{ 0u };
+    ParsedMaterials materialsBatch;
+};
+
+struct TaskSync
+{
+    enki::ITaskSet* task{ nullptr };
+    uint64_t semaphoreWaitValue{ 0u };
+};
+
+} // namespace core
+
+#define MAX_TEXTURE_SUPPORT 1000
+
+namespace core
+{
 class AssetManager
 {
   public:
@@ -73,6 +104,7 @@ class AssetManager
      */
     auto loadTexture( const std::string& textureName, const std::string& texturePath ) -> resources::Texture*;
     auto loadTextures( const std::vector<std::tuple<std::string, std::string>>& textures ) -> void;
+    auto loadTextureData() -> void;
 
     /**
      * @brief Get the mesh using absolute path as key
@@ -213,6 +245,8 @@ class AssetManager
      */
     auto updateMaterialsBuffer() -> void;
 
+    auto resolveMaterials( ParsedMaterials batch ) -> void;
+
   private:
     AssetManager( const AssetManager& ) = delete;
     AssetManager& operator=( const AssetManager& ) = delete;
@@ -227,7 +261,10 @@ class AssetManager
     graphics::FrameInFlightVulkanBuffer m_materialsBuffer;
     std::vector<resources::Material> m_materials;
 
-    std::mutex m_mutex;
+    std::mutex m_materialMutex;
+    std::mutex m_meshMutex;
+
+    std::mutex m_materialBufferMutex;
     std::unordered_map<std::string, std::unique_ptr<resources::Texture>> m_loadedTextures;
     std::unordered_map<std::string, std::unique_ptr<resources::Mesh>> m_loadedMeshes;
     std::queue<resources::Mesh*> m_queuedMeshes;
@@ -241,11 +278,22 @@ class AssetManager
     std::unique_ptr<KtxTextureManager> m_ktxTextureManager;
 
     std::atomic<bool> m_readyForUpdate{ false };
+    std::atomic<bool> m_texturesReady{ false };
+    std::vector<graphics::VulkanBuffer> m_stagingBuffers;
+    graphics::VulkanBuffer m_stagingBuffer;
 
     std::vector<std::filesystem::path> m_uiTexturePaths;
 
     // used for assigning the values to material indices in the mesh
     uint32_t m_bindlessTexturesIndex;
     uint32_t m_samplerIndex;
+
+    ThreadsafeResourceManager m_threadSafeResourceManager;
+    VkSemaphore m_timelineSemaphore;
+    uint64_t m_signal{ 0u };
+
+    std::vector<enki::ITaskSet*> m_textureLoadTasks;
+
+    std::vector<TaskSync> m_taskSync;
 };
 } // namespace core

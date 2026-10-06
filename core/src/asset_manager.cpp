@@ -1,4 +1,4 @@
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 #include "resources/mesh.hpp"
 #include "core/asset_manager/ktx_texture_manager.hpp"
 #include "resources/texture.hpp"
@@ -20,6 +20,7 @@ core::AssetManager::AssetManager( graphics::VulkanContext* vkCtx )
     , m_samplerIndex{ 0u }
     , m_vkCtx{ vkCtx }
     , m_ktxTextureManager{ std::make_unique<KtxTextureManager>( vkCtx->device.get() ) }
+    , m_threadSafeResourceManager{ 4, m_vkCtx->device.get() }
 {
     init();
 }
@@ -59,6 +60,30 @@ auto core::AssetManager::init() -> void
 {
     initDescriptors();
     initSampler();
+
+    VkSemaphoreTypeCreateInfo timelineCreateInfo;
+    timelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+    timelineCreateInfo.pNext = NULL;
+    timelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+    timelineCreateInfo.initialValue = 0;
+
+    VkSemaphoreCreateInfo createInfo;
+    createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    createInfo.pNext = &timelineCreateInfo;
+    createInfo.flags = 0;
+
+    m_vkCtx->device->createSemaphore( m_timelineSemaphore, timelineCreateInfo, createInfo );
+
+    VkBufferCreateInfo stageBufferInfo{ .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                                        .size = 500 * 1024 * 1024,
+                                        .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                        .sharingMode = VK_SHARING_MODE_EXCLUSIVE };
+
+    VmaAllocationCreateInfo stageAllocInfo{ .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+                                                     VMA_ALLOCATION_CREATE_MAPPED_BIT,
+                                            .usage = VMA_MEMORY_USAGE_AUTO };
+
+    m_vkCtx->device->createBuffer( m_stagingBuffer, stageBufferInfo, stageAllocInfo );
 }
 
 auto core::AssetManager::destroyResources() -> void
@@ -66,6 +91,8 @@ auto core::AssetManager::destroyResources() -> void
     m_vkCtx->device->waitIdle();
 
     m_vkCtx->device->destroyBuffer( m_materialsBuffer );
+    m_vkCtx->device->destroyBuffer( m_stagingBuffer );
+    m_vkCtx->device->destroySemaphore( m_timelineSemaphore );
     m_vkCtx->device->destroySampler( m_textureSampler );
     m_vkCtx->device->destroyDescriptorSetLayout( m_bindlessTexturesDescriptor.layout );
     m_vkCtx->device->destroyDescriptorSetLayout( m_materialsDescriptor.layout );
@@ -94,209 +121,199 @@ core::AssetManager::~AssetManager()
     destroyResources();
 }
 
-auto core::AssetManager::loadTextures( const std::vector<std::tuple<std::string, std::string>>& textures ) -> void
+auto core::AssetManager::loadTextureData() -> void
 {
-    ZoneScopedN( "AssetManager::loadTextures" );
+    utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
 
-    struct ImageData
+    TextureTaskData textureData{};
+
+    std::vector<ParsedMaterials> batch{};
     {
-        int w;
-        int h;
-        int c;
-        uint8_t* data;
-        VkDeviceSize size;
-        resources::Texture* texture;
-    };
+        std::lock_guard lock{ m_materialMutex };
 
-    std::vector<ImageData> imageData{};
-    std::vector<VkImageMemoryBarrier2> beforeBarriers{};
-    std::vector<VkImageMemoryBarrier2> afterBarriers{};
-
-    VkCommandPool commandPool = m_vkCtx->device->getCommandPool();
-    VkCommandBuffer commandBuffer = m_vkCtx->device->beginSingleTimeCommands( commandPool );
-
-    imageData.reserve( textures.size() );
-
-    VkDeviceSize requiredStageBufferSize{ 0 };
-
-    {
-        ZoneScopedN( "AssetManager::loadTextures::stbi_load+VkImage+VkImageView" );
-        for ( const auto& [path, name] : textures )
+        if ( m_parsedMaterialsQueue.empty() )
         {
-            ImageData img{};
-            std::filesystem::path p{ path };
-            std::string ktxFilename = p.stem().string() + ".ktx2";
-            std::filesystem::path ktxPath = p.parent_path() / "ktx" / ktxFilename;
-            bool ktxExists = std::filesystem::exists( ktxPath );
+            return;
+        }
 
-            // first generate ktx2 texture then load
-            if ( !ktxExists )
-            {
-                int w, c, h;
-                // reconstruct the normal path
-                uint8_t* data = stbi_load( path.c_str(), &w, &h, &c, STBI_rgb_alpha );
-                m_ktxTextureManager->saveToKtx( p, KtxTextureData{ .w = w, .h = h, .c = 4, .pixels = data } );
-            }
-
-            std::unique_ptr<resources::Texture> texture = std::make_unique<resources::Texture>();
-
-            if ( m_ktxTextureManager->loadTexture( ktxPath, texture.get() ) != KTX_SUCCESS )
-            {
-                throw std::runtime_error( "something went wrong man" );
-            }
-
-            img.data = m_ktxTextureManager->getTextureData( texture.get() );
-            img.size = m_ktxTextureManager->getDataSize( texture.get() );
-            img.w = texture->ktxImage.texture->baseWidth;
-            img.h = texture->ktxImage.texture->baseHeight;
-            img.texture = texture.get();
-
-            requiredStageBufferSize += img.size;
-
-            if ( !img.data )
-            {
-                throw std::runtime_error( "failed to load texture vulkanImage!" );
-            }
-
-            VkImageCreateInfo imageInfo{};
-            imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-            imageInfo.imageType = VK_IMAGE_TYPE_2D;
-            imageInfo.extent.width = img.w;
-            imageInfo.extent.height = img.h;
-            imageInfo.extent.depth = 1;
-            imageInfo.mipLevels = 1;
-            imageInfo.arrayLayers = 1;
-            imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-            imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-            imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-            imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-            imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-            VmaAllocationCreateInfo imageAllocInfo{};
-            imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-
-            m_vkCtx->device->createImage(
-                texture->vulkanImage.vkImage, imageInfo, imageAllocInfo, texture->vulkanImage.vmaAllocation, name );
-
-            m_vkCtx->device->createImageView( texture->vulkanImage.vkImageView,
-                                              texture->vulkanImage.vkImage,
-                                              VK_FORMAT_R8G8B8A8_UNORM,
-                                              VK_IMAGE_ASPECT_COLOR_BIT );
-
-            beforeBarriers.emplace_back( VkImageMemoryBarrier2{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                                                                .srcStageMask = VK_PIPELINE_STAGE_2_NONE,
-                                                                .srcAccessMask = VK_ACCESS_2_NONE,
-                                                                .dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
-                                                                .dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                                                                .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                                                                .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                                                .image = texture->vulkanImage.vkImage,
-                                                                .subresourceRange = {
-                                                                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                                                                    .baseMipLevel = 0,
-                                                                    .levelCount = 1,
-                                                                    .baseArrayLayer = 0,
-                                                                    .layerCount = 1,
-                                                                } } );
-
-            VkImageAspectFlags aspect{ VK_IMAGE_ASPECT_COLOR_BIT };
-            if ( beforeBarriers.back().oldLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL )
-            {
-                aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
-            }
-
-            afterBarriers.emplace_back( VkImageMemoryBarrier2{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                                                               .srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
-                                                               .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                                                               .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                                                               .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
-                                                               .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                                               .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                                               .image = texture->vulkanImage.vkImage,
-                                                               .subresourceRange = {
-                                                                   .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                                                                   .baseMipLevel = 0,
-                                                                   .levelCount = 1,
-                                                                   .baseArrayLayer = 0,
-                                                                   .layerCount = 1,
-                                                               } } );
-
-            texture->path = path;
-
-            imageData.push_back( img );
-            m_loadedTextures.emplace( path, std::move( texture ) );
+        while ( !m_parsedMaterialsQueue.empty() )
+        {
+            batch.emplace_back( m_parsedMaterialsQueue.front() );
+            m_parsedMaterialsQueue.pop();
         }
     }
 
-    // set all the undefined barriers here
-    VkDependencyInfo before{};
-    before.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    before.imageMemoryBarrierCount = beforeBarriers.size();
-    before.pImageMemoryBarriers = beforeBarriers.data();
-
-    // all the barriers at once
-    vkCmdPipelineBarrier2( commandBuffer, &before );
-
-    VkBufferCreateInfo stageBufferInfo{ .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-                                        .size = requiredStageBufferSize,
-                                        .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                        .sharingMode = VK_SHARING_MODE_EXCLUSIVE };
-
-    VmaAllocationCreateInfo stageAllocInfo{ .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
-                                                     VMA_ALLOCATION_CREATE_MAPPED_BIT,
-                                            .usage = VMA_MEMORY_USAGE_AUTO };
-
-    // since i want to use a single staging buffer we will use offsets and copy the data at those offsets
-    graphics::VulkanBuffer stageBuffer = m_vkCtx->device->createStagingBuffer( stageBufferInfo, stageAllocInfo );
-
-    VkDeviceSize currentOffset{ 0 };
-
-    for ( auto& img : imageData )
+    for ( auto& b : batch )
     {
-        m_vkCtx->device->copyMemoryToAllocation( img.data, stageBuffer.vmaAllocation, currentOffset, img.size );
+        utilities::TaskSet* generateKtx = taskManager->addTask( [this, b]() {
+            ZoneScopedN( "[TASK] generateKtx" );
+            for ( auto& [submesh, textureMap] : b.parsedMaterialData )
+            {
+                for ( auto type : { Diffuse, Emissive, Normal } )
+                {
+                    if ( !textureMap.at( type ).empty() )
+                    {
+                        if ( !hasResource<resources::Texture>( textureMap.at( type ) ) )
+                        {
+                            std::filesystem::path p{ textureMap.at( type ) };
+                            std::string ktxFilename = p.stem().string() + ".ktx2";
+                            std::filesystem::path ktxPath = p.parent_path() / "ktx" / ktxFilename;
+                            bool ktxExists = std::filesystem::exists( ktxPath );
 
-        VkBufferImageCopy region{};
-        region.bufferOffset = currentOffset;
-        region.bufferRowLength = 0;
-        region.bufferImageHeight = 0;
-        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        region.imageSubresource.mipLevel = 0;
-        region.imageSubresource.baseArrayLayer = 0;
-        region.imageSubresource.layerCount = 1;
-        region.imageOffset = { 0, 0, 0 };
-        region.imageExtent = { static_cast<uint32_t>( img.w ), static_cast<uint32_t>( img.h ), 1 };
+                            if ( !ktxExists )
+                            {
+                                m_ktxTextureManager->saveToKtx( p );
+                            }
+                        }
+                    }
+                }
+            }
+        } );
 
-        currentOffset += img.size;
+        utilities::DataTaskSet<TextureTaskData>* task =
+            taskManager->addTask( std::move( textureData ), [this, b]( core::TextureTaskData& container ) {
+                ZoneScopedN( "[TASK] loadTextureData" );
+                std::set<std::string> needed;
+                for ( auto& [submesh, textureMap] : b.parsedMaterialData )
+                {
+                    for ( auto type : { Diffuse, Emissive, Normal } )
+                    {
+                        if ( !textureMap.at( type ).empty() )
+                        {
+                            needed.insert( textureMap.at( type ) );
+                        }
+                    }
+                }
 
-        vkCmdCopyBufferToImage( commandBuffer,
-                                stageBuffer.vkBuffer,
-                                img.texture->vulkanImage.vkImage,
-                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                1,
-                                &region );
+                std::vector<std::tuple<std::string, std::string>> toLoad;
+                for ( auto& path : needed )
+                {
+                    if ( !hasResource<resources::Texture>( path ) )
+                    {
+                        std::filesystem::path p{ path };
+                        toLoad.emplace_back( p.string(), p.stem().string() );
+                    }
+                }
+
+                if ( toLoad.empty() )
+                {
+                    return;
+                }
+
+                std::vector<ImageData>& imageData = container.imageData;
+                std::vector<VkImageMemoryBarrier2>& beforeBarriers = container.beforeBarriers;
+                std::vector<VkImageMemoryBarrier2>& afterBarriers = container.afterBarriers;
+                VkDeviceSize& stageBufferSize = container.stageBufferSize;
+                container.materialsBatch = b;
+
+                imageData.reserve( toLoad.size() );
+
+                for ( const auto& [path, name] : toLoad )
+                {
+                    std::filesystem::path p{ path };
+                    std::string ktxFilename = p.stem().string() + ".ktx2";
+                    std::filesystem::path ktxPath = p.parent_path() / "ktx" / ktxFilename;
+
+                    ImageData img{ .texture = std::make_unique<resources::Texture>() };
+
+                    {
+                        ZoneScopedN( "ktx load texture" );
+                        if ( m_ktxTextureManager->loadTexture( ktxPath, img.texture.get() ) != KTX_SUCCESS )
+                        {
+                            continue;
+                        }
+                    }
+
+                    img.data = m_ktxTextureManager->getTextureData( img.texture.get() );
+                    img.size = m_ktxTextureManager->getDataSize( img.texture.get() );
+                    img.w = img.texture->ktxImage.texture->baseWidth;
+                    img.h = img.texture->ktxImage.texture->baseHeight;
+
+                    stageBufferSize += img.size;
+
+                    VkImageCreateInfo imageInfo{};
+                    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+                    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+                    imageInfo.extent.width = img.w;
+                    imageInfo.extent.height = img.h;
+                    imageInfo.extent.depth = 1;
+                    imageInfo.mipLevels = 1;
+                    imageInfo.arrayLayers = 1;
+                    imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+                    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+                    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+                    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+                    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+                    VmaAllocationCreateInfo imageAllocInfo{};
+                    imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+
+                    m_vkCtx->device->createImage( img.texture->vulkanImage.vkImage,
+                                                  imageInfo,
+                                                  imageAllocInfo,
+                                                  img.texture->vulkanImage.vmaAllocation,
+                                                  name );
+
+                    m_vkCtx->device->createImageView( img.texture->vulkanImage.vkImageView,
+                                                      img.texture->vulkanImage.vkImage,
+                                                      VK_FORMAT_R8G8B8A8_UNORM,
+                                                      VK_IMAGE_ASPECT_COLOR_BIT );
+
+                    beforeBarriers.emplace_back(
+                        VkImageMemoryBarrier2{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                               .srcStageMask = VK_PIPELINE_STAGE_2_NONE,
+                                               .srcAccessMask = VK_ACCESS_2_NONE,
+                                               .dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
+                                               .dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                               .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                               .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                               .image = img.texture->vulkanImage.vkImage,
+                                               .subresourceRange = {
+                                                   .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                                   .baseMipLevel = 0,
+                                                   .levelCount = 1,
+                                                   .baseArrayLayer = 0,
+                                                   .layerCount = 1,
+                                               } } );
+
+                    VkImageAspectFlags aspect{ VK_IMAGE_ASPECT_COLOR_BIT };
+                    if ( beforeBarriers.back().oldLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL )
+                    {
+                        aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+                    }
+
+                    afterBarriers.emplace_back(
+                        VkImageMemoryBarrier2{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                               .srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
+                                               .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                               .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                               .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+                                               .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                               .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                               .image = img.texture->vulkanImage.vkImage,
+                                               .subresourceRange = {
+                                                   .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                                   .baseMipLevel = 0,
+                                                   .levelCount = 1,
+                                                   .baseArrayLayer = 0,
+                                                   .layerCount = 1,
+                                               } } );
+
+                    img.texture->path = ktxPath.string();
+                    imageData.emplace_back( std::move( img ) );
+                }
+            } );
+
+        task->SetDependency( task->dependency, generateKtx );
+        taskManager->addTaskSetToPipe( generateKtx );
+
+        m_textureLoadTasks.push_back( task );
     }
+}
 
-    VkDependencyInfo after{};
-    after.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    after.imageMemoryBarrierCount = afterBarriers.size();
-    after.pImageMemoryBarriers = afterBarriers.data();
-
-    vkCmdPipelineBarrier2( commandBuffer, &after );
-
-    VkQueue graphicsQueue = m_vkCtx->device->getGraphicsQueue().handle;
-
-    // this also waits on the queue since the staging buffer MUST live as long
-    // as the commands registered in that command buffer do
-    m_vkCtx->device->endSingleTimeCommands( commandBuffer, graphicsQueue, commandPool );
-
-    m_vkCtx->device->destroyBuffer( stageBuffer );
-
-    for ( ImageData& img : imageData )
-    {
-        updateBindlessTextures( img.texture );
-        m_ktxTextureManager->destroyTexture( img.texture );
-    }
+auto core::AssetManager::loadTextures( const std::vector<std::tuple<std::string, std::string>>& textures ) -> void
+{
 }
 
 auto core::AssetManager::loadTexture( const std::string& textureName, const std::string& texturePath )
@@ -494,41 +511,44 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
     if ( std::filesystem::exists( collision ) )
     {
         m_loadedMeshes.emplace( collision.string(), std::make_unique<resources::Mesh>() );
-        utilities::CallbackTask* collisionCallback = taskManager->addTask( [this, collision]() -> void {
+        utilities::TaskSet* collisionCallback = taskManager->addTask( [this, collision]() -> void {
             ZoneScopedN( "Threaded loadMesh" );
             std::unique_ptr<TinyGltfLoader> tinyLoader = std::make_unique<TinyGltfLoader>( collision.string() );
+            resources::Mesh* meshPtr = m_loadedMeshes[collision.string()].get();
+
+            meshPtr->setPath( collision.string() );
+
+            tinyLoader->processVertexData( meshPtr );
             {
-                std::lock_guard lock{ m_mutex };
-                resources::Mesh* meshPtr = m_loadedMeshes[collision.string()].get();
-
-                meshPtr->setPath( collision.string() );
-
-                tinyLoader->processVertexData( meshPtr );
+                std::lock_guard lock{ m_meshMutex };
                 enqueueMesh( meshPtr );
-                m_readyForUpdate.store( true );
             }
         } );
 
         taskManager->addTaskSetToPipe( collisionCallback );
     }
 
-    utilities::CallbackTask* callbackPtr = taskManager->addTask( [this, meshPath]() -> void {
+    utilities::TaskSet* callbackPtr = taskManager->addTask( [this, meshPath]() -> void {
         ZoneScopedN( "Threaded loadMesh" );
         std::unique_ptr<TinyGltfLoader> tinyLoader = std::make_unique<TinyGltfLoader>( meshPath );
+        resources::Mesh* meshPtr = m_loadedMeshes[meshPath].get();
+        tinyLoader->processVertexData( meshPtr );
+        auto parsedData = tinyLoader->parseTextureData( meshPtr );
+
         {
-            std::lock_guard lock{ m_mutex };
-            resources::Mesh* meshPtr = m_loadedMeshes[meshPath].get();
-            tinyLoader->processVertexData( meshPtr );
-            auto parsedData = tinyLoader->parseTextureData( meshPtr );
+            std::lock_guard lock{ m_materialMutex };
             m_parsedMaterialsQueue.push(
                 ParsedMaterials{ .pMesh = meshPtr, .parsedMaterialData = std::move( parsedData ) } );
-            enqueueMesh( meshPtr );
-            m_readyForUpdate.store( true );
         }
+
+        {
+            std::lock_guard lock{ m_meshMutex };
+            enqueueMesh( meshPtr );
+        }
+        m_readyForUpdate.store( true );
     } );
 
     taskManager->addTaskSetToPipe( callbackPtr );
-
     return m_loadedMeshes[meshPath].get();
 }
 
@@ -717,6 +737,12 @@ auto core::AssetManager::updateBindlessTextures( const std::vector<resources::Te
 
 auto core::AssetManager::updateBindlessTextures( resources::Texture* texture ) -> void
 {
+    if ( texture->vulkanImage.vkImageView == VK_NULL_HANDLE )
+    {
+        KERROR( "VkImageView not initialized" );
+        return;
+    }
+
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     imageInfo.imageView = texture->vulkanImage.vkImageView;
@@ -888,6 +914,129 @@ auto core::AssetManager::uploadMeshData() -> void
 
 auto core::AssetManager::onUpdate() -> void
 {
+    utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
+
+    uint64_t value{ 0u };
+    m_vkCtx->device->getSemaphoreCounterValue( m_timelineSemaphore, value );
+
+    std::erase_if( m_taskSync, [&]( const TaskSync& taskSet ) {
+        if ( taskSet.semaphoreWaitValue > value )
+        {
+            return false;
+        }
+
+        auto* dataTaskSetPtr = static_cast<utilities::DataTaskSet<TextureTaskData>*>( taskSet.task );
+        TextureTaskData& data = dataTaskSetPtr->container;
+
+        VmaAllocationInfo allocInfo = m_vkCtx->device->getAllocInfo( m_stagingBuffer.vmaAllocation );
+        m_vkCtx->device->invalidateAllocation( m_stagingBuffer, 0, allocInfo.size );
+
+        for ( ImageData& img : data.imageData )
+        {
+            if ( !img.data )
+            {
+                continue;
+            }
+            updateBindlessTextures( img.texture.get() );
+            m_ktxTextureManager->destroyTexture( img.texture.get() );
+            m_loadedTextures.emplace( img.texture->path, std::move( img.texture ) );
+        }
+
+        resolveMaterials( data.materialsBatch );
+        updateMaterialsBuffer();
+
+        std::erase( m_textureLoadTasks, taskSet.task );
+        taskManager->eraseTask( taskSet.task );
+        return true;
+    } );
+
+    if ( !m_textureLoadTasks.empty() )
+    {
+        for ( auto it = m_textureLoadTasks.begin(); it != m_textureLoadTasks.end(); )
+        {
+            enki::ITaskSet* taskSet = *it;
+
+            auto i = std::ranges::find_if( m_taskSync, [taskSet]( TaskSync& t ) { return t.task == taskSet; } );
+
+            if ( i != m_taskSync.end() )
+            {
+                ++it;
+                continue;
+            }
+
+            if ( !taskSet->GetIsComplete() )
+            {
+                ++it;
+                continue;
+            }
+
+            utilities::DataTaskSet<TextureTaskData>* dataTaskSetPtr =
+                static_cast<utilities::DataTaskSet<TextureTaskData>*>( taskSet );
+
+            TextureTaskData& data = dataTaskSetPtr->container;
+
+            // set all the undefined barriers here
+            VkDependencyInfo before{};
+            before.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+            before.imageMemoryBarrierCount = data.beforeBarriers.size();
+            before.pImageMemoryBarriers = data.beforeBarriers.data();
+
+            VkCommandPool commandPool = m_vkCtx->device->getTransferCommandPool();
+            VkCommandBuffer commandBuffer = m_vkCtx->device->beginSingleTimeCommands( commandPool );
+
+            // all the barriers at once
+            vkCmdPipelineBarrier2( commandBuffer, &before );
+
+            VkDeviceSize currentOffset{ 0 };
+
+            for ( ImageData& img : data.imageData )
+            {
+                if ( !img.data )
+                {
+                    continue;
+                }
+
+                m_vkCtx->device->copyMemoryToAllocation(
+                    img.data, m_stagingBuffer.vmaAllocation, currentOffset, img.size );
+
+                VkBufferImageCopy region{};
+                region.bufferOffset = currentOffset;
+                region.bufferRowLength = 0;
+                region.bufferImageHeight = 0;
+                region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                region.imageSubresource.mipLevel = 0;
+                region.imageSubresource.baseArrayLayer = 0;
+                region.imageSubresource.layerCount = 1;
+                region.imageOffset = { 0, 0, 0 };
+                region.imageExtent = { static_cast<uint32_t>( img.w ), static_cast<uint32_t>( img.h ), 1 };
+
+                currentOffset += img.size;
+
+                vkCmdCopyBufferToImage( commandBuffer,
+                                        m_stagingBuffer.vkBuffer,
+                                        img.texture->vulkanImage.vkImage,
+                                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                        1,
+                                        &region );
+            }
+
+            VkDependencyInfo after{};
+            after.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+            after.imageMemoryBarrierCount = data.afterBarriers.size();
+            after.pImageMemoryBarriers = data.afterBarriers.data();
+
+            vkCmdPipelineBarrier2( commandBuffer, &after );
+
+            VkQueue transferQueue = m_vkCtx->device->getTransferQueue().handle;
+
+            m_vkCtx->device->endSingleTimeCommands(
+                commandBuffer, transferQueue, commandPool, m_timelineSemaphore, m_signal );
+
+            // signal that this task will wait on before deleting it
+            m_taskSync.emplace_back( taskSet, m_signal );
+        }
+    }
+
     if ( !m_readyForUpdate.load() )
     {
         return;
@@ -895,101 +1044,7 @@ auto core::AssetManager::onUpdate() -> void
 
     m_readyForUpdate.store( false );
 
-    std::vector<ParsedMaterials> batch;
-    ZoneScopedN( "AssetManager::OnUpdate" );
-    {
-        std::lock_guard lock( m_mutex );
-        while ( !m_parsedMaterialsQueue.empty() )
-        {
-            batch.push_back( std::move( m_parsedMaterialsQueue.front() ) );
-            m_parsedMaterialsQueue.pop();
-        }
-    }
-
-    std::set<std::string> needed;
-    for ( auto& entry : batch )
-    {
-        for ( auto& [submesh, textureMap] : entry.parsedMaterialData )
-        {
-            for ( auto type : { Diffuse, Emissive, Normal } )
-            {
-                if ( !textureMap.at( type ).empty() )
-                {
-                    needed.insert( textureMap.at( type ) );
-                }
-            }
-        }
-    }
-
-    std::vector<std::tuple<std::string, std::string>> toLoad;
-    for ( auto& path : needed )
-    {
-        if ( !getTexture( path ) )
-        {
-            std::filesystem::path p{ path };
-            toLoad.emplace_back( p.string(), p.stem().string() );
-        }
-    }
-
-    if ( !toLoad.empty() )
-    {
-        loadTextures( toLoad );
-    }
-
-    bool materialsChanged{ false };
-    for ( auto& entry : batch )
-    {
-        for ( auto& [submesh, textureMap] : entry.parsedMaterialData )
-        {
-            resources::Material material{};
-            auto& submeshes = entry.pMesh->getSubmeshes();
-
-            resources::Texture* diffuse = getTexture( textureMap.at( Diffuse ) );
-            if ( diffuse )
-            {
-                material.diffuseTextureIndex = diffuse->textureIndex;
-            }
-
-            resources::Texture* emissive = getTexture( textureMap.at( Emissive ) );
-            if ( emissive )
-            {
-                material.emissiveTextureIndex = emissive->textureIndex;
-            }
-
-            resources::Texture* normal = getTexture( textureMap.at( Normal ) );
-            if ( normal )
-            {
-                material.normalTextureIndex = normal->textureIndex;
-            }
-
-            resources::Material stale{};
-            if ( material == stale )
-            {
-                submeshes[submesh].materialIndex = 0;
-                KINFO( "default material" );
-                continue;
-            }
-
-            auto it = std::ranges::find( m_materials, material );
-            if ( it != m_materials.end() )
-            {
-                submeshes[submesh].materialIndex = std::distance( m_materials.begin(), it );
-                KINFO( "material already loaded, index {}", submeshes[submesh].materialIndex );
-            }
-            else
-            {
-                submeshes[submesh].materialIndex = m_materials.size();
-                KINFO( "new material at index {}", m_materials.size() );
-                m_materials.push_back( material );
-                materialsChanged = true;
-            }
-        }
-
-        if ( materialsChanged )
-        {
-            updateMaterialsBuffer();
-        }
-    }
+    loadTextureData();
 
     if ( !m_queuedMeshes.empty() )
     {
@@ -1011,4 +1066,59 @@ auto core::AssetManager::enqueueMesh( resources::Mesh* mesh ) -> void
 auto core::AssetManager::addUiTexture( const std::filesystem::path p ) -> void
 {
     m_uiTexturePaths.push_back( p );
+}
+
+auto core::AssetManager::resolveMaterials( ParsedMaterials batch ) -> void
+{
+    ZoneScopedN( "resolveMaterials" );
+    auto getKtxPath = []( const std::string& path ) -> std::filesystem::path {
+        std::filesystem::path texPath = std::filesystem::path{ path };
+        std::string filename = texPath.stem().string() + ".ktx2";
+        return texPath.parent_path() / "ktx" / filename;
+    };
+
+    for ( auto& [submesh, textureMap] : batch.parsedMaterialData )
+    {
+        resources::Material material{};
+        auto& submeshes = batch.pMesh->getSubmeshes();
+
+        resources::Texture* diffuse = getTexture( getKtxPath( textureMap.at( Diffuse ) ).string() );
+        if ( diffuse )
+        {
+            material.diffuseTextureIndex = diffuse->textureIndex;
+        }
+
+        resources::Texture* emissive = getTexture( getKtxPath( textureMap.at( Emissive ) ).string() );
+        if ( emissive )
+        {
+            material.emissiveTextureIndex = emissive->textureIndex;
+        }
+
+        resources::Texture* normal = getTexture( getKtxPath( textureMap.at( Normal ) ).string() );
+        if ( normal )
+        {
+            material.normalTextureIndex = normal->textureIndex;
+        }
+
+        resources::Material stale{};
+        if ( material == stale )
+        {
+            submeshes[submesh].materialIndex = 0;
+            KINFO( "default material" );
+            continue;
+        }
+
+        {
+            auto it = std::ranges::find( m_materials, material );
+            if ( it != m_materials.end() )
+            {
+                submeshes[submesh].materialIndex = std::distance( m_materials.begin(), it );
+            }
+            else
+            {
+                submeshes[submesh].materialIndex = m_materials.size();
+                m_materials.push_back( material );
+            }
+        }
+    }
 }

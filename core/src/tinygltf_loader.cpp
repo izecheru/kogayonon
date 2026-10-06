@@ -142,11 +142,6 @@ auto core::TinyGltfLoader::parseTextureData( resources::Mesh* pMesh )
 
         std::filesystem::path p{ texturePathFromLoader };
         auto path = std::filesystem::current_path() / "engine_resources" / "textures" / p.filename();
-
-        // check for ktx counterpart
-        // std::string ktxFilename = p.stem().string() + ".ktx2";
-        // fs::path ktxPath = fs::current_path() / "engine_resources" / "textures" / "ktx" / ktxFilename;
-
         return path.string();
     };
 

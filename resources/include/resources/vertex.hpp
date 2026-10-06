@@ -1,11 +1,11 @@
 #pragma once
-#include <vulkan/vulkan.h>
-#include <glm/glm.hpp>
+#include <vulkan/vulkan_core.h>
+#include "glm/vec2.hpp"
+#include "glm/vec3.hpp"
 
 namespace resources
 {
 
-// macros for vertex shader input types
 enum class VertexDataType
 {
     Float = VK_FORMAT_R32_SFLOAT,

@@ -3,7 +3,6 @@
 #include "core/event/event.hpp"
 #include "core/event/event_dispatcher.hpp"
 #include "gui/imgui_windows/imgui_base.hpp"
-#include "precompiled/pch.hpp"
 #include "core/directory_watcher/directory_watcher.hpp"
 #include "gui/directory_hierarchy.hpp"
 

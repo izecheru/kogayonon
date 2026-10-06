@@ -1,20 +1,14 @@
 #pragma once
 #include "core/event/app_event.hpp"
 #include "core/input/mouse_events.hpp"
-#include <vulkan/vulkan.h>
-#include <entt/entt.hpp>
-#include <glm/glm.hpp>
 #include "graphics/vulkan_buffer.hpp"
 #include "graphics/vulkan_descriptor.hpp"
-#include "graphics/vulkan_image.hpp"
-#include "graphics/vulkan_pipeline.hpp"
 #include "graphics/vulkan_context.hpp"
 #include "renderer/frame_graph.hpp"
 #include "renderer/modules/geometry_module.hpp"
 #include "renderer/modules/prepass_module.hpp"
 #include "renderer/modules/imgui_module.hpp"
 #include "renderer/modules/picking_module.hpp"
-#include "precompiled/pch.hpp"
 
 #define MAX_TEXTURE_NUM 1000
 struct SDL_Window;

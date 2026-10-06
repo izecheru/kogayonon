@@ -1,6 +1,5 @@
 #pragma once
 #include <yaml-cpp/yaml.h>
-#include "precompiled/pch.hpp"
 
 namespace fs = std::filesystem;
 

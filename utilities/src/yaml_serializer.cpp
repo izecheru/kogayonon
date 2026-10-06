@@ -1,5 +1,4 @@
 #include "utilities/yaml_serializer/yaml_serializer.hpp"
-#include <glm/glm.hpp>
 
 namespace utilities
 {

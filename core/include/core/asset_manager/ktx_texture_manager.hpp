@@ -40,7 +40,7 @@ class KtxTextureManager
 
     auto loadTexture( const std::filesystem::path p, resources::Texture* texture ) -> KTX_error_code;
     auto saveTexture( const std::filesystem::path p, resources::Texture* texture ) -> KTX_error_code;
-    auto saveToKtx( const std::filesystem::path p, KtxTextureData data ) -> KTX_error_code;
+    auto saveToKtx( const std::filesystem::path p ) -> KTX_error_code;
     auto destroyTexture( resources::Texture* texture ) -> void;
 
     auto getDataSize( resources::Texture* texture ) -> uint32_t;

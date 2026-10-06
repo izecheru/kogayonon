@@ -1,7 +1,6 @@
 #pragma once
 #include "core/event/event.hpp"
 #include "core/input/mouse_events.hpp"
-#include "precompiled/pch.hpp"
 #include "utilities/input/mouse_codes.hpp"
 
 namespace core

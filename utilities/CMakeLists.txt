@@ -2,6 +2,7 @@ set(HEADER_FILES
   "include/utilities/tracy_utils/tracy_utils.hpp"
   "include/utilities/tracy_utils/tracy_vulkan_utils.hpp"
   "include/utilities/task_manager/task_manager.hpp"
+  "include/utilities/task_manager/task_manager.inl"
   "include/utilities/task_manager/task.hpp"
   "include/utilities/math/math.hpp"
   "include/utilities/input/keyboard_state.hpp"

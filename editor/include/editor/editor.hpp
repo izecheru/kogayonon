@@ -1,6 +1,5 @@
 #pragma once
 #include <vulkan/vulkan.h>
-#include "precompiled/pch.hpp"
 
 namespace window
 {

@@ -1,7 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
-#include "precompiled/pch.hpp"
 
 namespace graphics
 {

@@ -9,7 +9,6 @@
 #include "gui/utils/font_keys.hpp"
 #include "gui/utils/imgui_dragdrop_defines.hpp"
 #include "gui/utils/imgui_utils.hpp"
-#include "precompiled/pch.hpp"
 #include "utilities/config_manager/config_manager.hpp"
 #include "core/directory_watcher/directory_watcher.hpp"
 #include "utilities/fonts/materialdesign.hpp"

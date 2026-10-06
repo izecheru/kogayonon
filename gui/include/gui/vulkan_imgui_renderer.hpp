@@ -1,11 +1,10 @@
 #pragma once
-#include "precompiled/pch.hpp"
-#include "vulkan/vulkan.h"
-#include "SDL3/SDL.h"
+#include "vulkan/vulkan_core.h"
 #include "imgui.h"
-#include "core/event/config_event.hpp"
 
 #define IMGUI_VULKAN_MAX_DESCRIPTORS 200
+
+struct SDL_Window;
 
 namespace core
 {

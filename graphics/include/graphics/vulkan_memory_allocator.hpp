@@ -7,7 +7,6 @@
 #include <vulkan/vulkan.h>
 #include "graphics/vulkan_buffer.hpp"
 #include "graphics/vulkan_image.hpp"
-#include "precompiled/pch.hpp"
 
 namespace graphics
 {

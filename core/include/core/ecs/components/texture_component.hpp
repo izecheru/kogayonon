@@ -1,5 +1,4 @@
 #pragma once
-#include "precompiled/pch.hpp"
 #include "resources/texture.hpp"
 
 namespace core

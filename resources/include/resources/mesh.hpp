@@ -1,7 +1,6 @@
 #pragma once
 #include <vulkan/vulkan.h>
 #include "graphics/vulkan_buffer.hpp"
-#include "precompiled/pch.hpp"
 #include "resources/material.hpp"
 #include "resources/skeleton.hpp"
 #include "resources/texture.hpp"

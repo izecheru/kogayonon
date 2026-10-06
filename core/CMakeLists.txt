@@ -50,6 +50,7 @@ set(HEADER_FILES
     "include/core/asset_manager/font_loader.hpp"
     "include/core/asset_manager/tinygltf_loader.hpp"
     "include/core/asset_manager/ktx_texture_manager.hpp"
+    "include/core/asset_manager/threadsafe_resource_manager.hpp"
     "include/core/directory_watcher/directory_watcher.hpp"
 )
 
@@ -72,7 +73,7 @@ set(SOURCE_FILES
     "src/scene_event_handler.cpp"
     "src/tinygltf_loader.cpp"
     "src/directory_watcher.cpp"
- )
+  "src/threadsafe_resource_manager.cpp")
 
 add_library(core ${SOURCE_FILES} ${HEADER_FILES})
 

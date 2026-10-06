@@ -1,10 +1,5 @@
 #include "renderer/vulkan_renderer.hpp"
-#include <SDL3/SDL.h>
 #include "core/ecs/components/camera_component.hpp"
-#include "core/ecs/components/mesh_component.hpp"
-#include "core/ecs/components/rigidbody_component.hpp"
-#include "core/ecs/components/text_component.hpp"
-#include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
 #include "core/input/mouse_events.hpp"
@@ -13,13 +8,9 @@
 #include "graphics/vulkan_context.hpp"
 #include "gui/imgui_windows/viewport.hpp"
 #include "gui/vulkan_imgui_renderer.hpp"
-#include "physics/jolt_physics.hpp"
-#include "renderer/blackboard.hpp"
 #include "renderer/frame_graph.hpp"
-#include "resources/mesh_push_constant.hpp"
-#include "utilities/time_tracker/time_tracker.hpp"
-#include "utilities/tracy_utils/tracy_vulkan_utils.hpp"
 #include "utilities/utils/utils.hpp"
+#include "SDL3/SDL_mouse.h"
 
 rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Window* window )
     : m_vkCtx{ pCtx }

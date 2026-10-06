@@ -1,10 +1,8 @@
 #pragma once
 #include "core/event/event.hpp"
-#include "precompiled/pch.hpp"
 #include "utilities/utils/utils.hpp"
 #include <entt/entt.hpp>
 #include "core/event/event.hpp"
-#include "precompiled/pch.hpp"
 #include "utilities/utils/utils.hpp"
 
 namespace core

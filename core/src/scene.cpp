@@ -8,17 +8,10 @@
 #include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/index_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
-#include "core/ecs/components/outline_component.hpp"
-#include "core/ecs/components/pointlight_component.hpp"
 #include "core/ecs/components/rigidbody_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
-#include "resources/light_types.hpp"
-#include "resources/pointlight.hpp"
-#include "utilities/math/math.hpp"
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/matrix_decompose.hpp>
 using namespace utilities;
 
 core::Scene::Scene( const std::string& name )
@@ -90,7 +83,7 @@ void core::Scene::removeMeshFromEntity( entt::entity entity )
 
 auto core::Scene::onUpdate() -> void
 {
-    // update jolt bodies
+    // update bodies
     auto rigidView = m_pRegistry->getRegistry().view<core::RigidbodyComponent, core::TransformComponent>();
     rigidView.each( []( const entt::entity& entityId,
                         core::RigidbodyComponent& rigidBodyComponent,

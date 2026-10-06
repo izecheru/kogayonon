@@ -8,6 +8,7 @@ utilities::TaskManager::TaskManager()
     m_pin.taskScheduler = &m_taskScheduler;
     m_pin.threadNum = m_taskScheduler.GetNumTaskThreads() - 1;
     m_taskScheduler.AddPinnedTask( &m_pin );
+    m_currentThreadNum = 1;
 }
 
 utilities::TaskManager::~TaskManager()
@@ -20,28 +21,34 @@ auto utilities::TaskManager::getScheduler() -> enki::TaskScheduler&
     return m_taskScheduler;
 }
 
-auto utilities::TaskManager::addTaskSetToPipe( enki::ITaskSet* pSet ) -> void
+auto utilities::TaskManager::addTaskSetToPipe( enki::ITaskSet* pSet, const std::string& name ) -> void
 {
     m_taskScheduler.AddTaskSetToPipe( pSet );
-}
 
-auto utilities::TaskManager::onUpdate() -> void
-{
-    if ( !m_tasks.empty() )
+    if ( !name.empty() )
     {
-        std::erase_if( m_tasks,
-                       []( const std::unique_ptr<CallbackTask>& callback ) { return callback->GetIsComplete(); } );
-    }
-
-    if ( !m_pinnedTasks.empty() )
-    {
-        std::erase_if( m_pinnedTasks, []( const std::unique_ptr<PinnedCallbackTask>& callback ) {
-            return callback->GetIsComplete();
-        } );
+        KWARN( "Task {} is about to be executed", name );
     }
 }
 
 auto utilities::TaskManager::addPinnedTaskToExecution( enki::IPinnedTask* pTask ) -> void
 {
     m_taskScheduler.AddPinnedTask( pTask );
+}
+
+auto utilities::TaskManager::getCurrentThreadNum() -> uint32_t
+{
+    std::lock_guard lock{ m_mutex };
+    return m_currentThreadNum;
+}
+
+auto utilities::TaskManager::eraseTask( enki::ITaskSet* task ) -> void
+{
+    if ( !task->GetIsComplete() )
+    {
+        throw std::runtime_error( "TASK was not done, be careful" );
+    }
+
+    std::erase_if( m_tasks,
+                   [task]( const std::unique_ptr<enki::ITaskSet>& taskSet ) { return taskSet.get() == task; } );
 }

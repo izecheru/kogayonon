@@ -2,6 +2,7 @@
 
 SortIncludes: false
 IndentWidth: 4
+IndentCaseLabels: true
 TabWidth: 4
 ContinuationIndentWidth: 4
 UseTab: Never
@@ -15,6 +16,7 @@ BraceWrapping:
   AfterControlStatement: true
   AfterFunction: true
   AfterNamespace: true  
+  AfterCaseLabel: true
   BeforeElse: true
   IndentBraces: false
   SplitEmptyFunction: true

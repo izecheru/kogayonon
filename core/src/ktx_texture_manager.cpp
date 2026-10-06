@@ -45,17 +45,20 @@ auto core::KtxTextureManager::saveTexture( const std::filesystem::path p, resour
     return ktxTexture2_WriteToNamedFile( texture->ktxImage.texture, p.string().c_str() );
 }
 
-auto core::KtxTextureManager::saveToKtx( const std::filesystem::path p, KtxTextureData data ) -> KTX_error_code
+auto core::KtxTextureManager::saveToKtx( const std::filesystem::path p ) -> KTX_error_code
 {
-    if ( !data.pixels )
+    int w, c, h;
+    uint8_t* pixels = stbi_load( p.string().c_str(), &w, &h, &c, STBI_rgb_alpha );
+
+    if ( !pixels )
     {
         return KTX_FILE_OPEN_FAILED;
     }
 
     ktxTextureCreateInfo createInfo{};
     createInfo.vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
-    createInfo.baseWidth = static_cast<ktx_uint32_t>( data.w );
-    createInfo.baseHeight = static_cast<ktx_uint32_t>( data.h );
+    createInfo.baseWidth = static_cast<ktx_uint32_t>( w );
+    createInfo.baseHeight = static_cast<ktx_uint32_t>( h );
     createInfo.baseDepth = 1;
     createInfo.numDimensions = 2;
     createInfo.numLevels = 1;
@@ -64,7 +67,7 @@ auto core::KtxTextureManager::saveToKtx( const std::filesystem::path p, KtxTextu
     createInfo.isArray = KTX_FALSE;
     createInfo.generateMipmaps = KTX_FALSE;
 
-    ktxTexture2* texture = nullptr;
+    ktxTexture2* texture{ nullptr };
 
     KTX_error_code result = ktxTexture2_Create( &createInfo, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &texture );
 
@@ -78,7 +81,7 @@ auto core::KtxTextureManager::saveToKtx( const std::filesystem::path p, KtxTextu
     const std::filesystem::path ktxPath =
         std::filesystem::current_path() / "engine_resources" / "textures" / "ktx" / filename;
 
-    ktxTexture_SetImageFromMemory( ktxTexture( texture ), 0, 0, 0, data.pixels, data.w * data.h * data.c );
+    ktxTexture_SetImageFromMemory( ktxTexture( texture ), 0, 0, 0, pixels, w * h * 4 );
 
     result = ktxTexture2_WriteToNamedFile( texture, ktxPath.string().c_str() );
     ktxTexture2_Destroy( texture );

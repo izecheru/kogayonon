@@ -1,6 +1,5 @@
 #pragma once
 #include <enkiTS/TaskScheduler.h>
-#include "precompiled/pch.hpp"
 #include "task.hpp"
 
 #define MAX_IO_THREADS 4
@@ -31,66 +30,40 @@ class TaskManager
      * @param pSet Pointer to the TaskSet
      * @return
      */
-    auto addTaskSetToPipe( enki::ITaskSet* pSet ) -> void;
+    auto addTaskSetToPipe( enki::ITaskSet* pSet, const std::string& name = "" ) -> void;
+
+    auto eraseTask( enki::ITaskSet* task ) -> void;
 
     auto addPinnedTaskToExecution( enki::IPinnedTask* pTask ) -> void;
 
-    /**
-     * @brief Add a pinned task, those are primarily functions designated for vulkan resources, they have a
-     * unique way of managing the thread that the task is ran on, most likely the threadId will be used for indexing
-     * into command pools to generate command buffers from multiple threads
-     * @tparam Fn
-     * @param fn
-     * @return
-     */
-    template <typename Fn>
-        requires std::invocable<Fn>
-    auto addPinnedTask( Fn&& fn ) -> PinnedCallbackTask*
-    {
-        auto task = std::make_unique<PinnedCallbackTask>( std::forward<Fn>( fn ) );
-        task->threadNum = 1 + ( m_currentThreadNum % MAX_IO_THREADS );
-        KINFO( "[TaskManager] Task will be executed on thread num {}", task->threadNum );
-        m_currentThreadNum = ( m_currentThreadNum + 1 ) % MAX_IO_THREADS;
-        m_pinnedTasks.emplace_back( std::move( task ) );
-        return m_pinnedTasks.back().get();
-    }
-
-    /**
-     * @brief Update the task vector and erase already finished tasks
-     * @return
-     */
-    auto onUpdate() -> void;
+    template <class TData, typename Fn>
+        requires std::invocable<Fn, TData&>
+    auto addTask( TData&& data, Fn&& fn, bool addToPipe = false ) -> DataTaskSet<TData>*;
 
     template <typename Fn>
         requires std::invocable<Fn>
-    auto addTask( Fn&& fn, bool addToPipe = false ) -> CallbackTask*
-    {
-        auto task = std::make_unique<CallbackTask>( std::forward<Fn>( fn ) );
-        m_tasks.push_back( std::move( task ) );
+    auto addTask( Fn&& fn, bool addToPipe = false ) -> TaskSet*;
 
-        if ( addToPipe )
-        {
-            m_taskScheduler.AddTaskSetToPipe( m_tasks.back().get() );
-        }
+    template <typename Fn>
+        requires std::invocable<Fn>
+    auto addPinnedTask( Fn&& fn, bool executeImediately = false ) -> PinnedTask*;
 
-        return m_tasks.back().get();
-    }
+    template <class TData, typename Fn>
+        requires std::invocable<Fn, TData&>
+    auto addPinnedDataTask( TData&& data, Fn&& fn, bool executeImediately = false ) -> PinnedDataTask<TData>*;
 
-    template <typename T>
-    auto addDependency( T* dependent, T* predecessor ) -> void
-    {
-        KASSERT( dependent && predecessor );
-        dependent->SetDependency( dependent->dependency, predecessor );
-    }
+    auto getCurrentThreadNum() -> uint32_t;
 
   private:
-    std::vector<std::unique_ptr<CallbackTask>> m_tasks;
-    std::vector<std::unique_ptr<PinnedCallbackTask>> m_pinnedTasks;
+    std::vector<std::unique_ptr<enki::ITaskSet>> m_tasks;
+    std::vector<std::unique_ptr<enki::IPinnedTask>> m_pinnedTasks;
     enki::TaskScheduler m_taskScheduler;
     enki::TaskSchedulerConfig m_config;
     RunPinnedTaskLoopTask m_pin{};
 
-    // this is like the currentFrame from swapchain
     uint32_t m_currentThreadNum{ 0u };
+    std::mutex m_mutex;
 };
+
+#include "utilities/task_manager/task_manager.inl"
 } // namespace utilities

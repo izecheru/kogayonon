@@ -1,5 +1,4 @@
 #pragma once
-#include "precompiled/pch.hpp"
 #include <Windows.h>
 #include <shellapi.h>
 #include "core/event/file_events.hpp"

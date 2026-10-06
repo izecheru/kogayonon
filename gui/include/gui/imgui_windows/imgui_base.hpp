@@ -1,7 +1,6 @@
 #pragma once
 #include <imgui.h>
 #include <cstdint>
-#include "precompiled/pch.hpp"
 
 namespace gui
 {

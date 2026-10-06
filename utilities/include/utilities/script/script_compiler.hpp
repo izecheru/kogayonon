@@ -1,5 +1,4 @@
 #pragma once
-#include "precompiled/pch.hpp"
 #include "utilities/script/script.hpp"
 
 namespace utilities

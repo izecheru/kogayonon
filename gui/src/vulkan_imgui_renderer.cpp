@@ -1,15 +1,12 @@
 #include "gui/vulkan_imgui_renderer.hpp"
-#include "core/event/scene_events.hpp"
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_vulkan.h>
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
-#include <glm/gtc/type_ptr.hpp>
+#include "SDL3/SDL_video.h"
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
-#include "core/event/scene_events.hpp"
-#include "core/input/keyboard_events.hpp"
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_device.hpp"
 #include "graphics/vulkan_swapchain.hpp"
@@ -18,11 +15,10 @@
 #include "gui/imgui_windows/scene_hierarchy.hpp"
 #include "gui/imgui_windows/viewport.hpp"
 #include "gui/utils/imgui_utils.hpp"
-#include "precompiled/pch.hpp"
 #include "resources/texture.hpp"
 #include "utilities/config_manager/config_manager.hpp"
 #include "utilities/fonts/materialdesign.hpp"
-#include "utilities/input/keyboard_state.hpp"
+#include "core/event/config_event.hpp"
 
 #include <ImGuizmo.h>
 
