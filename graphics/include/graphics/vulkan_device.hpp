@@ -67,7 +67,7 @@ class VulkanDevice
      * who asserted the deallocation
      * @return
      */
-    auto printLeaks() const -> void;
+    auto writeLeaksLog() const -> void;
 
     /**
      * @brief Create vulkan buffer

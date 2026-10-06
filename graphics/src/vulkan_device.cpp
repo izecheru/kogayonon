@@ -246,7 +246,7 @@ auto graphics::VulkanDevice::checkValidationLayerSupport() -> bool
 
 auto graphics::VulkanDevice::shutdown() const -> void
 {
-    // printLeaks();
+    writeLeaksLog();
     waitIdle();
 
     destroyCommandPool( m_commandPool );
@@ -723,12 +723,33 @@ auto graphics::VulkanDevice::destroyImages( const std::initializer_list<std::tup
     }
 }
 
-auto graphics::VulkanDevice::printLeaks() const -> void
+auto graphics::VulkanDevice::writeLeaksLog() const -> void
 {
+    namespace fs = std::filesystem;
+    fs::path p{ fs::current_path() / "logs" };
+    if ( !fs::exists( p ) )
+    {
+        fs::create_directory( p );
+    }
+
+    if ( fs::exists( p / "log.txt" ) )
+    {
+        fs::remove( p / "log.txt" );
+    }
+
+    p = p / "log.txt";
+    std::ofstream out{ p, std::ios::out };
+
     char* statsString = nullptr;
     VmaAllocatorCreateInfo info{};
     vmaBuildStatsString( m_allocator, &statsString, VK_TRUE );
-    printf_s( "%s", statsString );
+    out.write( statsString, strlen( statsString ) );
+
+    if ( out.is_open() )
+    {
+        out.close();
+    }
+
     vmaFreeStatsString( m_allocator, statsString );
 }
 

@@ -22,6 +22,7 @@
 #include <queue>
 #include <ranges>
 #include <set>
+#include <unordered_set>
 #include <sstream>
 #include <stack>
 #include <stdexcept>

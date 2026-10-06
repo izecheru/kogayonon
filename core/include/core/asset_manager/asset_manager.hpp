@@ -32,32 +32,71 @@ class KtxTextureManager;
 
 struct ParsedMaterials
 {
+    /**
+     * @brief Owner of those materials
+     */
     resources::Mesh* pMesh{ nullptr };
+
     std::unordered_map<uint32_t, std::map<TextureType, std::string>> parsedMaterialData;
 };
 
 struct ImageData
 {
+    /**
+     * @brief Texture related data
+     */
     int w;
     int h;
     int c;
     uint8_t* data;
+
+    /**
+     * @brief Actual image byte size
+     */
     VkDeviceSize size;
+
     std::unique_ptr<resources::Texture> texture;
 };
 
+/**
+ * @brief Everything that a load texture task produces
+ */
 struct TextureTaskData
 {
     std::vector<ImageData> imageData;
+
+    /**
+     * @brief Memory barriers for before and after vulkan copy commands
+     */
     std::vector<VkImageMemoryBarrier2> beforeBarriers;
     std::vector<VkImageMemoryBarrier2> afterBarriers;
+
+    /**
+     * @brief Buffer size needed for the texture data transfer, we use only one staging buffer
+     */
     VkDeviceSize stageBufferSize{ 0u };
+
+    /**
+     * @brief This is used to resolve materials, once textures are all loaded we search in the
+     * material data provided by the tinygltf loader and assing the current bindless index to that
+     * specific texture. We go through emissive, normal and diffuse textures to build an entire material
+     */
     ParsedMaterials materialsBatch;
+
+    graphics::VulkanBuffer stagingBuffer;
 };
 
 struct TaskSync
 {
+    /**
+     * @brief Task pointer so we retrieve the data produced by the task thread
+     */
     enki::ITaskSet* task{ nullptr };
+
+    /**
+     * @brief This is so we know the data produced by the task thread can be safely used in
+     * vulkan command recording since atm we do that on the main thread
+     */
     uint64_t semaphoreWaitValue{ 0u };
 };
 
@@ -103,7 +142,6 @@ class AssetManager
      * @return
      */
     auto loadTexture( const std::string& textureName, const std::string& texturePath ) -> resources::Texture*;
-    auto loadTextures( const std::vector<std::tuple<std::string, std::string>>& textures ) -> void;
     auto loadTextureData() -> void;
 
     /**
@@ -261,10 +299,6 @@ class AssetManager
     graphics::FrameInFlightVulkanBuffer m_materialsBuffer;
     std::vector<resources::Material> m_materials;
 
-    std::mutex m_materialMutex;
-    std::mutex m_meshMutex;
-
-    std::mutex m_materialBufferMutex;
     std::unordered_map<std::string, std::unique_ptr<resources::Texture>> m_loadedTextures;
     std::unordered_map<std::string, std::unique_ptr<resources::Mesh>> m_loadedMeshes;
     std::queue<resources::Mesh*> m_queuedMeshes;
@@ -277,8 +311,6 @@ class AssetManager
     FontLoader m_fontLoader;
     std::unique_ptr<KtxTextureManager> m_ktxTextureManager;
 
-    std::atomic<bool> m_readyForUpdate{ false };
-    std::atomic<bool> m_texturesReady{ false };
     std::vector<graphics::VulkanBuffer> m_stagingBuffers;
     graphics::VulkanBuffer m_stagingBuffer;
 
@@ -286,14 +318,21 @@ class AssetManager
 
     // used for assigning the values to material indices in the mesh
     uint32_t m_bindlessTexturesIndex;
-    uint32_t m_samplerIndex;
 
-    ThreadsafeResourceManager m_threadSafeResourceManager;
+    uint32_t m_samplerIndex; // currently unused
+
+    // mutexes
+    std::mutex m_materialMutex;
+    std::mutex m_meshMutex;
+    std::mutex m_materialBufferMutex;
+
+    // Task related member variables
+    std::atomic<bool> m_readyForUpdate{ false };
+    // ThreadsafeResourceManager m_threadSafeResourceManager;
     VkSemaphore m_timelineSemaphore;
-    uint64_t m_signal{ 0u };
-
+    uint64_t m_timelineSemaphoreSignal{ 0u };
     std::vector<enki::ITaskSet*> m_textureLoadTasks;
-
     std::vector<TaskSync> m_taskSync;
+    std::unordered_set<std::string> m_pendingTextureLoads;
 };
 } // namespace core
