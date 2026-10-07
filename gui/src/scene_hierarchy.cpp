@@ -177,7 +177,8 @@ void gui::SceneHierarchy::drawContextMenu()
             Entity ent{ scene->getRegistry(), "ObjectEntity" };
 
             ent.addComponent<TransformComponent>( TransformComponent{} );
-            ent.addComponent<MeshComponent>( MeshComponent{ .pMesh = assetManager->loadMesh( "test", p.string() ) } );
+            ent.addComponent<MeshComponent>(
+                MeshComponent{ .meshPath = p.string(), .pMesh = assetManager->loadMesh( "test", p.string() ) } );
 
             pEventDispatcher->dispatchEvent<SelectEntityEvent>(
                 SelectEntityEvent{ ent.getEntityId(), SelectEntityEventSource::Hierarchy_Window } );

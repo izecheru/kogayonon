@@ -111,6 +111,23 @@ auto core::Scene::onUpdate() -> void
 
         transformComponent.computeMatrix();
     } );
+
+    // if there are mesh components that are done loading use them
+    auto meshView = m_pRegistry->getRegistry().view<core::MeshComponent>();
+
+    meshView.each( []( const entt::entity& entityId, core::MeshComponent& meshComp ) {
+        core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+
+        if ( !meshComp.pMesh )
+        {
+            resources::Mesh* mesh = assetManager->getMesh( meshComp.meshPath );
+            if ( !mesh )
+            {
+                return;
+            }
+            meshComp.pMesh = mesh;
+        }
+    } );
 }
 
 auto core::Scene::deserialize( const std::filesystem::path& p ) -> void
@@ -162,7 +179,8 @@ auto core::Scene::deserialize( const std::filesystem::path& p ) -> void
             core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
             std::filesystem::path meshPath = e["mesh"]["path"].GetString();
             resources::Mesh* mesh = assetManager->loadMesh( meshPath.stem().string(), meshPath.string() );
-            ent.addComponent<core::MeshComponent>( core::MeshComponent{ .pMesh = mesh } );
+            ent.addComponent<core::MeshComponent>(
+                core::MeshComponent{ .meshPath = meshPath.string(), .pMesh = mesh } );
         }
     }
 }

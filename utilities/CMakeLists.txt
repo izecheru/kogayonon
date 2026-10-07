@@ -3,6 +3,7 @@ set(HEADER_FILES
   "include/utilities/tracy_utils/tracy_vulkan_utils.hpp"
   "include/utilities/task_manager/task_manager.hpp"
   "include/utilities/task_manager/task_manager.inl"
+  "include/utilities/task_manager/task_registry.hpp"
   "include/utilities/task_manager/task.hpp"
   "include/utilities/math/math.hpp"
   "include/utilities/input/keyboard_state.hpp"
@@ -31,6 +32,7 @@ set(HEADER_FILES
 
 set(SOURCE_FILES
   "src/task_manager.cpp"
+  "src/task_registry.cpp"
   "src/time_tracker.cpp"
   "src/config_manager.cpp"
   "src/script_compiler.cpp"

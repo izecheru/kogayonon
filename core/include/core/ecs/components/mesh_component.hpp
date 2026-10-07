@@ -9,6 +9,7 @@ namespace core
 {
 struct MeshComponent
 {
+    std::string meshPath{ "" };
     resources::Mesh* pMesh{ nullptr };
 };
 } // namespace core

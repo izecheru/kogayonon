@@ -33,6 +33,7 @@ auto core::AssetManager::recreate() -> void
     for ( auto& [path, texture] : m_loadedTextures )
     {
         auto it = std::ranges::find_if( m_uiTexturePaths, [&]( const std::filesystem::path& p ) { return p == path; } );
+
         if ( it != m_uiTexturePaths.end() )
         {
             continue;
@@ -61,6 +62,19 @@ auto core::AssetManager::init() -> void
     initDescriptors();
     initSampler();
 
+    VkSemaphoreTypeCreateInfo meshTimelineCreateInfo{};
+    meshTimelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+    meshTimelineCreateInfo.pNext = NULL;
+    meshTimelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+    meshTimelineCreateInfo.initialValue = 0;
+
+    VkSemaphoreCreateInfo meshCreateInfo{};
+    meshCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    meshCreateInfo.pNext = &meshTimelineCreateInfo;
+    meshCreateInfo.flags = 0;
+
+    m_vkCtx->device->createSemaphore( m_meshTimelineSemaphore, meshTimelineCreateInfo, meshCreateInfo );
+
     VkSemaphoreTypeCreateInfo timelineCreateInfo;
     timelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
     timelineCreateInfo.pNext = NULL;
@@ -72,7 +86,7 @@ auto core::AssetManager::init() -> void
     createInfo.pNext = &timelineCreateInfo;
     createInfo.flags = 0;
 
-    m_vkCtx->device->createSemaphore( m_timelineSemaphore, timelineCreateInfo, createInfo );
+    m_vkCtx->device->createSemaphore( m_textureTimelineSemaphore, timelineCreateInfo, createInfo );
 }
 
 auto core::AssetManager::destroyResources() -> void
@@ -80,7 +94,8 @@ auto core::AssetManager::destroyResources() -> void
     m_vkCtx->device->waitIdle();
 
     m_vkCtx->device->destroyBuffer( m_materialsBuffer );
-    m_vkCtx->device->destroySemaphore( m_timelineSemaphore );
+    m_vkCtx->device->destroySemaphore( m_textureTimelineSemaphore );
+    m_vkCtx->device->destroySemaphore( m_meshTimelineSemaphore );
     m_vkCtx->device->destroySampler( m_textureSampler );
     m_vkCtx->device->destroyDescriptorSetLayout( m_bindlessTexturesDescriptor.layout );
     m_vkCtx->device->destroyDescriptorSetLayout( m_materialsDescriptor.layout );
@@ -103,30 +118,83 @@ auto core::AssetManager::destroyResources() -> void
     m_materials.clear();
 }
 
+auto core::AssetManager::shutdown() -> void
+{
+    if ( m_shutdown.exchange( true ) )
+    {
+        return;
+    }
+
+    m_acceptingLoads = false;
+
+    utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
+    if ( !taskManager )
+        return;
+
+    for ( enki::ITaskSet* taskSet : m_meshLoadTasks )
+    {
+        if ( !taskSet->GetIsComplete() )
+        {
+            taskManager->getScheduler().WaitforTask( taskSet );
+        }
+    }
+
+    for ( enki::ITaskSet* taskSet : m_textureLoadTasks )
+    {
+        if ( !taskSet->GetIsComplete() )
+        {
+            taskManager->getScheduler().WaitforTask( taskSet );
+        }
+    }
+
+    m_vkCtx->device->waitIdle();
+
+    for ( enki::ITaskSet* taskSet : m_meshLoadTasks )
+    {
+        auto* d = static_cast<utilities::DataTaskSet<MeshTaskData>*>( taskSet );
+        m_vkCtx->device->destroyBuffer( d->container.stageBuffer );
+        taskManager->eraseTask( taskSet, utilities::TaskType::Data );
+    }
+
+    for ( enki::ITaskSet* taskSet : m_textureLoadTasks )
+    {
+        auto* d = static_cast<utilities::DataTaskSet<TextureTaskData>*>( taskSet );
+        m_vkCtx->device->destroyBuffer( d->container.stagingBuffer );
+        for ( auto& imageData : d->container.imageData )
+        {
+            m_vkCtx->device->destroyImage( imageData.texture->vulkanImage.vkImage,
+                                           imageData.texture->vulkanImage.vmaAllocation );
+
+            m_vkCtx->device->destroyImageView( imageData.texture->vulkanImage.vkImageView );
+        }
+        taskManager->eraseTask( taskSet, utilities::TaskType::Data );
+    }
+
+    m_meshLoadTasks.clear();
+    m_textureLoadTasks.clear();
+    m_meshTaskSync.clear();
+    m_textureTaskSync.clear();
+
+    destroyResources();
+}
+
 core::AssetManager::~AssetManager()
 {
-    // now destroy ALL textures
-    destroyResources();
+    shutdown();
 }
 
 auto core::AssetManager::loadTextureData() -> void
 {
     utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
 
-    TextureTaskData textureData{};
-
     std::vector<ParsedMaterials> batch{};
+    while ( !m_parsedMaterialsQueue.empty() )
     {
-        std::lock_guard lock{ m_materialMutex };
-
-        while ( !m_parsedMaterialsQueue.empty() )
-        {
-            batch.emplace_back( m_parsedMaterialsQueue.front() );
-            m_parsedMaterialsQueue.pop();
-        }
+        batch.emplace_back( m_parsedMaterialsQueue.front() );
+        m_parsedMaterialsQueue.pop();
     }
 
-    for ( auto& b : batch )
+    for ( ParsedMaterials& b : batch )
     {
         utilities::TaskSet* generateKtx = taskManager->addTask( [this, b]() {
             ZoneScopedN( "[TASK] generateKtx" );
@@ -155,7 +223,7 @@ auto core::AssetManager::loadTextureData() -> void
         } );
 
         utilities::DataTaskSet<TextureTaskData>* task =
-            taskManager->addTask( std::move( textureData ), [this, b]( core::TextureTaskData& container ) {
+            taskManager->addTask( TextureTaskData{}, [this, b]( core::TextureTaskData& container ) {
                 ZoneScopedN( "[TASK] loadTextureData" );
                 std::set<std::string> needed;
                 for ( auto& [submesh, textureMap] : b.parsedMaterialData )
@@ -496,60 +564,162 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
         updateMaterialsBuffer();
     }
 
-    m_loadedMeshes.emplace( meshPath, std::make_unique<resources::Mesh>() );
-
-    resources::Mesh* mesh = m_loadedMeshes[meshPath].get();
-
-    mesh->setPath( meshPath );
-
     utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
 
     std::filesystem::path p{ meshPath };
     std::string filename{ p.stem().string() + "_collision.gltf" };
     std::filesystem::path collision = p.parent_path() / filename;
 
-    if ( std::filesystem::exists( collision ) )
+    if ( std::filesystem::exists( collision ) && !m_pendingMeshLoads.contains( collision.string() ) )
     {
-        m_loadedMeshes.emplace( collision.string(), std::make_unique<resources::Mesh>() );
-        utilities::TaskSet* collisionCallback = taskManager->addTask( [this, collision]() -> void {
-            ZoneScopedN( "Threaded loadMesh" );
-            std::unique_ptr<TinyGltfLoader> tinyLoader = std::make_unique<TinyGltfLoader>( collision.string() );
-            resources::Mesh* meshPtr = m_loadedMeshes[collision.string()].get();
+        m_pendingMeshLoads.insert( collision.string() );
 
-            meshPtr->setPath( collision.string() );
+        utilities::DataTaskSet<MeshTaskData>* collisionMeshTask =
+            taskManager->addTask( MeshTaskData{}, [this, collision]( MeshTaskData& data ) -> void {
+                ZoneScopedN( "[TASK] collision mesh" );
 
-            tinyLoader->processVertexData( meshPtr );
-            {
-                std::lock_guard lock{ m_meshMutex };
-                enqueueMesh( meshPtr );
-            }
-        } );
+                std::unique_ptr<TinyGltfLoader> tinyLoader = std::make_unique<TinyGltfLoader>( collision.string() );
 
-        taskManager->addTaskSetToPipe( collisionCallback );
+                data.mesh = std::make_unique<resources::Mesh>();
+
+                data.mesh->setPath( collision.string() );
+
+                tinyLoader->processVertexData( data.mesh.get() );
+
+                auto& indices = data.mesh->getIndices();
+                auto& vertices = data.mesh->getVertices();
+
+                data.verticesSize = sizeof( resources::Vertex ) * std::size( vertices );
+                data.indicesSize = sizeof( uint32_t ) * std::size( indices );
+
+                VkDeviceSize bufferSize = data.verticesSize + data.indicesSize;
+
+                VkBufferCreateInfo stageBufferInfo{};
+                stageBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+                stageBufferInfo.size = bufferSize;
+                stageBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+                stageBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+                VmaAllocationCreateInfo stageAllocInfo{};
+                stageAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+
+                m_vkCtx->device->createBuffer( data.stageBuffer, stageBufferInfo, stageAllocInfo );
+
+                VkBufferCreateInfo vertexBufferCreateInfo{};
+                vertexBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+                vertexBufferCreateInfo.size = data.verticesSize;
+                vertexBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+
+                VkBufferCreateInfo indicesBufferCreateInfo{};
+                indicesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+                indicesBufferCreateInfo.size = data.indicesSize;
+                indicesBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+
+                VmaAllocationCreateInfo vmaAllocInfo{};
+                vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+                vmaAllocInfo.flags =
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+                m_vkCtx->device->createBuffer( data.mesh->getVertexBufferObject(),
+                                               vertexBufferCreateInfo,
+                                               vmaAllocInfo,
+                                               collision.filename().string() );
+
+                m_vkCtx->device->createBuffer( data.mesh->getIndicesBufferObject(),
+                                               indicesBufferCreateInfo,
+                                               vmaAllocInfo,
+                                               collision.filename().string() );
+
+                // buffer
+                // .....indices..../....vertices...
+
+                m_vkCtx->device->copyMemoryToAllocation(
+                    indices.data(), data.stageBuffer.vmaAllocation, 0, data.indicesSize );
+
+                m_vkCtx->device->copyMemoryToAllocation(
+                    vertices.data(), data.stageBuffer.vmaAllocation, data.indicesSize, data.verticesSize );
+            } );
+
+        taskManager->addTaskSetToPipe( collisionMeshTask );
+        m_meshLoadTasks.emplace_back( collisionMeshTask );
     }
 
-    utilities::TaskSet* callbackPtr = taskManager->addTask( [this, meshPath]() -> void {
-        ZoneScopedN( "Threaded loadMesh" );
-        std::unique_ptr<TinyGltfLoader> tinyLoader = std::make_unique<TinyGltfLoader>( meshPath );
-        resources::Mesh* meshPtr = m_loadedMeshes[meshPath].get();
-        tinyLoader->processVertexData( meshPtr );
-        auto parsedData = tinyLoader->parseTextureData( meshPtr );
+    if ( m_pendingMeshLoads.contains( meshPath ) )
+        return nullptr;
 
-        {
-            std::lock_guard lock{ m_materialMutex };
-            m_parsedMaterialsQueue.push(
-                ParsedMaterials{ .pMesh = meshPtr, .parsedMaterialData = std::move( parsedData ) } );
-        }
+    m_pendingMeshLoads.insert( meshPath );
 
-        {
-            std::lock_guard lock{ m_meshMutex };
-            enqueueMesh( meshPtr );
-        }
-        m_readyForUpdate.store( true );
-    } );
+    utilities::DataTaskSet<MeshTaskData>* meshAndMaterialsTask =
+        taskManager->addTask( MeshTaskData{}, [this, meshPath]( MeshTaskData& data ) -> void {
+            ZoneScopedN( "[TASK] mesh + materials" );
+            std::unique_ptr<TinyGltfLoader> tinyLoader = std::make_unique<TinyGltfLoader>( meshPath );
+            data.mesh = std::make_unique<resources::Mesh>();
 
-    taskManager->addTaskSetToPipe( callbackPtr );
-    return m_loadedMeshes[meshPath].get();
+            data.mesh->setPath( meshPath );
+
+            tinyLoader->processVertexData( data.mesh.get() );
+
+            // this could be redundant
+            data.textureBatch.pMesh = data.mesh.get();
+            data.textureBatch.parsedMaterialData = std::move( tinyLoader->parseTextureData( data.mesh.get() ) );
+
+            auto& indices = data.mesh->getIndices();
+            auto& vertices = data.mesh->getVertices();
+
+            data.verticesSize = sizeof( resources::Vertex ) * std::size( vertices );
+            data.indicesSize = sizeof( uint32_t ) * std::size( indices );
+
+            VkDeviceSize bufferSize = data.verticesSize + data.indicesSize;
+
+            VkBufferCreateInfo stageBufferInfo{};
+            stageBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            stageBufferInfo.size = bufferSize;
+            stageBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+            stageBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+            VmaAllocationCreateInfo stageAllocInfo{};
+            stageAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+
+            m_vkCtx->device->createBuffer( data.stageBuffer, stageBufferInfo, stageAllocInfo );
+
+            VkBufferCreateInfo vertexBufferCreateInfo{};
+            vertexBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            vertexBufferCreateInfo.size = data.verticesSize;
+            vertexBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+
+            VkBufferCreateInfo indicesBufferCreateInfo{};
+            indicesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            indicesBufferCreateInfo.size = data.indicesSize;
+            indicesBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+
+            VmaAllocationCreateInfo vmaAllocInfo{};
+            vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+            vmaAllocInfo.flags =
+                VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+            std::filesystem::path meshP{ meshPath };
+
+            m_vkCtx->device->createBuffer(
+                data.mesh->getVertexBufferObject(), vertexBufferCreateInfo, vmaAllocInfo, meshP.filename().string() );
+
+            m_vkCtx->device->createBuffer(
+                data.mesh->getIndicesBufferObject(), indicesBufferCreateInfo, vmaAllocInfo, meshP.filename().string() );
+
+            // buffer
+            // .....indices..../....vertices...
+
+            m_vkCtx->device->copyMemoryToAllocation(
+                indices.data(), data.stageBuffer.vmaAllocation, 0, data.indicesSize );
+
+            m_vkCtx->device->copyMemoryToAllocation(
+                vertices.data(), data.stageBuffer.vmaAllocation, data.indicesSize, data.verticesSize );
+        } );
+
+    taskManager->addTaskSetToPipe( meshAndMaterialsTask );
+
+    m_meshLoadTasks.emplace_back( meshAndMaterialsTask );
+
+    return nullptr;
 }
 
 auto core::AssetManager::loadFont( const std::string_view path ) -> void
@@ -579,61 +749,38 @@ auto core::AssetManager::getMesh( const std::string& path ) -> resources::Mesh*
     return loadMesh( p.stem().string(), p.string() );
 }
 
-auto core::AssetManager::createIndexBuffer( resources::Mesh* pMesh ) -> void
+auto core::AssetManager::createIndexBuffer( resources::Mesh* pMesh, graphics::VulkanBuffer stageBuffer ) -> void
 {
-    auto& indices = pMesh->getIndices();
-    VkDeviceSize bufferSize = sizeof( uint32_t ) * indices.size();
+    std::vector<uint32_t>& indices = pMesh->getIndices();
 
-    VkBufferCreateInfo stageBufferInfo{};
-    stageBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    stageBufferInfo.size = bufferSize;
-    stageBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    stageBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    VmaAllocationCreateInfo stageAllocInfo{};
-    stageAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-
-    graphics::VulkanBuffer stageBuffer = m_vkCtx->device->createStagingBuffer( stageBufferInfo, stageAllocInfo );
-    m_vkCtx->device->copyMemoryToAllocation( indices.data(), stageBuffer.vmaAllocation, 0, bufferSize );
+    VmaAllocationInfo allocInfo{ m_vkCtx->device->getAllocInfo( stageBuffer.vmaAllocation ) };
+    m_vkCtx->device->copyMemoryToAllocation( indices.data(), stageBuffer.vmaAllocation, 0, allocInfo.size );
 
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = bufferSize;
-    bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    bufferInfo.size = allocInfo.size;
+    bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
     VmaAllocationCreateInfo vmaAllocInfo{};
     vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
     std::filesystem::path meshPath = pMesh->getPath();
     std::string name = meshPath.stem().string() + "_indicesBuff";
 
     m_vkCtx->device->createBuffer( pMesh->getIndicesBufferObject(), bufferInfo, vmaAllocInfo, name );
-    m_vkCtx->device->copyBuffer( stageBuffer.vkBuffer, pMesh->getIndicesBufferObject().vkBuffer, bufferSize );
-    m_vkCtx->device->destroyBuffer( stageBuffer );
 }
 
-auto core::AssetManager::createVertexBuffer( resources::Mesh* pMesh ) -> void
+auto core::AssetManager::createVertexBuffer( resources::Mesh* pMesh, graphics::VulkanBuffer stageBuffer ) -> void
 {
-    auto& vertices = pMesh->getVertices();
-    VkDeviceSize bufferSize = sizeof( resources::Vertex ) * vertices.size();
+    std::vector<resources::Vertex>& vertices = pMesh->getVertices();
 
-    VkBufferCreateInfo stageBufferInfo{};
-    stageBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    stageBufferInfo.size = bufferSize;
-    stageBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    stageBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    stageBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-
-    VmaAllocationCreateInfo stageAllocInfo{};
-    stageAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-
-    graphics::VulkanBuffer stageBuffer = m_vkCtx->device->createStagingBuffer( stageBufferInfo, stageAllocInfo );
-
-    m_vkCtx->device->copyMemoryToAllocation( vertices.data(), stageBuffer.vmaAllocation, 0, bufferSize );
+    VmaAllocationInfo allocInfo{ m_vkCtx->device->getAllocInfo( stageBuffer.vmaAllocation ) };
+    m_vkCtx->device->copyMemoryToAllocation( vertices.data(), stageBuffer.vmaAllocation, 0, allocInfo.size );
 
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = bufferSize;
+    bufferInfo.size = allocInfo.size;
     bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
     VmaAllocationCreateInfo vmaAllocInfo{};
@@ -644,8 +791,6 @@ auto core::AssetManager::createVertexBuffer( resources::Mesh* pMesh ) -> void
     std::string name = meshPath.stem().string() + "_verticesBuff";
 
     m_vkCtx->device->createBuffer( pMesh->getVertexBufferObject(), bufferInfo, vmaAllocInfo, name );
-    m_vkCtx->device->copyBuffer( stageBuffer.vkBuffer, pMesh->getVertexBufferObject().vkBuffer, bufferSize );
-    m_vkCtx->device->destroyBuffer( stageBuffer );
 }
 
 auto core::AssetManager::createBindlessDescriptorSetLayout() -> void
@@ -700,7 +845,7 @@ auto core::AssetManager::allocateBindlessDescriptorSet() -> void
 
 auto core::AssetManager::updateBindlessTextures( const std::vector<resources::Texture*>& textures ) -> void
 {
-    if ( m_textureSampler == VK_NULL_HANDLE )
+    if ( !m_textureSampler )
     {
         throw std::runtime_error( "sampler is not initialized" );
     }
@@ -737,7 +882,7 @@ auto core::AssetManager::updateBindlessTextures( const std::vector<resources::Te
 
 auto core::AssetManager::updateBindlessTextures( resources::Texture* texture ) -> void
 {
-    if ( texture->vulkanImage.vkImageView == VK_NULL_HANDLE )
+    if ( !texture->vulkanImage.vkImageView )
     {
         KERROR( "VkImageView not initialized" );
         return;
@@ -764,7 +909,7 @@ auto core::AssetManager::updateBindlessTextures( resources::Texture* texture ) -
 
 auto core::AssetManager::createMaterialsDescriptorSet() -> void
 {
-    uint32_t descriptorCount{ 1000 };
+    uint32_t descriptorCount{ 1000u };
 
     VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{};
     variableCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
@@ -852,15 +997,13 @@ auto core::AssetManager::updateMaterialsBuffer() -> void
         .range = m_materials.size() * sizeof( resources::Material ),
     };
 
-    VkWriteDescriptorSet bindlessDescriptor{
-        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        .dstSet = m_materialsDescriptor.set,
-        .dstBinding = 0,
-        .dstArrayElement = 0,
-        .descriptorCount = 1,
-        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-        .pBufferInfo = &buffInfo,
-    };
+    VkWriteDescriptorSet bindlessDescriptor{ .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                             .dstSet = m_materialsDescriptor.set,
+                                             .dstBinding = 0,
+                                             .dstArrayElement = 0,
+                                             .descriptorCount = 1,
+                                             .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                             .pBufferInfo = &buffInfo };
 
     m_vkCtx->device->copyToBuffer( m_materials, m_materialsBuffer.buffers.at( currentFrame ) );
     m_vkCtx->device->updateDescriptorSet( { bindlessDescriptor } );
@@ -898,62 +1041,10 @@ auto core::AssetManager::getTextures() -> std::unordered_map<std::string, std::u
 
 auto core::AssetManager::uploadMeshData() -> void
 {
-    while ( !m_queuedMeshes.empty() )
-    {
-        resources::Mesh* mesh = m_queuedMeshes.front();
-        m_queuedMeshes.pop();
-
-        if ( !mesh->isLoaded() )
-        {
-            createMeshResources( mesh );
-            mesh->setLoaded( true );
-            KINFO( "Loaded {}", mesh->getPath() );
-        }
-    }
 }
 
-auto core::AssetManager::onUpdate() -> void
+auto core::AssetManager::processTextureTasks() -> void
 {
-    utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
-
-    uint64_t value{ 0u };
-    m_vkCtx->device->getSemaphoreCounterValue( m_timelineSemaphore, value );
-
-    std::erase_if( m_taskSync, [&]( const TaskSync& taskSet ) {
-        ZoneScopedN( "erase taskSync" );
-        if ( taskSet.semaphoreWaitValue > value )
-        {
-            return false;
-        }
-
-        utilities::DataTaskSet<TextureTaskData>* dataTaskSetPtr =
-            static_cast<utilities::DataTaskSet<TextureTaskData>*>( taskSet.task );
-
-        TextureTaskData& data = dataTaskSetPtr->container;
-
-        for ( ImageData& img : data.imageData )
-        {
-            if ( !img.data )
-            {
-                continue;
-            }
-
-            updateBindlessTextures( img.texture.get() );
-
-            m_ktxTextureManager->destroyTexture( img.texture.get() );
-            m_pendingTextureLoads.erase( img.texture->path );
-            m_loadedTextures.emplace( img.texture->path, std::move( img.texture ) );
-        }
-
-        resolveMaterials( data.materialsBatch );
-        updateMaterialsBuffer();
-        m_vkCtx->device->destroyBuffer( data.stagingBuffer );
-
-        std::erase( m_textureLoadTasks, taskSet.task );
-        taskManager->eraseTask( taskSet.task );
-        return true;
-    } );
-
     if ( !m_textureLoadTasks.empty() )
     {
         ZoneScopedN( "cmd recording" );
@@ -962,10 +1053,12 @@ auto core::AssetManager::onUpdate() -> void
             enki::ITaskSet* taskSet = *it;
 
             // search for the current task set we're checking to see if it is already present in the task sync vector
-            auto i = std::ranges::find_if( m_taskSync, [taskSet]( TaskSync& t ) { return t.task == taskSet; } );
+            const bool isInSync = std::ranges::find_if( m_textureTaskSync, [taskSet]( TaskSync& t ) {
+                                      return t.task == taskSet;
+                                  } ) != m_textureTaskSync.end();
 
             // continue since the taskset has its data already processed and waiting on a semaphore
-            if ( i != m_taskSync.end() )
+            if ( isInSync )
             {
                 ++it;
                 continue;
@@ -995,7 +1088,7 @@ auto core::AssetManager::onUpdate() -> void
 
             VkDeviceSize currentOffset{ 0 };
 
-            for ( ImageData& img : data.imageData )
+            for ( const ImageData& img : data.imageData )
             {
                 if ( !img.data )
                 {
@@ -1036,29 +1129,187 @@ auto core::AssetManager::onUpdate() -> void
             VkQueue transferQueue = m_vkCtx->device->getTransferQueue().handle;
 
             m_vkCtx->device->endSingleTimeCommands(
-                commandBuffer, transferQueue, commandPool, m_timelineSemaphore, m_timelineSemaphoreSignal );
+                commandBuffer, transferQueue, commandPool, m_textureTimelineSemaphore, m_textureTimelineSignal );
 
-            // now this taskSync is waiting on the semaphore to start recording the vulkan cmd buffer
-            // and upload the texture + update the materials buffer
-            m_taskSync.emplace_back( taskSet, m_timelineSemaphoreSignal );
+            // now this taskSync is waiting on the semaphore to be signaled by the queue submition
+            m_textureTaskSync.emplace_back( taskSet, m_textureTimelineSignal );
         }
     }
-
-    if ( !m_readyForUpdate.load() )
-    {
-        return;
-    }
-
-    m_readyForUpdate.store( false );
-
-    loadTextureData();
-    uploadMeshData();
 }
 
-auto core::AssetManager::createMeshResources( resources::Mesh* pMesh ) -> void
+auto core::AssetManager::updateTextureTaskSync() -> void
 {
-    createVertexBuffer( pMesh );
-    createIndexBuffer( pMesh );
+    utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
+
+    uint64_t value{ 0u };
+    m_vkCtx->device->getSemaphoreCounterValue( m_textureTimelineSemaphore, value );
+
+    std::erase_if( m_textureTaskSync, [&]( const TaskSync& taskSet ) {
+        ZoneScopedN( "erase taskSync" );
+
+        // if not signaled ( GPU hasn't finished upload )
+        if ( taskSet.semaphoreWaitValue > value )
+        {
+            return false;
+        }
+
+        utilities::DataTaskSet<TextureTaskData>* dataTaskSetPtr =
+            static_cast<utilities::DataTaskSet<TextureTaskData>*>( taskSet.task );
+
+        TextureTaskData& data = dataTaskSetPtr->container;
+
+        for ( ImageData& img : data.imageData )
+        {
+            if ( !img.data )
+            {
+                continue;
+            }
+
+            updateBindlessTextures( img.texture.get() );
+
+            m_ktxTextureManager->destroyTexture( img.texture.get() );
+            m_pendingTextureLoads.erase( img.texture->path );
+            m_loadedTextures.emplace( img.texture->path, std::move( img.texture ) );
+        }
+
+        resolveMaterials( data.materialsBatch );
+        updateMaterialsBuffer();
+
+        m_vkCtx->device->destroyBuffer( data.stagingBuffer );
+
+        std::erase( m_textureLoadTasks, taskSet.task );
+        taskManager->eraseTask( taskSet.task, utilities::TaskType::Data );
+
+        return true;
+    } );
+}
+
+auto core::AssetManager::processMeshTasks() -> void
+{
+    if ( !m_meshLoadTasks.empty() )
+    {
+        ZoneScopedN( "mesh cmd recording" );
+        for ( auto it = m_meshLoadTasks.begin(); it != m_meshLoadTasks.end(); )
+        {
+            enki::ITaskSet* taskSet = *it;
+
+            // search for the current task set we're checking to see if it is already present in the task sync vector
+            const bool isInSync = std::ranges::find_if( m_meshTaskSync, [taskSet]( TaskSync& t ) {
+                                      return t.task == taskSet;
+                                  } ) != m_meshTaskSync.end();
+
+            // continue since the taskset has its data already processed and waiting on a semaphore
+            if ( isInSync )
+            {
+                ++it;
+                continue;
+            }
+
+            if ( !taskSet->GetIsComplete() )
+            {
+                ++it;
+                continue;
+            }
+
+            // cast to get access to the data produced by the task
+            utilities::DataTaskSet<MeshTaskData>* dataTaskSetPtr =
+                static_cast<utilities::DataTaskSet<MeshTaskData>*>( taskSet );
+
+            MeshTaskData& data = dataTaskSetPtr->container;
+
+            // copy the data from the staging buffer to the mesh buffers
+            VkCommandBuffer cmdBuffer =
+                m_vkCtx->device->beginSingleTimeCommands( m_vkCtx->device->getTransferCommandPool() );
+
+            VkBufferCopy indicesCopyRegion{};
+            indicesCopyRegion.size = data.indicesSize;
+            indicesCopyRegion.srcOffset = 0;
+            indicesCopyRegion.dstOffset = 0;
+
+            vkCmdCopyBuffer( cmdBuffer,
+                             data.stageBuffer.vkBuffer,
+                             data.mesh->getIndicesBufferObject().vkBuffer,
+                             1,
+                             &indicesCopyRegion );
+
+            VkBufferCopy verticesCopyRegion{};
+            verticesCopyRegion.size = data.verticesSize;
+            verticesCopyRegion.srcOffset = data.indicesSize;
+            verticesCopyRegion.dstOffset = 0;
+
+            vkCmdCopyBuffer( cmdBuffer,
+                             data.stageBuffer.vkBuffer,
+                             data.mesh->getVertexBufferObject().vkBuffer,
+                             1,
+                             &verticesCopyRegion );
+
+            m_vkCtx->device->endSingleTimeCommands( cmdBuffer,
+                                                    m_vkCtx->device->getTransferQueue().handle,
+                                                    m_vkCtx->device->getTransferCommandPool(),
+                                                    m_meshTimelineSemaphore,
+                                                    m_meshTimelineSignal );
+
+            // now this taskSync is waiting on the semaphore to be signaled by the queue submition
+            m_meshTaskSync.emplace_back( taskSet, m_meshTimelineSignal );
+        }
+    }
+}
+
+auto core::AssetManager::updateMeshTaskSync() -> void
+{
+    utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
+
+    uint64_t value{ 0u };
+    m_vkCtx->device->getSemaphoreCounterValue( m_meshTimelineSemaphore, value );
+
+    std::erase_if( m_meshTaskSync, [&]( const TaskSync& taskSet ) {
+        ZoneScopedN( "erase meshTaskSync" );
+
+        // if not signaled ( GPU hasn't finished upload )
+        if ( taskSet.semaphoreWaitValue > value )
+        {
+            return false;
+        }
+
+        utilities::DataTaskSet<MeshTaskData>* dataTaskSetPtr =
+            static_cast<utilities::DataTaskSet<MeshTaskData>*>( taskSet.task );
+
+        MeshTaskData& data = dataTaskSetPtr->container;
+
+        m_vkCtx->device->destroyBuffer( data.stageBuffer );
+
+        std::string meshPath = data.mesh->getPath();
+        data.mesh->setLoaded( true );
+        m_loadedMeshes.emplace( meshPath, std::move( data.mesh ) );
+
+        data.textureBatch.pMesh = m_loadedMeshes[meshPath].get();
+
+        // collision meshes have no textures
+        if ( !data.textureBatch.parsedMaterialData.empty() )
+        {
+            // this might not be needed as queue
+            m_parsedMaterialsQueue.push( data.textureBatch );
+            loadTextureData();
+        }
+
+        m_pendingMeshLoads.erase( meshPath );
+
+        std::erase( m_meshLoadTasks, taskSet.task );
+        taskManager->eraseTask( taskSet.task, utilities::TaskType::Data );
+
+        return true;
+    } );
+}
+
+auto core::AssetManager::onUpdate() -> void
+{
+    utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
+
+    processMeshTasks();
+    updateMeshTaskSync();
+
+    processTextureTasks();
+    updateTextureTaskSync();
 }
 
 auto core::AssetManager::enqueueMesh( resources::Mesh* mesh ) -> void
@@ -1074,6 +1325,7 @@ auto core::AssetManager::addUiTexture( const std::filesystem::path p ) -> void
 auto core::AssetManager::resolveMaterials( ParsedMaterials batch ) -> void
 {
     ZoneScopedN( "resolveMaterials" );
+
     auto getKtxPath = []( const std::string& path ) -> std::filesystem::path {
         std::filesystem::path texPath = std::filesystem::path{ path };
         std::string filename = texPath.stem().string() + ".ktx2";
@@ -1083,6 +1335,7 @@ auto core::AssetManager::resolveMaterials( ParsedMaterials batch ) -> void
     for ( auto& [submesh, textureMap] : batch.parsedMaterialData )
     {
         resources::Material material{};
+
         auto& submeshes = batch.pMesh->getSubmeshes();
 
         resources::Texture* diffuse = getTexture( getKtxPath( textureMap.at( Diffuse ) ).string() );
@@ -1111,17 +1364,16 @@ auto core::AssetManager::resolveMaterials( ParsedMaterials batch ) -> void
             continue;
         }
 
+        auto it = std::ranges::find( m_materials, material );
+
+        if ( it != m_materials.end() )
         {
-            auto it = std::ranges::find( m_materials, material );
-            if ( it != m_materials.end() )
-            {
-                submeshes[submesh].materialIndex = std::distance( m_materials.begin(), it );
-            }
-            else
-            {
-                submeshes[submesh].materialIndex = m_materials.size();
-                m_materials.push_back( material );
-            }
+            submeshes[submesh].materialIndex = std::distance( m_materials.begin(), it );
+        }
+        else
+        {
+            submeshes[submesh].materialIndex = m_materials.size();
+            m_materials.push_back( material );
         }
     }
 }

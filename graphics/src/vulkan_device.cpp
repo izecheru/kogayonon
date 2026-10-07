@@ -60,10 +60,6 @@ auto graphics::VulkanDevice::createDescriptorSetLayout( VkDescriptorSetLayout& l
     VK_CALL( vkCreateDescriptorSetLayout( m_platform.device, &layoutInfo, nullptr, &layout ) );
 }
 
-auto graphics::VulkanDevice::createDescriptorSet() -> void
-{
-}
-
 auto graphics::VulkanDevice::allocateDescriptorSet( VkDescriptorSet& descriptor,
                                                     VkDescriptorSetAllocateInfo& info ) const -> void
 {
@@ -1028,6 +1024,26 @@ auto graphics::VulkanDevice::endSingleTimeCommands( VkCommandBuffer commandBuffe
     submitInfo.pCommandBuffers = &commandBuffer;
 
     VK_CALL( vkQueueSubmit( queue, 1, &submitInfo, fence ) );
+}
+
+auto graphics::VulkanDevice::copyBuffer( VkBuffer src,
+                                         VkBuffer dst,
+                                         VkDeviceSize size,
+                                         VkDeviceSize srcOffset,
+                                         VkDeviceSize dstOffset,
+                                         VkSemaphore timeline,
+                                         uint64_t& signal ) const -> void
+{
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands( m_transferCommandPool );
+
+    VkBufferCopy copyRegion{};
+    copyRegion.size = size;
+    copyRegion.srcOffset = srcOffset;
+    copyRegion.dstOffset = dstOffset;
+
+    vkCmdCopyBuffer( commandBuffer, src, dst, 1, &copyRegion );
+
+    endSingleTimeCommands( commandBuffer, m_transferQueue.handle, m_transferCommandPool, timeline, signal );
 }
 
 auto graphics::VulkanDevice::copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size ) const -> void

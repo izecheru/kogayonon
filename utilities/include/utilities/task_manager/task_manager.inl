@@ -10,9 +10,9 @@ auto utilities::TaskManager::addPinnedTask( Fn&& fn, bool executeImediately ) ->
 
     task->threadNum = m_currentThreadNum;
 
-    m_pinnedTasks.emplace_back( std::move( task ) );
+    m_registry.pinnedTasks.emplace_back( std::move( task ) );
 
-    PinnedTask* taskPtr = static_cast<PinnedTask*>( m_pinnedTasks.back().get() );
+    PinnedTask* taskPtr = static_cast<PinnedTask*>( m_registry.pinnedTasks.back().get() );
 
     if ( executeImediately )
     {
@@ -33,9 +33,9 @@ auto utilities::TaskManager::addPinnedDataTask( TData&& data, Fn&& fn, bool exec
 
     task->threadNum = m_currentThreadNum;
 
-    m_pinnedTasks.emplace_back( std::move( task ) );
+    m_registry.pinnedDataTasks.emplace_back( std::move( task ) );
 
-    PinnedDataTask<TData>* taskPtr = static_cast<PinnedDataTask<TData>*>( m_pinnedTasks.back().get() );
+    PinnedDataTask<TData>* taskPtr = static_cast<PinnedDataTask<TData>*>( m_registry.pinnedDataTasks.back().get() );
 
     if ( executeImediately )
     {
@@ -50,8 +50,8 @@ template <class TData, typename Fn>
 auto utilities::TaskManager::addTask( TData&& data, Fn&& fn, bool addToPipe ) -> utilities::DataTaskSet<TData>*
 {
     auto task = std::make_unique<DataTaskSet<TData>>( std::forward<TData>( data ), std::forward<Fn>( fn ) );
-    m_tasks.emplace_back( std::move( task ) );
-    DataTaskSet<TData>* taskPtr = static_cast<DataTaskSet<TData>*>( m_tasks.back().get() );
+    m_registry.dataTasks.emplace_back( std::move( task ) );
+    DataTaskSet<TData>* taskPtr = static_cast<DataTaskSet<TData>*>( m_registry.dataTasks.back().get() );
 
     if ( addToPipe )
     {
@@ -66,8 +66,8 @@ template <typename Fn>
 auto utilities::TaskManager::addTask( Fn&& fn, bool addToPipe ) -> utilities::TaskSet*
 {
     auto task = std::make_unique<TaskSet>( std::forward<Fn>( fn ) );
-    m_tasks.emplace_back( std::move( task ) );
-    TaskSet* taskPtr = static_cast<TaskSet*>( m_tasks.back().get() );
+    m_registry.tasks.emplace_back( std::move( task ) );
+    TaskSet* taskPtr = static_cast<TaskSet*>( m_registry.tasks.back().get() );
 
     if ( addToPipe )
     {

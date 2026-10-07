@@ -1,16 +1,16 @@
 #pragma once
 #include <enkiTS/TaskScheduler.h>
+#include "utilities/task_manager/task_registry.hpp"
 #include "task.hpp"
 
 #define MAX_IO_THREADS 4
 
 namespace utilities
 {
-
-enum class TaskType
+enum TaskType : bool
 {
-    Callback,
-    Test
+    None = false,
+    Data = true
 };
 
 class TaskManager
@@ -32,8 +32,10 @@ class TaskManager
      */
     auto addTaskSetToPipe( enki::ITaskSet* pSet, const std::string& name = "" ) -> void;
 
-    auto eraseTask( enki::ITaskSet* task ) -> void;
+    auto eraseTask( enki::ITaskSet* task, TaskType type ) -> void;
+    auto erasePinnedTask( enki::IPinnedTask* task, TaskType type ) -> void;
 
+    auto onUpdate() -> void;
     auto addPinnedTaskToExecution( enki::IPinnedTask* pTask ) -> void;
 
     template <class TData, typename Fn>
@@ -55,12 +57,10 @@ class TaskManager
     auto getCurrentThreadNum() -> uint32_t;
 
   private:
-    std::vector<std::unique_ptr<enki::ITaskSet>> m_tasks;
-    std::vector<std::unique_ptr<enki::IPinnedTask>> m_pinnedTasks;
     enki::TaskScheduler m_taskScheduler;
     enki::TaskSchedulerConfig m_config;
     RunPinnedTaskLoopTask m_pin{};
-
+    TaskRegistry m_registry;
     uint32_t m_currentThreadNum{ 0u };
     std::mutex m_mutex;
 };

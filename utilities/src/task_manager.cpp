@@ -42,13 +42,48 @@ auto utilities::TaskManager::getCurrentThreadNum() -> uint32_t
     return m_currentThreadNum;
 }
 
-auto utilities::TaskManager::eraseTask( enki::ITaskSet* task ) -> void
+auto utilities::TaskManager::erasePinnedTask( enki::IPinnedTask* task, TaskType type ) -> void
 {
     if ( !task->GetIsComplete() )
     {
         throw std::runtime_error( "TASK was not done, be careful" );
     }
 
-    std::erase_if( m_tasks,
+    if ( type == TaskType::Data )
+    {
+        std::erase_if( m_registry.pinnedDataTasks, [task]( const std::unique_ptr<enki::IPinnedTask>& pinnedTask ) {
+            return pinnedTask.get() == task;
+        } );
+
+        return;
+    }
+
+    std::erase_if( m_registry.pinnedTasks, [task]( const std::unique_ptr<enki::IPinnedTask>& pinnedTask ) {
+        return pinnedTask.get() == task;
+    } );
+}
+
+auto utilities::TaskManager::eraseTask( enki::ITaskSet* task, TaskType type ) -> void
+{
+    if ( !task->GetIsComplete() )
+    {
+        throw std::runtime_error( "TASK was not done, be careful" );
+    }
+
+    if ( type == TaskType::Data )
+    {
+        std::erase_if( m_registry.dataTasks,
+                       [task]( const std::unique_ptr<enki::ITaskSet>& taskSet ) { return taskSet.get() == task; } );
+        return;
+    }
+
+    std::erase_if( m_registry.tasks,
                    [task]( const std::unique_ptr<enki::ITaskSet>& taskSet ) { return taskSet.get() == task; } );
+}
+
+auto utilities::TaskManager::onUpdate() -> void
+{
+    // currently only those manage to fit into the destroy whenever criteria, the data carrying tasks certainly not
+    std::erase_if( m_registry.tasks,
+                   []( const std::unique_ptr<enki::ITaskSet>& taskSet ) { return taskSet->GetIsComplete(); } );
 }

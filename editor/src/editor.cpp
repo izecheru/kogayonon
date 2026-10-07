@@ -200,6 +200,7 @@ auto editor::Editor::onUpdate() -> void
     pollEvents();
 
     jolt->onUpdate( delta );
+    taskManager->onUpdate();
     assetManager->onUpdate();
     sceneManager->getCurrentScene()->onUpdate();
     m_vulkanRenderer->onUpdate();

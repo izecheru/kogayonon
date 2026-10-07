@@ -58,6 +58,17 @@ struct ImageData
     std::unique_ptr<resources::Texture> texture;
 };
 
+struct MeshTaskData
+{
+    std::unique_ptr<resources::Mesh> mesh;
+    graphics::VulkanBuffer stageBuffer;
+
+    VkDeviceSize indicesSize{ 0u };
+    VkDeviceSize verticesSize{ 0u };
+
+    ParsedMaterials textureBatch;
+};
+
 /**
  * @brief Everything that a load texture task produces
  */
@@ -116,6 +127,12 @@ class AssetManager
 
     auto init() -> void;
     auto destroyResources() -> void;
+
+    auto processTextureTasks() -> void;
+    auto updateTextureTaskSync() -> void;
+
+    auto processMeshTasks() -> void;
+    auto updateMeshTaskSync() -> void;
 
     /**
      * @brief Get the texture sampler of the AssetManager, this is for convenience
@@ -202,13 +219,6 @@ class AssetManager
     auto getTextures() -> std::unordered_map<std::string, std::unique_ptr<resources::Texture>>&;
 
     /**
-     * @brief Create vertex and indices buffers
-     * @param pMesh
-     * @return
-     */
-    auto createMeshResources( resources::Mesh* pMesh ) -> void;
-
-    /**
      * @brief Populates a vector of texture paths and protects them from runtime destruction
      * @param p
      * @return
@@ -233,13 +243,13 @@ class AssetManager
      * @brief Uses the vertices VulkanBuffer of a mesh to fill it up with Vertex data from model file
      * @param pMesh Pointer to the mesh
      */
-    auto createVertexBuffer( resources::Mesh* pMesh ) -> void;
+    auto createVertexBuffer( resources::Mesh* pMesh, graphics::VulkanBuffer stageBuffer ) -> void;
 
     /**
      * @brief Uses the indices VulkanBuffer of a mesh to fill it up with uint32_t indices data from model file
      * @param pMesh Pointer to the mesh
      */
-    auto createIndexBuffer( resources::Mesh* pMesh ) -> void;
+    auto createIndexBuffer( resources::Mesh* pMesh, graphics::VulkanBuffer stageBuffer ) -> void;
 
     /**
      * @brief Create descriptor layout for the bindless texture array
@@ -285,6 +295,8 @@ class AssetManager
 
     auto resolveMaterials( ParsedMaterials batch ) -> void;
 
+    auto shutdown() -> void;
+
   private:
     AssetManager( const AssetManager& ) = delete;
     AssetManager& operator=( const AssetManager& ) = delete;
@@ -329,10 +341,19 @@ class AssetManager
     // Task related member variables
     std::atomic<bool> m_readyForUpdate{ false };
     // ThreadsafeResourceManager m_threadSafeResourceManager;
-    VkSemaphore m_timelineSemaphore;
-    uint64_t m_timelineSemaphoreSignal{ 0u };
+    VkSemaphore m_textureTimelineSemaphore;
+    uint64_t m_textureTimelineSignal{ 0u };
+    VkSemaphore m_meshTimelineSemaphore;
+    uint64_t m_meshTimelineSignal{ 0u };
+
     std::vector<enki::ITaskSet*> m_textureLoadTasks;
-    std::vector<TaskSync> m_taskSync;
+    std::vector<enki::ITaskSet*> m_meshLoadTasks;
+    std::vector<TaskSync> m_textureTaskSync;
+    std::vector<TaskSync> m_meshTaskSync;
     std::unordered_set<std::string> m_pendingTextureLoads;
+    std::unordered_set<std::string> m_pendingMeshLoads;
+
+    std::atomic<bool> m_acceptingLoads{ false };
+    std::atomic<bool> m_shutdown{ false };
 };
 } // namespace core

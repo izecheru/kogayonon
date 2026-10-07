@@ -169,6 +169,14 @@ class VulkanDevice
     auto copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size ) const -> void;
     auto copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size, VkFence fence ) const -> void;
 
+    auto copyBuffer( VkBuffer src,
+                     VkBuffer dst,
+                     VkDeviceSize size,
+                     VkDeviceSize srcOffset,
+                     VkDeviceSize dstOffset,
+                     VkSemaphore timeline,
+                     uint64_t& signal ) const -> void;
+
     auto copyBufferToImage(
         VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkImageMemoryBarrier2 imageBarrier ) -> void;
 
@@ -262,7 +270,6 @@ class VulkanDevice
 
     auto createDescriptorSetLayout( VkDescriptorSetLayout& layout, VkDescriptorSetLayoutCreateInfo& layoutInfo ) const
         -> void;
-    auto createDescriptorSet() -> void;
     auto allocateDescriptorSet( VkDescriptorSet& descriptor, VkDescriptorSetAllocateInfo& info ) const -> void;
     auto allocateCommandBuffers( VkCommandBufferAllocateInfo allocInfo, VkCommandPool commandPool, uint32_t count )
         -> std::vector<VkCommandBuffer>;

@@ -183,7 +183,7 @@ void gui::EntityProperties::renderMesh()
             ent.removeComponent<core::MeshComponent>();
 
             ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
-            ent.addComponent<core::MeshComponent>( core::MeshComponent{ .pMesh = pMesh } );
+            ent.addComponent<core::MeshComponent>( core::MeshComponent{ .meshPath = p.string(), .pMesh = pMesh } );
         }
     }
     else

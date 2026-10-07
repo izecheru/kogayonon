@@ -82,7 +82,7 @@ void gui::Viewport::render()
             ent.removeComponent<core::MeshComponent>();
 
             ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
-            ent.addComponent<core::MeshComponent>( core::MeshComponent{ .pMesh = pMesh } );
+            ent.addComponent<core::MeshComponent>( core::MeshComponent{ .meshPath = p.string(), .pMesh = pMesh } );
             core::EventDispatcher* dispatcher = core::MainRegistry::getInstance().getEventDispatcher();
 
             dispatcher->dispatchEvent<core::SelectEntityEvent>(
@@ -401,8 +401,8 @@ void gui::Viewport::drawEntityMenu()
                 std::filesystem::path p{ std::filesystem::absolute( "." ) / "engine_resources" / "models" / filename };
 
                 ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
-                ent.addComponent<core::MeshComponent>(
-                    core::MeshComponent{ .pMesh = assetManager->loadMesh( "test", p.string() ) } );
+                ent.addComponent<core::MeshComponent>( core::MeshComponent{
+                    .meshPath = p.string(), .pMesh = assetManager->loadMesh( "test", p.string() ) } );
 
                 pEventDispatcher->dispatchEvent<core::SelectEntityEvent>(
                     core::SelectEntityEvent{ ent.getEntityId(), core::SelectEntityEventSource::Viewport_Window } );
@@ -568,50 +568,53 @@ auto gui::Viewport::getGuizmoOp() -> ImGuizmo::OPERATION
     using enum AxisLock;
     switch ( m_guizmoMode )
     {
-    case Scale: {
-        switch ( m_guizmoAxisLock )
+        case Scale:
         {
-        case None:
-            return ImGuizmo::SCALE;
-        case X_axis:
-            return ImGuizmo::SCALE_X;
-        case Y_axis:
-            return ImGuizmo::SCALE_Y;
-        case Z_axis:
-            return ImGuizmo::SCALE_Z;
+            switch ( m_guizmoAxisLock )
+            {
+                case None:
+                    return ImGuizmo::SCALE;
+                case X_axis:
+                    return ImGuizmo::SCALE_X;
+                case Y_axis:
+                    return ImGuizmo::SCALE_Y;
+                case Z_axis:
+                    return ImGuizmo::SCALE_Z;
+            }
+            break;
         }
-        break;
-    }
 
-    case Rotate: {
-        switch ( m_guizmoAxisLock )
+        case Rotate:
         {
-        case None:
-            return ImGuizmo::ROTATE;
-        case X_axis:
-            return ImGuizmo::ROTATE_X;
-        case Y_axis:
-            return ImGuizmo::ROTATE_Y;
-        case Z_axis:
-            return ImGuizmo::ROTATE_Z;
+            switch ( m_guizmoAxisLock )
+            {
+                case None:
+                    return ImGuizmo::ROTATE;
+                case X_axis:
+                    return ImGuizmo::ROTATE_X;
+                case Y_axis:
+                    return ImGuizmo::ROTATE_Y;
+                case Z_axis:
+                    return ImGuizmo::ROTATE_Z;
+            }
+            break;
         }
-        break;
-    }
 
-    case Translate: {
-        switch ( m_guizmoAxisLock )
+        case Translate:
         {
-        case None:
-            return ImGuizmo::TRANSLATE;
-        case X_axis:
-            return ImGuizmo::TRANSLATE_X;
-        case Y_axis:
-            return ImGuizmo::TRANSLATE_Y;
-        case Z_axis:
-            return ImGuizmo::TRANSLATE_Z;
+            switch ( m_guizmoAxisLock )
+            {
+                case None:
+                    return ImGuizmo::TRANSLATE;
+                case X_axis:
+                    return ImGuizmo::TRANSLATE_X;
+                case Y_axis:
+                    return ImGuizmo::TRANSLATE_Y;
+                case Z_axis:
+                    return ImGuizmo::TRANSLATE_Z;
+            }
+            break;
         }
-        break;
-    }
     }
 
     return ImGuizmo::TRANSLATE;
