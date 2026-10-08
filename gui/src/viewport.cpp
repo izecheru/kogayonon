@@ -351,45 +351,8 @@ void gui::Viewport::drawEntityMenu()
             std::string filename{ "" };
             bool selected{ false };
 
-            if ( ImGui::MenuItem( "Cone" ) )
+            if ( ImGui::MenuItem( "Add more objects to load" ) )
             {
-                filename = "default_cone";
-                selected = true;
-            }
-
-            if ( ImGui::MenuItem( "Cube" ) )
-            {
-                filename = "cube";
-                selected = true;
-            }
-
-            if ( ImGui::MenuItem( "Sphere" ) )
-            {
-                filename = "sphere";
-                selected = true;
-            }
-
-            if ( ImGui::MenuItem( "Ico Sphere" ) )
-            {
-                filename = "ico_sphere";
-                selected = true;
-            }
-
-            if ( ImGui::MenuItem( "Cylinder" ) )
-            {
-                filename = "cylinder";
-                selected = true;
-            }
-
-            if ( ImGui::MenuItem( "Torus" ) )
-            {
-                filename = "torus";
-                selected = true;
-            }
-
-            if ( ImGui::MenuItem( "Plane" ) )
-            {
-                filename = "plane";
                 selected = true;
             }
 

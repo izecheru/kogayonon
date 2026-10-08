@@ -128,8 +128,11 @@ auto core::AssetManager::shutdown() -> void
     m_acceptingLoads = false;
 
     utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
+
     if ( !taskManager )
+    {
         return;
+    }
 
     for ( enki::ITaskSet* taskSet : m_meshLoadTasks )
     {
@@ -151,22 +154,26 @@ auto core::AssetManager::shutdown() -> void
 
     for ( enki::ITaskSet* taskSet : m_meshLoadTasks )
     {
-        auto* d = static_cast<utilities::DataTaskSet<MeshTaskData>*>( taskSet );
-        m_vkCtx->device->destroyBuffer( d->container.stageBuffer );
+        auto* task = static_cast<utilities::DataTaskSet<MeshTaskData>*>( taskSet );
+
+        m_vkCtx->device->destroyBuffer( task->container.stageBuffer );
         taskManager->eraseTask( taskSet, utilities::TaskType::Data );
     }
 
     for ( enki::ITaskSet* taskSet : m_textureLoadTasks )
     {
-        auto* d = static_cast<utilities::DataTaskSet<TextureTaskData>*>( taskSet );
-        m_vkCtx->device->destroyBuffer( d->container.stagingBuffer );
-        for ( auto& imageData : d->container.imageData )
+        auto* task = static_cast<utilities::DataTaskSet<TextureTaskData>*>( taskSet );
+
+        m_vkCtx->device->destroyBuffer( task->container.stagingBuffer );
+
+        for ( ImageData& imageData : task->container.imageData )
         {
             m_vkCtx->device->destroyImage( imageData.texture->vulkanImage.vkImage,
                                            imageData.texture->vulkanImage.vmaAllocation );
 
             m_vkCtx->device->destroyImageView( imageData.texture->vulkanImage.vkImageView );
         }
+
         taskManager->eraseTask( taskSet, utilities::TaskType::Data );
     }
 
@@ -206,7 +213,7 @@ auto core::AssetManager::loadTextureData() -> void
                     {
                         std::filesystem::path p{ textureMap.at( type ) };
                         std::string ktxFilename = p.stem().string() + ".ktx2";
-                        std::filesystem::path ktxPath = p.parent_path() / "ktx" / ktxFilename;
+                        std::filesystem::path ktxPath = p.parent_path() / ktxFilename;
 
                         if ( !hasResource<resources::Texture>( ktxPath.string() ) )
                         {
@@ -242,7 +249,7 @@ auto core::AssetManager::loadTextureData() -> void
                 {
                     std::filesystem::path p{ path };
                     std::string ktxFilename = p.stem().string() + ".ktx2";
-                    std::filesystem::path ktxPath = p.parent_path() / "ktx" / ktxFilename;
+                    std::filesystem::path ktxPath = p.parent_path() / ktxFilename;
 
                     if ( !hasResource<resources::Texture>( ktxPath.string() ) &&
                          !m_pendingTextureLoads.contains( ktxPath.string() ) )
@@ -274,7 +281,7 @@ auto core::AssetManager::loadTextureData() -> void
                 {
                     std::filesystem::path p{ path };
                     std::string ktxFilename = p.stem().string() + ".ktx2";
-                    std::filesystem::path ktxPath = p.parent_path() / "ktx" / ktxFilename;
+                    std::filesystem::path ktxPath = p.parent_path() / ktxFilename;
 
                     ImageData img{ .texture = std::make_unique<resources::Texture>() };
 
@@ -544,24 +551,6 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
     if ( m_loadedMeshes.contains( meshPath ) )
     {
         return m_loadedMeshes[meshPath].get();
-    }
-
-    if ( m_materials.empty() )
-    {
-        resources::Material defaultMaterial{};
-
-        std::filesystem::path path = std::filesystem::current_path() / "engine_resources" / "textures" / "default.png";
-
-        if ( std::filesystem::exists( path ) && !m_loadedTextures.contains( meshPath ) )
-        {
-            resources::Texture* texture = loadTexture( "default", path.string() );
-            texture->textureIndex = m_bindlessTexturesIndex;
-            defaultMaterial.diffuseTextureIndex = m_bindlessTexturesIndex;
-            updateBindlessTextures( texture );
-        }
-
-        m_materials.push_back( defaultMaterial );
-        updateMaterialsBuffer();
     }
 
     utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
@@ -1039,10 +1028,6 @@ auto core::AssetManager::getTextures() -> std::unordered_map<std::string, std::u
     return m_loadedTextures;
 }
 
-auto core::AssetManager::uploadMeshData() -> void
-{
-}
-
 auto core::AssetManager::processTextureTasks() -> void
 {
     if ( !m_textureLoadTasks.empty() )
@@ -1071,8 +1056,7 @@ auto core::AssetManager::processTextureTasks() -> void
             }
 
             // cast to get access to the data produced by the task
-            utilities::DataTaskSet<TextureTaskData>* dataTaskSetPtr =
-                static_cast<utilities::DataTaskSet<TextureTaskData>*>( taskSet );
+            auto* dataTaskSetPtr = static_cast<utilities::DataTaskSet<TextureTaskData>*>( taskSet );
 
             TextureTaskData& data = dataTaskSetPtr->container;
 
@@ -1153,8 +1137,7 @@ auto core::AssetManager::updateTextureTaskSync() -> void
             return false;
         }
 
-        utilities::DataTaskSet<TextureTaskData>* dataTaskSetPtr =
-            static_cast<utilities::DataTaskSet<TextureTaskData>*>( taskSet.task );
+        auto* dataTaskSetPtr = static_cast<utilities::DataTaskSet<TextureTaskData>*>( taskSet.task );
 
         TextureTaskData& data = dataTaskSetPtr->container;
 
@@ -1212,8 +1195,7 @@ auto core::AssetManager::processMeshTasks() -> void
             }
 
             // cast to get access to the data produced by the task
-            utilities::DataTaskSet<MeshTaskData>* dataTaskSetPtr =
-                static_cast<utilities::DataTaskSet<MeshTaskData>*>( taskSet );
+            auto* dataTaskSetPtr = static_cast<utilities::DataTaskSet<MeshTaskData>*>( taskSet );
 
             MeshTaskData& data = dataTaskSetPtr->container;
 
@@ -1271,8 +1253,7 @@ auto core::AssetManager::updateMeshTaskSync() -> void
             return false;
         }
 
-        utilities::DataTaskSet<MeshTaskData>* dataTaskSetPtr =
-            static_cast<utilities::DataTaskSet<MeshTaskData>*>( taskSet.task );
+        auto* dataTaskSetPtr = static_cast<utilities::DataTaskSet<MeshTaskData>*>( taskSet.task );
 
         MeshTaskData& data = dataTaskSetPtr->container;
 
@@ -1329,7 +1310,7 @@ auto core::AssetManager::resolveMaterials( ParsedMaterials batch ) -> void
     auto getKtxPath = []( const std::string& path ) -> std::filesystem::path {
         std::filesystem::path texPath = std::filesystem::path{ path };
         std::string filename = texPath.stem().string() + ".ktx2";
-        return texPath.parent_path() / "ktx" / filename;
+        return texPath.parent_path() / filename;
     };
 
     for ( auto& [submesh, textureMap] : batch.parsedMaterialData )
@@ -1359,8 +1340,6 @@ auto core::AssetManager::resolveMaterials( ParsedMaterials batch ) -> void
         resources::Material stale{};
         if ( material == stale )
         {
-            submeshes[submesh].materialIndex = 0;
-            KINFO( "default material" );
             continue;
         }
 

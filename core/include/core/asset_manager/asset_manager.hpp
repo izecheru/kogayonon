@@ -176,8 +176,6 @@ class AssetManager
      */
     auto loadMesh( const std::string& meshName, const std::string& meshPath ) -> resources::Mesh*;
 
-    auto uploadMeshData() -> void;
-
     /**
      * @brief Enqueue mesh for vertices and indices buffers creation
      * @param mesh
@@ -185,6 +183,11 @@ class AssetManager
      */
     auto enqueueMesh( resources::Mesh* mesh ) -> void;
 
+    /**
+     * @brief Things that need to update will be done here, like initializing meshes or textures
+     * that are loaded on separate threads
+     * @return
+     */
     auto onUpdate() -> void;
 
     auto loadFont( const std::string_view path ) -> void;

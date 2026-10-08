@@ -78,8 +78,7 @@ auto core::KtxTextureManager::saveToKtx( const std::filesystem::path p ) -> KTX_
     }
 
     const std::string filename = p.stem().string() + ".ktx2";
-    const std::filesystem::path ktxPath =
-        std::filesystem::current_path() / "engine_resources" / "textures" / "ktx" / filename;
+    const std::filesystem::path ktxPath = p.parent_path() / filename;
 
     ktxTexture_SetImageFromMemory( ktxTexture( texture ), 0, 0, 0, pixels, w * h * 4 );
 

@@ -75,17 +75,15 @@ FragmentOutput fragmentMain( VertexOutput input )
 {
   FragmentOutput output;
 
-  float4 diffuseColor = float4( 1.0, 0.0, 1.0, 1.0 );
+  float4 diffuseColor = float4( 0.0, 0.0, 0.0, 1.0 );
 
-  int matIdx = push.materialIndex;
-  if ( matIdx < 0 )
+  if (push.materialIndex < 0)
   {
-    diffuseColor = bindlessTextures[NonUniformResourceIndex( 0 )].Sample( input.fragTexCoord );
     output.outColor = diffuseColor;
     return output;
   }
 
-  MaterialDescription mat = materials[matIdx];
+  MaterialDescription mat = materials[push.materialIndex];
   diffuseColor = bindlessTextures[NonUniformResourceIndex( mat.diffuseIndex )].Sample( input.fragTexCoord );
   output.outColor = diffuseColor;
 
