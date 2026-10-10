@@ -48,6 +48,8 @@ struct GPUQueue
 {
     VkQueue handle{ VK_NULL_HANDLE };
     uint32_t familyIndex = UINT32_MAX;
+    VkSemaphore timelineSemaphore;
+    uint64_t semaphoreSignal{ 0u };
 };
 
 class ShaderCompiler;
@@ -117,6 +119,8 @@ class VulkanDevice
 
     auto invalidateAllocation( VulkanBuffer& vulkanBuffer, VkDeviceSize offset, VkDeviceSize size ) const -> void;
 
+    auto getTransferSemaphoreCounterValue( uint64_t& value ) -> void;
+
     /**
      * @brief Create image
      * @param image VkImage reference
@@ -169,13 +173,8 @@ class VulkanDevice
     auto copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size ) const -> void;
     auto copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size, VkFence fence ) const -> void;
 
-    auto copyBuffer( VkBuffer src,
-                     VkBuffer dst,
-                     VkDeviceSize size,
-                     VkDeviceSize srcOffset,
-                     VkDeviceSize dstOffset,
-                     VkSemaphore timeline,
-                     uint64_t& signal ) const -> void;
+    auto copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size, VkDeviceSize srcOffset, VkDeviceSize dstOffset )
+        -> void;
 
     auto copyBufferToImage(
         VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkImageMemoryBarrier2 imageBarrier ) -> void;
@@ -208,11 +207,7 @@ class VulkanDevice
                                 VkCommandPool pool ) const -> void;
 
     auto endSingleTimeCommands( VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool ) const -> void;
-    auto endSingleTimeCommands( VkCommandBuffer commandBuffer,
-                                VkQueue queue,
-                                VkCommandPool pool,
-                                VkSemaphore timeline,
-                                uint64_t& signal ) const -> void;
+    auto endSingleTimeCommands( VkCommandBuffer commandBuffer, GPUQueue& queue, VkCommandPool pool ) const -> void;
     auto getSemaphoreCounterValue( VkSemaphore semaphore, uint64_t& value ) -> void;
 
     auto beginSingleTimeCommands( VkCommandPool pool ) const -> VkCommandBuffer;

@@ -245,6 +245,10 @@ auto graphics::VulkanDevice::shutdown() const -> void
     writeLeaksLog();
     waitIdle();
 
+    destroySemaphore( m_graphicsQueue.timelineSemaphore );
+    destroySemaphore( m_presentQueue.timelineSemaphore );
+    destroySemaphore( m_transferQueue.timelineSemaphore );
+
     destroyCommandPool( m_commandPool );
     destroyCommandPool( m_transferCommandPool );
 
@@ -548,6 +552,21 @@ void graphics::VulkanDevice::createLogicalDevice()
     vkGetDeviceQueue( m_platform.device, indices.graphicsFamily.value(), 0, &m_graphicsQueue.handle );
     vkGetDeviceQueue( m_platform.device, indices.presentFamily.value(), 1, &m_presentQueue.handle );
     vkGetDeviceQueue( m_platform.device, indices.transferFamily.value(), 2, &m_transferQueue.handle );
+
+    VkSemaphoreTypeCreateInfo timelineTypeCreateInfo{};
+    timelineTypeCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+    timelineTypeCreateInfo.pNext = NULL;
+    timelineTypeCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+    timelineTypeCreateInfo.initialValue = 0;
+
+    VkSemaphoreCreateInfo timelineCreateInfo{};
+    timelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    timelineCreateInfo.pNext = &timelineTypeCreateInfo;
+    timelineCreateInfo.flags = 0;
+
+    createSemaphore( m_graphicsQueue.timelineSemaphore, timelineTypeCreateInfo, timelineCreateInfo );
+    createSemaphore( m_transferQueue.timelineSemaphore, timelineTypeCreateInfo, timelineCreateInfo );
+    createSemaphore( m_presentQueue.timelineSemaphore, timelineTypeCreateInfo, timelineCreateInfo );
 }
 
 auto graphics::VulkanDevice::getInstance() const -> VkInstance
@@ -988,17 +1007,15 @@ auto graphics::VulkanDevice::endSingleTimeCommands( VkCommandBuffer commandBuffe
 }
 
 auto graphics::VulkanDevice::endSingleTimeCommands( VkCommandBuffer commandBuffer,
-                                                    VkQueue queue,
-                                                    VkCommandPool pool,
-                                                    VkSemaphore timeline,
-                                                    uint64_t& signal ) const -> void
+                                                    GPUQueue& queue,
+                                                    VkCommandPool pool ) const -> void
 {
     vkEndCommandBuffer( commandBuffer );
 
-    ++signal;
+    ++queue.semaphoreSignal;
     VkTimelineSemaphoreSubmitInfo tlInfo{ VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO };
     tlInfo.signalSemaphoreValueCount = 1;
-    tlInfo.pSignalSemaphoreValues = &signal;
+    tlInfo.pSignalSemaphoreValues = &queue.semaphoreSignal;
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1006,9 +1023,9 @@ auto graphics::VulkanDevice::endSingleTimeCommands( VkCommandBuffer commandBuffe
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = &timeline;
+    submitInfo.pSignalSemaphores = &queue.timelineSemaphore;
 
-    VK_CALL( vkQueueSubmit( queue, 1, &submitInfo, VK_NULL_HANDLE ) );
+    VK_CALL( vkQueueSubmit( queue.handle, 1, &submitInfo, VK_NULL_HANDLE ) );
 }
 
 auto graphics::VulkanDevice::endSingleTimeCommands( VkCommandBuffer commandBuffer,
@@ -1026,13 +1043,8 @@ auto graphics::VulkanDevice::endSingleTimeCommands( VkCommandBuffer commandBuffe
     VK_CALL( vkQueueSubmit( queue, 1, &submitInfo, fence ) );
 }
 
-auto graphics::VulkanDevice::copyBuffer( VkBuffer src,
-                                         VkBuffer dst,
-                                         VkDeviceSize size,
-                                         VkDeviceSize srcOffset,
-                                         VkDeviceSize dstOffset,
-                                         VkSemaphore timeline,
-                                         uint64_t& signal ) const -> void
+auto graphics::VulkanDevice::copyBuffer(
+    VkBuffer src, VkBuffer dst, VkDeviceSize size, VkDeviceSize srcOffset, VkDeviceSize dstOffset ) -> void
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands( m_transferCommandPool );
 
@@ -1043,7 +1055,7 @@ auto graphics::VulkanDevice::copyBuffer( VkBuffer src,
 
     vkCmdCopyBuffer( commandBuffer, src, dst, 1, &copyRegion );
 
-    endSingleTimeCommands( commandBuffer, m_transferQueue.handle, m_transferCommandPool, timeline, signal );
+    endSingleTimeCommands( commandBuffer, m_transferQueue, m_transferCommandPool );
 }
 
 auto graphics::VulkanDevice::copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size ) const -> void
@@ -1389,4 +1401,9 @@ auto graphics::VulkanDevice::freeCmdBuffer( VkCommandPool commandPool,
 auto graphics::VulkanDevice::getSemaphoreCounterValue( VkSemaphore semaphore, uint64_t& value ) -> void
 {
     VK_CALL( vkGetSemaphoreCounterValue( m_platform.device, semaphore, &value ) );
+}
+
+auto graphics::VulkanDevice::getTransferSemaphoreCounterValue( uint64_t& value ) -> void
+{
+    getSemaphoreCounterValue( m_transferQueue.timelineSemaphore, value );
 }
