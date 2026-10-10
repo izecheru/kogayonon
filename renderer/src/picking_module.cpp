@@ -1,4 +1,5 @@
 #include "renderer/modules/picking_module.hpp"
+#include "graphics/vulkan_memory_allocator.hpp"
 #include "SDL3/SDL.h"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
@@ -234,13 +235,14 @@ auto rendering::PickingModule::registerPickingReadbackPass() -> void
                 if ( *lastFrameIndex == m_vkCtx->swapchain->getCurrentFrameNumber() )
                     return;
 
+                graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
                 Blackboard* blackboard = m_graph->getBlackboard();
                 PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
                 core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
                 core::Scene* scene = sceneManager->getCurrentScene();
 
                 int32_t id{ -1 };
-                m_vkCtx->device->copyFromBuffer( id, pickingData.pickingBuffer.buffers.at( *lastFrameIndex ) );
+                allocator->copyFromBuffer( id, pickingData.pickingBuffer.buffers.at( *lastFrameIndex ) );
 
                 KINFO( "id {}", id );
 
@@ -257,7 +259,7 @@ auto rendering::PickingModule::registerPickingReadbackPass() -> void
                 }
 
                 int32_t clearValue{ -1 };
-                m_vkCtx->device->copyToBuffer( clearValue, pickingData.pickingBuffer.buffers.at( *lastFrameIndex ) );
+                allocator->copyToBuffer( clearValue, pickingData.pickingBuffer.buffers.at( *lastFrameIndex ) );
 
                 *lastFrameIndex = m_vkCtx->swapchain->getCurrentFrameNumber();
                 coords->x = -1;
@@ -297,7 +299,9 @@ auto rendering::PickingModule::createModuleResources( VkExtent2D extent ) -> voi
     vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
     vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-    m_vkCtx->device->createBuffer( pickingData.pickingBuffer, bufferInfo, vmaAllocInfo, "pickingBuffer" );
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+
+    allocator->createBuffer( pickingData.pickingBuffer, bufferInfo, vmaAllocInfo, "pickingBuffer" );
 
     VkImageCreateInfo pickingColorInfo{
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -328,10 +332,13 @@ auto rendering::PickingModule::destroyModuleResources() -> void
     rendering::Blackboard* blackboard = m_graph->getBlackboard();
     PickingModuleData& pickingData = blackboard->get<PickingModuleData>();
 
-    m_vkCtx->device->destroyBuffer( pickingData.pickingBuffer );
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+
+    allocator->destroyBuffer( pickingData.pickingBuffer );
+
     m_vkCtx->device->destroyImageView( pickingData.color->vulkanImage.vkImageView );
-    m_vkCtx->device->destroyImage( pickingData.color->vulkanImage.vkImage,
-                                   pickingData.color->vulkanImage.vmaAllocation );
+    allocator->destroyImage( pickingData.color->vulkanImage.vkImage, pickingData.color->vulkanImage.vmaAllocation );
+
     m_vkCtx->device->destroyPipelineLayout( pickingData.pickingPipeline.getLayout() );
     m_vkCtx->device->destroyPipeline( pickingData.pickingPipeline.getPipeline() );
 

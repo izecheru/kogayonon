@@ -1,4 +1,5 @@
 #include <vulkan/vulkan_core.h>
+#include "graphics/vulkan_memory_allocator.hpp"
 #include "resources/mesh.hpp"
 #include "core/asset_manager/ktx_texture_manager.hpp"
 #include "resources/texture.hpp"
@@ -30,6 +31,8 @@ auto core::AssetManager::recreate() -> void
     m_vkCtx->device->waitIdle();
     m_bindlessTexturesIndex = 0u;
 
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+
     for ( auto& [path, texture] : m_loadedTextures )
     {
         auto it = std::ranges::find_if( m_uiTexturePaths, [&]( const std::filesystem::path& p ) { return p == path; } );
@@ -40,13 +43,13 @@ auto core::AssetManager::recreate() -> void
         }
 
         m_vkCtx->device->destroyImageView( texture->vulkanImage.vkImageView );
-        m_vkCtx->device->destroyImage( texture->vulkanImage.vkImage, texture->vulkanImage.vmaAllocation );
+        allocator->destroyImage( texture->vulkanImage.vkImage, texture->vulkanImage.vmaAllocation );
     }
 
     for ( auto& [path, mesh] : m_loadedMeshes )
     {
-        m_vkCtx->device->destroyBuffer( mesh->getIndicesBufferObject() );
-        m_vkCtx->device->destroyBuffer( mesh->getVertexBufferObject() );
+        allocator->destroyBuffer( mesh->getIndicesBufferObject() );
+        allocator->destroyBuffer( mesh->getVertexBufferObject() );
     }
 
     std::erase_if( m_loadedTextures, [&]( const auto& kv ) {
@@ -61,41 +64,15 @@ auto core::AssetManager::init() -> void
 {
     initDescriptors();
     initSampler();
-
-    VkSemaphoreTypeCreateInfo meshTimelineCreateInfo{};
-    meshTimelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
-    meshTimelineCreateInfo.pNext = NULL;
-    meshTimelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
-    meshTimelineCreateInfo.initialValue = 0;
-
-    VkSemaphoreCreateInfo meshCreateInfo{};
-    meshCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    meshCreateInfo.pNext = &meshTimelineCreateInfo;
-    meshCreateInfo.flags = 0;
-
-    m_vkCtx->device->createSemaphore( m_meshTimelineSemaphore, meshTimelineCreateInfo, meshCreateInfo );
-
-    VkSemaphoreTypeCreateInfo timelineCreateInfo;
-    timelineCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
-    timelineCreateInfo.pNext = NULL;
-    timelineCreateInfo.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
-    timelineCreateInfo.initialValue = 0;
-
-    VkSemaphoreCreateInfo createInfo;
-    createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    createInfo.pNext = &timelineCreateInfo;
-    createInfo.flags = 0;
-
-    m_vkCtx->device->createSemaphore( m_textureTimelineSemaphore, timelineCreateInfo, createInfo );
 }
 
 auto core::AssetManager::destroyResources() -> void
 {
     m_vkCtx->device->waitIdle();
 
-    m_vkCtx->device->destroyBuffer( m_materialsBuffer );
-    m_vkCtx->device->destroySemaphore( m_textureTimelineSemaphore );
-    m_vkCtx->device->destroySemaphore( m_meshTimelineSemaphore );
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+
+    allocator->destroyBuffer( m_materialsBuffer );
     m_vkCtx->device->destroySampler( m_textureSampler );
     m_vkCtx->device->destroyDescriptorSetLayout( m_bindlessTexturesDescriptor.layout );
     m_vkCtx->device->destroyDescriptorSetLayout( m_materialsDescriptor.layout );
@@ -104,13 +81,13 @@ auto core::AssetManager::destroyResources() -> void
     for ( auto& [path, texture] : m_loadedTextures )
     {
         m_vkCtx->device->destroyImageView( texture->vulkanImage.vkImageView );
-        m_vkCtx->device->destroyImage( texture->vulkanImage.vkImage, texture->vulkanImage.vmaAllocation );
+        allocator->destroyImage( texture->vulkanImage.vkImage, texture->vulkanImage.vmaAllocation );
     }
 
     for ( auto& [path, mesh] : m_loadedMeshes )
     {
-        m_vkCtx->device->destroyBuffer( mesh->getIndicesBufferObject() );
-        m_vkCtx->device->destroyBuffer( mesh->getVertexBufferObject() );
+        allocator->destroyBuffer( mesh->getIndicesBufferObject() );
+        allocator->destroyBuffer( mesh->getVertexBufferObject() );
     }
 
     m_loadedTextures.clear();
@@ -152,11 +129,16 @@ auto core::AssetManager::shutdown() -> void
 
     m_vkCtx->device->waitIdle();
 
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
     for ( enki::ITaskSet* taskSet : m_meshLoadTasks )
     {
         auto* task = static_cast<utilities::DataTaskSet<MeshTaskData>*>( taskSet );
-
-        m_vkCtx->device->destroyBuffer( task->container.stageBuffer );
+        if ( task->container.mesh )
+        {
+            allocator->destroyBuffer( task->container.mesh->getVertexBufferObject() );
+            allocator->destroyBuffer( task->container.mesh->getIndicesBufferObject() );
+        }
+        allocator->destroyBuffer( task->container.stageBuffer );
         taskManager->eraseTask( taskSet, utilities::TaskType::Data );
     }
 
@@ -164,12 +146,12 @@ auto core::AssetManager::shutdown() -> void
     {
         auto* task = static_cast<utilities::DataTaskSet<TextureTaskData>*>( taskSet );
 
-        m_vkCtx->device->destroyBuffer( task->container.stagingBuffer );
+        allocator->destroyBuffer( task->container.stagingBuffer );
 
         for ( ImageData& imageData : task->container.imageData )
         {
-            m_vkCtx->device->destroyImage( imageData.texture->vulkanImage.vkImage,
-                                           imageData.texture->vulkanImage.vmaAllocation );
+            allocator->destroyImage( imageData.texture->vulkanImage.vkImage,
+                                     imageData.texture->vulkanImage.vmaAllocation );
 
             m_vkCtx->device->destroyImageView( imageData.texture->vulkanImage.vkImageView );
         }
@@ -318,16 +300,17 @@ auto core::AssetManager::loadTextureData() -> void
                     VmaAllocationCreateInfo imageAllocInfo{};
                     imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-                    m_vkCtx->device->createImage( img.texture->vulkanImage.vkImage,
-                                                  imageInfo,
-                                                  imageAllocInfo,
-                                                  img.texture->vulkanImage.vmaAllocation,
-                                                  name );
+                    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+                    allocator->createImage( img.texture->vulkanImage.vkImage,
+                                            imageInfo,
+                                            imageAllocInfo,
+                                            img.texture->vulkanImage.vmaAllocation,
+                                            name );
 
-                    m_vkCtx->device->createImageView( img.texture->vulkanImage.vkImageView,
-                                                      img.texture->vulkanImage.vkImage,
-                                                      VK_FORMAT_R8G8B8A8_UNORM,
-                                                      VK_IMAGE_ASPECT_COLOR_BIT );
+                    allocator->createImageView( img.texture->vulkanImage.vkImageView,
+                                                img.texture->vulkanImage.vkImage,
+                                                VK_FORMAT_R8G8B8A8_UNORM,
+                                                VK_IMAGE_ASPECT_COLOR_BIT );
 
                     beforeBarriers.emplace_back(
                         VkImageMemoryBarrier2{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -382,7 +365,8 @@ auto core::AssetManager::loadTextureData() -> void
                     .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
                     .usage = VMA_MEMORY_USAGE_AUTO };
 
-                m_vkCtx->device->createBuffer( container.stagingBuffer, stageBufferInfo, stageAllocInfo );
+                graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+                allocator->createBuffer( container.stagingBuffer, stageBufferInfo, stageAllocInfo );
             } );
 
         task->SetDependency( task->dependency, generateKtx );
@@ -427,7 +411,8 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
                                                      VMA_ALLOCATION_CREATE_MAPPED_BIT,
                                             .usage = VMA_MEMORY_USAGE_AUTO };
 
-    graphics::VulkanBuffer stageBuffer = m_vkCtx->device->createStagingBuffer( stageBufferInfo, stageAllocInfo );
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+    graphics::VulkanBuffer stageBuffer = allocator->createStagingBuffer( stageBufferInfo, stageAllocInfo );
 
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -447,13 +432,13 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
     VmaAllocationCreateInfo imageAllocInfo{};
     imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-    m_vkCtx->device->createImage(
+    allocator->createImage(
         texture->vulkanImage.vkImage, imageInfo, imageAllocInfo, texture->vulkanImage.vmaAllocation, textureName );
 
-    m_vkCtx->device->createImageView( texture->vulkanImage.vkImageView,
-                                      texture->vulkanImage.vkImage,
-                                      VK_FORMAT_R8G8B8A8_UNORM,
-                                      VK_IMAGE_ASPECT_COLOR_BIT );
+    allocator->createImageView( texture->vulkanImage.vkImageView,
+                                texture->vulkanImage.vkImage,
+                                VK_FORMAT_R8G8B8A8_UNORM,
+                                VK_IMAGE_ASPECT_COLOR_BIT );
 
     // transfer barrier
     VkImageMemoryBarrier2 transferLayoutBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -474,7 +459,7 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
 
     m_vkCtx->device->transitionImageLayout( texture->vulkanImage.vkImage, transferLayoutBarrier );
 
-    m_vkCtx->device->copyMemoryToAllocation( pixels, stageBuffer.vmaAllocation, 0, imageSize );
+    allocator->copyMemoryToAllocation( pixels, stageBuffer.vmaAllocation, 0, imageSize );
 
     stbi_image_free( pixels );
 
@@ -501,7 +486,7 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
                                         static_cast<uint32_t>( texHeight ),
                                         copyImageBarrier );
 
-    m_vkCtx->device->destroyBuffer( stageBuffer );
+    allocator->destroyBuffer( stageBuffer );
 
     texture->path = texturePath;
 
@@ -592,7 +577,8 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
                 VmaAllocationCreateInfo stageAllocInfo{};
                 stageAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 
-                m_vkCtx->device->createBuffer( data.stageBuffer, stageBufferInfo, stageAllocInfo );
+                graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+                allocator->createBuffer( data.stageBuffer, stageBufferInfo, stageAllocInfo );
 
                 VkBufferCreateInfo vertexBufferCreateInfo{};
                 vertexBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -609,23 +595,23 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
                 vmaAllocInfo.flags =
                     VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-                m_vkCtx->device->createBuffer( data.mesh->getVertexBufferObject(),
-                                               vertexBufferCreateInfo,
-                                               vmaAllocInfo,
-                                               collision.filename().string() );
+                allocator->createBuffer( data.mesh->getVertexBufferObject(),
+                                         vertexBufferCreateInfo,
+                                         vmaAllocInfo,
+                                         collision.filename().string() );
 
-                m_vkCtx->device->createBuffer( data.mesh->getIndicesBufferObject(),
-                                               indicesBufferCreateInfo,
-                                               vmaAllocInfo,
-                                               collision.filename().string() );
+                allocator->createBuffer( data.mesh->getIndicesBufferObject(),
+                                         indicesBufferCreateInfo,
+                                         vmaAllocInfo,
+                                         collision.filename().string() );
 
                 // buffer
                 // .....indices..../....vertices...
 
-                m_vkCtx->device->copyMemoryToAllocation(
+                allocator->copyMemoryToAllocation(
                     indices.data(), data.stageBuffer.vmaAllocation, 0, data.indicesSize );
 
-                m_vkCtx->device->copyMemoryToAllocation(
+                allocator->copyMemoryToAllocation(
                     vertices.data(), data.stageBuffer.vmaAllocation, data.indicesSize, data.verticesSize );
             } );
 
@@ -669,7 +655,8 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
             VmaAllocationCreateInfo stageAllocInfo{};
             stageAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 
-            m_vkCtx->device->createBuffer( data.stageBuffer, stageBufferInfo, stageAllocInfo );
+            graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+            allocator->createBuffer( data.stageBuffer, stageBufferInfo, stageAllocInfo );
 
             VkBufferCreateInfo vertexBufferCreateInfo{};
             vertexBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -688,19 +675,18 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
 
             std::filesystem::path meshP{ meshPath };
 
-            m_vkCtx->device->createBuffer(
+            allocator->createBuffer(
                 data.mesh->getVertexBufferObject(), vertexBufferCreateInfo, vmaAllocInfo, meshP.filename().string() );
 
-            m_vkCtx->device->createBuffer(
+            allocator->createBuffer(
                 data.mesh->getIndicesBufferObject(), indicesBufferCreateInfo, vmaAllocInfo, meshP.filename().string() );
 
             // buffer
             // .....indices..../....vertices...
 
-            m_vkCtx->device->copyMemoryToAllocation(
-                indices.data(), data.stageBuffer.vmaAllocation, 0, data.indicesSize );
+            allocator->copyMemoryToAllocation( indices.data(), data.stageBuffer.vmaAllocation, 0, data.indicesSize );
 
-            m_vkCtx->device->copyMemoryToAllocation(
+            allocator->copyMemoryToAllocation(
                 vertices.data(), data.stageBuffer.vmaAllocation, data.indicesSize, data.verticesSize );
         } );
 
@@ -742,8 +728,9 @@ auto core::AssetManager::createIndexBuffer( resources::Mesh* pMesh, graphics::Vu
 {
     std::vector<uint32_t>& indices = pMesh->getIndices();
 
-    VmaAllocationInfo allocInfo{ m_vkCtx->device->getAllocInfo( stageBuffer.vmaAllocation ) };
-    m_vkCtx->device->copyMemoryToAllocation( indices.data(), stageBuffer.vmaAllocation, 0, allocInfo.size );
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+    VmaAllocationInfo allocInfo{ allocator->getAllocInfo( stageBuffer.vmaAllocation ) };
+    allocator->copyMemoryToAllocation( indices.data(), stageBuffer.vmaAllocation, 0, allocInfo.size );
 
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -757,15 +744,16 @@ auto core::AssetManager::createIndexBuffer( resources::Mesh* pMesh, graphics::Vu
     std::filesystem::path meshPath = pMesh->getPath();
     std::string name = meshPath.stem().string() + "_indicesBuff";
 
-    m_vkCtx->device->createBuffer( pMesh->getIndicesBufferObject(), bufferInfo, vmaAllocInfo, name );
+    allocator->createBuffer( pMesh->getIndicesBufferObject(), bufferInfo, vmaAllocInfo, name );
 }
 
 auto core::AssetManager::createVertexBuffer( resources::Mesh* pMesh, graphics::VulkanBuffer stageBuffer ) -> void
 {
     std::vector<resources::Vertex>& vertices = pMesh->getVertices();
 
-    VmaAllocationInfo allocInfo{ m_vkCtx->device->getAllocInfo( stageBuffer.vmaAllocation ) };
-    m_vkCtx->device->copyMemoryToAllocation( vertices.data(), stageBuffer.vmaAllocation, 0, allocInfo.size );
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+    VmaAllocationInfo allocInfo{ allocator->getAllocInfo( stageBuffer.vmaAllocation ) };
+    allocator->copyMemoryToAllocation( vertices.data(), stageBuffer.vmaAllocation, 0, allocInfo.size );
 
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -779,7 +767,7 @@ auto core::AssetManager::createVertexBuffer( resources::Mesh* pMesh, graphics::V
     std::filesystem::path meshPath = pMesh->getPath();
     std::string name = meshPath.stem().string() + "_verticesBuff";
 
-    m_vkCtx->device->createBuffer( pMesh->getVertexBufferObject(), bufferInfo, vmaAllocInfo, name );
+    allocator->createBuffer( pMesh->getVertexBufferObject(), bufferInfo, vmaAllocInfo, name );
 }
 
 auto core::AssetManager::createBindlessDescriptorSetLayout() -> void
@@ -973,11 +961,13 @@ auto core::AssetManager::createMaterialsBuffers( VkDeviceSize size ) -> void
         .usage = VMA_MEMORY_USAGE_CPU_TO_GPU,
     };
 
-    m_vkCtx->device->createBuffer( m_materialsBuffer, bufferInfo, vmaAllocInfo, "materialsBuffer" );
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+    allocator->createBuffer( m_materialsBuffer, bufferInfo, vmaAllocInfo, "materialsBuffer" );
 }
 
 auto core::AssetManager::updateMaterialsBuffer() -> void
 {
+    ZoneScopedN( "Update materials" );
     uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
 
     VkDescriptorBufferInfo buffInfo{
@@ -994,7 +984,9 @@ auto core::AssetManager::updateMaterialsBuffer() -> void
                                              .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                                              .pBufferInfo = &buffInfo };
 
-    m_vkCtx->device->copyToBuffer( m_materials, m_materialsBuffer.buffers.at( currentFrame ) );
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+    allocator->copyToBuffer( m_materials, m_materialsBuffer.buffers.at( currentFrame ) );
+
     m_vkCtx->device->updateDescriptorSet( { bindlessDescriptor } );
 }
 
@@ -1032,7 +1024,7 @@ auto core::AssetManager::processTextureTasks() -> void
 {
     if ( !m_textureLoadTasks.empty() )
     {
-        ZoneScopedN( "cmd recording" );
+        ZoneScopedN( "texture cmd recording" );
         for ( auto it = m_textureLoadTasks.begin(); it != m_textureLoadTasks.end(); )
         {
             enki::ITaskSet* taskSet = *it;
@@ -1054,6 +1046,8 @@ auto core::AssetManager::processTextureTasks() -> void
                 ++it;
                 continue;
             }
+
+            ++it;
 
             // cast to get access to the data produced by the task
             auto* dataTaskSetPtr = static_cast<utilities::DataTaskSet<TextureTaskData>*>( taskSet );
@@ -1079,7 +1073,8 @@ auto core::AssetManager::processTextureTasks() -> void
                     continue;
                 }
 
-                m_vkCtx->device->copyMemoryToAllocation(
+                graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+                allocator->copyMemoryToAllocation(
                     img.data, data.stagingBuffer.vmaAllocation, currentOffset, img.size );
 
                 VkBufferImageCopy region{};
@@ -1112,11 +1107,15 @@ auto core::AssetManager::processTextureTasks() -> void
 
             VkQueue transferQueue = m_vkCtx->device->getTransferQueue().handle;
 
-            m_vkCtx->device->endSingleTimeCommands(
-                commandBuffer, transferQueue, commandPool, m_textureTimelineSemaphore, m_textureTimelineSignal );
+            m_vkCtx->device->endSingleTimeCommands( commandBuffer, transferQueue, commandPool );
 
             // now this taskSync is waiting on the semaphore to be signaled by the queue submition
-            m_textureTaskSync.emplace_back( taskSet, m_textureTimelineSignal );
+            uint64_t signalValue = m_vkCtx->device->getTransferQueue().semaphoreSignal;
+            data.stagingBuffer.semaphoreSignal = signalValue;
+
+            m_buffDeletionQueue.push_back( &data.stagingBuffer );
+
+            m_textureTaskSync.emplace_back( taskSet, signalValue );
         }
     }
 }
@@ -1126,7 +1125,7 @@ auto core::AssetManager::updateTextureTaskSync() -> void
     utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
 
     uint64_t value{ 0u };
-    m_vkCtx->device->getSemaphoreCounterValue( m_textureTimelineSemaphore, value );
+    m_vkCtx->device->getTransferSemaphoreCounterValue( value );
 
     std::erase_if( m_textureTaskSync, [&]( const TaskSync& taskSet ) {
         ZoneScopedN( "erase taskSync" );
@@ -1140,6 +1139,12 @@ auto core::AssetManager::updateTextureTaskSync() -> void
         auto* dataTaskSetPtr = static_cast<utilities::DataTaskSet<TextureTaskData>*>( taskSet.task );
 
         TextureTaskData& data = dataTaskSetPtr->container;
+
+        if ( data.stagingBuffer.semaphoreSignal <= value )
+        {
+            graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+            allocator->destroyBuffer( data.stagingBuffer );
+        }
 
         for ( ImageData& img : data.imageData )
         {
@@ -1157,8 +1162,6 @@ auto core::AssetManager::updateTextureTaskSync() -> void
 
         resolveMaterials( data.materialsBatch );
         updateMaterialsBuffer();
-
-        m_vkCtx->device->destroyBuffer( data.stagingBuffer );
 
         std::erase( m_textureLoadTasks, taskSet.task );
         taskManager->eraseTask( taskSet.task, utilities::TaskType::Data );
@@ -1225,14 +1228,17 @@ auto core::AssetManager::processMeshTasks() -> void
                              1,
                              &verticesCopyRegion );
 
-            m_vkCtx->device->endSingleTimeCommands( cmdBuffer,
-                                                    m_vkCtx->device->getTransferQueue().handle,
-                                                    m_vkCtx->device->getTransferCommandPool(),
-                                                    m_meshTimelineSemaphore,
-                                                    m_meshTimelineSignal );
+            m_vkCtx->device->endSingleTimeCommands(
+                cmdBuffer, m_vkCtx->device->getTransferQueue(), m_vkCtx->device->getTransferCommandPool() );
 
             // now this taskSync is waiting on the semaphore to be signaled by the queue submition
-            m_meshTaskSync.emplace_back( taskSet, m_meshTimelineSignal );
+            uint64_t signalValue = m_vkCtx->device->getTransferQueue().semaphoreSignal;
+
+            data.stageBuffer.semaphoreSignal = signalValue;
+
+            m_buffDeletionQueue.push_back( &data.stageBuffer );
+
+            m_meshTaskSync.emplace_back( taskSet, signalValue );
         }
     }
 }
@@ -1242,7 +1248,7 @@ auto core::AssetManager::updateMeshTaskSync() -> void
     utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
 
     uint64_t value{ 0u };
-    m_vkCtx->device->getSemaphoreCounterValue( m_meshTimelineSemaphore, value );
+    m_vkCtx->device->getTransferSemaphoreCounterValue( value );
 
     std::erase_if( m_meshTaskSync, [&]( const TaskSync& taskSet ) {
         ZoneScopedN( "erase meshTaskSync" );
@@ -1257,7 +1263,11 @@ auto core::AssetManager::updateMeshTaskSync() -> void
 
         MeshTaskData& data = dataTaskSetPtr->container;
 
-        m_vkCtx->device->destroyBuffer( data.stageBuffer );
+        if ( data.stageBuffer.semaphoreSignal <= value )
+        {
+            graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+            allocator->destroyBuffer( data.stageBuffer );
+        }
 
         std::string meshPath = data.mesh->getPath();
         data.mesh->setLoaded( true );
@@ -1286,11 +1296,15 @@ auto core::AssetManager::onUpdate() -> void
 {
     utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
 
+    ZoneScopedN( "AssetManager::onUpdate" );
+
     processMeshTasks();
     updateMeshTaskSync();
 
     processTextureTasks();
     updateTextureTaskSync();
+
+    clearUsedResources();
 }
 
 auto core::AssetManager::enqueueMesh( resources::Mesh* mesh ) -> void
@@ -1355,4 +1369,13 @@ auto core::AssetManager::resolveMaterials( ParsedMaterials batch ) -> void
             m_materials.push_back( material );
         }
     }
+}
+
+auto core::AssetManager::clearUsedResources() -> void
+{
+    if ( m_buffDeletionQueue.empty() )
+        return;
+
+    uint64_t value{ 0u };
+    m_vkCtx->device->getTransferSemaphoreCounterValue( value );
 }

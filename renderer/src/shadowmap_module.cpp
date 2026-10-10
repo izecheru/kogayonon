@@ -1,4 +1,5 @@
 #include "renderer/modules/shadowmap_module.hpp"
+#include "graphics/vulkan_memory_allocator.hpp"
 #include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
@@ -136,8 +137,9 @@ auto rendering::ShadowmapModule::registerShadowmapPass() -> void
 
             DirectionalLightUBO ubo{ .projection = lightProjection, .view = lightView };
 
+            graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
             uint32_t index = m_vkCtx->swapchain->getCurrentFrameNumber();
-            m_vkCtx->device->copyToBuffer( ubo, shadowmapData.directionalLightBuffer.buffers.at( index ) );
+            allocator->copyToBuffer( ubo, shadowmapData.directionalLightBuffer.buffers.at( index ) );
 
             auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
             view.each( [&]( const entt::entity& entityId,
@@ -284,14 +286,15 @@ auto rendering::ShadowmapModule::destroyModuleResources() -> void
 {
     ShadowmapModuleData& shadowmapData = m_graph->getBlackboard()->get<ShadowmapModuleData>();
 
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+
     m_vkCtx->device->destroyDescriptorSetLayout( shadowmapData.directionalLightDescriptor.layout );
 
     m_vkCtx->device->destroyPipelineLayout( shadowmapData.shadowmapPipeline.getLayout() );
     m_vkCtx->device->destroyPipeline( shadowmapData.shadowmapPipeline.getPipeline() );
 
-    m_vkCtx->device->destroyBuffer( shadowmapData.directionalLightBuffer );
+    allocator->destroyBuffer( shadowmapData.directionalLightBuffer );
 
     m_vkCtx->device->destroyImageView( shadowmapData.depth->vulkanImage.vkImageView );
-    m_vkCtx->device->destroyImage( shadowmapData.depth->vulkanImage.vkImage,
-                                   shadowmapData.depth->vulkanImage.vmaAllocation );
+    allocator->destroyImage( shadowmapData.depth->vulkanImage.vkImage, shadowmapData.depth->vulkanImage.vmaAllocation );
 }

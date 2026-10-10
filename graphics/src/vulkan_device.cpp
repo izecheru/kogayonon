@@ -1,13 +1,11 @@
-#define VMA_IMPLEMENTATION
-
 #include "graphics/vulkan_device.hpp"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 #include "graphics/shader_compiler.hpp"
 #include "graphics/utils.hpp"
-#include "graphics/vulkan_buffer.hpp"
-#include "graphics/vulkan_image.hpp"
 #include "utilities/utils/utils.hpp"
+#include "graphics/vulkan_memory_allocator.hpp"
+#include "graphics/vulkan_image.hpp"
 
 static void destroyDebugUtilsMessengerEXT( VkInstance instance,
                                            VkDebugUtilsMessengerEXT debugMessenger,
@@ -240,10 +238,12 @@ auto graphics::VulkanDevice::checkValidationLayerSupport() -> bool
     return true;
 }
 
-auto graphics::VulkanDevice::shutdown() const -> void
+auto graphics::VulkanDevice::shutdown() -> void
 {
-    writeLeaksLog();
     waitIdle();
+
+    m_memAllocator->writeLeaksLog();
+    m_memAllocator.reset();
 
     destroySemaphore( m_graphicsQueue.timelineSemaphore );
     destroySemaphore( m_presentQueue.timelineSemaphore );
@@ -252,7 +252,6 @@ auto graphics::VulkanDevice::shutdown() const -> void
     destroyCommandPool( m_commandPool );
     destroyCommandPool( m_transferCommandPool );
 
-    vmaDestroyAllocator( m_allocator );
     destroyDebugUtilsMessengerEXT( m_platform.instance, m_debugMessenger, nullptr );
     vkDestroyDevice( m_platform.device, nullptr );
     vkDestroySurfaceKHR( m_platform.instance, m_platform.surface, nullptr );
@@ -298,6 +297,10 @@ graphics::VulkanDevice::VulkanDevice( SDL_Window* wnd )
     : m_window{ wnd }
 {
     init();
+
+    m_memAllocator =
+        std::make_unique<VulkanMemoryAllocator>( m_platform.device, m_platform.physicalDevice, m_platform.instance );
+
     m_shaderCompiler = std::make_unique<ShaderCompiler>( m_platform.device );
 }
 
@@ -314,7 +317,6 @@ void graphics::VulkanDevice::init()
     createWindowSurface();
     pickPhysicalDevice();
     createLogicalDevice();
-    initMemoryAllocator();
     createDeviceCommandPool();
     KINFO( "vulkan device initialized" );
 }
@@ -332,23 +334,6 @@ auto graphics::VulkanDevice::createDeviceCommandPool() -> void
     transferPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     transferPoolInfo.queueFamilyIndex = getTransferQueue().familyIndex;
     createCommandPool( transferPoolInfo, m_transferCommandPool );
-}
-
-auto graphics::VulkanDevice::initMemoryAllocator() -> void
-{
-    VmaVulkanFunctions vulkanFunctions{};
-    vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
-    vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
-
-    VmaAllocatorCreateInfo allocatorCreateInfo{};
-    allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
-    allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_4;
-    allocatorCreateInfo.physicalDevice = m_platform.physicalDevice;
-    allocatorCreateInfo.device = m_platform.device;
-    allocatorCreateInfo.instance = m_platform.instance;
-    allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
-
-    VK_CALL( vmaCreateAllocator( &allocatorCreateInfo, &m_allocator ) );
 }
 
 void graphics::VulkanDevice::setupDebug()
@@ -605,211 +590,6 @@ auto graphics::VulkanDevice::setVulkanDebugName( VkObjectType objType, uint64_t 
     nameInfo.pObjectName = nullTerminatedName.c_str();
 
     m_setDebugNameFunc( m_platform.device, &nameInfo );
-}
-
-void graphics::VulkanDevice::createBuffer( VulkanBuffer& vulkanBuffer,
-                                           VkBufferCreateInfo& createInfo,
-                                           VmaAllocationCreateInfo& usage,
-                                           std::string_view bufferName )
-{
-    VK_CALL( vmaCreateBuffer(
-        m_allocator, &createInfo, &usage, &vulkanBuffer.vkBuffer, &vulkanBuffer.vmaAllocation, nullptr ) );
-
-    if ( !bufferName.empty() )
-    {
-        KINFO( "[Buffer] {} {}", bufferName, formatSize( static_cast<double>( createInfo.size ) ) );
-        setVMAllocationName( bufferName, vulkanBuffer.vmaAllocation );
-        setVulkanDebugName(
-            vulkanTypeToObject<VkBuffer>(), reinterpret_cast<uint64_t>( vulkanBuffer.vkBuffer ), bufferName );
-    }
-    else
-    {
-
-        KINFO( "[Buffer] {}", formatSize( static_cast<double>( createInfo.size ) ) );
-    }
-}
-
-void graphics::VulkanDevice::createBuffer( FrameInFlightVulkanBuffer& vulkanBuffer,
-                                           VkBufferCreateInfo& createInfo,
-                                           VmaAllocationCreateInfo& usage,
-                                           std::string_view name )
-{
-    uint32_t index{ 0u };
-    for ( auto& buffer : vulkanBuffer.buffers )
-    {
-        std::string buffName = std::string{ name } + std::to_string( index++ );
-        createBuffer( buffer, createInfo, usage, buffName );
-    }
-}
-
-void graphics::VulkanDevice::createImage( VkImage& image,
-                                          VkImageCreateInfo& imageCreateInfo,
-                                          VmaAllocationCreateInfo& usage,
-                                          VmaAllocation& allocation,
-                                          std::string_view imageName )
-{
-    VK_CALL( vmaCreateImage( m_allocator, &imageCreateInfo, &usage, &image, &allocation, nullptr ) );
-
-    std::string size = formatSize( static_cast<double>( allocation->GetSize() ) );
-    if ( !imageName.empty() )
-    {
-        KINFO( "[Image] {} size {}", imageName, size );
-        setVMAllocationName( imageName, allocation );
-        setVulkanDebugName( vulkanTypeToObject<VkImage>(), reinterpret_cast<uint64_t>( image ), imageName );
-    }
-    else
-    {
-        KINFO( "[Image] size {}", size );
-    }
-}
-
-void graphics::VulkanDevice::createImage( VulkanImage& image,
-                                          VkImageCreateInfo& imageCreateInfo,
-                                          VmaAllocationCreateInfo& usage,
-                                          std::string_view imageName )
-{
-    createImage( image.vkImage, imageCreateInfo, usage, image.vmaAllocation, imageName );
-}
-
-auto graphics::VulkanDevice::getAllocator() -> VmaAllocator&
-{
-    return m_allocator;
-}
-
-auto graphics::VulkanDevice::createStagingBuffer( VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& usage )
-    -> VulkanBuffer
-{
-    VulkanBuffer stageBuffer{};
-    createBuffer( stageBuffer, createInfo, usage );
-    return stageBuffer;
-}
-
-auto graphics::VulkanDevice::formatSize( VkDeviceSize size ) -> std::string
-{
-    const double KB = 1024.0;
-    const double MB = KB * 1024.0;
-    const double GB = MB * 1024.0;
-
-    std::ostringstream oss;
-    oss << std::fixed << std::setprecision( 2 );
-
-    if ( size >= GB )
-        oss << ( size / GB ) << " GB";
-    else if ( size >= MB )
-        oss << ( size / MB ) << " MB";
-    else if ( size >= KB )
-        oss << ( size / KB ) << " KB";
-    else
-        oss << size << " B";
-
-    return oss.str();
-}
-
-auto graphics::VulkanDevice::invalidateAllocation( VulkanBuffer& vulkanBuffer,
-                                                   VkDeviceSize offset,
-                                                   VkDeviceSize size ) const -> void
-{
-    vmaInvalidateAllocation( m_allocator, vulkanBuffer.vmaAllocation, offset, size );
-}
-
-auto graphics::VulkanDevice::destroyImage( VkImage& image, VmaAllocation& allocation ) -> void
-{
-    if ( !image )
-        return;
-
-    if ( !allocation )
-        return;
-
-    auto info = getAllocInfo( allocation );
-    if ( info.pName )
-    {
-        KINFO( "[~Image] {} size {}", info.pName, formatSize( info.size ) );
-    }
-
-    vmaDestroyImage( m_allocator, image, allocation );
-}
-
-auto graphics::VulkanDevice::destroyImages( const std::initializer_list<std::tuple<VkImage&, VmaAllocation&>>& images )
-    -> void
-{
-    for ( auto& [image, alloc] : images )
-    {
-        destroyImage( image, alloc );
-    }
-}
-
-auto graphics::VulkanDevice::writeLeaksLog() const -> void
-{
-    namespace fs = std::filesystem;
-    fs::path p{ fs::current_path() / "logs" };
-    if ( !fs::exists( p ) )
-    {
-        fs::create_directory( p );
-    }
-
-    if ( fs::exists( p / "log.txt" ) )
-    {
-        fs::remove( p / "log.txt" );
-    }
-
-    p = p / "log.txt";
-    std::ofstream out{ p, std::ios::out };
-
-    char* statsString = nullptr;
-    VmaAllocatorCreateInfo info{};
-    vmaBuildStatsString( m_allocator, &statsString, VK_TRUE );
-    out.write( statsString, strlen( statsString ) );
-
-    if ( out.is_open() )
-    {
-        out.close();
-    }
-
-    vmaFreeStatsString( m_allocator, statsString );
-}
-
-auto graphics::VulkanDevice::setVMAllocationName( std::string_view name, VmaAllocation& allocation ) const -> void
-{
-#ifndef _DEBUG
-    return;
-#endif
-
-    auto allocName = std::string{ name };
-    vmaSetAllocationName( m_allocator, allocation, allocName.c_str() );
-}
-
-auto graphics::VulkanDevice::destroyBuffer( VulkanBuffer& buff ) -> void
-{
-    if ( !buff.vmaAllocation )
-        return;
-
-    auto info = getAllocInfo( buff.vmaAllocation );
-
-    if ( info.pName )
-    {
-        KINFO( "[~Buffer] {} size {}", info.pName, formatSize( info.size ) );
-    }
-    else
-    {
-        KINFO( "[~Buffer] size {}", formatSize( info.size ) );
-    }
-
-    vmaDestroyBuffer( m_allocator, buff.vkBuffer, buff.vmaAllocation );
-}
-
-auto graphics::VulkanDevice::destroyBuffer( FrameInFlightVulkanBuffer& buff ) -> void
-{
-    for ( auto& buff : buff.buffers )
-    {
-        destroyBuffer( buff );
-    }
-}
-
-auto graphics::VulkanDevice::getAllocInfo( VmaAllocation allocation ) const -> VmaAllocationInfo
-{
-    VmaAllocationInfo info{};
-    vmaGetAllocationInfo( m_allocator, allocation, &info );
-    return info;
 }
 
 auto graphics::VulkanDevice::destroyPipeline( VkPipeline pipeline ) const -> void
@@ -1104,30 +884,8 @@ auto graphics::VulkanDevice::createSampler( VkSampler& sampler, std::string_view
 
     if ( !samplerName.empty() )
     {
-        setVulkanDebugName( vulkanTypeToObject<VkSampler>(), reinterpret_cast<uint64_t>( sampler ), samplerName );
+        setVulkanDebugName( VK_OBJECT_TYPE_SAMPLER, reinterpret_cast<uint64_t>( sampler ), samplerName );
     }
-}
-
-auto graphics::VulkanDevice::createImageView( VkImageView& imageView,
-                                              VkImage& image,
-                                              VkFormat format,
-                                              VkImageAspectFlags aspectFlags,
-                                              std::string_view imageViewName ) -> void
-{
-    VkImageViewCreateInfo viewInfo{};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = image;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = format;
-    viewInfo.subresourceRange.aspectMask = aspectFlags;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = 1;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = 1;
-
-    VK_CALL( vkCreateImageView( m_platform.device, &viewInfo, nullptr, &imageView ) );
-
-    setVulkanDebugName( vulkanTypeToObject<VkImageView>(), reinterpret_cast<uint64_t>( imageView ), imageViewName );
 }
 
 auto graphics::VulkanDevice::transitionImageLayout( VkImage image, VkImageMemoryBarrier2 imageBarrier ) -> void
@@ -1383,14 +1141,6 @@ auto graphics::VulkanDevice::endLabel( VkCommandBuffer cmdBuffer ) -> void
     // vkCmdEndDebugUtilsLabelEXT( cmdBuffer );
 }
 
-auto graphics::VulkanDevice::copyMemoryToAllocation( const void* pSrcHostPointer,
-                                                     VmaAllocation dstAllocation,
-                                                     VkDeviceSize dstAllocationLocalOffset,
-                                                     VkDeviceSize size ) -> void
-{
-    VK_CALL( vmaCopyMemoryToAllocation( m_allocator, pSrcHostPointer, dstAllocation, dstAllocationLocalOffset, size ) );
-}
-
 auto graphics::VulkanDevice::freeCmdBuffer( VkCommandPool commandPool,
                                             uint32_t commandBufferCount,
                                             const VkCommandBuffer* pCommandBuffers ) -> void
@@ -1406,4 +1156,9 @@ auto graphics::VulkanDevice::getSemaphoreCounterValue( VkSemaphore semaphore, ui
 auto graphics::VulkanDevice::getTransferSemaphoreCounterValue( uint64_t& value ) -> void
 {
     getSemaphoreCounterValue( m_transferQueue.timelineSemaphore, value );
+}
+
+auto graphics::VulkanDevice::getMemAllocator() -> graphics::VulkanMemoryAllocator*
+{
+    return m_memAllocator.get();
 }

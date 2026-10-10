@@ -2,15 +2,12 @@
 #include <vulkan/vulkan.h>
 #include "graphics/vulkan_buffer.hpp"
 
-#define VMA_STATIC_VULKAN_FUNCTIONS 0
-#define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
-// #define VMA_VULKAN_VERSION 1004000
-#include <vma/vk_mem_alloc.h>
-
 struct SDL_Window;
 
 namespace graphics
 {
+
+class VulkanMemoryAllocator;
 
 inline const std::vector<const char*> validationLayers{ "VK_LAYER_KHRONOS_validation" };
 inline const std::vector<const char*> deviceExtensions{ VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -64,90 +61,14 @@ class VulkanDevice
     explicit VulkanDevice( SDL_Window* wnd );
     ~VulkanDevice();
 
-    /**
-     * @brief Print the json format to console of allocation data so we know ( if no name was set for that resource )
-     * who asserted the deallocation
-     * @return
-     */
-    auto writeLeaksLog() const -> void;
-
-    /**
-     * @brief Create vulkan buffer
-     * @param vulkanBuffer
-     * @param createInfo
-     * @param usage
-     * @param bufferName
-     */
-    auto createBuffer( VulkanBuffer& vulkanBuffer,
-                       VkBufferCreateInfo& createInfo,
-                       VmaAllocationCreateInfo& usage,
-                       std::string_view bufferName = "" ) -> void;
-
-    /**
-     * @brief Create frame in flight buffer
-     * @param vulkanBuffer
-     * @param createInfo
-     * @param usage
-     */
-    auto createBuffer( FrameInFlightVulkanBuffer& vulkanBuffer,
-                       VkBufferCreateInfo& createInfo,
-                       VmaAllocationCreateInfo& usage,
-                       std::string_view name ) -> void;
-
-    /**
-     * @brief Create staging buffer, used primarely for small operations like copying data into other buffers
-     * @param createInfo
-     * @param usage
-     * @return
-     */
-    auto createStagingBuffer( VkBufferCreateInfo& createInfo, VmaAllocationCreateInfo& usage ) -> VulkanBuffer;
-
     auto label( VkCommandBuffer cmdBuffer, VkDebugUtilsLabelEXT markerInfo ) -> void;
     auto endLabel( VkCommandBuffer cmdBuffer ) -> void;
-
-    template <typename T>
-    auto copyFromBuffer( T& data, VulkanBuffer& buffer ) -> void;
-
-    template <typename T>
-    auto copyToBuffer( T& data, VulkanBuffer& buffer ) -> void;
-
-    template <typename T>
-    auto copyToBuffer( std::vector<T>& data, VulkanBuffer& buffer ) -> void;
-
-    template <typename T>
-    auto copyToBuffer( T& data, VulkanBuffer& buffer, VkDeviceSize size ) -> void;
 
     auto invalidateAllocation( VulkanBuffer& vulkanBuffer, VkDeviceSize offset, VkDeviceSize size ) const -> void;
 
     auto getTransferSemaphoreCounterValue( uint64_t& value ) -> void;
 
-    /**
-     * @brief Create image
-     * @param image VkImage reference
-     * @param imageCreateInfo
-     * @param usage
-     * @param allocation
-     * @param imageName Name of the image, "" if not presented
-     */
-    auto createImage( VkImage& image,
-                      VkImageCreateInfo& imageCreateInfo,
-                      VmaAllocationCreateInfo& usage,
-                      VmaAllocation& allocation,
-                      std::string_view imageName = "" ) -> void;
-
     // auto createCubemapImage() -> void;
-
-    auto createImage( VulkanImage& image,
-                      VkImageCreateInfo& imageCreateInfo,
-                      VmaAllocationCreateInfo& usage,
-                      std::string_view imageName = "" ) -> void;
-
-    auto createImageView( VkImageView& imageView,
-                          VkImage& image,
-                          VkFormat format,
-                          VkImageAspectFlags aspectFlags,
-                          std::string_view imageViewName = "" ) -> void;
-
     /**
      * @brief Transition image layout with a newly allocated one-time-use VkCommandBuffer
      * @param image
@@ -180,11 +101,6 @@ class VulkanDevice
         VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkImageMemoryBarrier2 imageBarrier ) -> void;
 
     auto copyImageToBuffer( VkImage image, VkBuffer buffer, VkOffset3D offset, VkExtent3D extent ) -> void;
-
-    auto copyMemoryToAllocation( const void* pSrcHostPointer,
-                                 VmaAllocation dstAllocation,
-                                 VkDeviceSize dstAllocationLocalOffset,
-                                 VkDeviceSize size ) -> void;
 
     auto copyImageToBuffer( VkImage image,
                             VkCommandBuffer cmdBuffer,
@@ -220,58 +136,12 @@ class VulkanDevice
     auto getCommandPool() -> VkCommandPool;
     auto getTransferCommandPool() -> VkCommandPool;
 
-    /**
-     * @brief Deallocate image and destroy it
-     * @param image
-     * @param allocation
-     * @return
-     */
-    auto destroyImage( VkImage& image, VmaAllocation& allocation ) -> void;
-
-    /**
-     * @brief Deallocate images and destroy them
-     * @param images
-     * @return
-     */
-    auto destroyImages( const std::initializer_list<std::tuple<VkImage&, VmaAllocation&>>& images ) -> void;
-
-    /**
-     * @brief Destroy buffer
-     * @param buff
-     * @return
-     */
-    auto destroyBuffer( VulkanBuffer& buff ) -> void;
-
-    /**
-     * @brief Destroy frame in flight buffer
-     * @param buff
-     * @return
-     */
-    auto destroyBuffer( FrameInFlightVulkanBuffer& buff ) -> void;
-
-    /**
-     * @brief VmaAllocator getter
-     * @return
-     */
-    auto getAllocator() -> VmaAllocator&;
-
-    /**
-     * @brief Set name for the VmaAllocation
-     * @param name
-     * @param allocation
-     * @return
-     */
-    auto setVMAllocationName( std::string_view name, VmaAllocation& allocation ) const -> void;
-
     auto createDescriptorSetLayout( VkDescriptorSetLayout& layout, VkDescriptorSetLayoutCreateInfo& layoutInfo ) const
         -> void;
     auto allocateDescriptorSet( VkDescriptorSet& descriptor, VkDescriptorSetAllocateInfo& info ) const -> void;
     auto allocateCommandBuffers( VkCommandBufferAllocateInfo allocInfo, VkCommandPool commandPool, uint32_t count )
         -> std::vector<VkCommandBuffer>;
     auto updateDescriptorSet( std::vector<VkWriteDescriptorSet> writes, uint32_t copyCount = 0u ) const -> void;
-
-    template <typename T>
-    auto updateBuffer( std::vector<T>& vectorData, VmaAllocation allocation, VkDeviceSize offset = 0 ) -> void;
 
     /**
      * @brief Destroy the shader module
@@ -310,8 +180,6 @@ class VulkanDevice
     auto createPipelineLayout( VkPipelineLayoutCreateInfo layout, VkPipelineLayout& pipelineLayout ) const -> void;
     auto createGraphicsPipeline( VkPipeline& pipeline, VkGraphicsPipelineCreateInfo createInfo ) const -> void;
 
-    auto initMemoryAllocator() -> void;
-
     /**
      * @brief Setup debug function pointers for vulkan validation layers
      * @return
@@ -346,7 +214,7 @@ class VulkanDevice
      * @brief Perform the shutdown operations
      * @return
      */
-    auto shutdown() const -> void;
+    auto shutdown() -> void;
 
     /**
      * @brief Wait for the GPU to finish all commands and enter idle state
@@ -428,17 +296,13 @@ class VulkanDevice
 
     auto getDeviceProperties() const -> VkPhysicalDeviceProperties;
     auto getDeviceMemoryProperties() const -> VkPhysicalDeviceMemoryProperties;
-    auto getAllocInfo( VmaAllocation allocation ) const -> VmaAllocationInfo;
+
+    auto getMemAllocator() -> graphics::VulkanMemoryAllocator*;
 
   private:
     auto createDeviceCommandPool() -> void;
     auto checkDeviceExtensionSupport( VkPhysicalDevice device ) -> bool;
     auto checkValidationLayerSupport() -> bool;
-
-    template <typename T>
-    auto vulkanTypeToObject() const -> VkObjectType;
-
-    auto formatSize( VkDeviceSize size ) -> std::string;
 
     auto findQueueFamilies( VkPhysicalDevice& device ) -> QueueFamilyIndices;
 
@@ -470,9 +334,9 @@ class VulkanDevice
     GPUQueue m_transferQueue;
 
     PFN_vkSetDebugUtilsObjectNameEXT m_setDebugNameFunc{ nullptr };
-    VmaAllocator m_allocator;
     std::unique_ptr<ShaderCompiler> m_shaderCompiler;
+
+    std::unique_ptr<VulkanMemoryAllocator> m_memAllocator;
 };
 
-#include "vulkan_device.inl"
 } // namespace graphics

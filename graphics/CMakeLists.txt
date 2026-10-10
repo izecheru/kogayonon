@@ -1,12 +1,13 @@
 ﻿
 set(HEADER_FILES
 	"include/graphics/vulkan_device.hpp"
-	"include/graphics/vulkan_device.inl"
 	"include/graphics/vulkan_swapchain.hpp"
 	"include/graphics/vulkan_pipeline.hpp"
 	"include/graphics/vulkan_context.hpp"
 	"include/graphics/vulkan_buffer.hpp"
 	"include/graphics/vulkan_descriptor.hpp"
+	"include/graphics/vulkan_memory_allocator.inl"
+	"include/graphics/vulkan_memory_allocator.hpp"
 	"include/graphics/vulkan_image.hpp"
 	"include/graphics/shader_compiler.hpp"
 	"include/graphics/utils.hpp"
@@ -16,6 +17,7 @@ set(SOURCE_FILES
 	"src/vulkan_device.cpp"
 	"src/vulkan_swapchain.cpp"
 	"src/vulkan_pipeline.cpp"
+	"src/vulkan_memory_allocator.cpp"
 	"src/shader_compiler.cpp"
 )
 

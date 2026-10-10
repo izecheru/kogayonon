@@ -1,4 +1,5 @@
 #include "renderer/modules/prepass_module.hpp"
+#include "graphics/vulkan_memory_allocator.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -198,9 +199,10 @@ auto rendering::PrepassModule::destroyModuleResources() -> void
     rendering::Blackboard* blackboard = m_graph->getBlackboard();
     PrepassModuleData& prepassData = blackboard->get<PrepassModuleData>();
 
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+
     m_vkCtx->device->destroyImageView( prepassData.depth->vulkanImage.vkImageView );
-    m_vkCtx->device->destroyImage( prepassData.depth->vulkanImage.vkImage,
-                                   prepassData.depth->vulkanImage.vmaAllocation );
+    allocator->destroyImage( prepassData.depth->vulkanImage.vkImage, prepassData.depth->vulkanImage.vmaAllocation );
 
     m_vkCtx->device->destroyPipelineLayout( prepassData.depthPrepassPipeline.getLayout() );
     m_vkCtx->device->destroyPipeline( prepassData.depthPrepassPipeline.getPipeline() );

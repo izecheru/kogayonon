@@ -23,7 +23,7 @@ struct Vertex
     glm::vec3 normal;
     glm::vec2 uv;
 
-    static VkVertexInputBindingDescription getBindingDescription()
+    static auto getBindingDescription() -> VkVertexInputBindingDescription
     {
         VkVertexInputBindingDescription bindingDescription{};
         bindingDescription.binding = 0;
@@ -33,7 +33,7 @@ struct Vertex
         return bindingDescription;
     }
 
-    static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions()
+    static auto getAttributeDescriptions() -> std::vector<VkVertexInputAttributeDescription>
     {
         std::vector<VkVertexInputAttributeDescription> attributeDescriptions( 3 );
 

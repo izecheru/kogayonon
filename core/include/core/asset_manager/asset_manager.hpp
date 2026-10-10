@@ -300,6 +300,8 @@ class AssetManager
 
     auto shutdown() -> void;
 
+    auto clearUsedResources() -> void;
+
   private:
     AssetManager( const AssetManager& ) = delete;
     AssetManager& operator=( const AssetManager& ) = delete;
@@ -344,10 +346,6 @@ class AssetManager
     // Task related member variables
     std::atomic<bool> m_readyForUpdate{ false };
     // ThreadsafeResourceManager m_threadSafeResourceManager;
-    VkSemaphore m_textureTimelineSemaphore;
-    uint64_t m_textureTimelineSignal{ 0u };
-    VkSemaphore m_meshTimelineSemaphore;
-    uint64_t m_meshTimelineSignal{ 0u };
 
     std::vector<enki::ITaskSet*> m_textureLoadTasks;
     std::vector<enki::ITaskSet*> m_meshLoadTasks;
@@ -358,5 +356,7 @@ class AssetManager
 
     std::atomic<bool> m_acceptingLoads{ false };
     std::atomic<bool> m_shutdown{ false };
+
+    std::vector<graphics::VulkanBuffer*> m_buffDeletionQueue;
 };
 } // namespace core

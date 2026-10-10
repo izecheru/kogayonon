@@ -14,6 +14,7 @@
 // components for view filtering in scene
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
+#include "graphics/vulkan_memory_allocator.hpp"
 
 rendering::GeometryModule::GeometryModule( FrameGraph* graph,
                                            graphics::VulkanContext* ctx,
@@ -73,6 +74,8 @@ auto rendering::GeometryModule::destroyModuleResources() -> void
     Blackboard* blackboard = m_graph->getBlackboard();
     GeometryModuleData& geometryModuleData = blackboard->get<GeometryModuleData>();
 
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+
     m_vkCtx->device->destroyPipelineLayout( geometryModuleData.basePipeline.getLayout() );
     m_vkCtx->device->destroyPipeline( geometryModuleData.basePipeline.getPipeline() );
 
@@ -80,8 +83,8 @@ auto rendering::GeometryModule::destroyModuleResources() -> void
     m_vkCtx->device->destroyPipeline( geometryModuleData.wireframePipeline.getPipeline() );
 
     m_vkCtx->device->destroyImageView( geometryModuleData.color->vulkanImage.vkImageView );
-    m_vkCtx->device->destroyImage( geometryModuleData.color->vulkanImage.vkImage,
-                                   geometryModuleData.color->vulkanImage.vmaAllocation );
+    allocator->destroyImage( geometryModuleData.color->vulkanImage.vkImage,
+                             geometryModuleData.color->vulkanImage.vmaAllocation );
 
     blackboard->removeFromStorage<GeometryModuleData>();
 }

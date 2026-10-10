@@ -9,6 +9,7 @@ struct VulkanBuffer
 {
     VkBuffer vkBuffer{ VK_NULL_HANDLE };
     VmaAllocation vmaAllocation{ VK_NULL_HANDLE };
+    uint64_t semaphoreSignal{ UINT64_MAX };
 };
 
 /**

@@ -1,4 +1,5 @@
 #include "renderer/vulkan_renderer.hpp"
+#include "graphics/vulkan_memory_allocator.hpp"
 #include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
@@ -78,7 +79,8 @@ auto rendering::VulkanRenderer::initModules() -> void
 
 rendering::VulkanRenderer::~VulkanRenderer()
 {
-    m_vkCtx->device->destroyBuffer( m_cameraBuffers );
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+    allocator->destroyBuffer( m_cameraBuffers );
     m_vkCtx->device->destroyDescriptorSetLayout( m_cameraDescriptor.layout );
 }
 
@@ -117,7 +119,8 @@ auto rendering::VulkanRenderer::createCameraBuffers() -> void
     vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
     vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-    m_vkCtx->device->createBuffer( m_cameraBuffers, bufferInfo, vmaAllocInfo, "cameraBuffer" );
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+    allocator->createBuffer( m_cameraBuffers, bufferInfo, vmaAllocInfo, "cameraBuffer" );
 }
 
 auto rendering::VulkanRenderer::updateCameraBuffer() -> void
@@ -146,7 +149,8 @@ auto rendering::VulkanRenderer::updateCameraBuffer() -> void
 
         uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
 
-        m_vkCtx->device->copyToBuffer( cameraComp.ubo, m_cameraBuffers.buffers.at( currentFrame ) );
+        graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+        allocator->copyToBuffer( cameraComp.ubo, m_cameraBuffers.buffers.at( currentFrame ) );
     } );
 }
 

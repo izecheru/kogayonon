@@ -1,4 +1,5 @@
 #include "renderer/frame_graph.hpp"
+#include "graphics/vulkan_memory_allocator.hpp"
 #include "renderer/node.hpp"
 #include "utilities/utils/utils.hpp"
 
@@ -31,12 +32,12 @@ auto rendering::FrameGraph::createResource( std::string_view name,
         aspect = VK_IMAGE_ASPECT_COLOR_BIT;
     }
 
-    m_device->createImage( res->vulkanImage, imageInfo, imageAllocInfo, resName );
-    m_device->createImageView( res->vulkanImage.vkImageView,
-                               res->vulkanImage.vkImage,
-                               imageInfo.format,
-                               aspect,
-                               std::string{ resName + "_imageView" } );
+    m_device->getMemAllocator()->createImage( res->vulkanImage, imageInfo, imageAllocInfo, resName );
+    m_device->getMemAllocator()->createImageView( res->vulkanImage.vkImageView,
+                                                  res->vulkanImage.vkImage,
+                                                  imageInfo.format,
+                                                  aspect,
+                                                  std::string{ resName + "_imageView" } );
 
     return m_container.resources.back().get();
 }
