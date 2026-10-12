@@ -1267,6 +1267,10 @@ auto core::AssetManager::updateMeshTaskSync() -> void
         {
             graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
             allocator->destroyBuffer( data.stageBuffer );
+
+            // get rid of the data since it is uploaded to the gpu
+            data.mesh->getIndices().clear();
+            data.mesh->getVertices().clear();
         }
 
         std::string meshPath = data.mesh->getPath();
