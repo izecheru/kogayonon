@@ -50,10 +50,8 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
         .blendEnable = VK_FALSE,
         .vertexModule = vertex,
         .fragmentModule = fragment,
-        .pushConstantSize = sizeof( resources::MeshPushConstant ),
-        .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-        .vertexBindingDescription = resources::Vertex::getBindingDescription(),
-        .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions() };
+        .pushConstantSize = sizeof( resources::FramePushConstant ),
+        .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT };
 
     prepassData.depthPrepassPipeline.create( defaultPipelineSpec, m_vkCtx );
 
@@ -83,6 +81,46 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
             }
 
             PrepassModuleData& prepassData = m_graph->getBlackboard()->get<PrepassModuleData>();
+            uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
+
+            graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+
+            VkDrawIndexedIndirectCommand* indirectPtr = prepassData.indirectCommandsPtr[currentFrame];
+            EntityParams* paramsPtr = prepassData.entitiesParamsPtr[currentFrame];
+
+            // fill the vectors
+            auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
+
+            uint32_t drawIndex{ 0u };
+            {
+                ZoneScopedN( "build indirect commands" );
+                view.each( [&]( const entt::entity& id,
+                                core::MeshComponent& meshComp,
+                                core::TransformComponent& transformComp ) {
+                    if ( !meshComp.pMesh )
+                        return;
+
+                    for ( resources::Submesh& submesh : meshComp.pMesh->getSubmeshes() )
+                    {
+                        paramsPtr[drawIndex] = EntityParams{ .transform = transformComp.getMatrix(),
+                                                             .materialIndex = submesh.materialIndex };
+
+                        indirectPtr[drawIndex] =
+                            VkDrawIndexedIndirectCommand{ .indexCount = submesh.indexCount,
+                                                          .instanceCount = 1,
+                                                          .firstIndex = submesh.indexOffset,
+                                                          .vertexOffset = static_cast<int32_t>( submesh.vertexOffset ),
+                                                          .firstInstance = drawIndex++ };
+                    }
+                } );
+            }
+
+            if ( drawIndex == 0 )
+            {
+                return;
+            }
+
+            prepassData.drawCount[currentFrame] = drawIndex;
 
             prepassData.renderingInfo.depthAttachmentInfo =
                 VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -101,13 +139,16 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
                 .pDepthAttachment = &prepassData.renderingInfo.depthAttachmentInfo,
             };
 
+            graphics::VulkanBuffer& globalVertex = allocator->getGlobalVertexBuffer();
+            graphics::VulkanBuffer& globalIndex = allocator->getGlobalIndexBuffer();
+
+            graphics::VulkanBuffer& entityParams = prepassData.entitiesParamsBuffer.buffers.at( currentFrame );
+
             m_vkCtx->swapchain->beginRendering( prepassData.renderingInfo.vkRenderingInfo );
             m_vkCtx->swapchain->setupScissors( cmdBuffer );
             m_vkCtx->swapchain->setupViewport( cmdBuffer );
 
             prepassData.depthPrepassPipeline.bind( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
-
-            uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
 
             vkCmdBindDescriptorSets( cmdBuffer,
                                      VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -118,47 +159,29 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
                                      0,
                                      nullptr );
 
-            auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
+            resources::FramePushConstant framePushConst{ .vertexBufferAddress =
+                                                             allocator->getGlobalVertexBuffer().deviceAdress,
+                                                         .entityParamsBufferAddress = entityParams.deviceAdress };
 
-            view.each( [&]( const entt::entity& entityId,
-                            core::MeshComponent& meshComponent,
-                            core::TransformComponent& transform ) {
-                resources::Mesh* pMesh = meshComponent.pMesh;
+            vkCmdPushConstants( cmdBuffer,
+                                prepassData.depthPrepassPipeline.getLayout(),
+                                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                0,
+                                sizeof( resources::FramePushConstant ),
+                                &framePushConst );
 
-                if ( !pMesh )
-                {
-                    return;
-                }
+            graphics::VulkanBuffer& commandsBuffer = prepassData.indirectCommandsBuffer.buffers.at( currentFrame );
 
-                if ( !pMesh->isLoaded() )
-                {
-                    return;
-                }
+            {
+                TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, "BindIndexBuffer" );
+                vkCmdBindIndexBuffer( cmdBuffer, allocator->getGlobalIndexBuffer().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
+            }
 
-                VkDeviceSize offsets[] = { 0 };
-
-                vkCmdBindVertexBuffers(
-                    cmdBuffer, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
-
-                vkCmdBindIndexBuffer(
-                    cmdBuffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
-
-                for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
-                {
-                    // this should be expensive, move it somewhere in the mesh or submesh
-                    resources::MeshPushConstant push{ .modelMatrix = transform.getMatrix(),
-                                                      .materialIndex = submesh.materialIndex };
-
-                    vkCmdPushConstants( cmdBuffer,
-                                        prepassData.depthPrepassPipeline.getLayout(),
-                                        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                                        0,
-                                        sizeof( resources::MeshPushConstant ),
-                                        &push );
-
-                    vkCmdDrawIndexed( cmdBuffer, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
-                }
-            } );
+            {
+                TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, "CmdDrawIndirect" );
+                vkCmdDrawIndexedIndirect(
+                    cmdBuffer, commandsBuffer.vkBuffer, 0, drawIndex, sizeof( VkDrawIndexedIndirectCommand ) );
+            }
 
             m_vkCtx->swapchain->endRendering();
         } );
@@ -192,6 +215,48 @@ auto rendering::PrepassModule::createModuleResources( VkExtent2D extent ) -> voi
     VmaAllocationCreateInfo prepassDepthAllocInfo{ .usage = VMA_MEMORY_USAGE_AUTO };
 
     prepassData.depth = m_graph->createResource( "prepassDepth", prepassDepthCreateInfo, prepassDepthAllocInfo );
+
+    constexpr uint32_t maxIndirectCommands = 1u << 10; // 1m
+
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+    // create the indirect commands buffer
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = sizeof( VkDrawIndexedIndirectCommand ) * maxIndirectCommands;
+    bufferInfo.usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+
+    VmaAllocationCreateInfo vmaAllocInfo{};
+    vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+    allocator->createBuffer( prepassData.indirectCommandsBuffer, bufferInfo, vmaAllocInfo, "indirect_commands_buffer" );
+
+    constexpr uint32_t madIndirectEntityParams = 1u << 10; // 1m
+    // create the entity params buffer
+    VkBufferCreateInfo paramsBufferInfo{};
+    paramsBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    paramsBufferInfo.size = sizeof( EntityParams ) * madIndirectEntityParams;
+    paramsBufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+
+    VmaAllocationCreateInfo vmaParamsAllocInfo{};
+    vmaParamsAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    vmaParamsAllocInfo.flags =
+        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+    allocator->createBuffer(
+        prepassData.entitiesParamsBuffer, paramsBufferInfo, vmaParamsAllocInfo, "entity_params_buffer" );
+
+    for ( uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i )
+    {
+        void* ptr = nullptr;
+
+        allocator->mapBuffer( prepassData.indirectCommandsBuffer.buffers[i], &ptr );
+        prepassData.indirectCommandsPtr[i] = static_cast<VkDrawIndexedIndirectCommand*>( ptr );
+
+        ptr = nullptr;
+        allocator->mapBuffer( prepassData.entitiesParamsBuffer.buffers[i], &ptr );
+        prepassData.entitiesParamsPtr[i] = static_cast<EntityParams*>( ptr );
+    }
 }
 
 auto rendering::PrepassModule::destroyModuleResources() -> void
@@ -207,6 +272,15 @@ auto rendering::PrepassModule::destroyModuleResources() -> void
     m_vkCtx->device->destroyPipelineLayout( prepassData.depthPrepassPipeline.getLayout() );
     m_vkCtx->device->destroyPipeline( prepassData.depthPrepassPipeline.getPipeline() );
 
+    for ( auto i = 0u; i < MAX_FRAMES_IN_FLIGHT; i++ )
+    {
+        allocator->unmapBuffer( prepassData.entitiesParamsBuffer.buffers.at( i ) );
+        allocator->unmapBuffer( prepassData.indirectCommandsBuffer.buffers.at( i ) );
+    }
+
+    allocator->destroyBuffer( prepassData.entitiesParamsBuffer );
+    allocator->destroyBuffer( prepassData.indirectCommandsBuffer );
+
     blackboard->removeFromStorage<PrepassModuleData>();
 }
 
@@ -219,4 +293,8 @@ auto rendering::PrepassModule::recreate( VkExtent2D extent ) -> void
 {
     destroyModuleResources();
     registerPasses();
+}
+
+auto rendering::PrepassModule::registerIndirectCommandPrepass() -> void
+{
 }

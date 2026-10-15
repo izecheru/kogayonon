@@ -30,7 +30,8 @@ enum class ImGuiWindowName
     File_Explorer,
     Viewport,
     Scene_Hierarchy,
-    Entity_Properties
+    Entity_Properties,
+    Engine_Data
 };
 } // namespace gui
 

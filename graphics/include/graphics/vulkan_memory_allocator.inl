@@ -29,5 +29,12 @@ inline auto graphics::VulkanMemoryAllocator::copyToBuffer( T& data, VulkanBuffer
 template <typename T>
 inline auto graphics::VulkanMemoryAllocator::copyToBuffer( std::vector<T>& data, VulkanBuffer& buffer ) -> void
 {
-    vmaCopyMemoryToAllocation( m_allocator, data.data(), buffer.vmaAllocation, 0, sizeof( T ) * data.size() );
+    VkDeviceSize size = sizeof( T ) * data.size();
+    VmaAllocationInfo allocInfo{ getAllocInfo( buffer.vmaAllocation ) };
+
+    if ( size > allocInfo.size )
+    {
+        throw std::runtime_error( "size is bigger, sry" );
+    }
+    vmaCopyMemoryToAllocation( m_allocator, data.data(), buffer.vmaAllocation, 0, size );
 }

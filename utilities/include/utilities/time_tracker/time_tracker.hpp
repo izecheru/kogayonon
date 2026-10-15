@@ -23,6 +23,7 @@ class TimeTracker
     void restart( const std::string& key );
     auto getDuration( const std::string& key ) -> duration;
     float getDurationInSeconds( const std::string& key );
+    auto getDurationMilliseconds( const std::string& key ) -> float;
 
   private:
     std::mutex m_timeMutex;

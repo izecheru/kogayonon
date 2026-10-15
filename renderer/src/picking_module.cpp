@@ -181,11 +181,6 @@ auto rendering::PickingModule::registerPickingPass() -> void
 
                 VkDeviceSize offsets[] = { 0 };
 
-                vkCmdBindVertexBuffers(
-                    cmdBuffer, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
-                vkCmdBindIndexBuffer(
-                    cmdBuffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
-
                 for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
                 {
                     resources::EntityPickingPushConstant push{ .modelMatrix = transform.getMatrix(),

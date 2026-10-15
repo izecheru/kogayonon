@@ -1,48 +1,57 @@
 #include "structures.slang"
 #include "utils.slang"
+#include "vertex.slang"
 
 struct VertexInput
 {
-  float3 position : POSITION;
-  float3 normal : NORMAL;
-  float2 uv : TEXCOORD0;
+    uint vertexId : SV_VertexID;
+    uint instanceId : SV_InstanceID;
+    uint baseInstance : SV_StartInstanceLocation;
+    uint startVertex : SV_StartVertexLocation;
+};
+
+struct EntityParams
+{
+    float4x4 modelMatrix;
+	int materialIndex;
 };
 
 struct VertexOutput
 {
-  float4 position : SV_Position;
-  float2 fragTexCoord : TEXCOORD0;
+    float4 position : SV_Position;
+    float2 fragTexCoord : TEXCOORD0;
 };
 
-struct PushConstant
+struct DrawParams
 {
-  float4x4 modelMatrix;
-  int materialIndex;
+    uint64_t vertexBufferAddress;
+    uint64_t entityParamsBufferAddress;
 };
 
-[[vk::binding( 0, 0 )]]
-ConstantBuffer<Camera> camera;
+DESCRIPTOR_SET( 0, 0, ConstantBuffer<Camera> ) camera;
+DECLARE_PUSH_CONSTANT( DrawParams );
 
-[[vk::push_constant]]
-PushConstant push;
-
-// VERTEX
 [shader( "vertex" )]
 VertexOutput vertexMain( VertexInput input )
 {
-  VertexOutput output;
+    VertexOutput output;
 
-  output.position =
-    mul( camera.projection, mul( camera.view, mul( push.modelMatrix, float4( input.position, 1.0f ) ) ) );
+    Vertex* vBuffer = (Vertex*)pushConstant.vertexBufferAddress;
+    EntityParams* entityParams = (EntityParams*)pushConstant.entityParamsBufferAddress;
 
-  output.fragTexCoord = input.uv;
+    Vertex v = vBuffer[input.startVertex + input.vertexId];
+    EntityParams p = entityParams[input.baseInstance + input.instanceId];
 
-  return output;
+    output.position = mul( camera.projection, mul( camera.view, mul( p.modelMatrix, float4( v.translation, 1.0f ) ) ) );
+
+    output.fragTexCoord = v.uv;
+
+    return output;
 }
 
-// FRAGMENT
 [shader( "fragment" )]
 void fragmentMain( VertexOutput input )
 {
+    // only depth
 }
 

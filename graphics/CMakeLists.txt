@@ -33,6 +33,12 @@ endif()
 
 add_library(graphics ${HEADER_FILES} ${SOURCE_FILES})
 
+option(VMA_ALLOCATION_LOGS "Enable buffer and image creation and destruction logs" ON)
+
+if(VMA_ALLOCATION_LOGS)
+    target_compile_definitions(graphics PRIVATE VMA_ALLOCATION_LOGS)
+endif()
+
 target_compile_definitions(graphics PUBLIC VERTEX_PROVIDED)
 target_precompile_headers(graphics REUSE_FROM precompiled)
 

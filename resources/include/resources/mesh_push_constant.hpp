@@ -3,6 +3,13 @@
 
 namespace resources
 {
+
+struct FramePushConstant
+{
+    VkDeviceAddress vertexBufferAddress{ 0u };
+    VkDeviceAddress entityParamsBufferAddress{ 0u };
+};
+
 struct MeshPushConstant
 {
     glm::mat4 modelMatrix;

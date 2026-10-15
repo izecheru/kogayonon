@@ -19,6 +19,7 @@
 #include "utilities/config_manager/config_manager.hpp"
 #include "utilities/fonts/materialdesign.hpp"
 #include "core/event/config_event.hpp"
+#include "gui/imgui_windows/engine_data.hpp"
 
 #include <ImGuizmo.h>
 
@@ -100,6 +101,7 @@ void gui::VulkanImGuiRenderer::setupDockspace( ImGuiViewport* viewport )
         ImGui::DockBuilderDockWindow( "Viewport", centerNodeId );
         ImGui::DockBuilderDockWindow( "Hierarchy", rightNodeId );
         ImGui::DockBuilderDockWindow( "Properties", bottomRightNodeId );
+        ImGui::DockBuilderDockWindow( "Engine Data", leftNodeId );
 
         ImGui::DockBuilderFinish( dockSpaceId );
     }
@@ -392,6 +394,9 @@ void gui::VulkanImGuiRenderer::initWindows()
 
     m_windows.emplace( ImGuiWindowName::Entity_Properties,
                        std::make_unique<EntityProperties>( "Properties", EntityPropertiesSpec{ .fonts = &m_fonts } ) );
+
+    m_windows.emplace( ImGuiWindowName::Engine_Data,
+                       std::make_unique<EngineDataWindow>( "Engine Data", EngineDataSpec{}, m_device ) );
 
     assetManager->addUiTexture( hierarchyCubeIcon );
     assetManager->addUiTexture( folderPath );

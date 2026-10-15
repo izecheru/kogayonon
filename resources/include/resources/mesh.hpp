@@ -26,12 +26,6 @@ class Mesh
     auto getVertices() -> std::vector<Vertex>&;
     auto getIndices() -> std::vector<uint32_t>&;
 
-    auto getVertexBufferObject() -> graphics::VulkanBuffer&;
-    auto getVerticesAllocation() -> VmaAllocation&;
-
-    auto getIndicesBufferObject() -> graphics::VulkanBuffer&;
-    auto getIndicesAllocation() -> VmaAllocation&;
-
     auto getSubmeshes() -> std::vector<Submesh>&;
 
     inline auto getPath() -> std::string&
@@ -59,9 +53,6 @@ class Mesh
     std::vector<uint32_t> m_indices;
 
     bool m_loaded{ false };
-
-    graphics::VulkanBuffer m_verticesBuff;
-    graphics::VulkanBuffer m_indicesBuff;
 
     std::string m_path;
     std::vector<Submesh> m_submeshes;

@@ -33,6 +33,14 @@ class VulkanMemoryAllocator
     template <typename T>
     auto copyToBuffer( T& data, VulkanBuffer& buffer, VkDeviceSize size ) -> void;
 
+    auto getTotalImageAllocationSize() const -> VkDeviceSize;
+    auto getTotalBufferAllocationSize() const -> VkDeviceSize;
+
+    auto getBuffMutex() -> std::mutex&;
+
+    auto mapBuffer( graphics::VulkanBuffer& buff, void** ppData ) const -> VkResult;
+    auto unmapBuffer( graphics::VulkanBuffer& buff ) const -> void;
+
     /**
      * @brief Print the json format to console of allocation data so we know ( if no name was set for that resource )
      * who asserted the deallocation
@@ -41,27 +49,32 @@ class VulkanMemoryAllocator
     auto writeLeaksLog() const -> void;
 
     /**
-     * @brief Create vulkan buffer
+     * @brief Create a vulkan buffer
+     *
      * @param vulkanBuffer
      * @param createInfo
      * @param usage
      * @param bufferName
+     * @return VkResult
      */
     auto createBuffer( VulkanBuffer& vulkanBuffer,
                        VkBufferCreateInfo& createInfo,
                        VmaAllocationCreateInfo& usage,
-                       std::string_view bufferName = "" ) -> void;
+                       std::string_view bufferName = "" ) -> VkResult;
 
     /**
-     * @brief Create frame in flight buffer
+     * @brief Create a vulkan buffer
+     *
      * @param vulkanBuffer
      * @param createInfo
      * @param usage
+     * @param name Name of the buffer
+     * @return VkResult
      */
     auto createBuffer( FrameInFlightVulkanBuffer& vulkanBuffer,
                        VkBufferCreateInfo& createInfo,
                        VmaAllocationCreateInfo& usage,
-                       std::string_view name ) -> void;
+                       std::string_view bufferName ) -> VkResult;
 
     /**
      * @brief Create staging buffer, used primarely for small operations like copying data into other buffers
@@ -84,7 +97,7 @@ class VulkanMemoryAllocator
      * @param images
      * @return
      */
-    auto destroyImages( const std::initializer_list<std::tuple<VkImage&, VmaAllocation&>>& images ) -> void;
+    auto destroyImages( const std::vector<std::tuple<VkImage&, VmaAllocation&>>& images ) -> void;
 
     /**
      * @brief Destroy buffer
@@ -126,18 +139,23 @@ class VulkanMemoryAllocator
                       VkImageCreateInfo& imageCreateInfo,
                       VmaAllocationCreateInfo& usage,
                       VmaAllocation& allocation,
-                      std::string_view imageName = "" ) -> void;
+                      std::string_view imageName = "" ) -> VkResult;
 
     auto createImage( VulkanImage& image,
                       VkImageCreateInfo& imageCreateInfo,
                       VmaAllocationCreateInfo& usage,
-                      std::string_view imageName = "" ) -> void;
+                      std::string_view imageName = "" ) -> VkResult;
 
     auto createImageView( VkImageView& imageView,
                           VkImage& image,
                           VkFormat format,
                           VkImageAspectFlags aspectFlags,
-                          std::string_view imageViewName = "" ) -> VkResult;
+                          std::string_view imageViewName = "" ) const -> VkResult;
+
+    auto createImageView( VulkanImage& image,
+                          VkFormat format,
+                          VkImageAspectFlags aspectFlags,
+                          std::string_view imageViewName = "" ) const -> VkResult;
 
     auto invalidateAllocation( VulkanBuffer& vulkanBuffer, VkDeviceSize offset, VkDeviceSize size ) const -> void;
 
@@ -148,8 +166,16 @@ class VulkanMemoryAllocator
 
     auto getAllocInfo( VmaAllocation allocation ) const -> VmaAllocationInfo;
 
-  private:
+    auto getGlobalVertexBuffer() -> graphics::VulkanBuffer&;
+    auto getGlobalIndexBuffer() -> graphics::VulkanBuffer&;
+    auto getGlobalStaginBuffer() -> graphics::VulkanBuffer&;
+
+    auto getBufferDeviceAddressInfo( graphics::VulkanBuffer& buffer ) const -> VkDeviceAddress;
+
     auto formatSize( VkDeviceSize size ) -> std::string;
+
+  private:
+    auto createGlobalBuffers() -> void;
 
   private:
     VmaVulkanFunctions m_vulkanFunctions;
@@ -157,6 +183,14 @@ class VulkanMemoryAllocator
     VkInstance m_instance;
     VkDevice m_device;
     VkPhysicalDevice m_physicalDevice;
+
+    VkDeviceSize m_totalImageAllocationSize;
+    VkDeviceSize m_totalBufferAllocationSize;
+
+    std::mutex m_buffMutex;
+    graphics::VulkanBuffer m_globalVertexBuffer;
+    graphics::VulkanBuffer m_globalIndexBuffer;
+    graphics::VulkanBuffer m_globalStagingBuffer;
 };
 
 #include "graphics/vulkan_memory_allocator.inl"

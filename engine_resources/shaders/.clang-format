@@ -1,9 +1,10 @@
 ﻿BasedOnStyle: Microsoft
 
-# Indentation and Formatting
-IndentWidth: 2
-TabWidth: 2
-ContinuationIndentWidth: 2
+SortIncludes: false
+IndentWidth: 4
+IndentCaseLabels: true
+TabWidth: 4
+ContinuationIndentWidth: 4
 UseTab: Never
 BreakConstructorInitializers: BeforeComma
 AllowAllConstructorInitializersOnNextLine: false
@@ -15,6 +16,7 @@ BraceWrapping:
   AfterControlStatement: true
   AfterFunction: true
   AfterNamespace: true  
+  AfterCaseLabel: true
   BeforeElse: true
   IndentBraces: false
   SplitEmptyFunction: true
@@ -35,15 +37,3 @@ BinPackArguments: false
 AlwaysBreakAfterReturnType: None
 AlwaysBreakTemplateDeclarations: Yes
 SeparateDefinitionBlocks: Always
-
-# Include Sorting
-IncludeCategories:
-  - Regex:           '^<c[^>]+>$'
-    Priority:        1
-  - Regex:           '^<[a-z][^>]*>$'
-    Priority:        2
-  - Regex:           '^<[^>]+>$'
-    Priority:        3
-  - Regex:           '^".*"$'
-    Priority:        4
-SortIncludes:        true

@@ -9,7 +9,23 @@ struct VulkanBuffer
 {
     VkBuffer vkBuffer{ VK_NULL_HANDLE };
     VmaAllocation vmaAllocation{ VK_NULL_HANDLE };
+
+    /**
+     * @brief Semaphore signal value that this buffer waits on, if it is signaled we know
+     * the GPU is done using this buffer or the commands that reference it are submitted and processed
+     */
     uint64_t semaphoreSignal{ UINT64_MAX };
+
+    /**
+     * @brief Address of the buffer on the gpu
+     */
+    VkDeviceAddress deviceAdress{ 0u };
+
+    /**
+     * @brief If we write more things into the buffer we must know at which offset we last wrote
+     * the layout of the buffer should be tracked elsewhere
+     */
+    VkDeviceSize lastWrittenOffset{ 0u };
 };
 
 /**

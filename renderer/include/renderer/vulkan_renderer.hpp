@@ -15,6 +15,7 @@ struct SDL_Window;
 
 namespace rendering
 {
+
 class VulkanRenderer
 {
   public:
@@ -41,6 +42,8 @@ class VulkanRenderer
     auto updateCameraBuffer() -> void;
     auto createCameraDescriptorSetLayout() -> void;
     auto createCameraDescriptorSet() -> void;
+
+    auto prepareForRendering() -> void;
 
   private:
     graphics::VulkanContext* m_vkCtx{ nullptr };

@@ -54,7 +54,6 @@ class Editor
 
   private:
     auto onWindowClose( const core::WindowCloseEvent& e ) -> void;
-    auto onSwitchScene( const core::SwitchSceneEvent& e ) -> void;
 
   private:
     VkDescriptorPool m_globalDescriptorPool;

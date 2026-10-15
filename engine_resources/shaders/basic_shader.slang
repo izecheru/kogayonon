@@ -1,92 +1,87 @@
 #include "structures.slang"
 #include "utils.slang"
+#include "material.slang"
+#include "vertex.slang"
 
 struct VertexInput
 {
-  float3 position : POSITION;
-  float3 normal : NORMAL;
-  float2 uv : TEXCOORD0;
+    uint vertexId : SV_VertexID;
+    uint instanceId : SV_InstanceID;
+    uint baseInstance : SV_StartInstanceLocation;
+    uint startVertex : SV_StartVertexLocation;
+};
+
+struct EntityParams
+{
+    float4x4 modelMatrix;
+    int materialIndex;
 };
 
 struct VertexOutput
 {
-  float4 position : SV_Position;
-  float2 fragTexCoord : TEXCOORD0;
-  float4 fragPosLightSpace;
-  float3 normal;
+    float4 position : SV_Position;
+    float2 fragTexCoord : TEXCOORD0;
+    float3 worldNormal : TEXCOORD1;
+    float4 fragPosLightSpace : TEXCOORD2;
+    uint baseInstance : TEXCOORD3;
 };
 
 struct FragmentOutput
 {
-  float4 outColor : SV_Target0;
+    float4 outColor : SV_Target0;
 };
 
-// Check issue 12 (https://github.com/izecheru/kogayonon/issues/12)
-struct MaterialDescription
+struct DrawParams
 {
-  int normalIndex;
-  int diffuseIndex;
-  int emissiveIndex;
+    uint64_t vertexBufferAddress;
+    uint64_t entityParamsBufferAddress;
 };
 
-struct PushConstant
-{
-  float4x4 modelMatrix;
-  int materialIndex;
-};
+DESCRIPTOR_SET( 0, 0, ConstantBuffer<Camera> ) camera;
+DESCRIPTOR_SET( 0, 1, Sampler2D[] ) bindlessTextures;
+DESCRIPTOR_SET( 0, 2, StructuredBuffer<MaterialDescription> ) materials;
+DECLARE_PUSH_CONSTANT( DrawParams );
 
-// descriptor 0 set 0
-[[vk::binding( 0, 0 )]]
-ConstantBuffer<Camera> camera;
-
-// descriptor 0 set 1
-[[vk::binding( 0, 1 )]]
-Sampler2D bindlessTextures[];
-
-// descriptor 0 set 2
-[[vk::binding( 0, 2 )]]
-StructuredBuffer<MaterialDescription> materials;
-
-// descriptor 0 set 3
-[[vk::binding( 0, 3 )]]
-Sampler2D shadowmapTexture;
-
-[[vk::push_constant]]
-PushConstant push;
-
-// VERTEX
 [shader( "vertex" )]
-VertexOutput vertexMain( VertexInput input )
+VertexOutput vertexMain(VertexInput input)
 {
-  VertexOutput output;
+	VertexOutput output;
 
-  output.position =
-    mul( camera.projection, mul( camera.view, mul( push.modelMatrix, float4( input.position, 1.0f ) ) ) );
+    Vertex* vBuffer = (Vertex*)pushConstant.vertexBufferAddress;
+    EntityParams* entityParams = (EntityParams*)pushConstant.entityParamsBufferAddress;
 
-  output.fragTexCoord = input.uv;
-  output.normal = mul( transpose( inverse( float3x3( push.modelMatrix ) ) ), input.normal );
+    Vertex v = vBuffer[input.vertexId + input.startVertex];
+    EntityParams p = entityParams[input.baseInstance + input.instanceId];
 
-  return output;
+    float4 worldPos = mul( p.modelMatrix, float4( v.translation, 1.0f ) );
+    output.position = mul( camera.projection, mul( camera.view, worldPos ) );
+
+    output.fragTexCoord = v.uv;
+    output.baseInstance = input.baseInstance + input.instanceId;
+    output.fragPosLightSpace = float4( 0, 0, 0, 1 );
+
+    return output;
 }
 
-// FRAGMENT
 [shader( "fragment" )]
 FragmentOutput fragmentMain( VertexOutput input )
 {
-  FragmentOutput output;
+    FragmentOutput output;
 
-  float4 diffuseColor = float4( 0.0, 0.0, 0.0, 1.0 );
+    EntityParams* entityParams = (EntityParams*)pushConstant.entityParamsBufferAddress;
+    EntityParams p = entityParams[input.baseInstance];
 
-  if (push.materialIndex < 0)
-  {
+    if ( p.materialIndex < 0 )
+    {
+        output.outColor = float4( 0.0, 0.0, 0.0, 1.0 );
+        return output;
+    }
+
+    MaterialDescription mat = materials[p.materialIndex];
+
+    float4 diffuseColor = bindlessTextures[NonUniformResourceIndex( mat.diffuseIndex )].Sample( input.fragTexCoord );
+
     output.outColor = diffuseColor;
     return output;
-  }
-
-  MaterialDescription mat = materials[push.materialIndex];
-  diffuseColor = bindlessTextures[NonUniformResourceIndex( mat.diffuseIndex )].Sample( input.fragTexCoord );
-  output.outColor = diffuseColor;
-
-  return output;
 }
 

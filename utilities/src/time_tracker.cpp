@@ -51,3 +51,8 @@ float utilities::TimeTracker::getDurationInSeconds( const std::string& key )
 {
     return getDuration( key ).count();
 }
+
+float utilities::TimeTracker::getDurationMilliseconds( const std::string& key )
+{
+    return static_cast<float>( getDuration( key ).count() * 1000.0 );
+}

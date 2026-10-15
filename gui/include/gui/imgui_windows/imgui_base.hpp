@@ -54,7 +54,7 @@ class ImGuiWindow
     explicit ImGuiWindow( std::string name, ImVec2 size );
     virtual ~ImGuiWindow() = default;
 
-    virtual void render();
+    virtual void render() = 0;
 
     auto getName() const -> std::string;
     auto getProps() -> ImGuiProps*;

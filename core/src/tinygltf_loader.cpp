@@ -49,7 +49,6 @@ auto core::TinyGltfLoader::processVertexData( resources::Mesh* pMesh ) -> void
 
             std::vector<uint32_t> localIndices;
             std::vector<resources::Vertex> localVertices;
-            std::vector<resources::Submesh> localSubmeshes;
 
             for ( auto k = 0u; k < primitive->attributes_count; ++k )
             {
@@ -115,17 +114,16 @@ auto core::TinyGltfLoader::processVertexData( resources::Mesh* pMesh ) -> void
                 }
             }
 
-            uint32_t vertOffset = vertices.size();
-            uint32_t indexOffset = indices.size();
-
-            localSubmeshes.emplace_back( resources::Submesh{ .vertexOffset = vertOffset,
-                                                             .indexOffset = indexOffset,
-                                                             .indexCount = static_cast<uint32_t>( localIndices.size() ),
-                                                             .submeshMaterial = mat } );
+            uint32_t vertexCount = vertices.size();
+            uint32_t indexCount = indices.size();
 
             vertices.insert( vertices.end(), localVertices.begin(), localVertices.end() );
             indices.insert( indices.end(), localIndices.begin(), localIndices.end() );
-            submeshes.insert( submeshes.end(), localSubmeshes.begin(), localSubmeshes.end() );
+
+            submeshes.emplace_back( resources::Submesh{ .vertexOffset = vertexCount,
+                                                        .indexOffset = indexCount,
+                                                        .indexCount = static_cast<uint32_t>( localIndices.size() ),
+                                                        .submeshMaterial = mat } );
         }
     }
 }

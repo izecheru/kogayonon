@@ -46,12 +46,6 @@ auto core::AssetManager::recreate() -> void
         allocator->destroyImage( texture->vulkanImage.vkImage, texture->vulkanImage.vmaAllocation );
     }
 
-    for ( auto& [path, mesh] : m_loadedMeshes )
-    {
-        allocator->destroyBuffer( mesh->getIndicesBufferObject() );
-        allocator->destroyBuffer( mesh->getVertexBufferObject() );
-    }
-
     std::erase_if( m_loadedTextures, [&]( const auto& kv ) {
         return std::ranges::find( m_uiTexturePaths, std::filesystem::path{ kv.first } ) == m_uiTexturePaths.end();
     } );
@@ -82,12 +76,6 @@ auto core::AssetManager::destroyResources() -> void
     {
         m_vkCtx->device->destroyImageView( texture->vulkanImage.vkImageView );
         allocator->destroyImage( texture->vulkanImage.vkImage, texture->vulkanImage.vmaAllocation );
-    }
-
-    for ( auto& [path, mesh] : m_loadedMeshes )
-    {
-        allocator->destroyBuffer( mesh->getIndicesBufferObject() );
-        allocator->destroyBuffer( mesh->getVertexBufferObject() );
     }
 
     m_loadedTextures.clear();
@@ -133,11 +121,6 @@ auto core::AssetManager::shutdown() -> void
     for ( enki::ITaskSet* taskSet : m_meshLoadTasks )
     {
         auto* task = static_cast<utilities::DataTaskSet<MeshTaskData>*>( taskSet );
-        if ( task->container.mesh )
-        {
-            allocator->destroyBuffer( task->container.mesh->getVertexBufferObject() );
-            allocator->destroyBuffer( task->container.mesh->getIndicesBufferObject() );
-        }
         allocator->destroyBuffer( task->container.stageBuffer );
         taskManager->eraseTask( taskSet, utilities::TaskType::Data );
     }
@@ -566,53 +549,26 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
                 data.verticesSize = sizeof( resources::Vertex ) * std::size( vertices );
                 data.indicesSize = sizeof( uint32_t ) * std::size( indices );
 
-                VkDeviceSize bufferSize = data.verticesSize + data.indicesSize;
+                graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
 
                 VkBufferCreateInfo stageBufferInfo{};
                 stageBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-                stageBufferInfo.size = bufferSize;
+                stageBufferInfo.size = data.indicesSize + data.verticesSize;
                 stageBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
                 stageBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
                 VmaAllocationCreateInfo stageAllocInfo{};
                 stageAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 
-                graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
                 allocator->createBuffer( data.stageBuffer, stageBufferInfo, stageAllocInfo );
 
-                VkBufferCreateInfo vertexBufferCreateInfo{};
-                vertexBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-                vertexBufferCreateInfo.size = data.verticesSize;
-                vertexBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-
-                VkBufferCreateInfo indicesBufferCreateInfo{};
-                indicesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-                indicesBufferCreateInfo.size = data.indicesSize;
-                indicesBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-
-                VmaAllocationCreateInfo vmaAllocInfo{};
-                vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-                vmaAllocInfo.flags =
-                    VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-                allocator->createBuffer( data.mesh->getVertexBufferObject(),
-                                         vertexBufferCreateInfo,
-                                         vmaAllocInfo,
-                                         collision.filename().string() );
-
-                allocator->createBuffer( data.mesh->getIndicesBufferObject(),
-                                         indicesBufferCreateInfo,
-                                         vmaAllocInfo,
-                                         collision.filename().string() );
-
-                // buffer
-                // .....indices..../....vertices...
-
                 allocator->copyMemoryToAllocation(
-                    indices.data(), data.stageBuffer.vmaAllocation, 0, data.indicesSize );
+                    data.mesh->getIndices().data(), data.stageBuffer.vmaAllocation, 0, data.indicesSize );
 
-                allocator->copyMemoryToAllocation(
-                    vertices.data(), data.stageBuffer.vmaAllocation, data.indicesSize, data.verticesSize );
+                allocator->copyMemoryToAllocation( data.mesh->getVertices().data(),
+                                                   data.stageBuffer.vmaAllocation,
+                                                   data.indicesSize,
+                                                   data.verticesSize );
             } );
 
         taskManager->addTaskSetToPipe( collisionMeshTask );
@@ -644,50 +600,24 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
             data.verticesSize = sizeof( resources::Vertex ) * std::size( vertices );
             data.indicesSize = sizeof( uint32_t ) * std::size( indices );
 
-            VkDeviceSize bufferSize = data.verticesSize + data.indicesSize;
+            graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
 
             VkBufferCreateInfo stageBufferInfo{};
             stageBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            stageBufferInfo.size = bufferSize;
+            stageBufferInfo.size = data.indicesSize + data.verticesSize;
             stageBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
             stageBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
             VmaAllocationCreateInfo stageAllocInfo{};
             stageAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 
-            graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
             allocator->createBuffer( data.stageBuffer, stageBufferInfo, stageAllocInfo );
 
-            VkBufferCreateInfo vertexBufferCreateInfo{};
-            vertexBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            vertexBufferCreateInfo.size = data.verticesSize;
-            vertexBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-
-            VkBufferCreateInfo indicesBufferCreateInfo{};
-            indicesBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            indicesBufferCreateInfo.size = data.indicesSize;
-            indicesBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-
-            VmaAllocationCreateInfo vmaAllocInfo{};
-            vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-            vmaAllocInfo.flags =
-                VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-            std::filesystem::path meshP{ meshPath };
-
-            allocator->createBuffer(
-                data.mesh->getVertexBufferObject(), vertexBufferCreateInfo, vmaAllocInfo, meshP.filename().string() );
-
-            allocator->createBuffer(
-                data.mesh->getIndicesBufferObject(), indicesBufferCreateInfo, vmaAllocInfo, meshP.filename().string() );
-
-            // buffer
-            // .....indices..../....vertices...
-
-            allocator->copyMemoryToAllocation( indices.data(), data.stageBuffer.vmaAllocation, 0, data.indicesSize );
+            allocator->copyMemoryToAllocation(
+                data.mesh->getIndices().data(), data.stageBuffer.vmaAllocation, 0, data.indicesSize );
 
             allocator->copyMemoryToAllocation(
-                vertices.data(), data.stageBuffer.vmaAllocation, data.indicesSize, data.verticesSize );
+                data.mesh->getVertices().data(), data.stageBuffer.vmaAllocation, data.indicesSize, data.verticesSize );
         } );
 
     taskManager->addTaskSetToPipe( meshAndMaterialsTask );
@@ -726,48 +656,10 @@ auto core::AssetManager::getMesh( const std::string& path ) -> resources::Mesh*
 
 auto core::AssetManager::createIndexBuffer( resources::Mesh* pMesh, graphics::VulkanBuffer stageBuffer ) -> void
 {
-    std::vector<uint32_t>& indices = pMesh->getIndices();
-
-    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
-    VmaAllocationInfo allocInfo{ allocator->getAllocInfo( stageBuffer.vmaAllocation ) };
-    allocator->copyMemoryToAllocation( indices.data(), stageBuffer.vmaAllocation, 0, allocInfo.size );
-
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = allocInfo.size;
-    bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-
-    VmaAllocationCreateInfo vmaAllocInfo{};
-    vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-    vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-    std::filesystem::path meshPath = pMesh->getPath();
-    std::string name = meshPath.stem().string() + "_indicesBuff";
-
-    allocator->createBuffer( pMesh->getIndicesBufferObject(), bufferInfo, vmaAllocInfo, name );
 }
 
 auto core::AssetManager::createVertexBuffer( resources::Mesh* pMesh, graphics::VulkanBuffer stageBuffer ) -> void
 {
-    std::vector<resources::Vertex>& vertices = pMesh->getVertices();
-
-    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
-    VmaAllocationInfo allocInfo{ allocator->getAllocInfo( stageBuffer.vmaAllocation ) };
-    allocator->copyMemoryToAllocation( vertices.data(), stageBuffer.vmaAllocation, 0, allocInfo.size );
-
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = allocInfo.size;
-    bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-
-    VmaAllocationCreateInfo vmaAllocInfo{};
-    vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-    vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-    std::filesystem::path meshPath = pMesh->getPath();
-    std::string name = meshPath.stem().string() + "_verticesBuff";
-
-    allocator->createBuffer( pMesh->getVertexBufferObject(), bufferInfo, vmaAllocInfo, name );
 }
 
 auto core::AssetManager::createBindlessDescriptorSetLayout() -> void
@@ -967,6 +859,9 @@ auto core::AssetManager::createMaterialsBuffers( VkDeviceSize size ) -> void
 
 auto core::AssetManager::updateMaterialsBuffer() -> void
 {
+    if ( m_materials.empty() )
+        return;
+
     ZoneScopedN( "Update materials" );
     uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
 
@@ -1197,6 +1092,8 @@ auto core::AssetManager::processMeshTasks() -> void
                 continue;
             }
 
+            ++it;
+
             // cast to get access to the data produced by the task
             auto* dataTaskSetPtr = static_cast<utilities::DataTaskSet<MeshTaskData>*>( taskSet );
 
@@ -1206,27 +1103,35 @@ auto core::AssetManager::processMeshTasks() -> void
             VkCommandBuffer cmdBuffer =
                 m_vkCtx->device->beginSingleTimeCommands( m_vkCtx->device->getTransferCommandPool() );
 
-            VkBufferCopy indicesCopyRegion{};
-            indicesCopyRegion.size = data.indicesSize;
-            indicesCopyRegion.srcOffset = 0;
-            indicesCopyRegion.dstOffset = 0;
+            graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
 
-            vkCmdCopyBuffer( cmdBuffer,
-                             data.stageBuffer.vkBuffer,
-                             data.mesh->getIndicesBufferObject().vkBuffer,
-                             1,
-                             &indicesCopyRegion );
+            graphics::VulkanBuffer& vertexBuffer = allocator->getGlobalVertexBuffer();
+            graphics::VulkanBuffer& indexBuffer = allocator->getGlobalIndexBuffer();
+
+            const uint32_t vertexBase =
+                static_cast<uint32_t>( vertexBuffer.lastWrittenOffset / sizeof( resources::Vertex ) );
+            const uint32_t indexBase = static_cast<uint32_t>( indexBuffer.lastWrittenOffset / sizeof( uint32_t ) );
 
             VkBufferCopy verticesCopyRegion{};
             verticesCopyRegion.size = data.verticesSize;
             verticesCopyRegion.srcOffset = data.indicesSize;
-            verticesCopyRegion.dstOffset = 0;
+            verticesCopyRegion.dstOffset = vertexBuffer.lastWrittenOffset;
 
-            vkCmdCopyBuffer( cmdBuffer,
-                             data.stageBuffer.vkBuffer,
-                             data.mesh->getVertexBufferObject().vkBuffer,
-                             1,
-                             &verticesCopyRegion );
+            VkBufferCopy indicesCopyRegion{};
+            indicesCopyRegion.size = data.indicesSize;
+            indicesCopyRegion.srcOffset = 0;
+            indicesCopyRegion.dstOffset = indexBuffer.lastWrittenOffset;
+
+            for ( auto& submesh : data.mesh->getSubmeshes() )
+            {
+                submesh.vertexOffset += vertexBase;
+                submesh.indexOffset += indexBase;
+            }
+
+            vertexBuffer.lastWrittenOffset += data.verticesSize;
+            indexBuffer.lastWrittenOffset += data.indicesSize;
+            vkCmdCopyBuffer( cmdBuffer, data.stageBuffer.vkBuffer, vertexBuffer.vkBuffer, 1, &verticesCopyRegion );
+            vkCmdCopyBuffer( cmdBuffer, data.stageBuffer.vkBuffer, indexBuffer.vkBuffer, 1, &indicesCopyRegion );
 
             m_vkCtx->device->endSingleTimeCommands(
                 cmdBuffer, m_vkCtx->device->getTransferQueue(), m_vkCtx->device->getTransferCommandPool() );
@@ -1255,9 +1160,7 @@ auto core::AssetManager::updateMeshTaskSync() -> void
 
         // if not signaled ( GPU hasn't finished upload )
         if ( taskSet.semaphoreWaitValue > value )
-        {
             return false;
-        }
 
         auto* dataTaskSetPtr = static_cast<utilities::DataTaskSet<MeshTaskData>*>( taskSet.task );
 
@@ -1269,7 +1172,6 @@ auto core::AssetManager::updateMeshTaskSync() -> void
             allocator->destroyBuffer( data.stageBuffer );
 
             // get rid of the data since it is uploaded to the gpu
-            data.mesh->getIndices().clear();
             data.mesh->getVertices().clear();
         }
 
@@ -1298,8 +1200,6 @@ auto core::AssetManager::updateMeshTaskSync() -> void
 
 auto core::AssetManager::onUpdate() -> void
 {
-    utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
-
     ZoneScopedN( "AssetManager::onUpdate" );
 
     processMeshTasks();

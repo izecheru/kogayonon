@@ -73,6 +73,7 @@ auto core::KtxTextureManager::saveToKtx( const std::filesystem::path p ) -> KTX_
 
     if ( result != KTX_SUCCESS )
     {
+        KERROR( "Could not create ktx2 texture" );
         ktxTexture2_Destroy( texture );
         return result;
     }

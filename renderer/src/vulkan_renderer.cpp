@@ -1,4 +1,7 @@
 #include "renderer/vulkan_renderer.hpp"
+
+#include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/transform_component.hpp"
 #include "graphics/vulkan_memory_allocator.hpp"
 #include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -13,13 +16,13 @@
 #include "utilities/utils/utils.hpp"
 #include "SDL3/SDL_mouse.h"
 
-rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* pCtx, SDL_Window* window )
-    : m_vkCtx{ pCtx }
+rendering::VulkanRenderer::VulkanRenderer( graphics::VulkanContext* vkCtx, SDL_Window* window )
+    : m_vkCtx{ vkCtx }
     , m_wnd{ window }
     , m_mouseCoords{ -1, -1 }
     , m_modulesInit{ false }
     , m_resizeRequested{ false }
-    , m_extent{ m_vkCtx->swapchain->getSwapchainExtent() } // careful with order of initialization
+    , m_extent{ vkCtx->swapchain->getSwapchainExtent() }
     , m_frameGraph{ std::make_unique<FrameGraph>( m_vkCtx->device.get() ) }
 {
     core::EventDispatcher* eventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
@@ -63,14 +66,11 @@ auto rendering::VulkanRenderer::initModules() -> void
     core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
 
     m_imguiModule = std::make_unique<ImGuiModule>( m_frameGraph.get(), m_vkCtx, m_pImguiRenderer.get() );
+
     m_prepassModule = std::make_unique<PrepassModule>( m_frameGraph.get(), m_vkCtx, m_extent, &m_cameraDescriptor );
 
     m_geometryModule = std::make_unique<GeometryModule>(
         m_frameGraph.get(), m_vkCtx, m_extent, &m_cameraDescriptor, glm::vec4{ 0.5f, 0.5f, 0.5f, 1.0f } );
-
-    // WIP
-    // m_pickingModule = std::make_unique<PickingModule>(
-    //     m_frameGraph.get(), m_vkCtx, m_pImguiRenderer.get(), m_extent, &m_cameraDescriptor );
 
     m_imguiModule->setViewport();
 
@@ -272,4 +272,8 @@ auto rendering::VulkanRenderer::destroyModules() -> void
     m_prepassModule.reset();
 
     m_frameGraph->clearGraph();
+}
+
+auto rendering::VulkanRenderer::prepareForRendering() -> void
+{
 }

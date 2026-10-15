@@ -112,9 +112,7 @@ auto rendering::GeometryModule::registerWireframePass() -> void
         .vertexModule = vertex,
         .fragmentModule = fragment,
         .pushConstantSize = sizeof( resources::MeshPushConstant ),
-        .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-        .vertexBindingDescription = resources::Vertex::getBindingDescription(),
-        .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions() };
+        .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT };
 
     geometryInfo.wireframePipeline.create( wireframeSpec, m_vkCtx );
 
@@ -206,39 +204,29 @@ auto rendering::GeometryModule::registerWireframePass() -> void
                                      &assetManager->getMaterialsDescriptorSet(),
                                      0,
                                      nullptr );
-            auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
-            view.each( [&]( const entt::entity& entityId,
-                            core::MeshComponent& meshComponent,
-                            core::TransformComponent& transform ) {
-                resources::Mesh* pMesh = meshComponent.pMesh;
-                if ( !pMesh )
-                    return;
 
-                if ( !pMesh->isLoaded() )
-                    return;
+            VkBuffer commandsBuffer = prepassData.indirectCommandsBuffer.buffers.at( currentFrame ).vkBuffer;
+            graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
 
-                VkDeviceSize offsets[] = { 0 };
+            graphics::VulkanBuffer& entityParams = prepassData.entitiesParamsBuffer.buffers.at( currentFrame );
 
-                vkCmdBindVertexBuffers(
-                    cmdBuffer, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
-                vkCmdBindIndexBuffer(
-                    cmdBuffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
-                for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
-                {
-                    // this should be expensive, move it somewhere in the mesh or submesh
-                    auto push = resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(),
-                                                             .materialIndex = submesh.materialIndex };
+            resources::FramePushConstant framePushConst{ .vertexBufferAddress =
+                                                             allocator->getGlobalVertexBuffer().deviceAdress,
+                                                         .entityParamsBufferAddress = entityParams.deviceAdress };
 
-                    vkCmdPushConstants( cmdBuffer,
-                                        wireframePipeline.getLayout(),
-                                        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                                        0,
-                                        sizeof( resources::MeshPushConstant ),
-                                        &push );
+            vkCmdPushConstants( cmdBuffer,
+                                geometryData.basePipeline.getLayout(),
+                                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                0,
+                                sizeof( resources::FramePushConstant ),
+                                &framePushConst );
 
-                    vkCmdDrawIndexed( cmdBuffer, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
-                }
-            } );
+            vkCmdBindIndexBuffer( cmdBuffer, allocator->getGlobalIndexBuffer().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
+            vkCmdDrawIndexedIndirect( cmdBuffer,
+                                      commandsBuffer,
+                                      0,
+                                      prepassData.drawCount[currentFrame],
+                                      sizeof( VkDrawIndexedIndirectCommand ) );
 
             m_vkCtx->swapchain->endRendering();
         } );
@@ -265,10 +253,8 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
         .depthAttachmentFormat = VK_FORMAT_D32_SFLOAT,
         .vertexModule = vertex,
         .fragmentModule = fragment,
-        .pushConstantSize = sizeof( resources::MeshPushConstant ),
+        .pushConstantSize = sizeof( resources::FramePushConstant ),
         .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-        .vertexBindingDescription = resources::Vertex::getBindingDescription(),
-        .vertexAttributesDescription = resources::Vertex::getAttributeDescriptions(),
     };
 
     geometryInfo.basePipeline.create( defaultPipelineSpec, m_vkCtx );
@@ -281,26 +267,29 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
         []( NodeBuilder& b, Blackboard* blackboard ) {
             GeometryModuleData& geometryModule = blackboard->get<GeometryModuleData>();
             PrepassModuleData& prepassData = blackboard->get<PrepassModuleData>();
-            // ShadowmapModuleData& shadowmapData = blackboard->get<ShadowmapModuleData>();
 
             b.write( geometryModule.color, rendering::FGResourceType::Color );
             b.read( prepassData.depth, rendering::FGResourceType::Depth );
-            // b.read( shadowmapData.depth, rendering::FGResourceType::Shader );
         },
         [=]( VkCommandBuffer cmdBuffer ) {
             TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::Geometry );
-            // ShadowmapModuleData& shadowmapData = blackboard->get<ShadowmapModuleData>();
 
             VkDebugUtilsLabelEXT markerInfo{};
             markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
             markerInfo.pLabelName = passId::Geometry;
-            m_vkCtx->device->label( cmdBuffer, markerInfo );
+
+            GeometryModuleData& geometryData = m_graph->getBlackboard()->get<GeometryModuleData>();
+            PrepassModuleData& prepassData = m_graph->getBlackboard()->get<PrepassModuleData>();
 
             if ( m_extent.width == 0 || m_extent.height == 0 )
                 return;
 
-            GeometryModuleData& geometryData = m_graph->getBlackboard()->get<GeometryModuleData>();
-            PrepassModuleData& prepassData = m_graph->getBlackboard()->get<PrepassModuleData>();
+            uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
+
+            if ( prepassData.drawCount[currentFrame] == 0 )
+            {
+                return;
+            }
 
             graphics::VulkanPipeline& geometryPipeline = geometryData.basePipeline;
 
@@ -336,7 +325,6 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
             geometryPipeline.bind( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS );
 
             core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
-            uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
 
             vkCmdBindDescriptorSets( cmdBuffer,
                                      VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -365,47 +353,30 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
                                      0,
                                      nullptr );
 
-            // vkCmdBindDescriptorSets( cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, geometryPipeline.getLayout(), 3, 1,
-            //                          &shadowmapData.directionalLightDescriptor.set, 0, nullptr );
+            graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
 
-            core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
-            core::Scene* scene = sceneManager->getCurrentScene();
+            graphics::VulkanBuffer& entityParams = prepassData.entitiesParamsBuffer.buffers.at( currentFrame );
 
-            auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
-            view.each( [&]( const entt::entity& entityId,
-                            core::MeshComponent& meshComponent,
-                            core::TransformComponent& transform ) {
-                resources::Mesh* pMesh = meshComponent.pMesh;
-                if ( !pMesh )
-                    return;
+            resources::FramePushConstant framePushConst{ .vertexBufferAddress =
+                                                             allocator->getGlobalVertexBuffer().deviceAdress,
+                                                         .entityParamsBufferAddress = entityParams.deviceAdress };
 
-                if ( !pMesh->isLoaded() )
-                    return;
+            vkCmdPushConstants( cmdBuffer,
+                                geometryData.basePipeline.getLayout(),
+                                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                0,
+                                sizeof( resources::FramePushConstant ),
+                                &framePushConst );
 
-                VkDeviceSize offsets[] = { 0 };
+            graphics::VulkanBuffer& commandsBuffer = prepassData.indirectCommandsBuffer.buffers.at( currentFrame );
 
-                vkCmdBindVertexBuffers(
-                    cmdBuffer, 0, 1, &meshComponent.pMesh->getVertexBufferObject().vkBuffer, offsets );
-                vkCmdBindIndexBuffer(
-                    cmdBuffer, meshComponent.pMesh->getIndicesBufferObject().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
-                for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
-                {
-                    // this should be expensive, move it somewhere in the mesh or submesh
-                    auto push = resources::MeshPushConstant{ .modelMatrix = transform.getMatrix(),
-                                                             .materialIndex = submesh.materialIndex };
+            vkCmdBindIndexBuffer( cmdBuffer, allocator->getGlobalIndexBuffer().vkBuffer, 0, VK_INDEX_TYPE_UINT32 );
 
-                    vkCmdPushConstants( cmdBuffer,
-                                        geometryPipeline.getLayout(),
-                                        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                                        0,
-                                        sizeof( resources::MeshPushConstant ),
-                                        &push );
-
-                    vkCmdDrawIndexed( cmdBuffer, submesh.indexCount, 1, submesh.indexOffset, submesh.vertexOffset, 0 );
-                }
-            } );
-
-            m_vkCtx->device->endLabel( cmdBuffer );
+            vkCmdDrawIndexedIndirect( cmdBuffer,
+                                      commandsBuffer.vkBuffer,
+                                      0,
+                                      prepassData.drawCount[currentFrame],
+                                      sizeof( VkDrawIndexedIndirectCommand ) );
 
             m_vkCtx->swapchain->endRendering();
         } );
@@ -445,12 +416,13 @@ auto rendering::GeometryModule::createModuleResources( VkExtent2D extent ) -> vo
 auto rendering::GeometryModule::enableWireframe() -> void
 {
     m_wireframe = true;
+
     if ( !m_wireframeInit )
     {
         registerWireframePass();
         m_wireframeInit = true;
     }
-    // cull base pass
+
     for ( std::unique_ptr<Node>& node : m_graph->getContainer().nodes )
     {
         if ( node->name == passId::Wireframe )

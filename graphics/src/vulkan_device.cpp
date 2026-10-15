@@ -486,6 +486,10 @@ void graphics::VulkanDevice::createLogicalDevice()
         queueCreateInfos.push_back( info );
     }
 
+    VkPhysicalDeviceVulkan11Features features11{};
+    features11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+    features11.shaderDrawParameters = VK_TRUE;
+
     // features
     VkPhysicalDeviceVulkan12Features features12{};
     features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
@@ -503,6 +507,8 @@ void graphics::VulkanDevice::createLogicalDevice()
     features12.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
     features12.timelineSemaphore = VK_TRUE;
     features12.bufferDeviceAddress = VK_TRUE;
+    features12.scalarBlockLayout = VK_TRUE;
+    features12.pNext = &features11;
 
     VkPhysicalDeviceVulkan13Features features13{};
     features13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
@@ -518,6 +524,9 @@ void graphics::VulkanDevice::createLogicalDevice()
     deviceFeatures.samplerAnisotropy = VK_TRUE;
     deviceFeatures.fillModeNonSolid = VK_TRUE;
     deviceFeatures.wideLines = VK_TRUE;
+    deviceFeatures.shaderInt64 = VK_TRUE;
+    deviceFeatures.multiDrawIndirect = VK_TRUE;
+    deviceFeatures.drawIndirectFirstInstance = VK_TRUE;
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -535,8 +544,8 @@ void graphics::VulkanDevice::createLogicalDevice()
     }
 
     vkGetDeviceQueue( m_platform.device, indices.graphicsFamily.value(), 0, &m_graphicsQueue.handle );
-    vkGetDeviceQueue( m_platform.device, indices.presentFamily.value(), 1, &m_presentQueue.handle );
-    vkGetDeviceQueue( m_platform.device, indices.transferFamily.value(), 2, &m_transferQueue.handle );
+    vkGetDeviceQueue( m_platform.device, indices.presentFamily.value(), 0, &m_presentQueue.handle );
+    vkGetDeviceQueue( m_platform.device, indices.transferFamily.value(), 0, &m_transferQueue.handle );
 
     VkSemaphoreTypeCreateInfo timelineTypeCreateInfo{};
     timelineTypeCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
