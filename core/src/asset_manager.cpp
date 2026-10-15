@@ -21,6 +21,7 @@ core::AssetManager::AssetManager( graphics::VulkanContext* vkCtx )
     , m_samplerIndex{ 0u }
     , m_vkCtx{ vkCtx }
     , m_ktxTextureManager{ std::make_unique<KtxTextureManager>( vkCtx->device.get() ) }
+    , m_materialCount{ 0u }
 //, m_threadSafeResourceManager{ 4, m_vkCtx->device.get() }
 {
     init();
@@ -51,13 +52,13 @@ auto core::AssetManager::recreate() -> void
     } );
 
     m_loadedMeshes.clear();
-    m_materials.clear();
 }
 
 auto core::AssetManager::init() -> void
 {
     initDescriptors();
     initSampler();
+    createMaterialsBuffer( MAX_TEXTURE_SUPPORT * sizeof( resources::Material ) );
 }
 
 auto core::AssetManager::destroyResources() -> void
@@ -66,10 +67,8 @@ auto core::AssetManager::destroyResources() -> void
 
     graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
 
-    allocator->destroyBuffer( m_materialsBuffer );
     m_vkCtx->device->destroySampler( m_textureSampler );
     m_vkCtx->device->destroyDescriptorSetLayout( m_bindlessTexturesDescriptor.layout );
-    m_vkCtx->device->destroyDescriptorSetLayout( m_materialsDescriptor.layout );
     m_bindlessTexturesIndex = 0u;
 
     for ( auto& [path, texture] : m_loadedTextures )
@@ -80,7 +79,6 @@ auto core::AssetManager::destroyResources() -> void
 
     m_loadedTextures.clear();
     m_loadedMeshes.clear();
-    m_materials.clear();
 }
 
 auto core::AssetManager::shutdown() -> void
@@ -141,6 +139,9 @@ auto core::AssetManager::shutdown() -> void
 
         taskManager->eraseTask( taskSet, utilities::TaskType::Data );
     }
+
+    allocator->unmapBuffer( m_materialsBuffer );
+    allocator->destroyBuffer( m_materialsBuffer );
 
     m_meshLoadTasks.clear();
     m_textureLoadTasks.clear();
@@ -486,11 +487,6 @@ auto core::AssetManager::initDescriptors() -> void
 {
     createBindlessDescriptorSetLayout();
     allocateBindlessDescriptorSet();
-
-    // materials
-    createMaterialsBuffers( 1000 * sizeof( resources::Material ) );
-    createMaterialsDescriptorSetLayout();
-    allocateMaterialsDescriptorSet();
 }
 
 auto core::AssetManager::getTexture( const std::string& texturePath ) -> resources::Texture*
@@ -654,14 +650,6 @@ auto core::AssetManager::getMesh( const std::string& path ) -> resources::Mesh*
     return loadMesh( p.stem().string(), p.string() );
 }
 
-auto core::AssetManager::createIndexBuffer( resources::Mesh* pMesh, graphics::VulkanBuffer stageBuffer ) -> void
-{
-}
-
-auto core::AssetManager::createVertexBuffer( resources::Mesh* pMesh, graphics::VulkanBuffer stageBuffer ) -> void
-{
-}
-
 auto core::AssetManager::createBindlessDescriptorSetLayout() -> void
 {
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
@@ -776,77 +764,12 @@ auto core::AssetManager::updateBindlessTextures( resources::Texture* texture ) -
     m_vkCtx->device->updateDescriptorSet( { bindlessDescriptor } );
 }
 
-auto core::AssetManager::createMaterialsDescriptorSet() -> void
+auto core::AssetManager::createMaterialsBuffer( VkDeviceSize size ) -> void
 {
-    uint32_t descriptorCount{ 1000u };
-
-    VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{};
-    variableCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
-    variableCountInfo.descriptorSetCount = 1;
-    variableCountInfo.pDescriptorCounts = &descriptorCount;
-
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-
-    allocInfo.descriptorPool = m_vkCtx->globalDescriptorPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = &m_materialsDescriptor.layout;
-    allocInfo.pNext = &variableCountInfo;
-
-    m_vkCtx->device->allocateDescriptorSet( m_materialsDescriptor.set, allocInfo );
-}
-
-auto core::AssetManager::createMaterialsDescriptorSetLayout() -> void
-{
-    VkDescriptorSetLayoutBinding bufferLayoutBinding{};
-    bufferLayoutBinding.binding = 0;
-    bufferLayoutBinding.descriptorCount = 1000;
-    bufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    bufferLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    VkDescriptorBindingFlags flags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-                                     VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
-                                     VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
-
-    VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags{};
-    bindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
-    bindingFlags.bindingCount = 1;
-    bindingFlags.pBindingFlags = &flags;
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings = &bufferLayoutBinding;
-    layoutInfo.pNext = &bindingFlags;
-    layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-
-    m_vkCtx->device->createDescriptorSetLayout( m_materialsDescriptor.layout, layoutInfo );
-}
-
-auto core::AssetManager::allocateMaterialsDescriptorSet() -> void
-{
-    uint32_t descriptorCount{ 1000 };
-
-    VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
-        .descriptorSetCount = 1,
-        .pDescriptorCounts = &descriptorCount };
-
-    VkDescriptorSetAllocateInfo allocInfo{
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-        .pNext = &variableCountInfo,
-        .descriptorPool = m_vkCtx->globalDescriptorPool,
-        .descriptorSetCount = 1,
-        .pSetLayouts = &m_materialsDescriptor.layout,
-    };
-
-    m_vkCtx->device->allocateDescriptorSet( m_materialsDescriptor.set, allocInfo );
-}
-
-auto core::AssetManager::createMaterialsBuffers( VkDeviceSize size ) -> void
-{
-    VkBufferCreateInfo bufferInfo{
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, .size = size, .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT };
+    VkBufferCreateInfo bufferInfo{ .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                                   .size = size,
+                                   .usage =
+                                       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT };
 
     VmaAllocationCreateInfo vmaAllocInfo{
         .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
@@ -855,44 +778,10 @@ auto core::AssetManager::createMaterialsBuffers( VkDeviceSize size ) -> void
 
     graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
     allocator->createBuffer( m_materialsBuffer, bufferInfo, vmaAllocInfo, "materialsBuffer" );
-}
 
-auto core::AssetManager::updateMaterialsBuffer() -> void
-{
-    if ( m_materials.empty() )
-        return;
-
-    ZoneScopedN( "Update materials" );
-    uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
-
-    VkDescriptorBufferInfo buffInfo{
-        .buffer = m_materialsBuffer.buffers.at( currentFrame ).vkBuffer,
-        .offset = 0,
-        .range = m_materials.size() * sizeof( resources::Material ),
-    };
-
-    VkWriteDescriptorSet bindlessDescriptor{ .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                             .dstSet = m_materialsDescriptor.set,
-                                             .dstBinding = 0,
-                                             .dstArrayElement = 0,
-                                             .descriptorCount = 1,
-                                             .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                             .pBufferInfo = &buffInfo };
-
-    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
-    allocator->copyToBuffer( m_materials, m_materialsBuffer.buffers.at( currentFrame ) );
-
-    m_vkCtx->device->updateDescriptorSet( { bindlessDescriptor } );
-}
-
-auto core::AssetManager::getMaterialsDescriptorLayout() -> VkDescriptorSetLayout&
-{
-    return m_materialsDescriptor.layout;
-}
-
-auto core::AssetManager::getMaterialsDescriptorSet() -> VkDescriptorSet&
-{
-    return m_materialsDescriptor.set;
+    void* ptr{ nullptr };
+    allocator->mapBuffer( m_materialsBuffer, &ptr );
+    m_materialsPtr = static_cast<resources::Material*>( ptr );
 }
 
 auto core::AssetManager::getBindlessTexturesDescriptorLayout() -> VkDescriptorSetLayout&
@@ -1008,8 +897,6 @@ auto core::AssetManager::processTextureTasks() -> void
             uint64_t signalValue = m_vkCtx->device->getTransferQueue().semaphoreSignal;
             data.stagingBuffer.semaphoreSignal = signalValue;
 
-            m_buffDeletionQueue.push_back( &data.stagingBuffer );
-
             m_textureTaskSync.emplace_back( taskSet, signalValue );
         }
     }
@@ -1056,7 +943,6 @@ auto core::AssetManager::updateTextureTaskSync() -> void
         }
 
         resolveMaterials( data.materialsBatch );
-        updateMaterialsBuffer();
 
         std::erase( m_textureLoadTasks, taskSet.task );
         taskManager->eraseTask( taskSet.task, utilities::TaskType::Data );
@@ -1140,8 +1026,6 @@ auto core::AssetManager::processMeshTasks() -> void
             uint64_t signalValue = m_vkCtx->device->getTransferQueue().semaphoreSignal;
 
             data.stageBuffer.semaphoreSignal = signalValue;
-
-            m_buffDeletionQueue.push_back( &data.stageBuffer );
 
             m_meshTaskSync.emplace_back( taskSet, signalValue );
         }
@@ -1261,25 +1145,44 @@ auto core::AssetManager::resolveMaterials( ParsedMaterials batch ) -> void
             continue;
         }
 
-        auto it = std::ranges::find( m_materials, material );
+        bool found{ false };
+        uint32_t count{ 0u };
+        uint32_t currentFrame = m_vkCtx->swapchain->getCurrentFrameNumber();
 
-        if ( it != m_materials.end() )
+        for ( auto i = 0u; i <= m_materialCount; i++ )
         {
-            submeshes[submesh].materialIndex = std::distance( m_materials.begin(), it );
+            if ( material == m_materialsPtr[i] )
+            {
+                found = true;
+                break;
+            }
+
+            ++count;
+        }
+
+        if ( found )
+        {
+            submeshes[submesh].materialIndex = count;
         }
         else
         {
-            submeshes[submesh].materialIndex = m_materials.size();
-            m_materials.push_back( material );
+            submeshes[submesh].materialIndex = m_materialCount;
+            m_materialsPtr[m_materialCount] = material;
+            ++m_materialCount;
         }
     }
 }
 
 auto core::AssetManager::clearUsedResources() -> void
 {
-    if ( m_buffDeletionQueue.empty() )
-        return;
+}
 
-    uint64_t value{ 0u };
-    m_vkCtx->device->getTransferSemaphoreCounterValue( value );
+auto core::AssetManager::getMaterialAllocatedCount() const -> const uint32_t
+{
+    return m_materialCount;
+}
+
+auto core::AssetManager::getMaterialBufferAddress() const -> VkDeviceAddress
+{
+    return m_materialsBuffer.deviceAdress;
 }

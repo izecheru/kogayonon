@@ -194,6 +194,9 @@ class AssetManager
 
     auto initDescriptors() -> void;
 
+    auto getMaterialBufferAddress() const -> VkDeviceAddress;
+    auto getMaterialAllocatedCount() const -> const uint32_t;
+
     /**
      * @brief We need this layout for the VkPipelineCreateInfo structure
      * @return
@@ -205,18 +208,6 @@ class AssetManager
      * @return
      */
     auto getBindlessDescriptorSet() -> VkDescriptorSet&;
-
-    /**
-     * @brief We need this layout for the VkPipelineCreateInfo structure
-     * @return
-     */
-    auto getMaterialsDescriptorLayout() -> VkDescriptorSetLayout&;
-
-    /**
-     * @brief We get the descriptor set to bind it when rendering
-     * @return
-     */
-    auto getMaterialsDescriptorSet() -> VkDescriptorSet&;
 
     auto getMeshes() -> std::unordered_map<std::string, std::unique_ptr<resources::Mesh>>&;
     auto getTextures() -> std::unordered_map<std::string, std::unique_ptr<resources::Texture>>&;
@@ -242,17 +233,7 @@ class AssetManager
     }
 
   private:
-    /**
-     * @brief Uses the vertices VulkanBuffer of a mesh to fill it up with Vertex data from model file
-     * @param pMesh Pointer to the mesh
-     */
-    auto createVertexBuffer( resources::Mesh* pMesh, graphics::VulkanBuffer stageBuffer ) -> void;
-
-    /**
-     * @brief Uses the indices VulkanBuffer of a mesh to fill it up with uint32_t indices data from model file
-     * @param pMesh Pointer to the mesh
-     */
-    auto createIndexBuffer( resources::Mesh* pMesh, graphics::VulkanBuffer stageBuffer ) -> void;
+    auto createMaterialsBuffer( VkDeviceSize size ) -> void;
 
     /**
      * @brief Create descriptor layout for the bindless texture array
@@ -271,31 +252,6 @@ class AssetManager
     auto updateBindlessTextures( resources::Texture* pTexture ) -> void;
     auto updateBindlessTextures( const std::vector<resources::Texture*>& textures ) -> void;
 
-    /**
-     * @brief Create the descriptor layout for the material array ssbo
-     */
-    auto createMaterialsDescriptorSetLayout() -> void;
-
-    /**
-     * @brief Allocate descriptor sets for the material array
-     */
-    auto allocateMaterialsDescriptorSet() -> void;
-
-    /**
-     * @brief Create the Descriptor Set for the material array
-     */
-    auto createMaterialsDescriptorSet() -> void;
-
-    /**
-     * @brief Create the materials ssbo for the first time
-     */
-    auto createMaterialsBuffers( VkDeviceSize size ) -> void;
-
-    /**
-     * @brief When we add a new material, we need to update the buffer so we have those changes on the gpu too
-     */
-    auto updateMaterialsBuffer() -> void;
-
     auto resolveMaterials( ParsedMaterials batch ) -> void;
 
     auto shutdown() -> void;
@@ -311,10 +267,10 @@ class AssetManager
   private:
     VkDescriptorPool m_pDescriptorPool{ nullptr };
     graphics::VulkanDescriptor m_bindlessTexturesDescriptor;
-    graphics::VulkanDescriptor m_materialsDescriptor;
 
-    graphics::FrameInFlightVulkanBuffer m_materialsBuffer;
-    std::vector<resources::Material> m_materials;
+    graphics::VulkanBuffer m_materialsBuffer;
+    uint32_t m_materialCount;
+    resources::Material* m_materialsPtr;
 
     std::unordered_map<std::string, std::unique_ptr<resources::Texture>> m_loadedTextures;
     std::unordered_map<std::string, std::unique_ptr<resources::Mesh>> m_loadedMeshes;
@@ -356,7 +312,5 @@ class AssetManager
 
     std::atomic<bool> m_acceptingLoads{ false };
     std::atomic<bool> m_shutdown{ false };
-
-    std::vector<graphics::VulkanBuffer*> m_buffDeletionQueue;
 };
 } // namespace core

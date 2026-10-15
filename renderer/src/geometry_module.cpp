@@ -100,8 +100,7 @@ auto rendering::GeometryModule::registerWireframePass() -> void
 
     core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
     std::vector<VkDescriptorSetLayout> descriptorLayout{ m_cameraDescriptor->layout,
-                                                         assetManager->getBindlessTexturesDescriptorLayout(),
-                                                         assetManager->getMaterialsDescriptorLayout() };
+                                                         assetManager->getBindlessTexturesDescriptorLayout() };
 
     graphics::VulkanPipelineSpec wireframeSpec{
         .options = { .cullMode = VK_CULL_MODE_NONE, .polyMode = VK_POLYGON_MODE_LINE, .lineWidth = 0.1f },
@@ -196,15 +195,6 @@ auto rendering::GeometryModule::registerWireframePass() -> void
                                      0,
                                      nullptr );
 
-            vkCmdBindDescriptorSets( cmdBuffer,
-                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                     wireframePipeline.getLayout(),
-                                     2,
-                                     1,
-                                     &assetManager->getMaterialsDescriptorSet(),
-                                     0,
-                                     nullptr );
-
             VkBuffer commandsBuffer = prepassData.indirectCommandsBuffer.buffers.at( currentFrame ).vkBuffer;
             graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
 
@@ -242,8 +232,7 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
 
     core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
     std::vector<VkDescriptorSetLayout> descriptorLayout{ m_cameraDescriptor->layout,
-                                                         assetManager->getBindlessTexturesDescriptorLayout(),
-                                                         assetManager->getMaterialsDescriptorLayout() };
+                                                         assetManager->getBindlessTexturesDescriptorLayout() };
 
     graphics::VulkanPipelineSpec defaultPipelineSpec{
         .options = { .cullMode = VK_CULL_MODE_BACK_BIT, .polyMode = VK_POLYGON_MODE_FILL },
@@ -344,22 +333,14 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
                                      0,
                                      nullptr );
 
-            vkCmdBindDescriptorSets( cmdBuffer,
-                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                     geometryPipeline.getLayout(),
-                                     2,
-                                     1,
-                                     &assetManager->getMaterialsDescriptorSet(),
-                                     0,
-                                     nullptr );
-
             graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
 
             graphics::VulkanBuffer& entityParams = prepassData.entitiesParamsBuffer.buffers.at( currentFrame );
 
-            resources::FramePushConstant framePushConst{ .vertexBufferAddress =
-                                                             allocator->getGlobalVertexBuffer().deviceAdress,
-                                                         .entityParamsBufferAddress = entityParams.deviceAdress };
+            resources::FramePushConstant framePushConst{
+                .vertexBufferAddress = allocator->getGlobalVertexBuffer().deviceAdress,
+                .materialBufferAddress = assetManager->getMaterialBufferAddress(),
+                .entityParamsBufferAddress = entityParams.deviceAdress };
 
             vkCmdPushConstants( cmdBuffer,
                                 geometryData.basePipeline.getLayout(),

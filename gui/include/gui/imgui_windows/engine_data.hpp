@@ -10,6 +10,7 @@ namespace gui
 {
 struct EngineDataSpec
 {
+    std::unordered_map<std::string, ImFont*>* fonts;
 };
 
 class EngineDataWindow : public ImGuiWindow

@@ -13,7 +13,7 @@ struct VertexInput
 struct EntityParams
 {
     float4x4 modelMatrix;
-	int materialIndex;
+    int materialIndex;
 };
 
 struct VertexOutput
@@ -25,6 +25,7 @@ struct VertexOutput
 struct DrawParams
 {
     uint64_t vertexBufferAddress;
+    uint64_t materialBufferAddress;
     uint64_t entityParamsBufferAddress;
 };
 

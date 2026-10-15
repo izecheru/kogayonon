@@ -1,4 +1,7 @@
 #include "gui/imgui_windows/engine_data.hpp"
+#include "gui/utils/imgui_utils.hpp"
+#include "gui/utils/font_keys.hpp"
+#include "core/asset_manager/asset_manager.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "graphics/vulkan_memory_allocator.hpp"
@@ -33,26 +36,61 @@ auto gui::EngineDataWindow::render() -> void
     VkDeviceSize indexOccupied = indexAllocInfo.size - indexRemaining;
 
     ImGui::SeparatorText( "GLobal Vertex allocation" );
-    ImGui::Text( "Total allocated size %s", allocator->formatSize( vertexAllocInfo.size ).c_str() );
-    ImGui::Text( "Ocuppied byte size %s", allocator->formatSize( vertexOccupied ).c_str() );
-    ImGui::Text( "Remaining byte size %s", allocator->formatSize( vertexRemaining ).c_str() );
+
+    gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 16.0f, [&]() {
+        ImGui::Text( "Total allocated size %s", allocator->formatSize( vertexAllocInfo.size ).c_str() );
+        ImGui::Text( "Ocuppied byte size %s", allocator->formatSize( vertexOccupied ).c_str() );
+        ImGui::Text( "Remaining byte size %s", allocator->formatSize( vertexRemaining ).c_str() );
+    } );
 
     ImGui::SeparatorText( "GLobal Index allocation" );
-    ImGui::Text( "Total allocated size %s", allocator->formatSize( indexAllocInfo.size ).c_str() );
-    ImGui::Text( "Ocuppied byte size %s", allocator->formatSize( indexOccupied ).c_str() );
-    ImGui::Text( "Remaining byte size %s", allocator->formatSize( indexRemaining ).c_str() );
+
+    gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 16.0f, [&]() {
+        ImGui::Text( "Total allocated size %s", allocator->formatSize( indexAllocInfo.size ).c_str() );
+        ImGui::Text( "Ocuppied byte size %s", allocator->formatSize( indexOccupied ).c_str() );
+        ImGui::Text( "Remaining byte size %s", allocator->formatSize( indexRemaining ).c_str() );
+    } );
+
+    VkDeviceSize bufferSize = allocator->getTotalBufferAllocationSize();
 
     ImGui::SeparatorText( "Buffer data" );
-    VkDeviceSize bufferSize = allocator->getTotalBufferAllocationSize();
-    ImGui::Text( "Total allocated size %s", allocator->formatSize( bufferSize ).c_str() );
+
+    gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 16.0f, [&]() {
+        ImGui::Text( "Total allocated size %s", allocator->formatSize( bufferSize ).c_str() );
+    } );
+
+    VkDeviceSize imageSize = allocator->getTotalImageAllocationSize();
 
     ImGui::SeparatorText( "Texture image data" );
-    VkDeviceSize imageSize = allocator->getTotalImageAllocationSize();
-    ImGui::Text( "Total allocated size %s", allocator->formatSize( imageSize ).c_str() );
+
+    gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 16.0f, [&]() {
+        ImGui::Text( "Total allocated size %s", allocator->formatSize( imageSize ).c_str() );
+    } );
+
+    utilities::TimeTracker* timeTracker = core::MainRegistry::getInstance().getTimeTracker();
 
     ImGui::SeparatorText( "Frame time" );
-    utilities::TimeTracker* timeTracker = core::MainRegistry::getInstance().getTimeTracker();
-    ImGui::Text( "%.2fms", timeTracker->getDurationMilliseconds( DELTA_TIME ) );
+
+    gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 16.0f, [&]() {
+        ImGui::Text( "%.2fms", timeTracker->getDurationMilliseconds( DELTA_TIME ) );
+    } );
+
+    core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+
+    ImGui::SeparatorText( "Materials" );
+
+    gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 16.0f, [&]() {
+        ImGui::Text( "Material slots %d/ %d", assetManager->getMaterialAllocatedCount(), MAX_TEXTURE_SUPPORT );
+        const VkDeviceSize currentAllocated = assetManager->getMaterialAllocatedCount() * sizeof( resources::Material );
+        constexpr const VkDeviceSize maxCanOccupy = MAX_TEXTURE_SUPPORT * sizeof( resources::Material );
+        const VkDeviceSize remaining = maxCanOccupy - currentAllocated;
+
+        ImGui::Text( "Occupied bytes %s / %s",
+                     allocator->formatSize( currentAllocated ).c_str(),
+                     allocator->formatSize( maxCanOccupy ).c_str() );
+
+        ImGui::Text( "Remaining bytes %s", allocator->formatSize( maxCanOccupy - currentAllocated ).c_str() );
+    } );
 
     end();
 }

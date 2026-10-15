@@ -34,18 +34,18 @@ struct FragmentOutput
 struct DrawParams
 {
     uint64_t vertexBufferAddress;
+    uint64_t materialBufferAddress;
     uint64_t entityParamsBufferAddress;
 };
 
 DESCRIPTOR_SET( 0, 0, ConstantBuffer<Camera> ) camera;
 DESCRIPTOR_SET( 0, 1, Sampler2D[] ) bindlessTextures;
-DESCRIPTOR_SET( 0, 2, StructuredBuffer<MaterialDescription> ) materials;
 DECLARE_PUSH_CONSTANT( DrawParams );
 
 [shader( "vertex" )]
-VertexOutput vertexMain(VertexInput input)
+VertexOutput vertexMain( VertexInput input )
 {
-	VertexOutput output;
+    VertexOutput output;
 
     Vertex* vBuffer = (Vertex*)pushConstant.vertexBufferAddress;
     EntityParams* entityParams = (EntityParams*)pushConstant.entityParamsBufferAddress;
@@ -77,7 +77,8 @@ FragmentOutput fragmentMain( VertexOutput input )
         return output;
     }
 
-    MaterialDescription mat = materials[p.materialIndex];
+    Material* materialBuffer = (Material*)pushConstant.materialBufferAddress;
+    Material mat = materialBuffer[p.materialIndex];
 
     float4 diffuseColor = bindlessTextures[NonUniformResourceIndex( mat.diffuseIndex )].Sample( input.fragTexCoord );
 

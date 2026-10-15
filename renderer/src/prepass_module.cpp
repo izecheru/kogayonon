@@ -1,4 +1,5 @@
 #include "renderer/modules/prepass_module.hpp"
+#include "core/asset_manager/asset_manager.hpp"
 #include "graphics/vulkan_memory_allocator.hpp"
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
@@ -159,9 +160,11 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
                                      0,
                                      nullptr );
 
-            resources::FramePushConstant framePushConst{ .vertexBufferAddress =
-                                                             allocator->getGlobalVertexBuffer().deviceAdress,
-                                                         .entityParamsBufferAddress = entityParams.deviceAdress };
+            core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+            resources::FramePushConstant framePushConst{
+                .vertexBufferAddress = allocator->getGlobalVertexBuffer().deviceAdress,
+                .materialBufferAddress = assetManager->getMaterialBufferAddress(),
+                .entityParamsBufferAddress = entityParams.deviceAdress };
 
             vkCmdPushConstants( cmdBuffer,
                                 prepassData.depthPrepassPipeline.getLayout(),
@@ -216,7 +219,7 @@ auto rendering::PrepassModule::createModuleResources( VkExtent2D extent ) -> voi
 
     prepassData.depth = m_graph->createResource( "prepassDepth", prepassDepthCreateInfo, prepassDepthAllocInfo );
 
-    constexpr uint32_t maxIndirectCommands = 1u << 10; // 1m
+    constexpr uint32_t maxIndirectCommands = 1u << 10;
 
     graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
     // create the indirect commands buffer
@@ -231,7 +234,7 @@ auto rendering::PrepassModule::createModuleResources( VkExtent2D extent ) -> voi
 
     allocator->createBuffer( prepassData.indirectCommandsBuffer, bufferInfo, vmaAllocInfo, "indirect_commands_buffer" );
 
-    constexpr uint32_t madIndirectEntityParams = 1u << 10; // 1m
+    constexpr uint32_t madIndirectEntityParams = 1u << 10;
     // create the entity params buffer
     VkBufferCreateInfo paramsBufferInfo{};
     paramsBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;

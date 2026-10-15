@@ -395,8 +395,9 @@ void gui::VulkanImGuiRenderer::initWindows()
     m_windows.emplace( ImGuiWindowName::Entity_Properties,
                        std::make_unique<EntityProperties>( "Properties", EntityPropertiesSpec{ .fonts = &m_fonts } ) );
 
-    m_windows.emplace( ImGuiWindowName::Engine_Data,
-                       std::make_unique<EngineDataWindow>( "Engine Data", EngineDataSpec{}, m_device ) );
+    m_windows.emplace(
+        ImGuiWindowName::Engine_Data,
+        std::make_unique<EngineDataWindow>( "Engine Data", EngineDataSpec{ .fonts = &m_fonts }, m_device ) );
 
     assetManager->addUiTexture( hierarchyCubeIcon );
     assetManager->addUiTexture( folderPath );

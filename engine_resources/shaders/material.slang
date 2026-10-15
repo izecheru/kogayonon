@@ -1,8 +1,9 @@
 #pragma once
 
-struct MaterialDescription
+struct Material
 {
     int normalIndex;
     int diffuseIndex;
     int emissiveIndex;
 };
+
