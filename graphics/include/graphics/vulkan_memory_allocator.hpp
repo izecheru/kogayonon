@@ -174,6 +174,16 @@ class VulkanMemoryAllocator
 
     auto formatSize( VkDeviceSize size ) -> std::string;
 
+    /**
+     * @brief Set the name of a vulkan object for debugging, if a validation layer error appears,
+     * the name will be printed too
+     * @param objType Type of vulkan object
+     * @param handle Handle of the object
+     * @param name Name we want to assign to that object
+     * @return
+     */
+    auto setVulkanDebugName( VkObjectType objType, uint64_t handle, std::string_view name ) -> void;
+
   private:
     auto createGlobalBuffers() -> void;
 
@@ -186,6 +196,8 @@ class VulkanMemoryAllocator
 
     VkDeviceSize m_totalImageAllocationSize;
     VkDeviceSize m_totalBufferAllocationSize;
+
+    PFN_vkSetDebugUtilsObjectNameEXT m_setDebugNameFunc{ nullptr };
 
     std::mutex m_buffMutex;
     graphics::VulkanBuffer m_globalVertexBuffer;

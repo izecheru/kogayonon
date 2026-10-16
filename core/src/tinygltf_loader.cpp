@@ -35,95 +35,153 @@ core::TinyGltfLoader::~TinyGltfLoader()
 
 auto core::TinyGltfLoader::processVertexData( resources::Mesh* pMesh ) -> void
 {
-    auto& submeshes = pMesh->getSubmeshes();
-    auto& vertices = pMesh->getVertices();
-    auto& indices = pMesh->getIndices();
 
-    for ( auto i = 0u; i < m_model.meshes_count; ++i )
-    {
-        const tg3_mesh* mesh = &m_model.meshes[i];
-
-        for ( auto j = 0u; j < mesh->primitives_count; ++j )
+    auto visitNode = [this, pMesh]( this auto&& self, int nodeIndex, const glm::mat4& parentTransform ) {
+        if ( nodeIndex < 0 || nodeIndex > m_model.nodes_count )
         {
-            const tg3_primitive* primitive = &mesh->primitives[j];
+            return;
+        }
 
-            std::vector<uint32_t> localIndices;
-            std::vector<resources::Vertex> localVertices;
+        auto& submeshes = pMesh->getSubmeshes();
+        auto& vertices = pMesh->getVertices();
+        auto& indices = pMesh->getIndices();
 
-            for ( auto k = 0u; k < primitive->attributes_count; ++k )
+        const tg3_node* node = &m_model.nodes[nodeIndex];
+
+        glm::mat4 localTransform{};
+
+        if ( node->has_matrix )
+        {
+            localTransform = glm::make_mat4( node->matrix );
+        }
+        else
+        {
+
+            glm::vec3 translation{ node->translation[0], node->translation[1], node->translation[2] };
+            glm::vec3 rotation{ node->rotation[0], node->rotation[1], node->rotation[2] };
+            glm::vec3 scale{ node->scale[0], node->scale[1], node->scale[2] };
+            glm::quat q{ static_cast<float>( node->rotation[3] ),
+                         static_cast<float>( node->rotation[0] ),
+                         static_cast<float>( node->rotation[1] ),
+                         static_cast<float>( node->rotation[2] ) };
+            localTransform = glm::translate( glm::mat4( 1.0f ), translation );
+            localTransform = localTransform * glm::mat4_cast( q );
+            localTransform = glm::scale( localTransform, scale );
+        }
+
+        glm::mat4 local = parentTransform * localTransform;
+
+        if ( node->mesh != -1 )
+        {
+            const tg3_mesh* mesh = &m_model.meshes[node->mesh];
+
+            for ( auto j = 0u; j < mesh->primitives_count; ++j )
             {
-                const tg3_str_int_pair* attr = &primitive->attributes[k];
-                if ( strcmp( attr->key.data, "POSITION" ) == 0 )
+                const tg3_primitive* primitive = &mesh->primitives[j];
+
+                std::vector<uint32_t> localIndices;
+                std::vector<resources::Vertex> localVertices;
+
+                for ( auto k = 0u; k < primitive->attributes_count; ++k )
                 {
-                    const tg3_accessor* accessor = &m_model.accessors[attr->value];
-                    KASSERT( accessor->type == TG3_TYPE_VEC3 && accessor->component_type == TG3_COMPONENT_TYPE_FLOAT );
-                    writeAttribute( &resources::Vertex::translation, attr, localVertices );
-                }
-
-                if ( strcmp( attr->key.data, "NORMAL" ) == 0 )
-                {
-                    const tg3_accessor* accessor = &m_model.accessors[attr->value];
-                    KASSERT( accessor->type == TG3_TYPE_VEC3 && accessor->component_type == TG3_COMPONENT_TYPE_FLOAT );
-                    writeAttribute( &resources::Vertex::normal, attr, localVertices );
-                }
-
-                if ( strcmp( attr->key.data, "TEXCOORD_0" ) == 0 )
-                {
-                    const tg3_accessor* accessor = &m_model.accessors[attr->value];
-                    KASSERT( accessor->type == TG3_TYPE_VEC2 && accessor->component_type == TG3_COMPONENT_TYPE_FLOAT );
-                    writeAttribute( &resources::Vertex::uv, attr, localVertices );
-                }
-            }
-
-            resources::Material mat{};
-            if ( primitive->material >= 0 && primitive->material < m_model.materials_count )
-            {
-                const tg3_material* material = &m_model.materials[primitive->material];
-
-                mat.diffuseTextureIndex =
-                    imageIndexFromTexture( material->pbr_metallic_roughness.base_color_texture.index );
-                mat.normalTextureIndex = imageIndexFromTexture( material->normal_texture.index );
-                mat.emissiveTextureIndex = imageIndexFromTexture( material->emissive_texture.index );
-            }
-
-            if ( primitive->indices != -1 )
-            {
-                const tg3_accessor* accessor = &m_model.accessors[primitive->indices];
-                const tg3_buffer_view* bufferView = &m_model.buffer_views[accessor->buffer_view];
-                const tg3_buffer* buffer = &m_model.buffers[bufferView->buffer];
-
-                if ( localIndices.size() == 0 )
-                {
-                    localIndices.resize( accessor->count );
-                }
-
-                if ( accessor->component_type == TG3_COMPONENT_TYPE_UNSIGNED_INT )
-                {
-                    const uint32_t* buffData = reinterpret_cast<const uint32_t*>(
-                        buffer->data.data + bufferView->byte_offset + accessor->byte_offset );
-                    memcpy( localIndices.data(), buffData, accessor->count * sizeof( uint32_t ) );
-                }
-                else if ( accessor->component_type == TG3_COMPONENT_TYPE_UNSIGNED_SHORT )
-                {
-                    const uint16_t* buffData = reinterpret_cast<const uint16_t*>(
-                        buffer->data.data + bufferView->byte_offset + accessor->byte_offset );
-                    for ( uint64_t idx = 0; idx < accessor->count; ++idx )
+                    const tg3_str_int_pair* attr = &primitive->attributes[k];
+                    if ( strcmp( attr->key.data, "POSITION" ) == 0 )
                     {
-                        localIndices[idx] = static_cast<uint32_t>( buffData[idx] );
+                        const tg3_accessor* accessor = &m_model.accessors[attr->value];
+                        KASSERT( accessor->type == TG3_TYPE_VEC3 &&
+                                 accessor->component_type == TG3_COMPONENT_TYPE_FLOAT );
+                        writeAttribute( &resources::Vertex::translation, attr, localVertices );
+                    }
+
+                    if ( strcmp( attr->key.data, "NORMAL" ) == 0 )
+                    {
+                        const tg3_accessor* accessor = &m_model.accessors[attr->value];
+                        KASSERT( accessor->type == TG3_TYPE_VEC3 &&
+                                 accessor->component_type == TG3_COMPONENT_TYPE_FLOAT );
+                        writeAttribute( &resources::Vertex::normal, attr, localVertices );
+                    }
+
+                    if ( strcmp( attr->key.data, "TEXCOORD_0" ) == 0 )
+                    {
+                        const tg3_accessor* accessor = &m_model.accessors[attr->value];
+                        KASSERT( accessor->type == TG3_TYPE_VEC2 &&
+                                 accessor->component_type == TG3_COMPONENT_TYPE_FLOAT );
+                        writeAttribute( &resources::Vertex::uv, attr, localVertices );
                     }
                 }
+
+                resources::Material mat{};
+                if ( primitive->material >= 0 && primitive->material < m_model.materials_count )
+                {
+                    const tg3_material* material = &m_model.materials[primitive->material];
+
+                    mat.diffuseTextureIndex =
+                        imageIndexFromTexture( material->pbr_metallic_roughness.base_color_texture.index );
+                    mat.normalTextureIndex = imageIndexFromTexture( material->normal_texture.index );
+                    mat.emissiveTextureIndex = imageIndexFromTexture( material->emissive_texture.index );
+                }
+
+                if ( primitive->indices != -1 )
+                {
+                    const tg3_accessor* accessor = &m_model.accessors[primitive->indices];
+                    const tg3_buffer_view* bufferView = &m_model.buffer_views[accessor->buffer_view];
+                    const tg3_buffer* buffer = &m_model.buffers[bufferView->buffer];
+
+                    if ( localIndices.size() == 0 )
+                    {
+                        localIndices.resize( accessor->count );
+                    }
+
+                    if ( accessor->component_type == TG3_COMPONENT_TYPE_UNSIGNED_INT )
+                    {
+                        const uint32_t* buffData = reinterpret_cast<const uint32_t*>(
+                            buffer->data.data + bufferView->byte_offset + accessor->byte_offset );
+                        memcpy( localIndices.data(), buffData, accessor->count * sizeof( uint32_t ) );
+                    }
+                    else if ( accessor->component_type == TG3_COMPONENT_TYPE_UNSIGNED_SHORT )
+                    {
+                        const uint16_t* buffData = reinterpret_cast<const uint16_t*>(
+                            buffer->data.data + bufferView->byte_offset + accessor->byte_offset );
+                        for ( uint64_t idx = 0; idx < accessor->count; ++idx )
+                        {
+                            localIndices[idx] = static_cast<uint32_t>( buffData[idx] );
+                        }
+                    }
+                }
+
+                uint32_t vertexCount = vertices.size();
+                uint32_t indexCount = indices.size();
+
+                for ( auto& v : localVertices )
+                {
+                    glm::vec4 p = local * glm::vec4( v.translation, 1.0f );
+                    v.translation = glm::vec3{ p };
+                    glm::mat3 nrmMat = glm::transpose( glm::inverse( glm::mat3( local ) ) );
+                    v.normal = glm::normalize( nrmMat * v.normal );
+                }
+
+                vertices.insert( vertices.end(), localVertices.begin(), localVertices.end() );
+                indices.insert( indices.end(), localIndices.begin(), localIndices.end() );
+
+                submeshes.push_back( resources::Submesh{ .vertexOffset = vertexCount,
+                                                         .indexOffset = indexCount,
+                                                         .indexCount = static_cast<uint32_t>( localIndices.size() ),
+                                                         .submeshMaterial = mat } );
             }
+        }
 
-            uint32_t vertexCount = vertices.size();
-            uint32_t indexCount = indices.size();
+        for ( auto c = 0u; c < node->children_count; ++c )
+        {
+            self( node->children[c], local );
+        }
+    };
 
-            vertices.insert( vertices.end(), localVertices.begin(), localVertices.end() );
-            indices.insert( indices.end(), localIndices.begin(), localIndices.end() );
-
-            submeshes.emplace_back( resources::Submesh{ .vertexOffset = vertexCount,
-                                                        .indexOffset = indexCount,
-                                                        .indexCount = static_cast<uint32_t>( localIndices.size() ),
-                                                        .submeshMaterial = mat } );
+    if ( m_model.scenes_count > 0 )
+    {
+        const tg3_scene* scene = &m_model.scenes[m_model.default_scene >= 0 ? m_model.default_scene : 0];
+        for ( auto r = 0u; r < scene->nodes_count; ++r )
+        {
+            visitNode( scene->nodes[r], glm::mat4( 1.0f ) );
         }
     }
 }
@@ -149,12 +207,13 @@ auto core::TinyGltfLoader::parseTextureData( resources::Mesh* pMesh )
     std::vector<resources::Submesh>& submeshes = pMesh->getSubmeshes();
     for ( uint32_t i = 0u; i < submeshes.size(); i++ )
     {
-        auto& submesh = submeshes.at( i );
+        resources::Submesh& submesh = submeshes.at( i );
 
         std::map<TextureType, std::string> texturePaths;
-        std::string diffusePath = "";
-        std::string emissivePath = "";
-        std::string normalPath = "";
+
+        std::string diffusePath{ "" };
+        std::string emissivePath{ "" };
+        std::string normalPath{ "" };
 
         if ( submesh.submeshMaterial.diffuseTextureIndex != -1 )
         {
@@ -208,4 +267,4 @@ auto core::TinyGltfLoader::imageIndexFromTexture( int textureIndex ) const -> in
     }
 
     return src;
-};
+}

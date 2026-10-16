@@ -35,10 +35,12 @@ struct QueueFamilyIndices
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;
     std::optional<uint32_t> transferFamily;
+    std::optional<uint32_t> computeFamily;
 
     bool isComplete() const
     {
-        return graphicsFamily.has_value() && presentFamily.has_value() && transferFamily.has_value();
+        return graphicsFamily.has_value() && presentFamily.has_value() && transferFamily.has_value() &&
+               computeFamily.has_value();
     }
 };
 
@@ -223,29 +225,10 @@ class VulkanDevice
      */
     auto waitIdle() const -> void;
 
-    /**
-     * @brief Set the name of a vulkan object for debugging, if a validation layer error appears,
-     * the name will be printed too
-     * @param objType Type of vulkan object
-     * @param handle Handle of the object
-     * @param name Name we want to assign to that object
-     * @return
-     */
-    auto setVulkanDebugName( VkObjectType objType, uint64_t handle, std::string_view name ) -> void;
-
-    /**
-     * @brief Return the graphics queue
-     * @return
-     */
     auto getGraphicsQueue() -> GPUQueue&;
-
-    /**
-     * @brief Return the present queue
-     * @return
-     */
     auto getPresentQueue() -> GPUQueue&;
-
     auto getTransferQueue() -> GPUQueue&;
+    auto getComputeQueue() -> GPUQueue&;
 
     /**
      * @brief Get the physical device
@@ -333,8 +316,8 @@ class VulkanDevice
     GPUQueue m_presentQueue;
     GPUQueue m_graphicsQueue;
     GPUQueue m_transferQueue;
+    GPUQueue m_computeQueue;
 
-    PFN_vkSetDebugUtilsObjectNameEXT m_setDebugNameFunc{ nullptr };
     std::unique_ptr<ShaderCompiler> m_shaderCompiler;
 
     std::unique_ptr<VulkanMemoryAllocator> m_memAllocator;

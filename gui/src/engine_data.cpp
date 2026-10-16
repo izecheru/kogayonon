@@ -72,6 +72,7 @@ auto gui::EngineDataWindow::render() -> void
     ImGui::SeparatorText( "Frame time" );
 
     gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 16.0f, [&]() {
+        ImGui::Text( "Number of vertices: %d", vertexOccupied / sizeof( resources::Vertex ) );
         ImGui::Text( "%.2fms", timeTracker->getDurationMilliseconds( DELTA_TIME ) );
     } );
 

@@ -68,6 +68,7 @@ auto graphics::VulkanMemoryAllocator::createBuffer( VulkanBuffer& vulkanBuffer,
         KINFO( "[Buffer] {} {}", bufferName, formatSize( static_cast<double>( createInfo.size ) ) );
 #endif
         setAllocationName( bufferName, vulkanBuffer.vmaAllocation );
+        setVulkanDebugName( VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>( vulkanBuffer.vkBuffer ), bufferName );
     }
 #ifdef VMA_ALLOCATION_LOGS
     else
@@ -134,6 +135,7 @@ auto graphics::VulkanMemoryAllocator::createImage( VkImage& image,
         KINFO( "[Image] {} size {}", imageName, size );
 #endif
         setAllocationName( imageName, allocation );
+        setVulkanDebugName( VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>( image ), imageName );
     }
 #ifdef VMA_ALLOCATION_LOGS
     else
@@ -364,17 +366,6 @@ auto graphics::VulkanMemoryAllocator::createImageView( VulkanImage& image,
 
 auto graphics::VulkanMemoryAllocator::createGlobalBuffers() -> void
 {
-    // VkBufferCreateInfo stageBufferCreateInfo{};
-    // stageBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    // stageBufferCreateInfo.size = 500 * 1024 * 1024; // 500mb
-    // stageBufferCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    // stageBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    // VmaAllocationCreateInfo stageAllocInfo{};
-    // stageAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-
-    // createBuffer( m_globalStagingBuffer, stageBufferCreateInfo, stageAllocInfo, "global_staging_buffer" );
-
     // 250mb each
     VkBufferCreateInfo vertexBufferCreateInfo{};
     vertexBufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -445,4 +436,33 @@ auto graphics::VulkanMemoryAllocator::getTotalImageAllocationSize() const -> VkD
 auto graphics::VulkanMemoryAllocator::getTotalBufferAllocationSize() const -> VkDeviceSize
 {
     return m_totalBufferAllocationSize;
+}
+
+auto graphics::VulkanMemoryAllocator::setVulkanDebugName( VkObjectType objType, uint64_t handle, std::string_view name )
+    -> void
+{
+#ifndef _DEBUG
+    return;
+#endif
+
+    if ( name.empty() )
+    {
+        return;
+    }
+
+    if ( m_setDebugNameFunc == VK_NULL_HANDLE )
+    {
+        m_setDebugNameFunc =
+            (PFN_vkSetDebugUtilsObjectNameEXT)vkGetDeviceProcAddr( m_device, "vkSetDebugUtilsObjectNameEXT" );
+    }
+
+    const std::string nullTerminatedName( name );
+
+    VkDebugUtilsObjectNameInfoEXT nameInfo{};
+    nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    nameInfo.objectType = objType;
+    nameInfo.objectHandle = handle;
+    nameInfo.pObjectName = nullTerminatedName.c_str();
+
+    m_setDebugNameFunc( m_device, &nameInfo );
 }

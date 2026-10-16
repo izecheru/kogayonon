@@ -10,7 +10,7 @@
 #include "renderer/modules/shadowmap_module.hpp"
 #include "resources/mesh_push_constant.hpp"
 #include "resources/vertex.hpp"
-#include "utilities/tracy_utils/tracy_utils.hpp"
+#include "tracy/TracyVulkan.hpp"
 // components for view filtering in scene
 #include "core/ecs/components/mesh_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
@@ -247,6 +247,10 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
     };
 
     geometryInfo.basePipeline.create( defaultPipelineSpec, m_vkCtx );
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+    allocator->setVulkanDebugName( VK_OBJECT_TYPE_PIPELINE,
+                                   reinterpret_cast<uint64_t>( geometryInfo.basePipeline.getPipeline() ),
+                                   "geometryBasePipeline" );
 
     m_vkCtx->device->destroyShaderModule( vertex );
     m_vkCtx->device->destroyShaderModule( fragment );

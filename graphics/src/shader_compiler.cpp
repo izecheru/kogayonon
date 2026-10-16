@@ -123,7 +123,7 @@ auto graphics::ShaderCompiler::readFile( const std::string& filePath ) -> std::v
 auto graphics::ShaderCompiler::createShaderModule( const std::string& shaderName, const std::string& shaderEntryFunc )
     -> VkShaderModule
 {
-    auto obj = compileShaderFromSource( shaderName, shaderEntryFunc );
+    graphics::ShaderObject obj = compileShaderFromSource( shaderName, shaderEntryFunc );
 
     VkShaderModuleCreateInfo createInfo{
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -132,9 +132,11 @@ auto graphics::ShaderCompiler::createShaderModule( const std::string& shaderName
     };
 
     VkShaderModule shaderModule{};
-    if ( ( vkCreateShaderModule( m_pDevice, &createInfo, nullptr, &shaderModule ) != VK_SUCCESS ) )
+
+    if ( vkCreateShaderModule( m_pDevice, &createInfo, nullptr, &shaderModule ) != VK_SUCCESS )
     {
         throw std::runtime_error( "could not create shader module" );
     }
+
     return shaderModule;
 }

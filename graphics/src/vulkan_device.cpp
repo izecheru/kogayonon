@@ -119,6 +119,12 @@ auto graphics::VulkanDevice::findQueueFamilies( VkPhysicalDevice& device ) -> Qu
             m_graphicsQueue.familyIndex = i;
         }
 
+        if ( queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT )
+        {
+            indices.computeFamily = i;
+            m_computeQueue.familyIndex = i;
+        }
+
         VkBool32 presentSupport{ false };
         vkGetPhysicalDeviceSurfaceSupportKHR( device, i, m_platform.surface, &presentSupport );
 
@@ -248,6 +254,7 @@ auto graphics::VulkanDevice::shutdown() -> void
     destroySemaphore( m_graphicsQueue.timelineSemaphore );
     destroySemaphore( m_presentQueue.timelineSemaphore );
     destroySemaphore( m_transferQueue.timelineSemaphore );
+    destroySemaphore( m_computeQueue.timelineSemaphore );
 
     destroyCommandPool( m_commandPool );
     destroyCommandPool( m_transferCommandPool );
@@ -261,6 +268,11 @@ auto graphics::VulkanDevice::shutdown() -> void
 auto graphics::VulkanDevice::waitIdle() const -> void
 {
     vkDeviceWaitIdle( m_platform.device );
+}
+
+auto graphics::VulkanDevice::getComputeQueue() -> GPUQueue&
+{
+    return m_computeQueue;
 }
 
 auto graphics::VulkanDevice::getTransferQueue() -> GPUQueue&
@@ -440,6 +452,7 @@ void graphics::VulkanDevice::pickPhysicalDevice()
     {
         throw std::runtime_error( "failed to find GPU with Vulkan support, i'm sorry" );
     }
+
     std::vector<VkPhysicalDevice> devices( deviceCount );
     vkEnumeratePhysicalDevices( m_platform.instance, &deviceCount, devices.data() );
 
@@ -468,9 +481,10 @@ void graphics::VulkanDevice::createLogicalDevice()
     familyQueueCounts[indices.graphicsFamily.value()]++;
     familyQueueCounts[indices.transferFamily.value()]++;
     familyQueueCounts[indices.presentFamily.value()]++;
+    familyQueueCounts[indices.computeFamily.value()]++;
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::vector<std::vector<float>> priorities; // keep storage alive!
+    std::vector<std::vector<float>> priorities;
     priorities.reserve( familyQueueCounts.size() );
 
     float queuePriority = 1.0f;
@@ -495,7 +509,6 @@ void graphics::VulkanDevice::createLogicalDevice()
     features12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
     features12.runtimeDescriptorArray = VK_TRUE;
     features12.descriptorIndexing = VK_TRUE;
-    // features12.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
     features12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
     features12.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
     features12.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
@@ -546,6 +559,7 @@ void graphics::VulkanDevice::createLogicalDevice()
     vkGetDeviceQueue( m_platform.device, indices.graphicsFamily.value(), 0, &m_graphicsQueue.handle );
     vkGetDeviceQueue( m_platform.device, indices.presentFamily.value(), 0, &m_presentQueue.handle );
     vkGetDeviceQueue( m_platform.device, indices.transferFamily.value(), 0, &m_transferQueue.handle );
+    vkGetDeviceQueue( m_platform.device, indices.computeFamily.value(), 0, &m_computeQueue.handle );
 
     VkSemaphoreTypeCreateInfo timelineTypeCreateInfo{};
     timelineTypeCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
@@ -561,6 +575,7 @@ void graphics::VulkanDevice::createLogicalDevice()
     createSemaphore( m_graphicsQueue.timelineSemaphore, timelineTypeCreateInfo, timelineCreateInfo );
     createSemaphore( m_transferQueue.timelineSemaphore, timelineTypeCreateInfo, timelineCreateInfo );
     createSemaphore( m_presentQueue.timelineSemaphore, timelineTypeCreateInfo, timelineCreateInfo );
+    createSemaphore( m_computeQueue.timelineSemaphore, timelineTypeCreateInfo, timelineCreateInfo );
 }
 
 auto graphics::VulkanDevice::getInstance() const -> VkInstance
@@ -571,34 +586,6 @@ auto graphics::VulkanDevice::getInstance() const -> VkInstance
 auto graphics::VulkanDevice::getLimits() -> VkPhysicalDeviceLimits&
 {
     return m_physicalDeviceLimits;
-}
-
-auto graphics::VulkanDevice::setVulkanDebugName( VkObjectType objType, uint64_t handle, std::string_view name ) -> void
-{
-#ifndef _DEBUG
-    return;
-#endif
-
-    if ( name.empty() )
-    {
-        return;
-    }
-
-    if ( m_setDebugNameFunc == VK_NULL_HANDLE )
-    {
-        m_setDebugNameFunc =
-            (PFN_vkSetDebugUtilsObjectNameEXT)vkGetDeviceProcAddr( m_platform.device, "vkSetDebugUtilsObjectNameEXT" );
-    }
-
-    const std::string nullTerminatedName( name );
-
-    VkDebugUtilsObjectNameInfoEXT nameInfo{};
-    nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-    nameInfo.objectType = objType;
-    nameInfo.objectHandle = handle;
-    nameInfo.pObjectName = nullTerminatedName.c_str();
-
-    m_setDebugNameFunc( m_platform.device, &nameInfo );
 }
 
 auto graphics::VulkanDevice::destroyPipeline( VkPipeline pipeline ) const -> void
@@ -893,7 +880,8 @@ auto graphics::VulkanDevice::createSampler( VkSampler& sampler, std::string_view
 
     if ( !samplerName.empty() )
     {
-        setVulkanDebugName( VK_OBJECT_TYPE_SAMPLER, reinterpret_cast<uint64_t>( sampler ), samplerName );
+        m_memAllocator->setVulkanDebugName(
+            VK_OBJECT_TYPE_SAMPLER, reinterpret_cast<uint64_t>( sampler ), samplerName );
     }
 }
 

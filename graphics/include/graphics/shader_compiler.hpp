@@ -1,6 +1,6 @@
 #pragma once
 #include <slang-com-ptr.h>
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 #include <string>
 #include <unordered_map>
 

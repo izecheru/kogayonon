@@ -71,7 +71,7 @@ auto graphics::VulkanPipeline::create( const VulkanPipelineSpec& spec, VulkanCon
     multisampling.sampleShadingEnable = VK_FALSE;
     multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    // TODO edit this color blend attachment if we want transparent bg for pngs that have it
+    // TODO edit this color blend attachment if we want transparent bg for pngs
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
     colorBlendAttachment.colorWriteMask =
         VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
