@@ -25,6 +25,7 @@ class TinyGltfLoader
 
     auto imageIndexFromTexture( int textureIndex ) const -> int;
 
+  private:
     template <typename T>
     inline auto writeAttribute( T resources::Vertex::* member,
                                 const tg3_str_int_pair* attr,

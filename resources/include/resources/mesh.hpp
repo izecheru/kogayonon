@@ -8,6 +8,13 @@
 
 namespace resources
 {
+
+struct AABB
+{
+    glm::vec3 min{};
+    glm::vec3 max{};
+};
+
 struct Submesh
 {
     uint32_t vertexOffset{ 0u };

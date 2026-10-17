@@ -35,7 +35,6 @@ core::TinyGltfLoader::~TinyGltfLoader()
 
 auto core::TinyGltfLoader::processVertexData( resources::Mesh* pMesh ) -> void
 {
-
     auto visitNode = [this, pMesh]( this auto&& self, int nodeIndex, const glm::mat4& parentTransform ) {
         if ( nodeIndex < 0 || nodeIndex > m_model.nodes_count )
         {
@@ -56,16 +55,11 @@ auto core::TinyGltfLoader::processVertexData( resources::Mesh* pMesh ) -> void
         }
         else
         {
-
-            glm::vec3 translation{ node->translation[0], node->translation[1], node->translation[2] };
-            glm::vec3 rotation{ node->rotation[0], node->rotation[1], node->rotation[2] };
-            glm::vec3 scale{ node->scale[0], node->scale[1], node->scale[2] };
-            glm::quat q{ static_cast<float>( node->rotation[3] ),
-                         static_cast<float>( node->rotation[0] ),
-                         static_cast<float>( node->rotation[1] ),
-                         static_cast<float>( node->rotation[2] ) };
+            glm::vec3 translation{ 0.0f };
+            glm::quat rotation{ 1.0f, 0.0f, 0.0f, 0.0f };
+            glm::vec3 scale{ 1.0f };
             localTransform = glm::translate( glm::mat4( 1.0f ), translation );
-            localTransform = localTransform * glm::mat4_cast( q );
+            localTransform = localTransform * glm::mat4_cast( rotation );
             localTransform = glm::scale( localTransform, scale );
         }
 
@@ -146,6 +140,10 @@ auto core::TinyGltfLoader::processVertexData( resources::Mesh* pMesh ) -> void
                         {
                             localIndices[idx] = static_cast<uint32_t>( buffData[idx] );
                         }
+                    }
+                    else
+                    {
+                        KERROR( "Unhandled index component type: {}", accessor->component_type );
                     }
                 }
 

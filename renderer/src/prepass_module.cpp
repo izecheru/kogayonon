@@ -9,7 +9,7 @@
 #include "renderer/blackboard.hpp"
 #include "resources/mesh_push_constant.hpp"
 #include "resources/vertex.hpp"
-#include "utilities/tracy_utils/tracy_utils.hpp"
+#include "tracy/TracyVulkan.hpp"
 
 rendering::PrepassModule::PrepassModule( FrameGraph* graph,
                                          graphics::VulkanContext* vkCtx,
@@ -101,7 +101,7 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
                     if ( !meshComp.pMesh )
                         return;
 
-                    for ( resources::Submesh& submesh : meshComp.pMesh->getSubmeshes() )
+                    for ( const resources::Submesh& submesh : meshComp.pMesh->getSubmeshes() )
                     {
                         paramsPtr[drawIndex] = EntityParams{ .transform = transformComp.getMatrix(),
                                                              .materialIndex = submesh.materialIndex };
@@ -111,7 +111,8 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
                                                           .instanceCount = 1,
                                                           .firstIndex = submesh.indexOffset,
                                                           .vertexOffset = static_cast<int32_t>( submesh.vertexOffset ),
-                                                          .firstInstance = drawIndex++ };
+                                                          .firstInstance = drawIndex };
+                        ++drawIndex;
                     }
                 } );
             }
