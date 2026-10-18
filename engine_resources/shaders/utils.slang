@@ -4,6 +4,6 @@
     [[vk::push_constant]]                                                                                              \
     x pushConstant;
 
-#define DESCRIPTOR_SET( x, y, type )                                                                                   \
-    [[vk::binding( x, y )]]                                                                                            \
+#define DESCRIPTOR_SET( _Binding, _Set, type )                                                                                   \
+    [[vk::binding( _Binding, _Set )]]                                                                                            \
     type 

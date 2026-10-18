@@ -146,6 +146,9 @@ class VulkanMemoryAllocator
                       VmaAllocationCreateInfo& usage,
                       std::string_view imageName = "" ) -> VkResult;
 
+    auto createImageView( graphics::VulkanImage& image, VkImageViewCreateInfo info, std::string_view imageViewName )
+        -> VkResult;
+
     auto createImageView( VkImageView& imageView,
                           VkImage& image,
                           VkFormat format,

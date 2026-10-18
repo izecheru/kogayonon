@@ -856,6 +856,18 @@ auto graphics::VulkanDevice::copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSiz
     endSingleTimeCommands( commandBuffer, m_transferQueue.handle, m_transferCommandPool, fence );
 }
 
+auto graphics::VulkanDevice::createSampler( VkSampler& sampler, VkSamplerCreateInfo info, std::string_view samplerName )
+    -> void
+{
+    VK_CALL( vkCreateSampler( m_platform.device, &info, nullptr, &sampler ) );
+
+    if ( !samplerName.empty() )
+    {
+        m_memAllocator->setVulkanDebugName(
+            VK_OBJECT_TYPE_SAMPLER, reinterpret_cast<uint64_t>( sampler ), samplerName );
+    }
+}
+
 auto graphics::VulkanDevice::createSampler( VkSampler& sampler, std::string_view samplerName ) -> void
 {
     VkPhysicalDeviceProperties properties{};
@@ -926,6 +938,28 @@ auto graphics::VulkanDevice::transitionImageLayout( VulkanImage image,
                                                     VkImageMemoryBarrier2 imageBarrier ) -> void
 {
     transitionImageLayout( image.vkImage, cmdBuffer, imageBarrier );
+}
+
+auto graphics::VulkanDevice::copyBufferToImage( VkBuffer buffer,
+                                                VkImage image,
+                                                uint32_t width,
+                                                uint32_t height,
+                                                VkImageMemoryBarrier2 imageBarrier,
+                                                VkBufferImageCopy region ) -> void
+{
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands( m_transferCommandPool );
+
+    vkCmdCopyBufferToImage( commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region );
+
+    VkDependencyInfo dependency{
+        .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+        .imageMemoryBarrierCount = 1,
+        .pImageMemoryBarriers = &imageBarrier,
+    };
+
+    vkCmdPipelineBarrier2( commandBuffer, &dependency );
+
+    endSingleTimeCommands( commandBuffer, getTransferQueue().handle, m_transferCommandPool );
 }
 
 auto graphics::VulkanDevice::copyBufferToImage(

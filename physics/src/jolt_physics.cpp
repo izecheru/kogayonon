@@ -230,7 +230,7 @@ auto physics::JoltPhysics::createRigidTerrainBody( const JPH::VertexList& vertic
 
     if ( !meshResult.IsValid() )
     {
-        KERROR( "Mesh shape creation failed: {}", meshResult.GetError().c_str() );
+        KERROR( "Model shape creation failed: {}", meshResult.GetError().c_str() );
     }
 
     JPH::ScaledShapeSettings scaledSettings{ meshResult.Get(), JPH::Vec3{ size.x, size.y, size.z } };

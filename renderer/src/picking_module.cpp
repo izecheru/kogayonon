@@ -1,7 +1,7 @@
 #include "renderer/modules/picking_module.hpp"
 #include "graphics/vulkan_memory_allocator.hpp"
 #include "SDL3/SDL.h"
-#include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
@@ -168,11 +168,11 @@ auto rendering::PickingModule::registerPickingPass() -> void
 
             core::Scene* scene = core::MainRegistry::getInstance().getSceneManager()->getCurrentScene();
 
-            auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
+            auto view = scene->getEnttRegistry().view<core::ModelComponent, core::TransformComponent>();
             view.each( [&]( const entt::entity& entityId,
-                            core::MeshComponent& meshComponent,
+                            core::ModelComponent& modelComponent,
                             core::TransformComponent& transform ) {
-                resources::Mesh* pMesh = meshComponent.pMesh;
+                resources::Model* pMesh = modelComponent.pMesh;
                 if ( !pMesh )
                     return;
 
@@ -181,7 +181,7 @@ auto rendering::PickingModule::registerPickingPass() -> void
 
                 VkDeviceSize offsets[] = { 0 };
 
-                for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
+                for ( auto& submesh : modelComponent.pMesh->getMeshes() )
                 {
                     resources::EntityPickingPushConstant push{ .modelMatrix = transform.getMatrix(),
                                                                .entityId = static_cast<int>( entityId ) };

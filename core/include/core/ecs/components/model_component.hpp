@@ -1,15 +1,16 @@
 #pragma once
-#include <cinttypes>
 #include <entt/entt.hpp>
-#include "resources/mesh.hpp"
+#include "resources/model.hpp"
 #include "resources/texture.hpp"
 #include "resources/vertex.hpp"
 
 namespace core
 {
-struct MeshComponent
+
+struct ModelComponent
 {
     std::string meshPath{ "" };
-    resources::Mesh* pMesh{ nullptr };
+    resources::Model* pMesh{ nullptr };
 };
+
 } // namespace core

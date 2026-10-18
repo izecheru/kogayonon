@@ -9,31 +9,39 @@
 namespace resources
 {
 
+/**
+ * @brief Bounding box for entity culling on GPU
+ * WIP
+ */
 struct AABB
 {
     glm::vec3 min{};
     glm::vec3 max{};
 };
 
-struct Submesh
+/**
+ * @brief Submesh struct
+ *
+ */
+struct Mesh
 {
     uint32_t vertexOffset{ 0u };
     uint32_t indexOffset{ 0u };
     uint32_t indexCount{ 0u };
-    Material submeshMaterial{};
+    Material material{};
     int materialIndex{ -1 };
 };
 
-class Mesh
+class Model
 {
   public:
-    Mesh() = default;
-    ~Mesh() = default;
+    Model() = default;
+    ~Model() = default;
 
     auto getVertices() -> std::vector<Vertex>&;
     auto getIndices() -> std::vector<uint32_t>&;
 
-    auto getSubmeshes() -> std::vector<Submesh>&;
+    auto getMeshes() -> std::vector<Mesh>&;
 
     inline auto getPath() -> std::string&
     {
@@ -62,6 +70,6 @@ class Mesh
     bool m_loaded{ false };
 
     std::string m_path;
-    std::vector<Submesh> m_submeshes;
+    std::vector<Mesh> m_meshes;
 };
 } // namespace resources

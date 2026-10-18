@@ -37,6 +37,10 @@ struct FGResource
 {
     graphics::VulkanImage vulkanImage;
     FGResourceState lastState;
+
+    std::vector<Node*> writeVersions;
+    Node* currentWriteVersion{ nullptr };
+
     std::set<Node*> writerNodes;
     std::set<Node*> readerNodes;
 };
@@ -137,8 +141,23 @@ class NodeBuilder
     {
         using enum FGResourceAccessType;
 
+        Node* prevWriter = resource->currentWriteVersion;
+
         resource->writerNodes.insert( m_nodeHandle );
         m_nodeHandle->writes.push_back( resource );
+
+        // if there's a previous writer node, this one depends on it
+        if ( prevWriter )
+        {
+            m_nodeHandle->dependsOn.insert( prevWriter );
+
+            // this consumes the previous writer output
+            prevWriter->consumers.insert( m_nodeHandle );
+        }
+
+        // bump the version
+        resource->writeVersions.push_back( m_nodeHandle );
+        resource->currentWriteVersion = m_nodeHandle;
 
         m_nodeHandle->resourceExpectedState[resource] =
             FGResourceState{ .type = type, .accessType = FGResourceAccessType::Write };
@@ -153,6 +172,12 @@ class NodeBuilder
     auto inline read( FGResource* resource, FGResourceType type ) -> void
     {
         using enum FGResourceAccessType;
+
+        if ( resource->currentWriteVersion )
+        {
+            m_nodeHandle->dependsOn.insert( resource->currentWriteVersion );
+            resource->currentWriteVersion->consumers.insert( m_nodeHandle );
+        }
 
         resource->readerNodes.insert( m_nodeHandle );
         m_nodeHandle->reads.push_back( resource );

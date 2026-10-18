@@ -1,7 +1,7 @@
 #pragma once
 #include "tiny_gltf_v3.h"
 #include "resources/vertex.hpp"
-#include "resources/mesh.hpp"
+#include "resources/model.hpp"
 #include "resources/material.hpp"
 
 namespace core
@@ -20,8 +20,9 @@ class TinyGltfLoader
     explicit TinyGltfLoader( std::string_view modelPath );
     ~TinyGltfLoader();
 
-    auto processVertexData( resources::Mesh* pMesh ) -> void;
-    auto parseTextureData( resources::Mesh* pMesh ) -> std::unordered_map<uint32_t, std::map<TextureType, std::string>>;
+    auto processVertexData( resources::Model* pMesh ) -> void;
+    auto parseTextureData( resources::Model* pMesh )
+        -> std::unordered_map<uint32_t, std::map<TextureType, std::string>>;
 
     auto imageIndexFromTexture( int textureIndex ) const -> int;
 

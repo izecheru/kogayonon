@@ -1,6 +1,12 @@
 #include "renderer/vulkan_renderer.hpp"
 
-#include "core/ecs/components/mesh_component.hpp"
+#include "renderer/modules/geometry_module.hpp"
+#include "renderer/modules/prepass_module.hpp"
+#include "renderer/modules/imgui_module.hpp"
+#include "renderer/modules/picking_module.hpp"
+#include "renderer/modules/skybox_module.hpp"
+
+#include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "graphics/vulkan_memory_allocator.hpp"
 #include "core/ecs/components/camera_component.hpp"
@@ -68,6 +74,9 @@ auto rendering::VulkanRenderer::initModules() -> void
     m_imguiModule = std::make_unique<ImGuiModule>( m_frameGraph.get(), m_vkCtx, m_pImguiRenderer.get() );
 
     m_prepassModule = std::make_unique<PrepassModule>( m_frameGraph.get(), m_vkCtx, m_extent, &m_cameraDescriptor );
+
+    m_skyboxModule = std::make_unique<SkyboxModule>(
+        m_frameGraph.get(), m_vkCtx, m_extent, &m_cameraDescriptor, glm::vec4{ 0.5f, 0.5f, 0.5f, 1.0f } );
 
     m_geometryModule = std::make_unique<GeometryModule>(
         m_frameGraph.get(), m_vkCtx, m_extent, &m_cameraDescriptor, glm::vec4{ 0.5f, 0.5f, 0.5f, 1.0f } );
@@ -270,6 +279,7 @@ auto rendering::VulkanRenderer::destroyModules() -> void
     m_pickingModule.reset();
     m_imguiModule.reset();
     m_prepassModule.reset();
+    m_skyboxModule.reset();
 
     m_frameGraph->clearGraph();
 }

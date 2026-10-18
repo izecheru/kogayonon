@@ -1,3 +1,5 @@
+#include "core/ecs/components/cubemap_component.hpp"
+#include "renderer/modules/skybox_module.hpp"
 #include "renderer/modules/geometry_module.hpp"
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -12,7 +14,7 @@
 #include "resources/vertex.hpp"
 #include "tracy/TracyVulkan.hpp"
 // components for view filtering in scene
-#include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "graphics/vulkan_memory_allocator.hpp"
 
@@ -82,10 +84,6 @@ auto rendering::GeometryModule::destroyModuleResources() -> void
     m_vkCtx->device->destroyPipelineLayout( geometryModuleData.wireframePipeline.getLayout() );
     m_vkCtx->device->destroyPipeline( geometryModuleData.wireframePipeline.getPipeline() );
 
-    m_vkCtx->device->destroyImageView( geometryModuleData.color->vulkanImage.vkImageView );
-    allocator->destroyImage( geometryModuleData.color->vulkanImage.vkImage,
-                             geometryModuleData.color->vulkanImage.vmaAllocation );
-
     blackboard->removeFromStorage<GeometryModuleData>();
 }
 
@@ -121,10 +119,10 @@ auto rendering::GeometryModule::registerWireframePass() -> void
     m_graph->addNode(
         std::string{ passId::Wireframe },
         []( NodeBuilder& b, Blackboard* blackboard ) {
-            GeometryModuleData& geometryData = blackboard->get<GeometryModuleData>();
+            SkyboxModuleData& skyboxData = blackboard->get<SkyboxModuleData>();
             PrepassModuleData& prepassData = blackboard->get<PrepassModuleData>();
 
-            b.write( geometryData.color, rendering::FGResourceType::Color );
+            b.write( skyboxData.color, rendering::FGResourceType::Color );
             b.read( prepassData.depth, rendering::FGResourceType::Depth );
         },
         [=]( VkCommandBuffer cmdBuffer ) {
@@ -139,25 +137,26 @@ auto rendering::GeometryModule::registerWireframePass() -> void
             }
 
             GeometryModuleData& geometryData = m_graph->getBlackboard()->get<GeometryModuleData>();
+            SkyboxModuleData& skyboxData = m_graph->getBlackboard()->get<SkyboxModuleData>();
             PrepassModuleData& prepassData = m_graph->getBlackboard()->get<PrepassModuleData>();
 
             graphics::VulkanPipeline& wireframePipeline = geometryData.wireframePipeline;
 
             geometryData.renderingInfo.colorAttachmentInfo = VkRenderingAttachmentInfo{
                 .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                .imageView = geometryData.color->vulkanImage.vkImageView,
+                .imageView = skyboxData.color->vulkanImage.vkImageView,
                 .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD, // load cause the skybox was rendered here
                 .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                .clearValue = { { m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w } } };
+            };
 
-            geometryData.renderingInfo.depthAttachmentInfo =
-                VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                                           .imageView = prepassData.depth->vulkanImage.vkImageView,
-                                           .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
-                                           .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
-                                           .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                                           .clearValue = { .depthStencil = { 1.f, 0 } } };
+            geometryData.renderingInfo.depthAttachmentInfo = VkRenderingAttachmentInfo{
+                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                .imageView = prepassData.depth->vulkanImage.vkImageView, // reuse from prepass depth
+                .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                .clearValue = { .depthStencil = { 1.f, 0 } } };
 
             geometryData.renderingInfo.vkRenderingInfo = VkRenderingInfo{
                 .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
@@ -258,10 +257,10 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
     m_graph->addNode(
         std::string{ passId::Geometry },
         []( NodeBuilder& b, Blackboard* blackboard ) {
-            GeometryModuleData& geometryModule = blackboard->get<GeometryModuleData>();
+            SkyboxModuleData& skyboxData = blackboard->get<SkyboxModuleData>();
             PrepassModuleData& prepassData = blackboard->get<PrepassModuleData>();
 
-            b.write( geometryModule.color, rendering::FGResourceType::Color );
+            b.write( skyboxData.color, rendering::FGResourceType::Color );
             b.read( prepassData.depth, rendering::FGResourceType::Depth );
         },
         [=]( VkCommandBuffer cmdBuffer ) {
@@ -272,6 +271,7 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
             markerInfo.pLabelName = passId::Geometry;
 
             GeometryModuleData& geometryData = m_graph->getBlackboard()->get<GeometryModuleData>();
+            SkyboxModuleData& skyboxData = m_graph->getBlackboard()->get<SkyboxModuleData>();
             PrepassModuleData& prepassData = m_graph->getBlackboard()->get<PrepassModuleData>();
 
             if ( m_extent.width == 0 || m_extent.height == 0 )
@@ -286,17 +286,16 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
 
             graphics::VulkanPipeline& geometryPipeline = geometryData.basePipeline;
 
-            geometryData.renderingInfo.colorAttachmentInfo = VkRenderingAttachmentInfo{
-                .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                .imageView = geometryData.color->vulkanImage.vkImageView,
-                .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                .clearValue = { { m_clearColor.x, m_clearColor.y, m_clearColor.z, m_clearColor.w } } };
+            geometryData.renderingInfo.colorAttachmentInfo =
+                VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                                           .imageView = skyboxData.color->vulkanImage.vkImageView, // reuse
+                                           .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                           .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+                                           .storeOp = VK_ATTACHMENT_STORE_OP_STORE };
 
             geometryData.renderingInfo.depthAttachmentInfo =
                 VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                                           .imageView = prepassData.depth->vulkanImage.vkImageView,
+                                           .imageView = prepassData.depth->vulkanImage.vkImageView, // reuse
                                            .imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
                                            .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
                                            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -369,33 +368,7 @@ auto rendering::GeometryModule::registerBaseGeometryPass() -> void
 
 auto rendering::GeometryModule::createModuleResources( VkExtent2D extent ) -> void
 {
-    Blackboard* blackboard = m_graph->getBlackboard();
-
-    blackboard->addToStorage<GeometryModuleData>();
-    GeometryModuleData& geometryModuleData = blackboard->get<GeometryModuleData>();
-
-    VkImageCreateInfo geometryColorInfo{
-        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-        .imageType = VK_IMAGE_TYPE_2D,
-        .format = m_vkCtx->swapchain->getSwapchainImageFormat(),
-        .extent =
-            {
-                .width = extent.width,
-                .height = extent.height,
-                .depth = 1,
-            },
-        .mipLevels = 1,
-        .arrayLayers = 1,
-        .samples = VK_SAMPLE_COUNT_1_BIT,
-        .tiling = VK_IMAGE_TILING_OPTIMAL,
-        .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-    };
-
-    VmaAllocationCreateInfo geometryColorAllocInfo{ .usage = VMA_MEMORY_USAGE_AUTO };
-
-    geometryModuleData.color = m_graph->createResource( "geometryColor", geometryColorInfo, geometryColorAllocInfo );
+    m_graph->getBlackboard()->addToStorage<GeometryModuleData>();
 }
 
 auto rendering::GeometryModule::enableWireframe() -> void
@@ -425,7 +398,6 @@ auto rendering::GeometryModule::enableWireframe() -> void
 auto rendering::GeometryModule::disableWireframe() -> void
 {
     m_wireframe = false;
-    // cull base pass
     for ( std::unique_ptr<Node>& node : m_graph->getContainer().nodes )
     {
         if ( node->name == passId::Wireframe )

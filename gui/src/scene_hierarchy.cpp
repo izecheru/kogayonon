@@ -1,7 +1,7 @@
 #include "gui/imgui_windows/scene_hierarchy.hpp"
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/identifier_component.hpp"
-#include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/event/event_dispatcher.hpp"
@@ -177,8 +177,8 @@ void gui::SceneHierarchy::drawContextMenu()
             Entity ent{ scene->getRegistry(), "ObjectEntity" };
 
             ent.addComponent<TransformComponent>( TransformComponent{} );
-            ent.addComponent<MeshComponent>(
-                MeshComponent{ .meshPath = p.string(), .pMesh = assetManager->loadMesh( "test", p.string() ) } );
+            ent.addComponent<ModelComponent>(
+                ModelComponent{ .meshPath = p.string(), .pMesh = assetManager->loadMesh( "test", p.string() ) } );
 
             pEventDispatcher->dispatchEvent<SelectEntityEvent>(
                 SelectEntityEvent{ ent.getEntityId(), SelectEntityEventSource::Hierarchy_Window } );

@@ -13,10 +13,23 @@ namespace enki
 struct ITaskSet;
 }
 
+const std::vector<std::string> cubemapFilenames{ "negx", "negy", "negz", "posx", "posy", "posz" };
+
+// front back top bottom right left
+enum CubemapIndex : uint32_t
+{
+    Front = 0u,
+    Back = 1u,
+    Top = 2u,
+    Bottom = 3u,
+    Right = 4u,
+    Left = 5u
+};
+
 namespace resources
 {
 struct Texture;
-class Mesh;
+class Model;
 class Font;
 struct Material;
 } // namespace resources
@@ -35,7 +48,7 @@ struct ParsedMaterials
     /**
      * @brief Owner of those materials
      */
-    resources::Mesh* pMesh{ nullptr };
+    resources::Model* pMesh{ nullptr };
 
     std::unordered_map<uint32_t, std::map<TextureType, std::string>> parsedMaterialData;
 };
@@ -60,7 +73,7 @@ struct ImageData
 
 struct MeshTaskData
 {
-    std::unique_ptr<resources::Mesh> mesh;
+    std::unique_ptr<resources::Model> mesh;
     graphics::VulkanBuffer stageBuffer;
 
     VkDeviceSize indicesSize{ 0u };
@@ -152,6 +165,9 @@ class AssetManager
      */
     auto getTexture( const std::string& texturePath ) -> resources::Texture*;
 
+    auto loadCubemap( const std::string& texturePath ) -> resources::Texture*;
+    auto loadRawTextureData( const std::string& texturePath, int& w, int& h, uint8_t*& dst ) -> void;
+
     /**
      * @brief Loads texture if it is not already loaded
      * @param textureName Name of the texture
@@ -159,6 +175,11 @@ class AssetManager
      * @return
      */
     auto loadTexture( const std::string& textureName, const std::string& texturePath ) -> resources::Texture*;
+
+    auto loadTexture( const std::string& textureName,
+                      const std::string& texturePath,
+                      VkImageCreateInfo imageCreateInfo ) -> resources::Texture*;
+
     auto loadTextureData() -> void;
 
     /**
@@ -166,7 +187,7 @@ class AssetManager
      * @param path
      * @return
      */
-    auto getMesh( const std::string& path ) -> resources::Mesh*;
+    auto getMesh( const std::string& path ) -> resources::Model*;
 
     /**
      * @brief Load mesh if it is not already loaded
@@ -174,14 +195,14 @@ class AssetManager
      * @param meshPath Absolute path to the mesh
      * @return
      */
-    auto loadMesh( const std::string& meshName, const std::string& meshPath ) -> resources::Mesh*;
+    auto loadMesh( const std::string& meshName, const std::string& meshPath ) -> resources::Model*;
 
     /**
      * @brief Enqueue mesh for vertices and indices buffers creation
      * @param mesh
      * @return
      */
-    auto enqueueMesh( resources::Mesh* mesh ) -> void;
+    auto enqueueMesh( resources::Model* mesh ) -> void;
 
     /**
      * @brief Things that need to update will be done here, like initializing meshes or textures
@@ -209,7 +230,10 @@ class AssetManager
      */
     auto getBindlessDescriptorSet() -> VkDescriptorSet&;
 
-    auto getMeshes() -> std::unordered_map<std::string, std::unique_ptr<resources::Mesh>>&;
+    auto getBindlessCubemapDescriptorLayout() -> VkDescriptorSetLayout&;
+    auto getBindlessCubemapDescriptorSet() -> VkDescriptorSet&;
+
+    auto getMeshes() -> std::unordered_map<std::string, std::unique_ptr<resources::Model>>&;
     auto getTextures() -> std::unordered_map<std::string, std::unique_ptr<resources::Texture>>&;
 
     /**
@@ -222,7 +246,7 @@ class AssetManager
     template <typename T>
     auto hasResource( const std::string& resourceKey ) -> bool
     {
-        if constexpr ( std::is_same_v<resources::Mesh, T> )
+        if constexpr ( std::is_same_v<resources::Model, T> )
         {
             return m_loadedMeshes.find( resourceKey ) != m_loadedMeshes.end();
         }
@@ -239,11 +263,13 @@ class AssetManager
      * @brief Create descriptor layout for the bindless texture array
      */
     auto createBindlessDescriptorSetLayout() -> void;
+    auto createCubemapBindlessDescriptorSetLayout() -> void;
 
     /**
      * @brief Allocate descriptor sets in the pool
      */
     auto allocateBindlessDescriptorSet() -> void;
+    auto allocateCubemapBindlessDescriptorSet() -> void;
 
     /**
      * @brief Update the bindless texture descriptor set to include a new texture in the array
@@ -251,6 +277,7 @@ class AssetManager
      */
     auto updateBindlessTextures( resources::Texture* pTexture ) -> void;
     auto updateBindlessTextures( const std::vector<resources::Texture*>& textures ) -> void;
+    auto updateBindlessCubemaps( resources::Texture* texture ) -> void;
 
     auto resolveMaterials( ParsedMaterials batch ) -> void;
 
@@ -273,13 +300,17 @@ class AssetManager
     resources::Material* m_materialsPtr;
 
     std::unordered_map<std::string, std::unique_ptr<resources::Texture>> m_loadedTextures;
-    std::unordered_map<std::string, std::unique_ptr<resources::Mesh>> m_loadedMeshes;
-    std::queue<resources::Mesh*> m_queuedMeshes;
+    std::unordered_map<std::string, std::unique_ptr<resources::Model>> m_loadedMeshes;
+    std::queue<resources::Model*> m_queuedMeshes;
     std::unordered_map<std::string, std::unique_ptr<resources::Font>> m_loadedFonts;
     std::queue<ParsedMaterials> m_parsedMaterialsQueue;
 
     graphics::VulkanContext* m_vkCtx;
     VkSampler m_textureSampler;
+
+    graphics::VulkanDescriptor m_bindlessCubemapDescriptor;
+    VkSampler m_cubemapSampler;
+    uint32_t m_bindlessCubemapIndex;
 
     FontLoader m_fontLoader;
     std::unique_ptr<KtxTextureManager> m_ktxTextureManager;

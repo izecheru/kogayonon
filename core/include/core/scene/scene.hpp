@@ -1,7 +1,7 @@
 #pragma once
 #include <entt/entt.hpp>
 #include "core/ecs/entity.hpp"
-#include "resources/mesh.hpp"
+#include "resources/model.hpp"
 #include "core/ecs/registry.hpp"
 
 namespace core
@@ -52,12 +52,12 @@ class Scene
      * @param entity The entity id
      * @param pMesh The mesh weak_ptr from the asset manager
      */
-    auto addMeshToEntity( entt::entity entity, resources::Mesh* pMesh ) -> void;
+    auto addMeshToEntity( entt::entity entity, resources::Model* pMesh ) -> void;
 
     auto onUpdate() -> void;
 
     /**
-     * @brief Removes the MeshComponent from the entity and clears the related data in the instance data struct
+     * @brief Removes the ModelComponent from the entity and clears the related data in the instance data struct
      * @param entity The entity we edit
      * @param pModel The model weak_ptr from asset manager
      */

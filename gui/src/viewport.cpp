@@ -4,7 +4,7 @@
 #include "ImOGuizmo.hpp"
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/camera_component.hpp"
-#include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/rigidbody_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -74,15 +74,15 @@ void gui::Viewport::render()
             std::string dropResult{ static_cast<const char*>( payload->Data ) };
             std::filesystem::path p{ dropResult };
             core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
-            resources::Mesh* pMesh = assetManager->loadMesh( p.stem().string(), p.string() );
+            resources::Model* pMesh = assetManager->loadMesh( p.stem().string(), p.string() );
 
             core::Entity ent{ scene->getRegistry(), p.stem().string() };
 
             ent.removeComponent<core::TransformComponent>();
-            ent.removeComponent<core::MeshComponent>();
+            ent.removeComponent<core::ModelComponent>();
 
             ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
-            ent.addComponent<core::MeshComponent>( core::MeshComponent{ .meshPath = p.string(), .pMesh = pMesh } );
+            ent.addComponent<core::ModelComponent>( core::ModelComponent{ .meshPath = p.string(), .pMesh = pMesh } );
             core::EventDispatcher* dispatcher = core::MainRegistry::getInstance().getEventDispatcher();
 
             dispatcher->dispatchEvent<core::SelectEntityEvent>(
@@ -364,7 +364,7 @@ void gui::Viewport::drawEntityMenu()
                 std::filesystem::path p{ std::filesystem::absolute( "." ) / "engine_resources" / "models" / filename };
 
                 ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
-                ent.addComponent<core::MeshComponent>( core::MeshComponent{
+                ent.addComponent<core::ModelComponent>( core::ModelComponent{
                     .meshPath = p.string(), .pMesh = assetManager->loadMesh( "test", p.string() ) } );
 
                 pEventDispatcher->dispatchEvent<core::SelectEntityEvent>(
@@ -415,17 +415,17 @@ void gui::Viewport::drawEntityMenu()
                         core::TransformComponent& transform =
                             scene->getRegistry()->getComponent<core::TransformComponent>( currentEntity );
 
-                        core::MeshComponent& meshComponent =
-                            scene->getRegistry()->getComponent<core::MeshComponent>( currentEntity );
+                        core::ModelComponent& modelComponent =
+                            scene->getRegistry()->getComponent<core::ModelComponent>( currentEntity );
 
-                        std::filesystem::path meshPath = meshComponent.pMesh->getPath();
+                        std::filesystem::path meshPath = modelComponent.pMesh->getPath();
                         std::string filename = { meshPath.stem().string() + "_collision.gltf" };
                         auto collisionMeshPath = meshPath.parent_path() / filename;
 
                         if ( std::filesystem::exists( collisionMeshPath ) )
                         {
                             utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
-                            resources::Mesh* collisionMesh = assetManager->getMesh( collisionMeshPath.string() );
+                            resources::Model* collisionMesh = assetManager->getMesh( collisionMeshPath.string() );
                             auto callback = taskManager->addTask( [=, meshPtr = collisionMesh]() {
                                 JPH::VertexList vertices{};
                                 JPH::IndexedTriangleList indices{};
@@ -471,7 +471,7 @@ void gui::Viewport::drawEntityMenu()
                         }
                         else
                         {
-                            KERROR( "No collision mesh for {}", meshComponent.pMesh->getPath() );
+                            KERROR( "No collision mesh for {}", modelComponent.pMesh->getPath() );
                         }
 
                         m_entityMenu = false;

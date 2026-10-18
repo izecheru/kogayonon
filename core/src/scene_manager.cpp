@@ -6,7 +6,7 @@
 #include "rapidjson/istreamwrapper.h"
 #include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/camera_component.hpp"
-#include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "utilities/json_serializer/json_serializer.hpp"
 #include "core/event/event_dispatcher.hpp"

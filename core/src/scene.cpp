@@ -7,7 +7,7 @@
 #include "core/scene/scene.hpp"
 #include "core/ecs/components/directional_light_component.hpp"
 #include "core/ecs/components/index_component.hpp"
-#include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/rigidbody_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -59,13 +59,13 @@ auto core::Scene::addEntity() -> entt::entity
     return ent.getEntityId();
 }
 
-auto core::Scene::addMeshToEntity( entt::entity entity, resources::Mesh* pMesh ) -> void
+auto core::Scene::addMeshToEntity( entt::entity entity, resources::Model* pMesh ) -> void
 {
     std::lock_guard lock{ m_registryMutex };
     m_registryModified = true;
     Entity ent{ m_pRegistry.get(), entity };
     ent.setType( EntityType::Object );
-    ent.replaceComponent<MeshComponent>( MeshComponent{ .pMesh = pMesh } );
+    ent.replaceComponent<ModelComponent>( ModelComponent{ .pMesh = pMesh } );
 
     if ( !ent.hasComponent<TransformComponent>() )
         ent.addComponent<TransformComponent>();
@@ -76,7 +76,7 @@ void core::Scene::removeMeshFromEntity( entt::entity entity )
     m_registryModified = true;
     Entity ent{ m_pRegistry.get(), entity };
 
-    ent.removeComponent<MeshComponent>();
+    ent.removeComponent<ModelComponent>();
     ent.removeComponent<IndexComponent>();
     ent.removeComponent<TransformComponent>();
 }
@@ -113,19 +113,19 @@ auto core::Scene::onUpdate() -> void
     } );
 
     // if there are mesh components that are done loading use them
-    auto meshView = m_pRegistry->getRegistry().view<core::MeshComponent>();
+    auto meshView = m_pRegistry->getRegistry().view<core::ModelComponent>();
 
-    meshView.each( []( const entt::entity& entityId, core::MeshComponent& meshComp ) {
+    meshView.each( []( const entt::entity& entityId, core::ModelComponent& modelComp ) {
         core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
 
-        if ( !meshComp.pMesh )
+        if ( !modelComp.pMesh )
         {
-            resources::Mesh* mesh = assetManager->getMesh( meshComp.meshPath );
+            resources::Model* mesh = assetManager->getMesh( modelComp.meshPath );
             if ( !mesh )
             {
                 return;
             }
-            meshComp.pMesh = mesh;
+            modelComp.pMesh = mesh;
         }
     } );
 }
@@ -178,9 +178,9 @@ auto core::Scene::deserialize( const std::filesystem::path& p ) -> void
         {
             core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
             std::filesystem::path meshPath = e["mesh"]["path"].GetString();
-            resources::Mesh* mesh = assetManager->loadMesh( meshPath.stem().string(), meshPath.string() );
-            ent.addComponent<core::MeshComponent>(
-                core::MeshComponent{ .meshPath = meshPath.string(), .pMesh = mesh } );
+            resources::Model* mesh = assetManager->loadMesh( meshPath.stem().string(), meshPath.string() );
+            ent.addComponent<core::ModelComponent>(
+                core::ModelComponent{ .meshPath = meshPath.string(), .pMesh = mesh } );
         }
     }
 }
@@ -202,11 +202,11 @@ auto core::Scene::serialize() -> void
             .endObject();
     };
 
-    auto saveEntityMeshComponent = []( utilities::JsonSerializer* s, const core::MeshComponent& meshComponent ) {
-        if ( !meshComponent.pMesh )
+    auto saveEntitymodelComponent = []( utilities::JsonSerializer* s, const core::ModelComponent& modelComponent ) {
+        if ( !modelComponent.pMesh )
             return;
 
-        s->startObject( "mesh" ).addKeyValuePair( "path", meshComponent.pMesh->getPath() ).endObject();
+        s->startObject( "mesh" ).addKeyValuePair( "path", modelComponent.pMesh->getPath() ).endObject();
     };
 
     std::string sceneFilename = m_name + ".kscene";
@@ -233,9 +233,9 @@ auto core::Scene::serialize() -> void
 
         saveEntityIdComponent( serializer.get(), idComponent );
 
-        if ( entity.hasComponent<core::MeshComponent>() )
+        if ( entity.hasComponent<core::ModelComponent>() )
         {
-            saveEntityMeshComponent( serializer.get(), entity.getComponent<core::MeshComponent>() );
+            saveEntitymodelComponent( serializer.get(), entity.getComponent<core::ModelComponent>() );
         }
 
         if ( entity.hasComponent<core::TransformComponent>() )

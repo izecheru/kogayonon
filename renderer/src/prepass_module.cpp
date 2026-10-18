@@ -1,7 +1,7 @@
 #include "renderer/modules/prepass_module.hpp"
 #include "core/asset_manager/asset_manager.hpp"
 #include "graphics/vulkan_memory_allocator.hpp"
-#include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/scene/scene.hpp"
@@ -90,27 +90,27 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
             EntityParams* paramsPtr = prepassData.entitiesParamsPtr[currentFrame];
 
             // fill the vectors
-            auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
+            auto view = scene->getEnttRegistry().view<core::ModelComponent, core::TransformComponent>();
 
             uint32_t drawIndex{ 0u };
             {
                 ZoneScopedN( "build indirect commands" );
                 view.each( [&]( const entt::entity& id,
-                                core::MeshComponent& meshComp,
+                                core::ModelComponent& modelComp,
                                 core::TransformComponent& transformComp ) {
-                    if ( !meshComp.pMesh )
+                    if ( !modelComp.pMesh )
                         return;
 
-                    for ( const resources::Submesh& submesh : meshComp.pMesh->getSubmeshes() )
+                    for ( const resources::Mesh& mesh : modelComp.pMesh->getMeshes() )
                     {
-                        paramsPtr[drawIndex] = EntityParams{ .transform = transformComp.getMatrix(),
-                                                             .materialIndex = submesh.materialIndex };
+                        paramsPtr[drawIndex] =
+                            EntityParams{ .transform = transformComp.getMatrix(), .materialIndex = mesh.materialIndex };
 
                         indirectPtr[drawIndex] =
-                            VkDrawIndexedIndirectCommand{ .indexCount = submesh.indexCount,
+                            VkDrawIndexedIndirectCommand{ .indexCount = mesh.indexCount,
                                                           .instanceCount = 1,
-                                                          .firstIndex = submesh.indexOffset,
-                                                          .vertexOffset = static_cast<int32_t>( submesh.vertexOffset ),
+                                                          .firstIndex = mesh.indexOffset,
+                                                          .vertexOffset = static_cast<int32_t>( mesh.vertexOffset ),
                                                           .firstInstance = drawIndex };
                         ++drawIndex;
                     }

@@ -1,8 +1,10 @@
 #include "gui/imgui_windows/entity_properties.hpp"
+#include "tinyfiledialogs/tinyfiledialogs.h"
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/scene/scene_manager.hpp"
+#include "core/ecs/components/cubemap_component.hpp"
 #include "core/ecs/components/camera_component.hpp"
-#include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/rigidbody_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/entity.hpp"
@@ -57,27 +59,48 @@ void gui::EntityProperties::contextMenu()
         core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
         core::Scene* scene = sceneManager->getCurrentScene();
         entt::entity currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
-        core::MeshComponent* meshComp = scene->getRegistry()->tryGetComponent<core::MeshComponent>( currentEntity );
+        core::ModelComponent* modelComp = scene->getRegistry()->tryGetComponent<core::ModelComponent>( currentEntity );
 
-        if ( !meshComp )
+        if ( !modelComp )
         {
-            if ( ImGui::MenuItem( "Mesh" ) )
+            if ( ImGui::MenuItem( "Model" ) )
             {
                 auto registry = scene->getRegistry();
                 registry->addComponent<core::TransformComponent>( currentEntity, core::TransformComponent{} );
-                registry->addComponent<core::MeshComponent>( currentEntity,
-                                                             core::MeshComponent{
-                                                                 .pMesh = nullptr,
-                                                             } );
+                registry->addComponent<core::ModelComponent>( currentEntity,
+                                                              core::ModelComponent{
+                                                                  .pMesh = nullptr,
+                                                              } );
             }
         }
         else
         {
-            RenderDisabled( ImGui::MenuItem( "Mesh" ) );
+            RenderDisabled( ImGui::MenuItem( "Model" ) );
+        }
+
+        bool hasCubemap = scene->getRegistry()->hasComponent<core::CubemapComponent>( currentEntity );
+
+        if ( !hasCubemap )
+        {
+            if ( ImGui::MenuItem( "Add cubemap" ) )
+            {
+                std::filesystem::path p{ std::filesystem::current_path() / "engine_resources" / "textures" };
+                const char* filters[] = { "*.png", "*.jpg" };
+                char* result = tinyfd_selectFolderDialog( "Pick cubemap texture", p.string().c_str() );
+
+                if ( result )
+                {
+                    core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+                    resources::Texture* cubemap = assetManager->loadCubemap( result );
+
+                    scene->getRegistry()->addComponent<core::CubemapComponent>(
+                        currentEntity, core::CubemapComponent{ .cubemapTexture = cubemap, .isUsed = true } );
+                }
+            }
         }
 
         bool hasRigidBody = scene->getRegistry()->hasComponent<core::RigidbodyComponent>( currentEntity );
-        if ( !hasRigidBody && meshComp )
+        if ( !hasRigidBody && modelComp )
         {
             if ( ImGui::MenuItem( "Dynamic rigid body" ) )
             {
@@ -103,7 +126,7 @@ void gui::EntityProperties::contextMenu()
             }
         }
 
-        if ( !hasRigidBody && meshComp )
+        if ( !hasRigidBody && modelComp )
         {
             if ( ImGui::MenuItem( "Static rigid body" ) )
             {
@@ -142,22 +165,22 @@ void gui::EntityProperties::renderMesh()
         return;
 
     core::Scene* scene = sceneManager->getCurrentScene();
-    core::MeshComponent* meshComponent = scene->getRegistry()->tryGetComponent<core::MeshComponent>( currentEntity );
+    core::ModelComponent* modelComponent = scene->getRegistry()->tryGetComponent<core::ModelComponent>( currentEntity );
 
-    if ( !meshComponent )
+    if ( !modelComponent )
         return;
 
-    gui_utils::renderWithFont( m_spec.fonts->at( INTER_I ), [&]() { ImGui::SeparatorText( "Mesh component" ); } );
+    gui_utils::renderWithFont( m_spec.fonts->at( INTER_I ), [&]() { ImGui::SeparatorText( "Model component" ); } );
 
     gui_utils::renderWithSizedFont( m_spec.fonts->at( ICON_MDI ), 12.0f, [&]() {
         if ( ImGui::Button( ICON_MDI_DELETE "Remove component" ) )
         {
-            scene->getRegistry()->removeComponent<core::MeshComponent>( currentEntity );
+            scene->getRegistry()->removeComponent<core::ModelComponent>( currentEntity );
             scene->getRegistry()->removeComponent<core::TransformComponent>( currentEntity );
         }
     } );
 
-    if ( !meshComponent->pMesh )
+    if ( !modelComponent->pMesh )
     {
         gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 14.0f, []() {
             ImGui::Text( "You don't have a loaded mesh at the moment, drop a model file here to load it" );
@@ -175,20 +198,20 @@ void gui::EntityProperties::renderMesh()
             std::string dropResult{ static_cast<const char*>( payload->Data ) };
             std::filesystem::path p{ dropResult };
             core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
-            resources::Mesh* pMesh = assetManager->loadMesh( p.stem().string(), p.string() );
+            resources::Model* pMesh = assetManager->loadMesh( p.stem().string(), p.string() );
 
             core::Entity ent{ scene->getRegistry(), currentEntity, p.stem().string() };
 
             ent.removeComponent<core::TransformComponent>();
-            ent.removeComponent<core::MeshComponent>();
+            ent.removeComponent<core::ModelComponent>();
 
             ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
-            ent.addComponent<core::MeshComponent>( core::MeshComponent{ .meshPath = p.string(), .pMesh = pMesh } );
+            ent.addComponent<core::ModelComponent>( core::ModelComponent{ .meshPath = p.string(), .pMesh = pMesh } );
         }
     }
     else
     {
-        auto meshPath = std::filesystem::path{ meshComponent->pMesh->getPath() };
+        auto meshPath = std::filesystem::path{ modelComponent->pMesh->getPath() };
         ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
         ImGui::Text( "Filename: %s", meshPath.stem().string().c_str() );
         ImGui::PopFont();

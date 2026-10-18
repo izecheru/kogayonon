@@ -1,6 +1,5 @@
 #include "graphics/vulkan_swapchain.hpp"
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_vulkan.h>
 #include "graphics/utils.hpp"
 #include "graphics/vulkan_device.hpp"
 
@@ -141,7 +140,23 @@ void graphics::VulkanSwapchain::setupViewport( VkCommandBuffer cmd )
 
 void graphics::VulkanSwapchain::setupViewport( VkCommandBuffer cmd, const VkExtent2D& extent )
 {
-    VkViewport viewport{ 0, 0, static_cast<float>( extent.width ), static_cast<float>( extent.height ), 0.0f, 1.0f };
+    VkViewport viewport{};
+
+    if ( extent.height <= 0 || extent.width <= 0 )
+    {
+        viewport = VkViewport{ 0,
+                               0,
+                               static_cast<float>( m_swapchainExtent.width ),
+                               static_cast<float>( m_swapchainExtent.height ),
+                               0.0f,
+                               1.0f };
+    }
+    else
+    {
+        viewport =
+            VkViewport{ 0, 0, static_cast<float>( extent.width ), static_cast<float>( extent.height ), 0.0f, 1.0f };
+    }
+
     vkCmdSetViewport( cmd, 0, 1, &viewport );
 }
 
@@ -153,8 +168,19 @@ void graphics::VulkanSwapchain::setupScissors( VkCommandBuffer cmd )
 
 void graphics::VulkanSwapchain::setupScissors( VkCommandBuffer cmd, const VkExtent2D& extent )
 {
-    VkRect2D scissor{ { static_cast<int32_t>( 0 ), static_cast<int32_t>( 0 ) },
-                      { static_cast<uint32_t>( extent.width ), static_cast<uint32_t>( extent.height ) } };
+    VkRect2D scissor{};
+    if ( extent.height <= 0 || extent.width <= 0 )
+    {
+        scissor = VkRect2D{ { static_cast<int32_t>( 0 ), static_cast<int32_t>( 0 ) },
+                            { static_cast<uint32_t>( extent.width ), static_cast<uint32_t>( extent.height ) } };
+    }
+    else
+    {
+        scissor = VkRect2D{
+            { static_cast<int32_t>( 0 ), static_cast<int32_t>( 0 ) },
+            { static_cast<uint32_t>( m_swapchainExtent.width ), static_cast<uint32_t>( m_swapchainExtent.height ) } };
+    }
+
     vkCmdSetScissor( cmd, 0, 1, &scissor );
 }
 

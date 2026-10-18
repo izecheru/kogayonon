@@ -1,7 +1,7 @@
 #include "renderer/modules/shadowmap_module.hpp"
 #include "graphics/vulkan_memory_allocator.hpp"
 #include "core/ecs/components/directional_light_component.hpp"
-#include "core/ecs/components/mesh_component.hpp"
+#include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/scene/scene.hpp"
@@ -141,11 +141,11 @@ auto rendering::ShadowmapModule::registerShadowmapPass() -> void
             uint32_t index = m_vkCtx->swapchain->getCurrentFrameNumber();
             allocator->copyToBuffer( ubo, shadowmapData.directionalLightBuffer.buffers.at( index ) );
 
-            auto view = scene->getEnttRegistry().view<core::MeshComponent, core::TransformComponent>();
+            auto view = scene->getEnttRegistry().view<core::ModelComponent, core::TransformComponent>();
             view.each( [&]( const entt::entity& entityId,
-                            core::MeshComponent& meshComponent,
+                            core::ModelComponent& modelComponent,
                             core::TransformComponent& transform ) {
-                resources::Mesh* pMesh = meshComponent.pMesh;
+                resources::Model* pMesh = modelComponent.pMesh;
                 if ( !pMesh )
                     return;
 
@@ -154,7 +154,7 @@ auto rendering::ShadowmapModule::registerShadowmapPass() -> void
 
                 VkDeviceSize offsets[] = { 0 };
 
-                for ( auto& submesh : meshComponent.pMesh->getSubmeshes() )
+                for ( auto& submesh : modelComponent.pMesh->getMeshes() )
                 {
                     resources::MeshPushConstant push{ .modelMatrix = transform.getMatrix() };
 

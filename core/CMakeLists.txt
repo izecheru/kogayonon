@@ -14,7 +14,7 @@ set(EVENT_FILES
 
 set(ECS_FILES
     "include/core/ecs/components/texture_component.hpp"
-    "include/core/ecs/components/mesh_component.hpp"
+    "include/core/ecs/components/model_component.hpp"
     "include/core/ecs/components/identifier_component.hpp"
     "include/core/ecs/components/transform_component.hpp"
     "include/core/ecs/components/pointlight_component.hpp"
@@ -25,6 +25,7 @@ set(ECS_FILES
     "include/core/ecs/components/outline_component.hpp"
     "include/core/ecs/components/player_component.hpp"
     "include/core/ecs/components/npc_component.hpp"
+    "include/core/ecs/components/cubemap_component.hpp"
 
 	"include/core/ecs/registry.hpp"
     "include/core/ecs/main_registry.hpp"

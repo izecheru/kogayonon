@@ -24,19 +24,19 @@ enum class RigidbodyShape
     Plane,
     StaticCompound,
     MutableCompound,
-    Mesh
+    Model
 };
 
 inline auto rigidbodyTypeStr( const RigidbodyType& type ) -> std::string
 {
     switch ( type )
     {
-    case RigidbodyType::Static:
-        return "Static";
-    case RigidbodyType::Dynamic:
-        return "Dynamic";
-    default:
-        return "Not implemented";
+        case RigidbodyType::Static:
+            return "Static";
+        case RigidbodyType::Dynamic:
+            return "Dynamic";
+        default:
+            return "Not implemented";
     }
 }
 
@@ -44,14 +44,14 @@ inline auto rigidbodyShapeStr( const RigidbodyShape& shape ) -> std::string
 {
     switch ( shape )
     {
-    case RigidbodyShape::Box:
-        return "Box";
+        case RigidbodyShape::Box:
+            return "Box";
 
-    case RigidbodyShape::Sphere:
-        return "Sphere";
+        case RigidbodyShape::Sphere:
+            return "Sphere";
 
-    default:
-        return "Not implemented";
+        default:
+            return "Not implemented";
     }
 }
 

@@ -1,5 +1,5 @@
 set(HEADER_FILES
-  "include/resources/mesh.hpp"
+  "include/resources/model.hpp"
   "include/resources/vertex.hpp"
   "include/resources/texture.hpp"
   "include/resources/pointlight.hpp"
@@ -12,7 +12,7 @@ set(HEADER_FILES
   "include/resources/font.hpp"
 )
 set(SOURCE_FILES 
-  "src/mesh.cpp"
+  "src/model.cpp"
   "src/font.cpp"
 )
 

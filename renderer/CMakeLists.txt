@@ -1,5 +1,6 @@
 # Define headers
 set(MODULE_HEADERS
+    "include/renderer/modules/skybox_module.hpp"
     "include/renderer/modules/geometry_module.hpp"
     "include/renderer/modules/prepass_module.hpp"
     "include/renderer/modules/picking_module.hpp"
@@ -30,6 +31,7 @@ target_sources(renderer PRIVATE
     "src/shadowmap_module.cpp"
     "src/prepass_module.cpp"
     "src/picking_module.cpp"
+    "src/skybox_module.cpp"
 )
 
 target_sources(renderer PUBLIC

@@ -10,6 +10,7 @@
 namespace rendering
 {
 
+// TODO better this, whatever it is but just better
 namespace passId
 {
 inline constexpr const char* Wireframe = "wireframePass";
@@ -19,8 +20,6 @@ inline constexpr const char* DepthPrepass = "depthPrepass";
 
 struct GeometryModuleData
 {
-    FGResource* color{ VK_NULL_HANDLE };
-
     graphics::VulkanPipeline basePipeline{};
     graphics::VulkanPipeline wireframePipeline{};
 
@@ -67,6 +66,7 @@ class GeometryModule : public BaseModule
 
   protected:
     auto destroyModuleResources() -> void override;
+
     auto registerWireframePass() -> void;
     auto registerBaseGeometryPass() -> void;
 

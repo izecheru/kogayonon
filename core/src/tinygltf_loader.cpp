@@ -33,17 +33,17 @@ core::TinyGltfLoader::~TinyGltfLoader()
     tg3_error_stack_free( &m_errors );
 }
 
-auto core::TinyGltfLoader::processVertexData( resources::Mesh* pMesh ) -> void
+auto core::TinyGltfLoader::processVertexData( resources::Model* model ) -> void
 {
-    auto visitNode = [this, pMesh]( this auto&& self, int nodeIndex, const glm::mat4& parentTransform ) {
+    auto visitNode = [this, model]( this auto&& self, int nodeIndex, const glm::mat4& parentTransform ) {
         if ( nodeIndex < 0 || nodeIndex > m_model.nodes_count )
         {
             return;
         }
 
-        auto& submeshes = pMesh->getSubmeshes();
-        auto& vertices = pMesh->getVertices();
-        auto& indices = pMesh->getIndices();
+        std::vector<resources::Mesh>& meshes = model->getMeshes();
+        std::vector<resources::Vertex>& vertices = model->getVertices();
+        std::vector<uint32_t>& indices = model->getIndices();
 
         const tg3_node* node = &m_model.nodes[nodeIndex];
 
@@ -161,10 +161,10 @@ auto core::TinyGltfLoader::processVertexData( resources::Mesh* pMesh ) -> void
                 vertices.insert( vertices.end(), localVertices.begin(), localVertices.end() );
                 indices.insert( indices.end(), localIndices.begin(), localIndices.end() );
 
-                submeshes.push_back( resources::Submesh{ .vertexOffset = vertexCount,
-                                                         .indexOffset = indexCount,
-                                                         .indexCount = static_cast<uint32_t>( localIndices.size() ),
-                                                         .submeshMaterial = mat } );
+                meshes.push_back( resources::Mesh{ .vertexOffset = vertexCount,
+                                                   .indexOffset = indexCount,
+                                                   .indexCount = static_cast<uint32_t>( localIndices.size() ),
+                                                   .material = mat } );
             }
         }
 
@@ -184,28 +184,28 @@ auto core::TinyGltfLoader::processVertexData( resources::Mesh* pMesh ) -> void
     }
 }
 
-auto core::TinyGltfLoader::parseTextureData( resources::Mesh* pMesh )
+auto core::TinyGltfLoader::parseTextureData( resources::Model* model )
     -> std::unordered_map<uint32_t, std::map<TextureType, std::string>>
 {
     std::unordered_map<uint32_t, std::map<TextureType, std::string>> submeshMaterials;
     namespace fs = std::filesystem;
 
-    auto getEnginePath = [pMesh]( const std::string& texturePathFromLoader ) -> std::string {
+    auto getEnginePath = [model]( const std::string& texturePathFromLoader ) -> std::string {
         if ( texturePathFromLoader.empty() )
             return { "" };
 
         // relative to its parent
         std::filesystem::path p{ texturePathFromLoader };
-        std::filesystem::path meshPath{ pMesh->getPath() };
+        std::filesystem::path meshPath{ model->getPath() };
         std::filesystem::path path{ meshPath.parent_path() / "textures" / p.filename() };
 
         return path.string();
     };
 
-    std::vector<resources::Submesh>& submeshes = pMesh->getSubmeshes();
+    std::vector<resources::Mesh>& submeshes = model->getMeshes();
     for ( uint32_t i = 0u; i < submeshes.size(); i++ )
     {
-        resources::Submesh& submesh = submeshes.at( i );
+        resources::Mesh& submesh = submeshes.at( i );
 
         std::map<TextureType, std::string> texturePaths;
 
@@ -213,23 +213,23 @@ auto core::TinyGltfLoader::parseTextureData( resources::Mesh* pMesh )
         std::string emissivePath{ "" };
         std::string normalPath{ "" };
 
-        if ( submesh.submeshMaterial.diffuseTextureIndex != -1 )
+        if ( submesh.material.diffuseTextureIndex != -1 )
         {
-            const tg3_str* uri = &m_model.images[submesh.submeshMaterial.diffuseTextureIndex].uri;
+            const tg3_str* uri = &m_model.images[submesh.material.diffuseTextureIndex].uri;
             if ( uri->data && uri->len > 0 )
                 diffusePath = std::string{ uri->data, uri->len };
         }
 
-        if ( submesh.submeshMaterial.normalTextureIndex != -1 )
+        if ( submesh.material.normalTextureIndex != -1 )
         {
-            const tg3_str* uri = &m_model.images[submesh.submeshMaterial.normalTextureIndex].uri;
+            const tg3_str* uri = &m_model.images[submesh.material.normalTextureIndex].uri;
             if ( uri->data && uri->len > 0 )
                 normalPath = std::string{ uri->data, uri->len };
         }
 
-        if ( submesh.submeshMaterial.emissiveTextureIndex != -1 )
+        if ( submesh.material.emissiveTextureIndex != -1 )
         {
-            const tg3_str* uri = &m_model.images[submesh.submeshMaterial.emissiveTextureIndex].uri;
+            const tg3_str* uri = &m_model.images[submesh.material.emissiveTextureIndex].uri;
             if ( uri->data && uri->len > 0 )
                 emissivePath = std::string{ uri->data, uri->len };
         }

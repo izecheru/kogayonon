@@ -71,7 +71,6 @@ class VulkanDevice
 
     auto getTransferSemaphoreCounterValue( uint64_t& value ) -> void;
 
-    // auto createCubemapImage() -> void;
     /**
      * @brief Transition image layout with a newly allocated one-time-use VkCommandBuffer
      * @param image
@@ -93,7 +92,15 @@ class VulkanDevice
     auto transitionImageLayout( VulkanImage image, VkCommandBuffer cmdBuffer, VkImageMemoryBarrier2 imageBarrier )
         -> void;
 
+    auto copyBufferToImage( VkBuffer buffer,
+                            VkImage image,
+                            uint32_t width,
+                            uint32_t height,
+                            VkImageMemoryBarrier2 imageBarrier,
+                            VkBufferImageCopy region ) -> void;
+
     auto createSampler( VkSampler& sampler, std::string_view samplerName = "" ) -> void;
+    auto createSampler( VkSampler& sampler, VkSamplerCreateInfo createInfo, std::string_view samplerName = "" ) -> void;
     auto copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size ) const -> void;
     auto copyBuffer( VkBuffer src, VkBuffer dst, VkDeviceSize size, VkFence fence ) const -> void;
 

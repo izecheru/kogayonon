@@ -5,10 +5,20 @@
 #include "graphics/vulkan_descriptor.hpp"
 #include "graphics/vulkan_context.hpp"
 #include "renderer/frame_graph.hpp"
-#include "renderer/modules/geometry_module.hpp"
-#include "renderer/modules/prepass_module.hpp"
-#include "renderer/modules/imgui_module.hpp"
-#include "renderer/modules/picking_module.hpp"
+
+namespace rendering
+{
+class GeometryModule;
+class ImGuiModule;
+class PickingModule;
+class PrepassModule;
+class SkyboxModule;
+} // namespace rendering
+
+namespace gui
+{
+class VulkanImGuiRenderer;
+}
 
 #define MAX_TEXTURE_NUM 1000
 struct SDL_Window;
@@ -62,6 +72,7 @@ class VulkanRenderer
     std::unique_ptr<rendering::ImGuiModule> m_imguiModule;
     std::unique_ptr<rendering::PickingModule> m_pickingModule;
     std::unique_ptr<rendering::PrepassModule> m_prepassModule;
+    std::unique_ptr<rendering::SkyboxModule> m_skyboxModule;
     // std::unique_ptr<rendering::ShadowmapModule> m_shadowmapModule;
 };
 } // namespace rendering

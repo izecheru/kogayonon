@@ -1,6 +1,6 @@
 #include <vulkan/vulkan_core.h>
 #include "graphics/vulkan_memory_allocator.hpp"
-#include "resources/mesh.hpp"
+#include "resources/model.hpp"
 #include "core/asset_manager/ktx_texture_manager.hpp"
 #include "resources/texture.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -13,11 +13,11 @@
 #include "graphics/vulkan_device.hpp"
 #include "graphics/vulkan_swapchain.hpp"
 #include "utilities/utils/utils.hpp"
-
-#include "utilities/tracy_utils/tracy_utils.hpp"
+#include "tracy/Tracy.hpp"
 
 core::AssetManager::AssetManager( graphics::VulkanContext* vkCtx )
     : m_bindlessTexturesIndex{ 0u }
+    , m_bindlessCubemapIndex{ 0u }
     , m_samplerIndex{ 0u }
     , m_vkCtx{ vkCtx }
     , m_ktxTextureManager{ std::make_unique<KtxTextureManager>( vkCtx->device.get() ) }
@@ -68,6 +68,8 @@ auto core::AssetManager::destroyResources() -> void
     graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
 
     m_vkCtx->device->destroySampler( m_textureSampler );
+    m_vkCtx->device->destroySampler( m_cubemapSampler );
+    m_vkCtx->device->destroyDescriptorSetLayout( m_bindlessCubemapDescriptor.layout );
     m_vkCtx->device->destroyDescriptorSetLayout( m_bindlessTexturesDescriptor.layout );
     m_bindlessTexturesIndex = 0u;
 
@@ -294,7 +296,8 @@ auto core::AssetManager::loadTextureData() -> void
                     allocator->createImageView( img.texture->vulkanImage.vkImageView,
                                                 img.texture->vulkanImage.vkImage,
                                                 VK_FORMAT_R8G8B8A8_UNORM,
-                                                VK_IMAGE_ASPECT_COLOR_BIT );
+                                                VK_IMAGE_ASPECT_COLOR_BIT,
+                                                name + "_view" );
 
                     beforeBarriers.emplace_back(
                         VkImageMemoryBarrier2{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -422,7 +425,8 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
     allocator->createImageView( texture->vulkanImage.vkImageView,
                                 texture->vulkanImage.vkImage,
                                 VK_FORMAT_R8G8B8A8_UNORM,
-                                VK_IMAGE_ASPECT_COLOR_BIT );
+                                VK_IMAGE_ASPECT_COLOR_BIT,
+                                textureName + "_view" );
 
     // transfer barrier
     VkImageMemoryBarrier2 transferLayoutBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -478,6 +482,117 @@ auto core::AssetManager::loadTexture( const std::string& textureName, const std:
     return m_loadedTextures[texturePath].get();
 }
 
+auto core::AssetManager::loadTexture( const std::string& textureName,
+                                      const std::string& texturePath,
+                                      VkImageCreateInfo imageCreateInfo ) -> resources::Texture*
+{
+    KASSERT( std::filesystem::exists( texturePath ) && "texture file MUST EXIST" );
+    ZoneScopedN( "AssetManager::loadTexture" );
+
+    if ( m_loadedTextures.contains( texturePath ) )
+    {
+        return m_loadedTextures[texturePath].get();
+    }
+
+    namespace fs = std::filesystem;
+    fs::path p{ texturePath };
+    std::string filename = p.stem().string() + ".ktx2";
+
+    int texWidth, texHeight, texChannels;
+    stbi_uc* pixels = stbi_load( texturePath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha );
+
+    if ( !pixels )
+    {
+        throw std::runtime_error( "failed to load texture vulkanImage!" );
+    }
+
+    std::unique_ptr<resources::Texture> texture = std::make_unique<resources::Texture>();
+    VkDeviceSize imageSize = texWidth * texHeight * 4;
+
+    imageCreateInfo.extent.width = texWidth;
+    imageCreateInfo.extent.height = texHeight;
+
+    VkBufferCreateInfo stageBufferInfo{ .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                                        .size = imageSize,
+                                        .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                        .sharingMode = VK_SHARING_MODE_EXCLUSIVE };
+
+    VmaAllocationCreateInfo stageAllocInfo{ .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+                                                     VMA_ALLOCATION_CREATE_MAPPED_BIT,
+                                            .usage = VMA_MEMORY_USAGE_AUTO };
+
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+    graphics::VulkanBuffer stageBuffer = allocator->createStagingBuffer( stageBufferInfo, stageAllocInfo );
+
+    VmaAllocationCreateInfo imageAllocInfo{};
+    imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+
+    allocator->createImage( texture->vulkanImage.vkImage,
+                            imageCreateInfo,
+                            imageAllocInfo,
+                            texture->vulkanImage.vmaAllocation,
+                            textureName );
+
+    allocator->createImageView( texture->vulkanImage.vkImageView,
+                                texture->vulkanImage.vkImage,
+                                VK_FORMAT_R8G8B8A8_UNORM,
+                                VK_IMAGE_ASPECT_COLOR_BIT,
+                                textureName + "_view" );
+
+    // transfer barrier
+    VkImageMemoryBarrier2 transferLayoutBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                                 .srcStageMask = VK_PIPELINE_STAGE_2_NONE,
+                                                 .srcAccessMask = VK_ACCESS_2_NONE,
+                                                 .dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
+                                                 .dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                                 .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                                 .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                                 .image = texture->vulkanImage.vkImage,
+                                                 .subresourceRange = {
+                                                     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                                     .baseMipLevel = 0,
+                                                     .levelCount = 1,
+                                                     .baseArrayLayer = 0,
+                                                     .layerCount = imageCreateInfo.arrayLayers,
+                                                 } };
+
+    m_vkCtx->device->transitionImageLayout( texture->vulkanImage.vkImage, transferLayoutBarrier );
+
+    allocator->copyMemoryToAllocation( pixels, stageBuffer.vmaAllocation, 0, imageSize );
+
+    stbi_image_free( pixels );
+
+    // copy and also transition layout
+    VkImageMemoryBarrier2 copyImageBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                            .srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
+                                            .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                            .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                            .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+                                            .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                            .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                            .image = texture->vulkanImage.vkImage,
+                                            .subresourceRange = {
+                                                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                                .baseMipLevel = 0,
+                                                .levelCount = 1,
+                                                .baseArrayLayer = 0,
+                                                .layerCount = 1,
+                                            } };
+
+    m_vkCtx->device->copyBufferToImage( stageBuffer.vkBuffer,
+                                        texture->vulkanImage.vkImage,
+                                        static_cast<uint32_t>( texWidth ),
+                                        static_cast<uint32_t>( texHeight ),
+                                        copyImageBarrier );
+
+    allocator->destroyBuffer( stageBuffer );
+
+    texture->path = texturePath;
+
+    m_loadedTextures.emplace( texturePath, std::move( texture ) );
+    return m_loadedTextures[texturePath].get();
+}
+
 auto core::AssetManager::getTextureSampler() -> VkSampler&
 {
     return m_textureSampler;
@@ -487,6 +602,9 @@ auto core::AssetManager::initDescriptors() -> void
 {
     createBindlessDescriptorSetLayout();
     allocateBindlessDescriptorSet();
+
+    createCubemapBindlessDescriptorSetLayout();
+    allocateCubemapBindlessDescriptorSet();
 }
 
 auto core::AssetManager::getTexture( const std::string& texturePath ) -> resources::Texture*
@@ -501,13 +619,216 @@ auto core::AssetManager::getTexture( const std::string& texturePath ) -> resourc
     return nullptr;
 }
 
+auto core::AssetManager::loadCubemap( const std::string& folderPath ) -> resources::Texture*
+{
+    // texture name must have the following structure
+    // ....textureName_N.png/jpg, N from 0 to 5, ( 6 faces in total )
+
+    VkImageCreateInfo imageInfo{};
+    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.extent.depth = 1;
+    imageInfo.mipLevels = 1;
+    imageInfo.arrayLayers = 6;
+    imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+
+    namespace fs = std::filesystem;
+
+    std::array<uint8_t*, 6> textureData{};
+
+    fs::path path{ folderPath };
+
+    int texWidth, texHeight, texChannels;
+
+    fs::directory_iterator it{ path };
+
+    auto getIndex = []( const fs::path& p ) -> uint32_t {
+        if ( p.string().contains( "posx" ) )
+        {
+            return CubemapIndex::Right;
+        }
+        else if ( p.string().contains( "negx" ) )
+        {
+            return CubemapIndex::Left;
+        }
+        else if ( p.string().contains( "posy" ) )
+        {
+            return CubemapIndex::Top;
+        }
+        else if ( p.string().contains( "negy" ) )
+        {
+            return CubemapIndex::Bottom;
+        }
+        else if ( p.string().contains( "posz" ) )
+        {
+            return CubemapIndex::Back;
+        }
+        else if ( p.string().contains( "negz" ) )
+        {
+            return CubemapIndex::Front;
+        }
+    };
+
+    for ( auto& entry : it )
+    {
+        loadRawTextureData( entry.path().string(), texWidth, texHeight, textureData[getIndex( entry.path() )] );
+    }
+
+    imageInfo.extent.width = texWidth;
+    imageInfo.extent.height = texHeight;
+
+    for ( auto& i : textureData )
+    {
+        if ( i == VK_NULL_HANDLE )
+        {
+            throw std::runtime_error( "failed to load texture vulkanImage!" );
+        }
+    }
+
+    VkDeviceSize imageSize = texWidth * texHeight * 4 * 6;
+    VkDeviceSize layerSize = imageSize / 6;
+
+    graphics::VulkanBuffer stageBuffer{};
+    graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
+
+    VkBufferCreateInfo stageBufferInfo{ .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                                        .size = imageSize,
+                                        .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                        .sharingMode = VK_SHARING_MODE_EXCLUSIVE };
+
+    VmaAllocationCreateInfo stageAllocInfo{ .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+                                                     VMA_ALLOCATION_CREATE_MAPPED_BIT,
+                                            .usage = VMA_MEMORY_USAGE_AUTO };
+
+    allocator->createBuffer( stageBuffer, stageBufferInfo, stageAllocInfo );
+
+    std::unique_ptr<resources::Texture> texture = std::make_unique<resources::Texture>();
+
+    VmaAllocationCreateInfo imageAllocInfo{};
+    imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+
+    allocator->createImage(
+        texture->vulkanImage.vkImage, imageInfo, imageAllocInfo, texture->vulkanImage.vmaAllocation, "cubemap" );
+
+    VkImageViewCreateInfo viewInfo{};
+    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    viewInfo.image = texture->vulkanImage.vkImage;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+    viewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    viewInfo.subresourceRange.baseMipLevel = 0;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount = 6;
+
+    allocator->createImageView( texture->vulkanImage, viewInfo, "cubemap" );
+
+    VkImageMemoryBarrier2 transferLayoutBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                                 .srcStageMask = VK_PIPELINE_STAGE_2_NONE,
+                                                 .srcAccessMask = VK_ACCESS_2_NONE,
+                                                 .dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
+                                                 .dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                                 .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                                 .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                                 .image = texture->vulkanImage.vkImage,
+                                                 .subresourceRange = {
+                                                     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                                     .baseMipLevel = 0,
+                                                     .levelCount = 1,
+                                                     .baseArrayLayer = 0,
+                                                     .layerCount = imageInfo.arrayLayers,
+                                                 } };
+
+    m_vkCtx->device->transitionImageLayout( texture->vulkanImage.vkImage, transferLayoutBarrier );
+
+    for ( auto i = 0u; i < 6; i++ )
+    {
+        allocator->copyMemoryToAllocation( textureData[i], stageBuffer.vmaAllocation, i * layerSize, layerSize );
+        stbi_image_free( textureData[i] );
+    }
+
+    // copy and also transition layout
+    VkImageMemoryBarrier2 copyImageBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                            .srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
+                                            .srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                                            .dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                                            .dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
+                                            .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                            .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                            .image = texture->vulkanImage.vkImage,
+                                            .subresourceRange = {
+                                                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                                .baseMipLevel = 0,
+                                                .levelCount = 1,
+                                                .baseArrayLayer = 0,
+                                                .layerCount = 6,
+                                            } };
+
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 6;
+    region.imageOffset = { 0, 0, 0 };
+    region.imageExtent = { static_cast<uint32_t>( texWidth ), static_cast<uint32_t>( texHeight ), 1 };
+
+    m_vkCtx->device->copyBufferToImage( stageBuffer.vkBuffer,
+                                        texture->vulkanImage.vkImage,
+                                        static_cast<uint32_t>( texWidth ),
+                                        static_cast<uint32_t>( texHeight ),
+                                        copyImageBarrier,
+                                        region );
+
+    allocator->destroyBuffer( stageBuffer );
+
+    texture->path = folderPath;
+
+    updateBindlessCubemaps( texture.get() );
+    m_loadedTextures.emplace( folderPath, std::move( texture ) );
+
+    return m_loadedTextures[folderPath].get();
+}
+
+auto core::AssetManager::loadRawTextureData( const std::string& texturePath, int& w, int& h, uint8_t*& dst ) -> void
+{
+    int texChannels{ 4 };
+    dst = stbi_load( texturePath.c_str(), &w, &h, &texChannels, STBI_rgb_alpha );
+}
+
 auto core::AssetManager::initSampler() -> void
 {
     m_vkCtx->device->createSampler( m_textureSampler, "assetManager_Sampler" );
     ++m_samplerIndex;
+
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = 1.0f;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+    m_vkCtx->device->createSampler( m_cubemapSampler, samplerInfo, "cubemapSampler" );
+    ++m_samplerIndex;
 }
 
-auto core::AssetManager::loadMesh( const std::string& meshName, const std::string& meshPath ) -> resources::Mesh*
+auto core::AssetManager::loadMesh( const std::string& meshName, const std::string& meshPath ) -> resources::Model*
 {
     ZoneScopedN( "AssetManager::loadMesh" );
     assert( std::filesystem::exists( meshPath ) && "mesh file does not exist" );
@@ -533,7 +854,7 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
 
                 std::unique_ptr<TinyGltfLoader> tinyLoader = std::make_unique<TinyGltfLoader>( collision.string() );
 
-                data.mesh = std::make_unique<resources::Mesh>();
+                data.mesh = std::make_unique<resources::Model>();
 
                 data.mesh->setPath( collision.string() );
 
@@ -580,7 +901,7 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
         taskManager->addTask( MeshTaskData{}, [this, meshPath]( MeshTaskData& data ) -> void {
             ZoneScopedN( "[TASK] mesh + materials" );
             std::unique_ptr<TinyGltfLoader> tinyLoader = std::make_unique<TinyGltfLoader>( meshPath );
-            data.mesh = std::make_unique<resources::Mesh>();
+            data.mesh = std::make_unique<resources::Model>();
 
             data.mesh->setPath( meshPath );
 
@@ -639,7 +960,7 @@ auto core::AssetManager::loadFont( const std::string_view path ) -> void
     m_loadedFonts.emplace( p.parent_path().string(), std::move( font ) );
 }
 
-auto core::AssetManager::getMesh( const std::string& path ) -> resources::Mesh*
+auto core::AssetManager::getMesh( const std::string& path ) -> resources::Model*
 {
     std::filesystem::path p = std::filesystem::path{ path };
     if ( m_loadedMeshes.contains( path ) )
@@ -648,6 +969,36 @@ auto core::AssetManager::getMesh( const std::string& path ) -> resources::Mesh*
     }
 
     return loadMesh( p.stem().string(), p.string() );
+}
+
+auto core::AssetManager::createCubemapBindlessDescriptorSetLayout() -> void
+{
+    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+    samplerLayoutBinding.binding = 0;
+    // max textures number
+    samplerLayoutBinding.descriptorCount = 10;
+
+    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    samplerLayoutBinding.pImmutableSamplers = nullptr;
+    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkDescriptorBindingFlags flags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+                                     VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+                                     VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+
+    VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlags{};
+    bindingFlags.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+    bindingFlags.bindingCount = 1;
+    bindingFlags.pBindingFlags = &flags;
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = 1;
+    layoutInfo.pBindings = &samplerLayoutBinding;
+    layoutInfo.pNext = &bindingFlags;
+    layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+
+    m_vkCtx->device->createDescriptorSetLayout( m_bindlessCubemapDescriptor.layout, layoutInfo );
 }
 
 auto core::AssetManager::createBindlessDescriptorSetLayout() -> void
@@ -678,6 +1029,26 @@ auto core::AssetManager::createBindlessDescriptorSetLayout() -> void
     layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 
     m_vkCtx->device->createDescriptorSetLayout( m_bindlessTexturesDescriptor.layout, layoutInfo );
+}
+
+auto core::AssetManager::allocateCubemapBindlessDescriptorSet() -> void
+{
+    uint32_t descriptorCount{ 10 };
+
+    VkDescriptorSetVariableDescriptorCountAllocateInfo variableCountInfo{};
+    variableCountInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
+    variableCountInfo.descriptorSetCount = 1;
+    variableCountInfo.pDescriptorCounts = &descriptorCount;
+
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+
+    allocInfo.descriptorPool = m_vkCtx->globalDescriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &m_bindlessCubemapDescriptor.layout;
+    allocInfo.pNext = &variableCountInfo;
+
+    m_vkCtx->device->allocateDescriptorSet( m_bindlessCubemapDescriptor.set, allocInfo );
 }
 
 auto core::AssetManager::allocateBindlessDescriptorSet() -> void
@@ -737,6 +1108,33 @@ auto core::AssetManager::updateBindlessTextures( const std::vector<resources::Te
     m_vkCtx->device->updateDescriptorSet( descriptorWrites );
 }
 
+auto core::AssetManager::updateBindlessCubemaps( resources::Texture* texture ) -> void
+{
+    if ( !texture->vulkanImage.vkImageView )
+    {
+        KERROR( "VkImageView not initialized" );
+        return;
+    }
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = texture->vulkanImage.vkImageView;
+    imageInfo.sampler = m_cubemapSampler;
+
+    VkWriteDescriptorSet bindlessDescriptor{ .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                             .dstSet = m_bindlessCubemapDescriptor.set,
+                                             .dstBinding = 0,
+                                             .dstArrayElement = m_bindlessCubemapIndex,
+                                             .descriptorCount = 1,
+                                             .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                             .pImageInfo = &imageInfo };
+
+    texture->textureIndex = m_bindlessCubemapIndex;
+    ++m_bindlessCubemapIndex;
+
+    m_vkCtx->device->updateDescriptorSet( { bindlessDescriptor } );
+}
+
 auto core::AssetManager::updateBindlessTextures( resources::Texture* texture ) -> void
 {
     if ( !texture->vulkanImage.vkImageView )
@@ -794,7 +1192,7 @@ auto core::AssetManager::getBindlessDescriptorSet() -> VkDescriptorSet&
     return m_bindlessTexturesDescriptor.set;
 }
 
-auto core::AssetManager::getMeshes() -> std::unordered_map<std::string, std::unique_ptr<resources::Mesh>>&
+auto core::AssetManager::getMeshes() -> std::unordered_map<std::string, std::unique_ptr<resources::Model>>&
 {
     return m_loadedMeshes;
 }
@@ -1008,7 +1406,7 @@ auto core::AssetManager::processMeshTasks() -> void
             indicesCopyRegion.srcOffset = 0;
             indicesCopyRegion.dstOffset = indexBuffer.lastWrittenOffset;
 
-            for ( auto& submesh : data.mesh->getSubmeshes() )
+            for ( auto& submesh : data.mesh->getMeshes() )
             {
                 submesh.vertexOffset += vertexBase;
                 submesh.indexOffset += indexBase;
@@ -1091,11 +1489,9 @@ auto core::AssetManager::onUpdate() -> void
 
     processTextureTasks();
     updateTextureTaskSync();
-
-    clearUsedResources();
 }
 
-auto core::AssetManager::enqueueMesh( resources::Mesh* mesh ) -> void
+auto core::AssetManager::enqueueMesh( resources::Model* mesh ) -> void
 {
     m_queuedMeshes.push( mesh );
 }
@@ -1119,7 +1515,7 @@ auto core::AssetManager::resolveMaterials( ParsedMaterials batch ) -> void
     {
         resources::Material material{};
 
-        auto& submeshes = batch.pMesh->getSubmeshes();
+        auto& submeshes = batch.pMesh->getMeshes();
 
         resources::Texture* diffuse = getTexture( getKtxPath( textureMap.at( Diffuse ) ).string() );
         if ( diffuse )
@@ -1185,4 +1581,14 @@ auto core::AssetManager::getMaterialAllocatedCount() const -> const uint32_t
 auto core::AssetManager::getMaterialBufferAddress() const -> VkDeviceAddress
 {
     return m_materialsBuffer.deviceAdress;
+}
+
+auto core::AssetManager::getBindlessCubemapDescriptorLayout() -> VkDescriptorSetLayout&
+{
+    return m_bindlessCubemapDescriptor.layout;
+}
+
+auto core::AssetManager::getBindlessCubemapDescriptorSet() -> VkDescriptorSet&
+{
+    return m_bindlessCubemapDescriptor.set;
 }

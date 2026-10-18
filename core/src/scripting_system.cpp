@@ -5,7 +5,7 @@
 // #include "core/ecs/components/directional_light_component.hpp"
 // #include "core/ecs/components/identifier_component.hpp"
 // #include "core/ecs/components/index_component.hpp"
-// #include "core/ecs/components/mesh_component.hpp"
+// #include "core/ecs/components/model_component.hpp"
 // #include "core/ecs/components/outline_component.hpp"
 // #include "core/ecs/components/pointlight_component.hpp"
 // #include "core/ecs/components/rigidbody_component.hpp"
@@ -76,7 +76,7 @@
 //     registerMetaComponent<TransformComponent>();
 //     registerMetaComponent<OutlineComponent>();
 //     registerMetaComponent<IndexComponent>();
-//     registerMetaComponent<MeshComponent>();
+//     registerMetaComponent<ModelComponent>();
 //     registerMetaEvent<LuaEvent>();
 //     registerMetaEvent<LuaEventHandler<LuaEvent>>();
 // }
