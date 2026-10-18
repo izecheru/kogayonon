@@ -1,4 +1,5 @@
 #include "renderer/modules/skybox_module.hpp"
+#include "renderer/modules/geometry_module.hpp"
 #include "core/ecs/components/cubemap_component.hpp"
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -59,29 +60,6 @@ auto rendering::SkyboxModule::createModuleResources( VkExtent2D extent ) -> void
 
     blackboard->addToStorage<SkyboxModuleData>();
     SkyboxModuleData& skyboxModuleData = blackboard->get<SkyboxModuleData>();
-
-    VkImageCreateInfo skyboxColorInfo{
-        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-        .imageType = VK_IMAGE_TYPE_2D,
-        .format = m_vkCtx->swapchain->getSwapchainImageFormat(),
-        .extent =
-            {
-                .width = extent.width,
-                .height = extent.height,
-                .depth = 1,
-            },
-        .mipLevels = 1,
-        .arrayLayers = 1,
-        .samples = VK_SAMPLE_COUNT_1_BIT,
-        .tiling = VK_IMAGE_TILING_OPTIMAL,
-        .usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-    };
-
-    VmaAllocationCreateInfo skyboxColorAllocInfo{ .usage = VMA_MEMORY_USAGE_AUTO };
-
-    skyboxModuleData.color = m_graph->createResource( "skyboxColor", skyboxColorInfo, skyboxColorAllocInfo );
 }
 
 auto rendering::SkyboxModule::destroyModuleResources() -> void
@@ -90,9 +68,6 @@ auto rendering::SkyboxModule::destroyModuleResources() -> void
     SkyboxModuleData& skyboxModuleData = blackboard->get<SkyboxModuleData>();
 
     graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
-
-    allocator->destroyImage( skyboxModuleData.color->vulkanImage.vkImage,
-                             skyboxModuleData.color->vulkanImage.vmaAllocation );
 
     m_vkCtx->device->destroyPipelineLayout( skyboxModuleData.skyboxPipeline.getLayout() );
     m_vkCtx->device->destroyPipeline( skyboxModuleData.skyboxPipeline.getPipeline() );
@@ -139,10 +114,10 @@ auto rendering::SkyboxModule::registerSkyboxPass() -> void
     m_graph->addNode(
         std::string{ passId::SkyboxPass },
         []( NodeBuilder& b, Blackboard* blackboard ) {
-            SkyboxModuleData& skyboxData = blackboard->get<SkyboxModuleData>();
+            GeometryModuleData& geometryData = blackboard->get<GeometryModuleData>();
             PrepassModuleData& prepassData = blackboard->get<PrepassModuleData>();
 
-            b.write( skyboxData.color, rendering::FGResourceType::Color );
+            b.write( geometryData.color, rendering::FGResourceType::Color );
             b.read( prepassData.depth, rendering::FGResourceType::Depth );
         },
         [=]( VkCommandBuffer cmdBuffer ) {
@@ -173,15 +148,16 @@ auto rendering::SkyboxModule::registerSkyboxPass() -> void
                 return;
 
             SkyboxModuleData& skyboxData = m_graph->getBlackboard()->get<SkyboxModuleData>();
+            GeometryModuleData& geometryData = m_graph->getBlackboard()->get<GeometryModuleData>();
             PrepassModuleData& prepassData = m_graph->getBlackboard()->get<PrepassModuleData>();
 
             graphics::VulkanPipeline& skyboxPipeline = skyboxData.skyboxPipeline;
 
             skyboxData.renderingInfo.colorAttachmentInfo =
                 VkRenderingAttachmentInfo{ .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                                           .imageView = skyboxData.color->vulkanImage.vkImageView,
+                                           .imageView = geometryData.color->vulkanImage.vkImageView,
                                            .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                           .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                           .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD, // reuse
                                            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
                                            .clearValue = { { 0.0f, 0.0f, 0.0f, 0.0f } } };
 

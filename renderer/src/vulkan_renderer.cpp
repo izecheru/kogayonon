@@ -75,10 +75,10 @@ auto rendering::VulkanRenderer::initModules() -> void
 
     m_prepassModule = std::make_unique<PrepassModule>( m_frameGraph.get(), m_vkCtx, m_extent, &m_cameraDescriptor );
 
-    m_skyboxModule = std::make_unique<SkyboxModule>(
+    m_geometryModule = std::make_unique<GeometryModule>(
         m_frameGraph.get(), m_vkCtx, m_extent, &m_cameraDescriptor, glm::vec4{ 0.5f, 0.5f, 0.5f, 1.0f } );
 
-    m_geometryModule = std::make_unique<GeometryModule>(
+    m_skyboxModule = std::make_unique<SkyboxModule>(
         m_frameGraph.get(), m_vkCtx, m_extent, &m_cameraDescriptor, glm::vec4{ 0.5f, 0.5f, 0.5f, 1.0f } );
 
     m_imguiModule->setViewport();

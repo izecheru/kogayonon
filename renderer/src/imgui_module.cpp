@@ -4,7 +4,7 @@
 #include "renderer/blackboard.hpp"
 #include "renderer/frame_graph.hpp"
 #include "tracy/TracyVulkan.hpp"
-#include "renderer/modules/skybox_module.hpp"
+#include "renderer/modules/geometry_module.hpp"
 
 rendering::ImGuiModule::ImGuiModule( FrameGraph* graph,
                                      graphics::VulkanContext* vkCtx,
@@ -33,8 +33,8 @@ void rendering::ImGuiModule::registerImGuiPass()
     m_graph->addNode(
         std::string{ passId::ImGui },
         []( NodeBuilder& b, Blackboard* blackboard ) -> void {
-            SkyboxModuleData& skyboxData = blackboard->get<SkyboxModuleData>();
-            b.read( skyboxData.color, FGResourceType::Color );
+            GeometryModuleData& geometryData = blackboard->get<GeometryModuleData>();
+            b.read( geometryData.color, FGResourceType::Color );
         },
         [=]( VkCommandBuffer cmdBuffer ) {
             TracyVkZone( m_vkCtx->tracyContext->getCtx(), cmdBuffer, passId::ImGui );
@@ -66,7 +66,7 @@ void rendering::ImGuiModule::registerImGuiPass()
 
 auto rendering::ImGuiModule::setViewport() -> void
 {
-    SkyboxModuleData& skyboxData = m_graph->getBlackboard()->get<SkyboxModuleData>();
-    KASSERT( skyboxData.color->vulkanImage.vkImageView != VK_NULL_HANDLE );
-    m_imguiRenderer->setViewport( skyboxData.color->vulkanImage.vkImageView );
+    GeometryModuleData& geometryData = m_graph->getBlackboard()->get<GeometryModuleData>();
+    KASSERT( geometryData.color->vulkanImage.vkImageView != VK_NULL_HANDLE );
+    m_imguiRenderer->setViewport( geometryData.color->vulkanImage.vkImageView );
 }

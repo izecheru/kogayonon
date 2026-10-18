@@ -16,7 +16,6 @@ inline constexpr const char* SkyboxPass = "skyboxPass";
 
 struct SkyboxModuleData
 {
-    FGResource* color{ VK_NULL_HANDLE };
     graphics::VulkanPipeline skyboxPipeline{};
     ModuleRenderingInfo renderingInfo;
 };

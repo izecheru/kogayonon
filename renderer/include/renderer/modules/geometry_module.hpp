@@ -20,6 +20,8 @@ inline constexpr const char* DepthPrepass = "depthPrepass";
 
 struct GeometryModuleData
 {
+    FGResource* color{ VK_NULL_HANDLE };
+
     graphics::VulkanPipeline basePipeline{};
     graphics::VulkanPipeline wireframePipeline{};
 
