@@ -42,7 +42,48 @@ static float3 pos[8] = float3[8]( float3( -1.0, -1.0, 1.0 ),
 );
 
 static int indices[36] = int[36](
-    1, 0, 2, 3, 2, 0, 5, 1, 6, 2, 6, 1, 6, 7, 5, 4, 5, 7, 0, 4, 3, 7, 3, 4, 5, 4, 1, 0, 1, 4, 2, 3, 6, 7, 6, 3 );
+    // +Z face (front): 0,1,2  2,3,0
+    0,
+    1,
+    2,
+    2,
+    3,
+    0,
+    // -Z face (back): 4,5,6  6,7,4
+    4,
+    5,
+    6,
+    6,
+    7,
+    4,
+    // +X face (right): 1,5,6  6,2,1
+    1,
+    5,
+    6,
+    6,
+    2,
+    1,
+    // -X face (left): 0,4,7  7,3,0
+    0,
+    4,
+    7,
+    7,
+    3,
+    0,
+    // +Y face (top): 3,2,6  6,7,3
+    3,
+    2,
+    6,
+    6,
+    7,
+    3,
+    // -Y face (bottom): 0,1,5  5,4,0
+    0,
+    1,
+    5,
+    5,
+    4,
+    0 );
 
 [shader( "vertex" )]
 VertexOutput vertexMain( VertexInput input )
@@ -52,12 +93,14 @@ VertexOutput vertexMain( VertexInput input )
     int index = indices[input.vertexID];
     float3 localPos = pos[index];
 
-    float4 viewPos = mul( camera.view, float4( localPos, 0.0 ) );
-    float4 clip = mul( camera.projection, float4( viewPos.xyz, 1.0 ) );
+    float4x4 viewMat = camera.view;
+    viewMat[0][3] = 0.0;
+    viewMat[1][3] = 0.0;
+    viewMat[2][3] = 0.0;
 
-    clip.z = clip.w;
-    o.position = clip;
-    o.viewDir = localPos;
+    float4 outPosition = mul( camera.projection, mul( viewMat, float4( localPos, 1.0 ) ) );
+    o.position = outPosition.xyww;
+    o.viewDir = normalize(localPos);
 
     return o;
 }
@@ -66,8 +109,8 @@ VertexOutput vertexMain( VertexInput input )
 FragmentOutput fragmentMain( VertexOutput input )
 {
     FragmentOutput output;
-    float3 dir = normalize( input.viewDir );
-    output.outColor = bindlessCubemaps[NonUniformResourceIndex( pushConstant.cubemapIndex )].Sample( dir );
+    output.outColor = bindlessCubemaps[NonUniformResourceIndex( pushConstant.cubemapIndex )].Sample( input.viewDir );
+
     return output;
 }
 

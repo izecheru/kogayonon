@@ -13,17 +13,15 @@ namespace enki
 struct ITaskSet;
 }
 
-const std::vector<std::string> cubemapFilenames{ "negx", "negy", "negz", "posx", "posy", "posz" };
-
 // front back top bottom right left
 enum CubemapIndex : uint32_t
 {
-    Front = 0u,
-    Back = 1u,
+    Right = 0u,
+    Left = 1u,
     Top = 2u,
     Bottom = 3u,
-    Right = 4u,
-    Left = 5u
+    Back = 4u,
+    Front = 5u,
 };
 
 namespace resources
@@ -165,7 +163,21 @@ class AssetManager
      */
     auto getTexture( const std::string& texturePath ) -> resources::Texture*;
 
-    auto loadCubemap( const std::string& texturePath ) -> resources::Texture*;
+    /**
+     * @brief Load all 6 faces of a cubemap texture
+     * @param folderPath Folder containing 6 textures
+     * @return
+     */
+    auto loadCubemap( const std::string& folderPath ) -> resources::Texture*;
+
+    /**
+     * @brief Fill dst with texture data loaded by stbi_load
+     * @param texturePath Path to the loaded texture
+     * @param w width
+     * @param h height
+     * @param dst
+     * @return
+     */
     auto loadRawTextureData( const std::string& texturePath, int& w, int& h, uint8_t*& dst ) -> void;
 
     /**
@@ -180,6 +192,11 @@ class AssetManager
                       const std::string& texturePath,
                       VkImageCreateInfo imageCreateInfo ) -> resources::Texture*;
 
+    /**
+     * @brief Load texture data of the already parsed materials from the
+     * load mesh tasks
+     * @return
+     */
     auto loadTextureData() -> void;
 
     /**

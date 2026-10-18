@@ -621,9 +621,6 @@ auto core::AssetManager::getTexture( const std::string& texturePath ) -> resourc
 
 auto core::AssetManager::loadCubemap( const std::string& folderPath ) -> resources::Texture*
 {
-    // texture name must have the following structure
-    // ....textureName_N.png/jpg, N from 0 to 5, ( 6 faces in total )
-
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -648,44 +645,56 @@ auto core::AssetManager::loadCubemap( const std::string& folderPath ) -> resourc
 
     fs::directory_iterator it{ path };
 
-    auto getIndex = []( const fs::path& p ) -> uint32_t {
-        if ( p.string().contains( "posx" ) )
+    auto cubemapIndexFromStem = []( std::string_view stem ) -> uint32_t {
+        using namespace std::literals;
+        if ( stem == "posx"sv || stem == "right"sv )
         {
             return CubemapIndex::Right;
         }
-        else if ( p.string().contains( "negx" ) )
+        if ( stem == "negx"sv || stem == "left"sv )
         {
             return CubemapIndex::Left;
         }
-        else if ( p.string().contains( "posy" ) )
+        if ( stem == "posy"sv || stem == "top"sv )
         {
             return CubemapIndex::Top;
         }
-        else if ( p.string().contains( "negy" ) )
+        if ( stem == "negy"sv || stem == "bottom"sv )
         {
             return CubemapIndex::Bottom;
         }
-        else if ( p.string().contains( "posz" ) )
+        if ( stem == "posz"sv || stem == "back"sv )
         {
             return CubemapIndex::Back;
         }
-        else if ( p.string().contains( "negz" ) )
+        if ( stem == "negz"sv || stem == "front"sv )
         {
             return CubemapIndex::Front;
         }
+
+        std::string message{ "File not supported " + std::string{ stem } };
+        throw std::runtime_error( message );
     };
+
+    // front back up down right left
+    std::map<uint32_t, std::string> orderedMap{};
 
     for ( auto& entry : it )
     {
-        loadRawTextureData( entry.path().string(), texWidth, texHeight, textureData[getIndex( entry.path() )] );
+        orderedMap.emplace( cubemapIndexFromStem( entry.path().stem().string() ), entry.path().string() );
+    }
+
+    for ( auto& [index, path] : orderedMap )
+    {
+        loadRawTextureData( path, texWidth, texHeight, textureData[index] );
     }
 
     imageInfo.extent.width = texWidth;
     imageInfo.extent.height = texHeight;
 
-    for ( auto& i : textureData )
+    for ( auto& data : textureData )
     {
-        if ( i == VK_NULL_HANDLE )
+        if ( data == VK_NULL_HANDLE )
         {
             throw std::runtime_error( "failed to load texture vulkanImage!" );
         }
@@ -713,8 +722,11 @@ auto core::AssetManager::loadCubemap( const std::string& folderPath ) -> resourc
     VmaAllocationCreateInfo imageAllocInfo{};
     imageAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-    allocator->createImage(
-        texture->vulkanImage.vkImage, imageInfo, imageAllocInfo, texture->vulkanImage.vmaAllocation, "cubemap" );
+    allocator->createImage( texture->vulkanImage.vkImage,
+                            imageInfo,
+                            imageAllocInfo,
+                            texture->vulkanImage.vmaAllocation,
+                            path.parent_path().stem().string() + "_cubemap_image" );
 
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -727,7 +739,7 @@ auto core::AssetManager::loadCubemap( const std::string& folderPath ) -> resourc
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 6;
 
-    allocator->createImageView( texture->vulkanImage, viewInfo, "cubemap" );
+    allocator->createImageView( texture->vulkanImage, viewInfo, path.parent_path().stem().string() + "_cubemap_view" );
 
     VkImageMemoryBarrier2 transferLayoutBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                                                  .srcStageMask = VK_PIPELINE_STAGE_2_NONE,
@@ -813,9 +825,9 @@ auto core::AssetManager::initSampler() -> void
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter = VK_FILTER_LINEAR;
     samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.anisotropyEnable = VK_TRUE;
     samplerInfo.maxAnisotropy = 1.0f;
     samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;

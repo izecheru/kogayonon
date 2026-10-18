@@ -86,7 +86,7 @@ void gui::EntityProperties::contextMenu()
             {
                 std::filesystem::path p{ std::filesystem::current_path() / "engine_resources" / "textures" };
                 const char* filters[] = { "*.png", "*.jpg" };
-                char* result = tinyfd_selectFolderDialog( "Pick cubemap texture", p.string().c_str() );
+                char* result = tinyfd_selectFolderDialog( "Pick folder", p.string().c_str() );
 
                 if ( result )
                 {
