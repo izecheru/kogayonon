@@ -1,4 +1,5 @@
 #define GLM_ENABLE_EXPERIMENTAL
+#include "core/ecs/components/cubemap_component.hpp"
 #include "core/ecs/components/camera_component.hpp"
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/istreamwrapper.h"
@@ -151,6 +152,8 @@ auto core::Scene::deserialize( const std::filesystem::path& p ) -> void
         return glm::vec3{ v[0].GetFloat(), v[1].GetFloat(), v[2].GetFloat() };
     };
 
+    core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+
     for ( const auto& e : doc["entities"].GetArray() )
     {
         core::Entity ent{ getRegistry() };
@@ -176,17 +179,36 @@ auto core::Scene::deserialize( const std::filesystem::path& p ) -> void
 
         if ( e.HasMember( "mesh" ) )
         {
-            core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
             std::filesystem::path meshPath = e["mesh"]["path"].GetString();
             resources::Model* mesh = assetManager->loadMesh( meshPath.stem().string(), meshPath.string() );
             ent.addComponent<core::ModelComponent>(
                 core::ModelComponent{ .meshPath = meshPath.string(), .pMesh = mesh } );
+        }
+
+        if ( e.HasMember( "cubemap" ) )
+        {
+            resources::Texture* cubemap = assetManager->loadCubemap( e["cubemap"]["path"].GetString() );
+            core::CubemapComponent cubemapComp{ .cubemapTexture = cubemap, .isUsed = true };
+
+            // if we have 0 cubmepas, use this one
+            // if we have more it will use the first one loaded
+            if ( getEnttRegistry().view<core::CubemapComponent>().size() <= 0 )
+            {
+                cubemapComp.isUsed = true;
+            }
+
+            ent.addComponent<core::CubemapComponent>( cubemapComp );
         }
     }
 }
 
 auto core::Scene::serialize() -> void
 {
+
+    auto saveCubemap = []( utilities::JsonSerializer* s, const core::CubemapComponent& cubemapComp ) {
+        s->startObject( "cubemap" ).addKeyValuePair( "path", cubemapComp.cubemapTexture->path ).endObject();
+    };
+
     auto saveEntityIdComponent = []( utilities::JsonSerializer* s, const core::IdentifierComponent& idComponent ) {
         s->startObject( "identifier" )
             .addKeyValuePair( "name", idComponent.name )
@@ -241,6 +263,11 @@ auto core::Scene::serialize() -> void
         if ( entity.hasComponent<core::TransformComponent>() )
         {
             saveEntityTransformComponent( serializer.get(), entity.getComponent<core::TransformComponent>() );
+        }
+
+        if ( entity.hasComponent<core::CubemapComponent>() )
+        {
+            saveCubemap( serializer.get(), entity.getComponent<core::CubemapComponent>() );
         }
 
         serializer->endObject();

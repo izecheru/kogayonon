@@ -28,6 +28,8 @@ class EntityProperties : public ImGuiWindow
   private:
     auto contextMenu() -> void;
 
+    auto renderCubemap() -> void;
+
     auto renderMesh() -> void;
 
     auto renderCamera() -> void;

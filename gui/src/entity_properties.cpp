@@ -47,6 +47,7 @@ void gui::EntityProperties::render()
     renderMesh();
     renderCamera();
     renderRigidbody();
+    renderCubemap();
 
     ImGui::End();
 }
@@ -157,10 +158,11 @@ void gui::EntityProperties::contextMenu()
     ImGui::PopFont();
 }
 
-void gui::EntityProperties::renderMesh()
+auto gui::EntityProperties::renderMesh() -> void
 {
     core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
     entt::entity currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+
     if ( currentEntity == entt::null )
         return;
 
@@ -218,7 +220,7 @@ void gui::EntityProperties::renderMesh()
     }
 }
 
-void gui::EntityProperties::renderCamera()
+auto gui::EntityProperties::renderCamera() -> void
 {
     core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
     entt::entity currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
@@ -269,28 +271,28 @@ void gui::EntityProperties::renderCamera()
     camera->updateUbo();
 }
 
-void gui::EntityProperties::renderCameraFov( bool& changed, float& fov )
+auto gui::EntityProperties::renderCameraFov( bool& changed, float& fov ) -> void
 {
     ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
     changed |= ImGui::DragFloat( "FOV", &fov );
     ImGui::PopFont();
 }
 
-void gui::EntityProperties::renderCameraNear( bool& changed, float& camNear )
+auto gui::EntityProperties::renderCameraNear( bool& changed, float& camNear ) -> void
 {
     ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
     changed |= ImGui::DragFloat( "Near", &camNear );
     ImGui::PopFont();
 }
 
-void gui::EntityProperties::renderCameraFar( bool& changed, float& camFar )
+auto gui::EntityProperties::renderCameraFar( bool& changed, float& camFar ) -> void
 {
     ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
     changed |= ImGui::DragFloat( "Far", &camFar );
     ImGui::PopFont();
 }
 
-void gui::EntityProperties::renderRigidbody()
+auto gui::EntityProperties::renderRigidbody() -> void
 {
     auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
     auto currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
@@ -312,7 +314,7 @@ void gui::EntityProperties::renderRigidbody()
     } );
 }
 
-void gui::EntityProperties::renderTransform()
+auto gui::EntityProperties::renderTransform() -> void
 {
     auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
     auto currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
@@ -435,7 +437,7 @@ void gui::EntityProperties::renderTransform()
     }
 }
 
-void gui::EntityProperties::renderTranslation( bool& translationChanged, glm::vec3& translation )
+auto gui::EntityProperties::renderTranslation( bool& translationChanged, glm::vec3& translation ) -> void
 {
     ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
     ImGui::PushItemWidth( 50.0f );
@@ -460,7 +462,7 @@ void gui::EntityProperties::renderTranslation( bool& translationChanged, glm::ve
     ImGui::PopItemWidth();
 }
 
-void gui::EntityProperties::renderScale( bool& scaleChanged, glm::vec3& scale )
+auto gui::EntityProperties::renderScale( bool& scaleChanged, glm::vec3& scale ) -> void
 {
     ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
     ImGui::PushItemWidth( 50.0f );
@@ -486,7 +488,7 @@ void gui::EntityProperties::renderScale( bool& scaleChanged, glm::vec3& scale )
     ImGui::PopItemWidth();
 }
 
-void gui::EntityProperties::renderRotation( bool& rotationChanged, glm::vec3& rotation )
+auto gui::EntityProperties::renderRotation( bool& rotationChanged, glm::vec3& rotation ) -> void
 {
     ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
     ImGui::PushItemWidth( 50.0f );
@@ -511,7 +513,7 @@ void gui::EntityProperties::renderRotation( bool& rotationChanged, glm::vec3& ro
     ImGui::PopItemWidth();
 }
 
-void gui::EntityProperties::renderIdentification()
+auto gui::EntityProperties::renderIdentification() -> void
 {
     auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
     auto currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
@@ -534,7 +536,7 @@ void gui::EntityProperties::renderIdentification()
     }
 }
 
-void gui::EntityProperties::renderColoredAxis( const std::string& axis, const ImU32& color )
+auto gui::EntityProperties::renderColoredAxis( const std::string& axis, const ImU32& color ) -> void
 {
     ImGui::PushStyleColor( ImGuiCol_Button, color );
     ImGui::PushStyleColor( ImGuiCol_ButtonActive, color );
@@ -547,4 +549,51 @@ void gui::EntityProperties::renderColoredAxis( const std::string& axis, const Im
 auto gui::EntityProperties::getSpec() -> EntityPropertiesSpec&
 {
     return m_spec;
+}
+
+auto gui::EntityProperties::renderCubemap() -> void
+{
+    core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+    core::SceneEventHandler* sceneHandler = sceneManager->getEventHandler();
+    core::Scene* currentScene = sceneManager->getCurrentScene();
+
+    entt::entity currentEntity = sceneHandler->getCurrentEntityId();
+
+    if ( currentEntity == entt::null )
+        return;
+
+    core::Entity ent{ currentScene->getRegistry(), currentEntity };
+
+    if ( !ent.hasComponent<core::CubemapComponent>() )
+        return;
+
+    core::CubemapComponent& cubemap = ent.getComponent<core::CubemapComponent>();
+
+    std::filesystem::path p{ cubemap.cubemapTexture->path.c_str() };
+    ImGui::Text( "Folder: %s", p.stem().string().c_str() );
+    if ( ImGui::IsItemHovered() )
+    {
+        ImGui::BeginTooltip();
+        ImGui::Text( "%s", p.string().c_str() );
+        ImGui::EndTooltip();
+    }
+
+    ImGui::Checkbox( "Is used", &cubemap.isUsed );
+
+    if ( ImGui::Button( "Change cubemap" ) )
+    {
+        cubemap.isUsed = false;
+
+        core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
+
+        auto result = tinyfd_selectFolderDialog( "Pick folder", p.string().c_str() );
+
+        if ( result )
+        {
+            resources::Texture* cubemapTex = assetManager->loadCubemap( result );
+
+            cubemap.cubemapTexture = cubemapTex;
+            cubemap.isUsed = true;
+        }
+    }
 }
