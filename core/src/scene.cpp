@@ -188,7 +188,7 @@ auto core::Scene::deserialize( const std::filesystem::path& p ) -> void
         if ( e.HasMember( "cubemap" ) )
         {
             resources::Texture* cubemap = assetManager->loadCubemap( e["cubemap"]["path"].GetString() );
-            core::CubemapComponent cubemapComp{ .cubemapTexture = cubemap, .isUsed = true };
+            core::CubemapComponent cubemapComp{ .cubemapTexture = cubemap, .isUsed = false };
 
             // if we have 0 cubmepas, use this one
             // if we have more it will use the first one loaded

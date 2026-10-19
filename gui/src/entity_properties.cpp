@@ -94,6 +94,14 @@ void gui::EntityProperties::contextMenu()
                     core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
                     resources::Texture* cubemap = assetManager->loadCubemap( result );
 
+                    auto cubemapView = scene->getEnttRegistry().view<core::CubemapComponent>();
+
+                    // on load just disable all other cubemaps
+                    cubemapView.each( [&]( const entt::entity& entityId, core::CubemapComponent& cubemapComp ) {
+                        if ( cubemapComp.isUsed && currentEntity != entityId )
+                            cubemapComp.isUsed = false;
+                    } );
+
                     scene->getRegistry()->addComponent<core::CubemapComponent>(
                         currentEntity, core::CubemapComponent{ .cubemapTexture = cubemap, .isUsed = true } );
                 }
@@ -265,31 +273,16 @@ auto gui::EntityProperties::renderCamera() -> void
     gui_utils::renderWithSizedFont(
         m_spec.fonts->at( INTER ), 16.0f, [&]() { ImGui::Checkbox( ICON_MDI_LINK "##tLink", &translationLink ); } );
 
-    renderCameraFov( camera->props.changed, camera->props.fov );
-    renderCameraNear( camera->props.changed, camera->props.nearView );
-    renderCameraFar( camera->props.changed, camera->props.farView );
+    auto renderCameraProp = [&]( const char* label, bool& changed, float& value ) {
+        ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
+        changed |= ImGui::DragFloat( label, &value );
+        ImGui::PopFont();
+    };
+
+    renderCameraProp( "FOV", camera->props.changed, camera->props.fov );
+    renderCameraProp( "Near", camera->props.changed, camera->props.nearView );
+    renderCameraProp( "Far", camera->props.changed, camera->props.farView );
     camera->updateUbo();
-}
-
-auto gui::EntityProperties::renderCameraFov( bool& changed, float& fov ) -> void
-{
-    ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
-    changed |= ImGui::DragFloat( "FOV", &fov );
-    ImGui::PopFont();
-}
-
-auto gui::EntityProperties::renderCameraNear( bool& changed, float& camNear ) -> void
-{
-    ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
-    changed |= ImGui::DragFloat( "Near", &camNear );
-    ImGui::PopFont();
-}
-
-auto gui::EntityProperties::renderCameraFar( bool& changed, float& camFar ) -> void
-{
-    ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
-    changed |= ImGui::DragFloat( "Far", &camFar );
-    ImGui::PopFont();
 }
 
 auto gui::EntityProperties::renderRigidbody() -> void
@@ -578,7 +571,21 @@ auto gui::EntityProperties::renderCubemap() -> void
         ImGui::EndTooltip();
     }
 
-    ImGui::Checkbox( "Is used", &cubemap.isUsed );
+    if ( ImGui::Checkbox( "Is used", &cubemap.isUsed ) )
+    {
+        if ( cubemap.isUsed )
+        {
+            core::Scene* currentScene = sceneManager->getCurrentScene();
+            auto cubemapView = currentScene->getEnttRegistry().view<core::CubemapComponent>();
+
+            cubemapView.each( [&]( const entt::entity& entityId, core::CubemapComponent& cubemapComp ) {
+                if ( currentEntity != entityId && cubemapComp.isUsed )
+                {
+                    cubemapComp.isUsed = false;
+                }
+            } );
+        }
+    }
 
     if ( ImGui::Button( "Change cubemap" ) )
     {

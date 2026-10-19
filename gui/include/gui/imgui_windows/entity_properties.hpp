@@ -32,10 +32,11 @@ class EntityProperties : public ImGuiWindow
 
     auto renderMesh() -> void;
 
+    /**
+     * @brief Render camera related info
+     * @return
+     */
     auto renderCamera() -> void;
-    auto renderCameraFov( bool& changed, float& fov ) -> void;
-    auto renderCameraNear( bool& changed, float& camNear ) -> void;
-    auto renderCameraFar( bool& changed, float& camFar ) -> void;
 
     auto renderRigidbody() -> void;
 

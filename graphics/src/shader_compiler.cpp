@@ -26,13 +26,12 @@ auto graphics::ShaderCompiler::compileShaderFromSource( const std::string& shade
     auto slangTargets{ std::to_array<slang::TargetDesc>(
         { { .format{ SLANG_SPIRV }, .profile{ m_globalSession->findProfile( "spirv_1_6" ) } } } ) };
 
-    auto slangOptions{ std::to_array<slang::CompilerOptionEntry>(
+    const auto slangOptions{ std::to_array<slang::CompilerOptionEntry>(
         { { slang::CompilerOptionName::EmitSpirvDirectly, { slang::CompilerOptionValueKind::Int, 1 } },
           { slang::CompilerOptionName::MatrixLayoutColumn, { slang::CompilerOptionValueKind::Int, 1 } },
-          { slang::CompilerOptionName::MatrixLayoutRow, { slang::CompilerOptionValueKind::Int, 0 } },
-          { slang::CompilerOptionName::EmitSpirvDirectly, { slang::CompilerOptionValueKind::Int, 1 } } } ) };
+          { slang::CompilerOptionName::MatrixLayoutRow, { slang::CompilerOptionValueKind::Int, 0 } } } ) };
 
-    const auto shaderPath = ( std::filesystem::current_path() / "engine_resources" / "shaders" ).string();
+    const std::string shaderPath{ ( std::filesystem::current_path() / "engine_resources" / "shaders" ).string() };
 
     const char* searchPaths[] = { shaderPath.c_str() };
 
