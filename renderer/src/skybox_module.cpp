@@ -207,19 +207,14 @@ auto rendering::SkyboxModule::registerSkyboxPass() -> void
 
             VkBuffer commandsBuffer = prepassData.indirectCommandsBuffer.buffers.at( currentFrame ).vkBuffer;
 
-            struct DrawParams
-            {
-                int cubemapTextureIndex{ -1 };
-            } drawParams;
-
-            drawParams.cubemapTextureIndex = comp->cubemapTexture->textureIndex;
-
             vkCmdPushConstants( cmdBuffer,
                                 skyboxData.skyboxPipeline.getLayout(),
                                 VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                                 0,
-                                sizeof( DrawParams ),
-                                &drawParams );
+                                // opt for uint32_t instead of int cause if we dont have a cubemap
+                                // this pass does not render at all so this step is not executed
+                                sizeof( uint32_t ),
+                                &comp->cubemapTexture->textureIndex );
 
             vkCmdDraw( cmdBuffer, 36, 1, 0, 0 );
 

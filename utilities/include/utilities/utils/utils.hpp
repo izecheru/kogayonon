@@ -33,7 +33,7 @@
 #define KTHROW( condition, ... )                                                                                       \
     if ( condition )                                                                                                   \
     {                                                                                                                  \
-        std::throw runtime_error( __VA_ARGS__ );                                                                       \
+        throw std::runtime_error( std::format( __VA_ARGS__ ) );                                                        \
     }
 #else
 #define KTHROW( condition, ... )

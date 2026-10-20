@@ -1,7 +1,6 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "core/ecs/components/cubemap_component.hpp"
 #include "core/ecs/components/camera_component.hpp"
-#include "rapidjson/rapidjson.h"
 #include "rapidjson/istreamwrapper.h"
 #include "physics/jolt_physics.hpp"
 #include "core/asset_manager/asset_manager.hpp"
@@ -13,6 +12,8 @@
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
+#include "tracy/Tracy.hpp"
+
 using namespace utilities;
 
 core::Scene::Scene( const std::string& name )
@@ -84,6 +85,7 @@ void core::Scene::removeMeshFromEntity( entt::entity entity )
 
 auto core::Scene::onUpdate() -> void
 {
+    ZoneScopedN( "Scene::onUpdate" );
     // update bodies
     auto rigidView = m_pRegistry->getRegistry().view<core::RigidbodyComponent, core::TransformComponent>();
     rigidView.each( []( const entt::entity& entityId,
@@ -133,7 +135,7 @@ auto core::Scene::onUpdate() -> void
 
 auto core::Scene::deserialize( const std::filesystem::path& p ) -> void
 {
-    // TODO write this block of code as a json deserializer
+    ZoneScopedN( "Scene::deserialize" );
     std::ifstream in{ p, std::ios::in | std::ios::binary };
     rapidjson::IStreamWrapper isw{ in };
     rapidjson::Document doc{};
@@ -188,25 +190,22 @@ auto core::Scene::deserialize( const std::filesystem::path& p ) -> void
         if ( e.HasMember( "cubemap" ) )
         {
             resources::Texture* cubemap = assetManager->loadCubemap( e["cubemap"]["path"].GetString() );
-            core::CubemapComponent cubemapComp{ .cubemapTexture = cubemap, .isUsed = false };
-
-            // if we have 0 cubmepas, use this one
-            // if we have more it will use the first one loaded
-            if ( getEnttRegistry().view<core::CubemapComponent>().size() <= 0 )
-            {
-                cubemapComp.isUsed = true;
-            }
-
-            ent.addComponent<core::CubemapComponent>( cubemapComp );
+            const bool isUsed = e["cubemap"]["isUsed"].GetBool();
+            ent.addComponent<core::CubemapComponent>(
+                core::CubemapComponent{ .cubemapTexture = cubemap, .isUsed = isUsed } );
         }
     }
 }
 
 auto core::Scene::serialize() -> void
 {
+    ZoneScopedN( "Scene::serialize" );
 
     auto saveCubemap = []( utilities::JsonSerializer* s, const core::CubemapComponent& cubemapComp ) {
-        s->startObject( "cubemap" ).addKeyValuePair( "path", cubemapComp.cubemapTexture->path ).endObject();
+        s->startObject( "cubemap" )
+            .addKeyValuePair( "path", cubemapComp.cubemapTexture->path )
+            .addKeyValuePair( "isUsed", cubemapComp.isUsed )
+            .endObject();
     };
 
     auto saveEntityIdComponent = []( utilities::JsonSerializer* s, const core::IdentifierComponent& idComponent ) {
@@ -238,7 +237,7 @@ auto core::Scene::serialize() -> void
     std::unique_ptr<utilities::JsonSerializer> serializer =
         std::make_unique<utilities::JsonSerializer>( scenePath.string() );
 
-    serializer->startDocument().startArray( "entities" );
+    serializer->startArray( "entities" );
 
     // serialize except cameras and lights for now
     auto view = getEnttRegistry().view<core::IdentifierComponent>(
@@ -273,5 +272,5 @@ auto core::Scene::serialize() -> void
         serializer->endObject();
     } );
 
-    serializer->endArray().endDocument();
+    serializer->endArray();
 }

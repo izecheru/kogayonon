@@ -30,7 +30,12 @@ core::AssetManager::AssetManager( graphics::VulkanContext* vkCtx )
 auto core::AssetManager::recreate() -> void
 {
     m_vkCtx->device->waitIdle();
+
+    m_vkCtx->device->destroyDescriptorSetLayout( m_bindlessCubemapDescriptor.layout );
+    m_vkCtx->device->destroyDescriptorSetLayout( m_bindlessTexturesDescriptor.layout );
+
     m_bindlessTexturesIndex = 0u;
+    m_bindlessCubemapIndex = 0u;
 
     graphics::VulkanMemoryAllocator* allocator = m_vkCtx->device->getMemAllocator();
 
@@ -51,6 +56,8 @@ auto core::AssetManager::recreate() -> void
         return std::ranges::find( m_uiTexturePaths, std::filesystem::path{ kv.first } ) == m_uiTexturePaths.end();
     } );
 
+    initDescriptors();
+
     m_loadedMeshes.clear();
 }
 
@@ -69,9 +76,12 @@ auto core::AssetManager::destroyResources() -> void
 
     m_vkCtx->device->destroySampler( m_textureSampler );
     m_vkCtx->device->destroySampler( m_cubemapSampler );
+
     m_vkCtx->device->destroyDescriptorSetLayout( m_bindlessCubemapDescriptor.layout );
     m_vkCtx->device->destroyDescriptorSetLayout( m_bindlessTexturesDescriptor.layout );
+
     m_bindlessTexturesIndex = 0u;
+    m_bindlessCubemapIndex = 0u;
 
     for ( auto& [path, texture] : m_loadedTextures )
     {
@@ -621,6 +631,11 @@ auto core::AssetManager::getTexture( const std::string& texturePath ) -> resourc
 
 auto core::AssetManager::loadCubemap( const std::string& folderPath ) -> resources::Texture*
 {
+    if ( hasResource<resources::Texture>( folderPath ) )
+    {
+        return m_loadedTextures[folderPath].get();
+    }
+
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -646,6 +661,7 @@ auto core::AssetManager::loadCubemap( const std::string& folderPath ) -> resourc
     fs::directory_iterator it{ path };
 
     auto cubemapIndexFromStem = []( std::string_view stem ) -> uint32_t {
+        // this is used so "posx" is not const char* and instead it is a string_view
         using namespace std::literals;
         if ( stem == "posx"sv || stem == "right"sv )
         {
@@ -692,12 +708,24 @@ auto core::AssetManager::loadCubemap( const std::string& folderPath ) -> resourc
     imageInfo.extent.width = texWidth;
     imageInfo.extent.height = texHeight;
 
+    bool failed{ false };
     for ( auto& data : textureData )
     {
-        if ( data == VK_NULL_HANDLE )
+        if ( data == VK_NULL_HANDLE && !failed )
         {
-            throw std::runtime_error( "failed to load texture vulkanImage!" );
+            failed = true;
+            break;
         }
+    }
+
+    if ( failed )
+    {
+        for ( auto& data : textureData )
+        {
+            stbi_image_free( data );
+        }
+
+        throw std::runtime_error( "Failed to load image data" );
     }
 
     VkDeviceSize imageSize = texWidth * texHeight * 4 * 6;

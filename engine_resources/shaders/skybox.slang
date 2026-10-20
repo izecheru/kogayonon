@@ -22,7 +22,7 @@ struct FragmentOutput
 
 struct DrawParams
 {
-    int cubemapIndex;
+    uint32_t cubemapIndex;
 };
 
 DESCRIPTOR_SET( 0, 0, ConstantBuffer<Camera> ) camera;

@@ -20,6 +20,10 @@ auto utilities::JsonSerializer::addValue( const T& value ) -> JsonSerializer&
     {
         m_writer->Double( value );
     }
+    else if constexpr ( std::is_same<T, bool>::value )
+    {
+        m_writer->Bool( value );
+    }
     else
     {
         throw std::runtime_error( "Man you forgot to handle a type!!!" );
@@ -49,6 +53,10 @@ auto utilities::JsonSerializer::addKeyValuePair( const std::string& key, const T
     else if constexpr ( std::is_same<T, std::string>::value )
     {
         m_writer->String( value.c_str() );
+    }
+    else if constexpr ( std::is_same<T, bool>::value )
+    {
+        m_writer->Bool( value );
     }
     else if constexpr ( std::is_same<T, glm::vec3>::value )
     {

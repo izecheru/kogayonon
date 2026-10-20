@@ -23,10 +23,12 @@ utilities::JsonSerializer::JsonSerializer( const std::string& path )
     , m_buffer{}
     , m_writer{ std::make_unique<PrettyWriter<StringBuffer>>( m_buffer ) }
 {
+    startDocument();
 }
 
 utilities::JsonSerializer::~JsonSerializer()
 {
+    endDocument();
     m_fileStream.flush();
     if ( m_fileStream.is_open() )
         m_fileStream.close();
