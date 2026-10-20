@@ -754,7 +754,7 @@ auto core::AssetManager::loadCubemap( const std::string& folderPath ) -> resourc
                             imageInfo,
                             imageAllocInfo,
                             texture->vulkanImage.vmaAllocation,
-                            path.parent_path().stem().string() + "_cubemap_image" );
+                            path.stem().string() + "_cubemap_image" );
 
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -767,7 +767,7 @@ auto core::AssetManager::loadCubemap( const std::string& folderPath ) -> resourc
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 6;
 
-    allocator->createImageView( texture->vulkanImage, viewInfo, path.parent_path().stem().string() + "_cubemap_view" );
+    allocator->createImageView( texture->vulkanImage, viewInfo, path.stem().string() + "_cubemap_view" );
 
     VkImageMemoryBarrier2 transferLayoutBarrier{ .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
                                                  .srcStageMask = VK_PIPELINE_STAGE_2_NONE,

@@ -153,12 +153,12 @@ class VulkanMemoryAllocator
                           VkImage& image,
                           VkFormat format,
                           VkImageAspectFlags aspectFlags,
-                          std::string_view imageViewName = "" ) const -> VkResult;
+                          std::string_view imageViewName = "" ) -> VkResult;
 
     auto createImageView( VulkanImage& image,
                           VkFormat format,
                           VkImageAspectFlags aspectFlags,
-                          std::string_view imageViewName = "" ) const -> VkResult;
+                          std::string_view imageViewName = "" ) -> VkResult;
 
     auto invalidateAllocation( VulkanBuffer& vulkanBuffer, VkDeviceSize offset, VkDeviceSize size ) const -> void;
 

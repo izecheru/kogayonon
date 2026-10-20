@@ -28,16 +28,28 @@ class EntityProperties : public ImGuiWindow
   private:
     auto contextMenu() -> void;
 
+    /**
+     * @brief Render details about the cubemap component
+     *
+     */
     auto renderCubemap() -> void;
 
-    auto renderMesh() -> void;
+    /**
+     * @brief Render details about the model component
+     *
+     */
+    auto renderModel() -> void;
 
     /**
      * @brief Render camera related info
-     * @return
+     *
      */
     auto renderCamera() -> void;
 
+    /**
+     * @brief Render details about the rigidbody component
+     *
+     */
     auto renderRigidbody() -> void;
 
     /**
@@ -45,19 +57,22 @@ class EntityProperties : public ImGuiWindow
      */
     auto renderTransform() -> void;
 
+    // TODO thos can be simplified
     auto renderTranslation( bool& translationChanged, glm::vec3& translation ) -> void;
     auto renderScale( bool& scaleChanged, glm::vec3& scale ) -> void;
     auto renderRotation( bool& rotationChanged, glm::vec3& rotation ) -> void;
 
     /**
      * @brief Renders details about the IdentifierComponent of the currently selected entity
+     *
      */
     auto renderIdentification() -> void;
 
     /**
-     * @brief Renders the X, Y, Z for the translation, rotation and scale
-     * @param axis Label for the axis
-     * @param color Color of the text background
+     * @brief Render a colored square with the axis text inside of it
+     *
+     * @param axis The axis, eg. X
+     * @param color Color of the axis square
      */
     auto renderColoredAxis( const std::string& axis, const ImU32& color ) -> void;
 

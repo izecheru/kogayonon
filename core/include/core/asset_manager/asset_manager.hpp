@@ -13,7 +13,6 @@ namespace enki
 struct ITaskSet;
 }
 
-// front back top bottom right left
 enum CubemapIndex : uint32_t
 {
     Right = 0u,
@@ -311,9 +310,17 @@ class AssetManager
   private:
     VkDescriptorPool m_pDescriptorPool{ nullptr };
     graphics::VulkanDescriptor m_bindlessTexturesDescriptor;
+    uint32_t m_bindlessTexturesIndex;
+    uint32_t m_samplerIndex; // currently unused
+
+    uint32_t m_materialCount;
+
+    graphics::VulkanDescriptor m_bindlessCubemapDescriptor;
+    VkSampler m_cubemapSampler;
+    uint32_t m_bindlessCubemapIndex;
 
     graphics::VulkanBuffer m_materialsBuffer;
-    uint32_t m_materialCount;
+    // Pointer to the buffer above ( it is persistently mapped )
     resources::Material* m_materialsPtr;
 
     std::unordered_map<std::string, std::unique_ptr<resources::Texture>> m_loadedTextures;
@@ -325,10 +332,6 @@ class AssetManager
     graphics::VulkanContext* m_vkCtx;
     VkSampler m_textureSampler;
 
-    graphics::VulkanDescriptor m_bindlessCubemapDescriptor;
-    VkSampler m_cubemapSampler;
-    uint32_t m_bindlessCubemapIndex;
-
     FontLoader m_fontLoader;
     std::unique_ptr<KtxTextureManager> m_ktxTextureManager;
 
@@ -336,11 +339,6 @@ class AssetManager
     graphics::VulkanBuffer m_stagingBuffer;
 
     std::vector<std::filesystem::path> m_uiTexturePaths;
-
-    // used for assigning the values to material indices in the mesh
-    uint32_t m_bindlessTexturesIndex;
-
-    uint32_t m_samplerIndex; // currently unused
 
     // mutexes
     std::mutex m_materialMutex;

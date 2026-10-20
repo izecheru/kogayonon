@@ -329,7 +329,7 @@ auto graphics::VulkanMemoryAllocator::createImageView( VkImageView& imageView,
                                                        VkImage& image,
                                                        VkFormat format,
                                                        VkImageAspectFlags aspectFlags,
-                                                       std::string_view imageViewName ) const -> VkResult
+                                                       std::string_view imageViewName ) -> VkResult
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -343,6 +343,7 @@ auto graphics::VulkanMemoryAllocator::createImageView( VkImageView& imageView,
     viewInfo.subresourceRange.layerCount = 1;
 
     return VK_CALL( vkCreateImageView( m_device, &viewInfo, nullptr, &imageView ) );
+    setVulkanDebugName( VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<uint64_t>( imageView ), imageViewName );
 }
 
 auto graphics::VulkanMemoryAllocator::createImageView( graphics::VulkanImage& image,
@@ -362,7 +363,7 @@ auto graphics::VulkanMemoryAllocator::createImageView( graphics::VulkanImage& im
 auto graphics::VulkanMemoryAllocator::createImageView( VulkanImage& image,
                                                        VkFormat format,
                                                        VkImageAspectFlags aspectFlags,
-                                                       std::string_view imageViewName ) const -> VkResult
+                                                       std::string_view imageViewName ) -> VkResult
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -375,7 +376,14 @@ auto graphics::VulkanMemoryAllocator::createImageView( VulkanImage& image,
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 1;
 
-    return VK_CALL( vkCreateImageView( m_device, &viewInfo, nullptr, &image.vkImageView ) );
+    VkResult result = VK_CALL( vkCreateImageView( m_device, &viewInfo, nullptr, &image.vkImageView ) );
+
+    if ( result == VK_SUCCESS )
+    {
+        setVulkanDebugName( VK_OBJECT_TYPE_IMAGE_VIEW, reinterpret_cast<uint64_t>( image.vkImageView ), imageViewName );
+    }
+
+    return result;
 }
 
 auto graphics::VulkanMemoryAllocator::createGlobalBuffers() -> void

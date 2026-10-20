@@ -88,7 +88,7 @@ static int indices[36] = int[36](
 [shader( "vertex" )]
 VertexOutput vertexMain( VertexInput input )
 {
-    VertexOutput o;
+    VertexOutput output;
 
     int index = indices[input.vertexID];
     float3 localPos = pos[index];
@@ -99,10 +99,10 @@ VertexOutput vertexMain( VertexInput input )
     viewMat[2][3] = 0.0;
 
     float4 outPosition = mul( camera.projection, mul( viewMat, float4( localPos, 1.0 ) ) );
-    o.position = outPosition.xyww;
-    o.viewDir = normalize(localPos);
+    output.position = outPosition.xyww;
+    output.viewDir = normalize(localPos);
 
-    return o;
+    return output;
 }
 
 [shader( "fragment" )]

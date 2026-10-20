@@ -83,6 +83,8 @@ auto rendering::GeometryModule::destroyModuleResources() -> void
     m_vkCtx->device->destroyPipelineLayout( geometryModuleData.wireframePipeline.getLayout() );
     m_vkCtx->device->destroyPipeline( geometryModuleData.wireframePipeline.getPipeline() );
 
+    m_vkCtx->device->destroyImageView( geometryModuleData.color->vulkanImage.vkImageView );
+
     allocator->destroyImage( geometryModuleData.color->vulkanImage.vkImage,
                              geometryModuleData.color->vulkanImage.vmaAllocation );
 

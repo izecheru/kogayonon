@@ -44,7 +44,7 @@ void gui::EntityProperties::render()
 
     renderIdentification();
     renderTransform();
-    renderMesh();
+    renderModel();
     renderCamera();
     renderRigidbody();
     renderCubemap();
@@ -166,7 +166,7 @@ void gui::EntityProperties::contextMenu()
     ImGui::PopFont();
 }
 
-auto gui::EntityProperties::renderMesh() -> void
+auto gui::EntityProperties::renderModel() -> void
 {
     core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
     entt::entity currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
@@ -246,11 +246,38 @@ auto gui::EntityProperties::renderCamera() -> void
     gui_utils::renderWithFont( m_spec.fonts->at( INTER_I ), []() { ImGui::SeparatorText( "Camera component" ); } );
     // this is if we want to link the values and make them equal
     static bool translationLink{ false };
-    static bool scaleLink{ false };
+    static bool centerLink{ false };
     static bool rotationLink{ false };
+
+    gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 18.0f, []() { ImGui::Text( "Center" ); } );
+    ImGui::SameLine();
+
+    // render center here
+    if ( !centerLink )
+    {
+        renderScale( camera->props.changed, camera->props.center );
+    }
+    else
+    {
+        RenderDisabled( renderTranslation( camera->props.changed, camera->props.center ) );
+        ImGui::SameLine();
+
+        gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 16.0f, [&]() {
+            ImGui::PushItemWidth( 50.0f );
+            camera->props.changed |= ImGui::DragFloat( "##transCameraTranslation", &camera->props.center.x, 0.04f );
+            ImGui::PopItemWidth();
+        } );
+        camera->props.center.y = camera->props.center.x;
+        camera->props.center.z = camera->props.center.x;
+    }
+
+    ImGui::SameLine();
+    gui_utils::renderWithSizedFont(
+        m_spec.fonts->at( INTER ), 16.0f, [&]() { ImGui::Checkbox( ICON_MDI_LINK "##tLink", &centerLink ); } );
 
     gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 18.0f, []() { ImGui::Text( "Translation" ); } );
     ImGui::SameLine();
+
     // render translation here
     if ( !translationLink )
     {
@@ -269,6 +296,7 @@ auto gui::EntityProperties::renderCamera() -> void
         camera->props.eye.y = camera->props.eye.x;
         camera->props.eye.z = camera->props.eye.x;
     }
+
     ImGui::SameLine();
     gui_utils::renderWithSizedFont(
         m_spec.fonts->at( INTER ), 16.0f, [&]() { ImGui::Checkbox( ICON_MDI_LINK "##tLink", &translationLink ); } );
@@ -282,28 +310,31 @@ auto gui::EntityProperties::renderCamera() -> void
     renderCameraProp( "FOV", camera->props.changed, camera->props.fov );
     renderCameraProp( "Near", camera->props.changed, camera->props.nearView );
     renderCameraProp( "Far", camera->props.changed, camera->props.farView );
+
     camera->updateUbo();
 }
 
 auto gui::EntityProperties::renderRigidbody() -> void
 {
-    auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
-    auto currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+    core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+    entt::entity currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+
     if ( currentEntity == entt::null )
         return;
 
-    auto scene = sceneManager->getCurrentScene();
+    core::Scene* scene = sceneManager->getCurrentScene();
 
-    auto pRigidbody = scene->getRegistry()->tryGetComponent<core::RigidbodyComponent>( currentEntity );
+    core::RigidbodyComponent* rigidBody =
+        scene->getRegistry()->tryGetComponent<core::RigidbodyComponent>( currentEntity );
 
-    if ( !pRigidbody )
+    if ( !rigidBody )
         return;
 
     gui_utils::renderWithFont( m_spec.fonts->at( INTER_I ), []() { ImGui::SeparatorText( "Rigidbody component" ); } );
 
     gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 16.0f, [&]() {
-        ImGui::Text( "Shape: %s", physics::rigidbodyShapeStr( pRigidbody->data.shape ).c_str() );
-        ImGui::Text( "Type: %s", physics::rigidbodyTypeStr( pRigidbody->data.type ).c_str() );
+        ImGui::Text( "Shape: %s", physics::rigidbodyShapeStr( rigidBody->data.shape ).c_str() );
+        ImGui::Text( "Type: %s", physics::rigidbodyTypeStr( rigidBody->data.type ).c_str() );
     } );
 }
 
@@ -508,25 +539,27 @@ auto gui::EntityProperties::renderRotation( bool& rotationChanged, glm::vec3& ro
 
 auto gui::EntityProperties::renderIdentification() -> void
 {
-    auto sceneManager = core::MainRegistry::getInstance().getSceneManager();
-    auto currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+    core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+    entt::entity currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
+    core::Scene* scene = sceneManager->getCurrentScene();
 
     if ( currentEntity == entt::null )
         return;
 
-    auto scene = sceneManager->getCurrentScene();
+    core::IdentifierComponent* idComp =
+        scene->getRegistry()->tryGetComponent<core::IdentifierComponent>( currentEntity );
+
+    if ( !idComp )
+        return;
+
     ImGui::PushFont( m_spec.fonts->at( INTER_I ) );
     ImGui::SeparatorText( "Entity identification" );
     ImGui::PopFont();
 
-    auto idComp = scene->getRegistry()->tryGetComponent<core::IdentifierComponent>( currentEntity );
-    if ( idComp )
-    {
-        ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
-        ImGui::InputText( "##id", &idComp->name );
-        ImGui::Text( "Group: %s", idComp->group.c_str() );
-        ImGui::PopFont();
-    }
+    ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
+    ImGui::InputText( "##id", &idComp->name );
+    ImGui::Text( "Group: %s", idComp->group.c_str() );
+    ImGui::PopFont();
 }
 
 auto gui::EntityProperties::renderColoredAxis( const std::string& axis, const ImU32& color ) -> void

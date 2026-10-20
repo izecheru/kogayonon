@@ -6,13 +6,24 @@ namespace core
 {
 struct CameraProps
 {
+    /**
+     * @brief Camera (eye) position
+     */
     glm::vec3 eye{ 0.0f, 2.0f, 10.0f };
+
+    /**
+     * @brief Where camera is looking
+     */
     glm::vec3 center{ 0.0f, 0.0f, 0.0f };
+
+    /**
+     * @brief Which way is up, +Y is up
+     */
     glm::vec3 up{ 0.0f, 1.0f, 0.0f };
     float fov{ 45.0f };
     glm::ivec2 extent;
     float nearView{ 0.01f };
-    float farView{ 1000.0f };
+    float farView{ 3000.0f };
 
     // If we modify the props, update the projection and the view
     bool changed{ false };
@@ -22,6 +33,7 @@ struct CameraUbo
 {
     glm::mat4 view;
     glm::mat4 projection;
+    glm::vec3 translation;
 };
 
 struct PerspectiveCameraComponent
@@ -38,6 +50,8 @@ struct PerspectiveCameraComponent
             ubo.projection = glm::perspective(
                 glm::radians( props.fov ), props.extent.x / (float)props.extent.y, props.nearView, props.farView );
             ubo.projection[1][1] *= -1;
+            // this is for reflection from the cubemap
+            ubo.translation = props.eye;
             props.changed = false;
         }
     }

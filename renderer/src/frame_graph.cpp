@@ -32,12 +32,11 @@ auto rendering::FrameGraph::createResource( std::string_view name,
         aspect = VK_IMAGE_ASPECT_COLOR_BIT;
     }
 
-    m_device->getMemAllocator()->createImage( res->vulkanImage, imageInfo, imageAllocInfo, resName );
-    m_device->getMemAllocator()->createImageView( res->vulkanImage.vkImageView,
-                                                  res->vulkanImage.vkImage,
-                                                  imageInfo.format,
-                                                  aspect,
-                                                  std::string{ resName + "_imageView" } );
+    graphics::VulkanMemoryAllocator* allocator = m_device->getMemAllocator();
+    allocator->createImage( res->vulkanImage, imageInfo, imageAllocInfo, resName + "_vkImage" );
+
+    allocator->createImageView(
+        res->vulkanImage.vkImageView, res->vulkanImage.vkImage, imageInfo.format, aspect, resName + "_vkImageView" );
 
     return m_container.resources.back().get();
 }
