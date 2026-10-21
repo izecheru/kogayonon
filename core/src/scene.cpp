@@ -156,37 +156,34 @@ auto core::Scene::onUpdate() -> void
 
             JPH::Vec3 currentVelocity = playerComp.character->GetLinearVelocity();
 
-            JPH::Vec3 desiredVelocity{ 0, currentVelocity.GetY(), 0 };
-
             utilities::TimeTracker* timeTracker = core::MainRegistry::getInstance().getTimeTracker();
             float delta = timeTracker->getDurationInSeconds( DELTA_TIME );
 
             constexpr float speed{ 4.0f };
 
+            float yawRad = glm::radians( cameraComp.props.yaw );
+
+            glm::vec3 forward{ cos( yawRad ), 0.0f, sin( yawRad ) };
+            glm::vec3 right{ -sin( yawRad ), 0.0f, cos( yawRad ) };
+
+            glm::vec3 moveDir{ 0.0f };
+
             if ( KeyboardState::getKeyState( KeyScanCode::W ) )
-            {
-                desiredVelocity.SetZ( -speed );
-            }
+                moveDir += forward;
 
             if ( KeyboardState::getKeyState( KeyScanCode::S ) )
-            {
-                desiredVelocity.SetZ( speed );
-            }
-
-            if ( KeyboardState::getKeyState( KeyScanCode::A ) )
-            {
-                desiredVelocity.SetX( -speed );
-            }
+                moveDir -= forward;
 
             if ( KeyboardState::getKeyState( KeyScanCode::D ) )
-            {
-                desiredVelocity.SetX( speed );
-            }
+                moveDir += right;
 
-            if ( KeyboardState::getKeyState( KeyScanCode::Space ) )
-            {
-                desiredVelocity.SetY( 1.0f );
-            }
+            if ( KeyboardState::getKeyState( KeyScanCode::A ) )
+                moveDir -= right;
+
+            if ( glm::length( moveDir ) > 0.001f )
+                moveDir = glm::normalize( moveDir );
+
+            JPH::Vec3 desiredVelocity{ moveDir.x * speed, currentVelocity.GetY(), moveDir.z * speed };
 
             if ( playerComp.character->GetGroundState() != JPH::CharacterBase::EGroundState::OnGround )
             {

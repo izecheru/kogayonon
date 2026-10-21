@@ -64,7 +64,9 @@ struct PerspectiveCameraComponent
             props.direction.y = sin( glm::radians( props.pitch ) );
             props.direction.z = sin( glm::radians( props.yaw ) ) * cos( glm::radians( props.pitch ) );
 
-            props.center = props.eye + glm::normalize( props.direction );
+            props.direction = glm::normalize( props.direction );
+
+            props.center = props.eye + props.direction;
 
             ubo.view = glm::lookAt( props.eye, props.center, props.up );
             ubo.projection = glm::perspective(
