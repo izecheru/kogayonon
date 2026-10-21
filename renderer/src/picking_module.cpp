@@ -172,16 +172,16 @@ auto rendering::PickingModule::registerPickingPass() -> void
             view.each( [&]( const entt::entity& entityId,
                             core::ModelComponent& modelComponent,
                             core::TransformComponent& transform ) {
-                resources::Model* pMesh = modelComponent.pMesh;
-                if ( !pMesh )
+                resources::Model* pModel = modelComponent.pModel;
+                if ( !pModel )
                     return;
 
-                if ( !pMesh->isLoaded() )
+                if ( !pModel->isLoaded() )
                     return;
 
                 VkDeviceSize offsets[] = { 0 };
 
-                for ( auto& submesh : modelComponent.pMesh->getMeshes() )
+                for ( auto& submesh : modelComponent.pModel->getMeshes() )
                 {
                     resources::EntityPickingPushConstant push{ .modelMatrix = transform.getMatrix(),
                                                                .entityId = static_cast<int>( entityId ) };

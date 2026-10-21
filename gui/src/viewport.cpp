@@ -65,6 +65,15 @@ void gui::Viewport::render()
     ImGui::SetNextItemAllowOverlap();
     ImGui::Image( m_viewportDescriptor, viewportPanelSize );
 
+    physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
+
+    if ( jolt->isRunning() )
+    {
+        int w, h;
+        SDL_GetWindowSize( m_mainWindow, &w, &h );
+        SDL_WarpMouseInWindow( m_mainWindow, w / 2, h / 2 );
+    }
+
     if ( ImGui::BeginDragDropTarget() )
     {
         const ImGuiPayload* payload = ImGui::AcceptDragDropPayload( MODEL_DROP );
@@ -74,7 +83,7 @@ void gui::Viewport::render()
             std::string dropResult{ static_cast<const char*>( payload->Data ) };
             std::filesystem::path p{ dropResult };
             core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
-            resources::Model* pMesh = assetManager->loadMesh( p.stem().string(), p.string() );
+            resources::Model* pModel = assetManager->loadModel( p.stem().string(), p.string() );
 
             core::Entity ent{ scene->getRegistry(), p.stem().string() };
 
@@ -82,7 +91,7 @@ void gui::Viewport::render()
             ent.removeComponent<core::ModelComponent>();
 
             ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
-            ent.addComponent<core::ModelComponent>( core::ModelComponent{ .meshPath = p.string(), .pMesh = pMesh } );
+            ent.addComponent<core::ModelComponent>( core::ModelComponent{ .modelPath = p.string(), .pModel = pModel } );
             core::EventDispatcher* dispatcher = core::MainRegistry::getInstance().getEventDispatcher();
 
             dispatcher->dispatchEvent<core::SelectEntityEvent>(
@@ -118,7 +127,6 @@ void gui::Viewport::render()
         }
     } );
 
-    physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
     entt::entity currentEntity = sceneManager->getEventHandler()->getCurrentEntityId();
 
     if ( currentEntity != entt::null && m_guizmoEnabled && !jolt->isRunning() )
@@ -365,7 +373,7 @@ void gui::Viewport::drawEntityMenu()
 
                 ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
                 ent.addComponent<core::ModelComponent>( core::ModelComponent{
-                    .meshPath = p.string(), .pMesh = assetManager->loadMesh( "test", p.string() ) } );
+                    .modelPath = p.string(), .pModel = assetManager->loadModel( "test", p.string() ) } );
 
                 pEventDispatcher->dispatchEvent<core::SelectEntityEvent>(
                     core::SelectEntityEvent{ ent.getEntityId(), core::SelectEntityEventSource::Viewport_Window } );
@@ -418,9 +426,9 @@ void gui::Viewport::drawEntityMenu()
                         core::ModelComponent& modelComponent =
                             scene->getRegistry()->getComponent<core::ModelComponent>( currentEntity );
 
-                        std::filesystem::path meshPath = modelComponent.pMesh->getPath();
-                        std::string filename = { meshPath.stem().string() + "_collision.gltf" };
-                        auto collisionMeshPath = meshPath.parent_path() / filename;
+                        std::filesystem::path modelPath = modelComponent.pModel->getPath();
+                        std::string filename = { modelPath.stem().string() + "_collision.gltf" };
+                        auto collisionMeshPath = modelPath.parent_path() / filename;
 
                         if ( std::filesystem::exists( collisionMeshPath ) )
                         {
@@ -471,7 +479,7 @@ void gui::Viewport::drawEntityMenu()
                         }
                         else
                         {
-                            KERROR( "No collision mesh for {}", modelComponent.pMesh->getPath() );
+                            KERROR( "No collision mesh for {}", modelComponent.pModel->getPath() );
                         }
 
                         m_entityMenu = false;
@@ -588,9 +596,16 @@ void gui::Viewport::onKeyPressed( const core::KeyPressedEvent& e )
     auto pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
 
     // Deactivate the Shift + A menu if Escape is pressed
-    if ( e.getKeyScanCode() == KeyScanCode::Escape && m_entityMenu )
+    if ( e.getKeyScanCode() == KeyScanCode::Escape )
     {
-        m_entityMenu = false;
+        if ( m_entityMenu )
+            m_entityMenu = false;
+
+        physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
+        if ( jolt->isRunning() )
+        {
+            jolt->stop();
+        }
     }
 
     // Enable/ Disable Guizmo

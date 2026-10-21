@@ -1,5 +1,6 @@
 #include "gui/imgui_windows/entity_properties.hpp"
 #include "tinyfiledialogs/tinyfiledialogs.h"
+#include "core/ecs/components/player_component.hpp"
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "core/ecs/components/cubemap_component.hpp"
@@ -70,7 +71,7 @@ void gui::EntityProperties::contextMenu()
                 registry->addComponent<core::TransformComponent>( currentEntity, core::TransformComponent{} );
                 registry->addComponent<core::ModelComponent>( currentEntity,
                                                               core::ModelComponent{
-                                                                  .pMesh = nullptr,
+                                                                  .pModel = nullptr,
                                                               } );
             }
         }
@@ -108,13 +109,37 @@ void gui::EntityProperties::contextMenu()
             }
         }
 
+        bool hasPlayerComp = scene->getRegistry()->hasComponent<core::PlayerComponent>( currentEntity );
+
+        if ( !hasPlayerComp )
+        {
+            if ( ImGui::MenuItem( "Player" ) )
+            {
+                physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
+                core::PlayerComponent playerComp{ .settings = JPH::CharacterVirtualSettings{} };
+                playerComp.character = jolt->createCharacter( &playerComp.settings,
+                                                              JPH::RVec3Arg{ 0.0f, 1.0f, 0.0f },
+                                                              JPH::QuatArg{ 0.0f, 0.0f, 0.0f, 1.0f },
+                                                              0 );
+
+                scene->getRegistry()->addComponent<core::PerspectiveCameraComponent>(
+                    currentEntity, core::PerspectiveCameraComponent{} );
+
+                scene->getRegistry()->addComponent<core::PlayerComponent>( currentEntity, playerComp );
+            }
+        }
+
         bool hasRigidBody = scene->getRegistry()->hasComponent<core::RigidbodyComponent>( currentEntity );
+
         if ( !hasRigidBody && modelComp )
         {
             if ( ImGui::MenuItem( "Dynamic rigid body" ) )
             {
-                auto jolt = core::MainRegistry::getInstance().getJoltPhysics();
-                auto& transform = scene->getRegistry()->getComponent<core::TransformComponent>( currentEntity );
+                physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
+
+                core::TransformComponent& transform =
+                    scene->getRegistry()->getComponent<core::TransformComponent>( currentEntity );
+
                 scene->getRegistry()->addComponent<core::RigidbodyComponent>(
                     currentEntity,
                     core::RigidbodyComponent{
@@ -190,7 +215,7 @@ auto gui::EntityProperties::renderModel() -> void
         }
     } );
 
-    if ( !modelComponent->pMesh )
+    if ( !modelComponent->pModel )
     {
         gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 14.0f, []() {
             ImGui::Text( "You don't have a loaded mesh at the moment, drop a model file here to load it" );
@@ -208,7 +233,7 @@ auto gui::EntityProperties::renderModel() -> void
             std::string dropResult{ static_cast<const char*>( payload->Data ) };
             std::filesystem::path p{ dropResult };
             core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
-            resources::Model* pMesh = assetManager->loadMesh( p.stem().string(), p.string() );
+            resources::Model* pModel = assetManager->loadModel( p.stem().string(), p.string() );
 
             core::Entity ent{ scene->getRegistry(), currentEntity, p.stem().string() };
 
@@ -216,14 +241,14 @@ auto gui::EntityProperties::renderModel() -> void
             ent.removeComponent<core::ModelComponent>();
 
             ent.addComponent<core::TransformComponent>( core::TransformComponent{} );
-            ent.addComponent<core::ModelComponent>( core::ModelComponent{ .meshPath = p.string(), .pMesh = pMesh } );
+            ent.addComponent<core::ModelComponent>( core::ModelComponent{ .modelPath = p.string(), .pModel = pModel } );
         }
     }
     else
     {
-        auto meshPath = std::filesystem::path{ modelComponent->pMesh->getPath() };
+        auto modelPath = std::filesystem::path{ modelComponent->pModel->getPath() };
         ImGui::PushFont( m_spec.fonts->at( INTER ), 16.0f );
-        ImGui::Text( "Filename: %s", meshPath.stem().string().c_str() );
+        ImGui::Text( "Filename: %s", modelPath.stem().string().c_str() );
         ImGui::PopFont();
     }
 }
@@ -242,6 +267,8 @@ auto gui::EntityProperties::renderCamera() -> void
 
     if ( !camera )
         return;
+
+    ImGui::Checkbox( "Is used", &camera->isUsed );
 
     gui_utils::renderWithFont( m_spec.fonts->at( INTER_I ), []() { ImGui::SeparatorText( "Camera component" ); } );
     // this is if we want to link the values and make them equal

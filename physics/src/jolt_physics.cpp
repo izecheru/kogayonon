@@ -2,6 +2,7 @@
 #include "Jolt/Geometry/IndexedTriangle.h"
 #include "Jolt/Physics/Collision/Shape/MeshShape.h"
 #include "Jolt/Physics/Collision/Shape/ScaledShape.h"
+#include "Jolt/Physics/Collision/Shape/CapsuleShape.h"
 #include "utilities/utils/utils.hpp"
 #include <cstdarg>
 #include <glm/detail/type_vec3.hpp>
@@ -54,7 +55,7 @@ physics::JoltPhysics::JoltPhysics()
 
     m_physicsSystem.SetBodyActivationListener( &m_bodyActivationListener );
     m_physicsSystem.SetContactListener( &m_contactListener );
-    m_physicsSystem.SetGravity( { 0.0f, -3.5f, 0.0f } );
+    m_physicsSystem.SetGravity( { 0.0f, -10.0f, 0.0f } );
 }
 
 physics::JoltPhysics::~JoltPhysics()
@@ -66,6 +67,7 @@ physics::JoltPhysics::~JoltPhysics()
 
         m_deletionQueue.pop();
     }
+
     UnregisterTypes();
     delete Factory::sInstance;
     Factory::sInstance = nullptr;
@@ -253,4 +255,43 @@ auto physics::JoltPhysics::createRigidTerrainBody( const JPH::VertexList& vertic
         m_physicsSystem.GetBodyInterface().CreateAndAddBody( settings, JPH::EActivation::DontActivate );
 
     return bodyId;
+}
+
+auto physics::JoltPhysics::createCharacter( JPH::CharacterVirtualSettings* inSettings,
+                                            RVec3Arg position,
+                                            QuatArg rotation,
+                                            uint64_t userData,
+                                            JPH::PhysicsSystem* system ) -> JPH::CharacterVirtual*
+{
+    JPH::RefConst<JPH::Shape> capsuleShape = new JPH::CapsuleShape( 0.5f, 0.5f ); // Half height, radius
+
+    inSettings->mShape = capsuleShape;
+
+    if ( !system )
+    {
+        m_mainCharacter = std::make_unique<JPH::CharacterVirtual>( inSettings, position, rotation, &m_physicsSystem );
+    }
+    else
+    {
+        m_mainCharacter = std::make_unique<JPH::CharacterVirtual>( inSettings, position, rotation, system );
+    }
+
+    KINFO( "Created character" );
+    return m_mainCharacter.get();
+}
+
+auto physics::JoltPhysics::getTempAlloc() -> JPH::TempAllocator*
+{
+    return m_tempAlloc.get();
+}
+
+auto physics::JoltPhysics::updateCharacter( JPH::CharacterVirtual* character, float delta ) -> void
+{
+    character->Update( delta,
+                       m_physicsSystem.GetGravity(),
+                       JPH::BroadPhaseLayerFilter{},
+                       JPH::ObjectLayerFilter{},
+                       JPH::BodyFilter{},
+                       JPH::ShapeFilter{},
+                       *m_tempAlloc.get() );
 }

@@ -159,8 +159,6 @@ auto core::Scene::onUpdate() -> void
             utilities::TimeTracker* timeTracker = core::MainRegistry::getInstance().getTimeTracker();
             float delta = timeTracker->getDurationInSeconds( DELTA_TIME );
 
-            constexpr float speed{ 4.0f };
-
             float yawRad = glm::radians( cameraComp.props.yaw );
 
             glm::vec3 forward{ cos( yawRad ), 0.0f, sin( yawRad ) };
@@ -180,10 +178,45 @@ auto core::Scene::onUpdate() -> void
             if ( KeyboardState::getKeyState( KeyScanCode::A ) )
                 moveDir -= right;
 
+            constexpr float jumpSpeed{ 8.0f };
+            const float gravity{ jolt->getPhysicsSystem().GetGravity().GetY() * -1.0f };
+            constexpr float fallMultiplier{ 1.9f };
+
+            bool onGround = playerComp.character->GetGroundState() == JPH::CharacterBase::EGroundState::OnGround;
+            bool spaceDown = KeyboardState::getKeyState( KeyScanCode::Space );
+
+            float vy = currentVelocity.GetY();
+
+            if ( onGround )
+            {
+                vy = 0.0f;
+
+                if ( spaceDown )
+                    vy = jumpSpeed;
+            }
+            else
+            {
+                float g = gravity;
+
+                // as long as we still fall, increase the gravity
+                // the higher we go, the faster we hit the ground
+                if ( vy < 0.0f )
+                    g *= fallMultiplier;
+
+                vy -= g * delta;
+            }
+
             if ( glm::length( moveDir ) > 0.001f )
                 moveDir = glm::normalize( moveDir );
 
-            JPH::Vec3 desiredVelocity{ moveDir.x * speed, currentVelocity.GetY(), moveDir.z * speed };
+            float speed{ 4.0f };
+
+            const bool leftShiftDown = KeyboardState::getKeyState( KeyScanCode::LeftShift );
+
+            if ( leftShiftDown )
+                speed += 3.0f;
+
+            JPH::Vec3 desiredVelocity{ moveDir.x * speed, vy, moveDir.z * speed };
 
             if ( playerComp.character->GetGroundState() != JPH::CharacterBase::EGroundState::OnGround )
             {
@@ -201,7 +234,7 @@ auto core::Scene::onUpdate() -> void
 
             if ( m_mouseCoord.x != 0 || m_mouseCoord.y != 0 )
             {
-                constexpr float sensitivity{ 0.6f };
+                constexpr float sensitivity{ 0.3f };
                 cameraComp.props.yaw += m_mouseCoord.x * sensitivity;
                 cameraComp.props.pitch -= m_mouseCoord.y * sensitivity;
                 m_mouseCoord = { 0.0f, 0.0f };

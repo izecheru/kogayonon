@@ -98,10 +98,10 @@ auto rendering::PrepassModule::registerDepthPrepass() -> void
                 view.each( [&]( const entt::entity& id,
                                 core::ModelComponent& modelComp,
                                 core::TransformComponent& transformComp ) {
-                    if ( !modelComp.pMesh )
+                    if ( !modelComp.pModel )
                         return;
 
-                    for ( const resources::Mesh& mesh : modelComp.pMesh->getMeshes() )
+                    for ( const resources::Mesh& mesh : modelComp.pModel->getMeshes() )
                     {
                         paramsPtr[drawIndex] =
                             EntityParams{ .transform = transformComp.getMatrix(), .materialIndex = mesh.materialIndex };

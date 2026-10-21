@@ -13,6 +13,7 @@
 #include <Jolt/Core/JobSystemThreadPool.h>
 #include <Jolt/Core/Memory.h>
 #include <Jolt/Core/TempAllocator.h>
+#include "Jolt/Physics/Character/CharacterVirtual.h"
 
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
@@ -25,6 +26,8 @@
 #include <Jolt/Physics/PhysicsSystem.h>
 
 #include <Jolt/RegisterTypes.h>
+#include "Jolt/Math/Real.h"
+#include "Jolt/Math/MathTypes.h"
 
 namespace Layers
 {
@@ -53,13 +56,13 @@ class ObjectLayerPairFilterImpl : public JPH::ObjectLayerPairFilter
     {
         switch ( inObject1 )
         {
-        case Layers::NON_MOVING:
-            return inObject2 == Layers::MOVING; // Non moving only collides with moving
-        case Layers::MOVING:
-            return true; // Moving collides with everything
-        default:
-            JPH_ASSERT( false );
-            return false;
+            case Layers::NON_MOVING:
+                return inObject2 == Layers::MOVING; // Non moving only collides with moving
+            case Layers::MOVING:
+                return true; // Moving collides with everything
+            default:
+                JPH_ASSERT( false );
+                return false;
         }
     }
 };
@@ -99,13 +102,13 @@ class ObjectVsBroadPhaseLayerFilterImpl : public JPH::ObjectVsBroadPhaseLayerFil
     {
         switch ( inLayer1 )
         {
-        case Layers::NON_MOVING:
-            return inLayer2 == BroadPhaseLayers::MOVING;
-        case Layers::MOVING:
-            return true;
-        default:
-            JPH_ASSERT( false );
-            return false;
+            case Layers::NON_MOVING:
+                return inLayer2 == BroadPhaseLayers::MOVING;
+            case Layers::MOVING:
+                return true;
+            default:
+                JPH_ASSERT( false );
+                return false;
         }
     }
 };
@@ -174,6 +177,8 @@ class JoltPhysics
     void start();
     void stop();
 
+    auto getTempAlloc() -> JPH::TempAllocator*;
+
     auto createRigidTerrainBody( const JPH::VertexList& vertices,
                                  const JPH::IndexedTriangleList& indices,
                                  const glm::vec3& pos,
@@ -186,9 +191,17 @@ class JoltPhysics
                           const glm::vec3& size,
                           const glm::quat& rotation ) -> JPH::BodyID;
 
+    auto createCharacter( JPH::CharacterVirtualSettings* inSettings,
+                          JPH::RVec3Arg position,
+                          JPH::QuatArg rotation,
+                          uint64_t userData,
+                          JPH::PhysicsSystem* system = nullptr ) -> JPH::CharacterVirtual*;
+
     void deactivateBody( JPH::BodyID& body );
     void activateBody( JPH::BodyID& body );
     bool isBodyActive( JPH::BodyID& body );
+
+    auto updateCharacter( JPH::CharacterVirtual* character, float delta ) -> void;
 
   private:
     bool m_isRunning;
@@ -204,6 +217,8 @@ class JoltPhysics
     std::unique_ptr<JPH::ObjectLayerPairFilterTable> m_objectLayerPairFilterTable;
 
     std::queue<std::function<void()>> m_deletionQueue;
+
+    std::unique_ptr<JPH::CharacterVirtual> m_mainCharacter;
 
     float m_timeAccumulator;
 };
