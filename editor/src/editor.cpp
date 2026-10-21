@@ -95,7 +95,7 @@ void editor::Editor::pollEvents()
                     break;
 
                 KeyboardState::updateState();
-                KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.key );
+                KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.scancode );
 
                 core::KeyPressedEvent keyPressEvent{ scanCode, KeyScanCode::None, 0 };
 
@@ -116,7 +116,7 @@ void editor::Editor::pollEvents()
             case SDL_EVENT_KEY_UP:
             {
                 KeyboardState::updateState();
-                KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.key );
+                KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.scancode );
                 pEventDispatcher->dispatchEvent( core::KeyReleasedEvent{ scanCode, KeyScanCode::None } );
                 break;
             }
