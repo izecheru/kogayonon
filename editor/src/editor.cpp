@@ -199,6 +199,29 @@ auto editor::Editor::onUpdate() -> void
 
     pollEvents();
 
+    static bool cursorHidden{ false };
+
+    if ( jolt->isRunning() )
+    {
+        if ( !cursorHidden )
+        {
+            SDL_SetWindowRelativeMouseMode( m_window->getWindow(), true );
+            int w, h;
+            SDL_GetWindowSize( m_window->getWindow(), &w, &h );
+            SDL_WarpMouseInWindow( m_window->getWindow(), w / 2, h / 2 );
+            cursorHidden = true;
+        }
+    }
+    else
+    {
+        if ( cursorHidden )
+        {
+            SDL_SetWindowRelativeMouseMode( m_window->getWindow(), false );
+            SDL_ShowCursor();
+            cursorHidden = false;
+        }
+    }
+
     jolt->onUpdate( delta );
     taskManager->onUpdate();
     assetManager->onUpdate();

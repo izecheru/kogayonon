@@ -868,19 +868,19 @@ auto core::AssetManager::initSampler() -> void
     ++m_samplerIndex;
 }
 
-auto core::AssetManager::loadMesh( const std::string& meshName, const std::string& meshPath ) -> resources::Model*
+auto core::AssetManager::loadModel( const std::string& meshName, const std::string& modelPath ) -> resources::Model*
 {
-    ZoneScopedN( "AssetManager::loadMesh" );
-    assert( std::filesystem::exists( meshPath ) && "mesh file does not exist" );
+    ZoneScopedN( "AssetManager::loadModel" );
+    assert( std::filesystem::exists( modelPath ) && "mesh file does not exist" );
 
-    if ( m_loadedMeshes.contains( meshPath ) )
+    if ( m_loadedMeshes.contains( modelPath ) )
     {
-        return m_loadedMeshes[meshPath].get();
+        return m_loadedMeshes[modelPath].get();
     }
 
     utilities::TaskManager* taskManager = core::MainRegistry::getInstance().getTaskManager();
 
-    std::filesystem::path p{ meshPath };
+    std::filesystem::path p{ modelPath };
     std::string filename{ p.stem().string() + "_collision.gltf" };
     std::filesystem::path collision = p.parent_path() / filename;
 
@@ -932,23 +932,23 @@ auto core::AssetManager::loadMesh( const std::string& meshName, const std::strin
         m_meshLoadTasks.emplace_back( collisionMeshTask );
     }
 
-    if ( m_pendingMeshLoads.contains( meshPath ) )
+    if ( m_pendingMeshLoads.contains( modelPath ) )
         return nullptr;
 
-    m_pendingMeshLoads.insert( meshPath );
+    m_pendingMeshLoads.insert( modelPath );
 
     utilities::DataTaskSet<MeshTaskData>* meshAndMaterialsTask =
-        taskManager->addTask( MeshTaskData{}, [this, meshPath]( MeshTaskData& data ) -> void {
+        taskManager->addTask( MeshTaskData{}, [this, modelPath]( MeshTaskData& data ) -> void {
             ZoneScopedN( "[TASK] mesh + materials" );
-            std::unique_ptr<TinyGltfLoader> tinyLoader = std::make_unique<TinyGltfLoader>( meshPath );
+            std::unique_ptr<TinyGltfLoader> tinyLoader = std::make_unique<TinyGltfLoader>( modelPath );
             data.mesh = std::make_unique<resources::Model>();
 
-            data.mesh->setPath( meshPath );
+            data.mesh->setPath( modelPath );
 
             tinyLoader->processVertexData( data.mesh.get() );
 
             // this could be redundant
-            data.textureBatch.pMesh = data.mesh.get();
+            data.textureBatch.pModel = data.mesh.get();
             data.textureBatch.parsedMaterialData = std::move( tinyLoader->parseTextureData( data.mesh.get() ) );
 
             auto& indices = data.mesh->getIndices();
@@ -1008,7 +1008,7 @@ auto core::AssetManager::getMesh( const std::string& path ) -> resources::Model*
         return m_loadedMeshes[path].get();
     }
 
-    return loadMesh( p.stem().string(), p.string() );
+    return loadModel( p.stem().string(), p.string() );
 }
 
 auto core::AssetManager::createCubemapBindlessDescriptorSetLayout() -> void
@@ -1494,14 +1494,18 @@ auto core::AssetManager::updateMeshTaskSync() -> void
             allocator->destroyBuffer( data.stageBuffer );
 
             // get rid of the data since it is uploaded to the gpu
-            data.mesh->getVertices().clear();
+            if ( !data.mesh->getPath().find( "collision" ) )
+            {
+                data.mesh->getVertices().clear();
+                data.mesh->getIndices().clear();
+            }
         }
 
-        std::string meshPath = data.mesh->getPath();
+        std::string modelPath = data.mesh->getPath();
         data.mesh->setLoaded( true );
-        m_loadedMeshes.emplace( meshPath, std::move( data.mesh ) );
+        m_loadedMeshes.emplace( modelPath, std::move( data.mesh ) );
 
-        data.textureBatch.pMesh = m_loadedMeshes[meshPath].get();
+        data.textureBatch.pModel = m_loadedMeshes[modelPath].get();
 
         // collision meshes have no textures
         if ( !data.textureBatch.parsedMaterialData.empty() )
@@ -1511,7 +1515,7 @@ auto core::AssetManager::updateMeshTaskSync() -> void
             loadTextureData();
         }
 
-        m_pendingMeshLoads.erase( meshPath );
+        m_pendingMeshLoads.erase( modelPath );
 
         std::erase( m_meshLoadTasks, taskSet.task );
         taskManager->eraseTask( taskSet.task, utilities::TaskType::Data );
@@ -1555,7 +1559,7 @@ auto core::AssetManager::resolveMaterials( ParsedMaterials batch ) -> void
     {
         resources::Material material{};
 
-        auto& submeshes = batch.pMesh->getMeshes();
+        auto& submeshes = batch.pModel->getMeshes();
 
         resources::Texture* diffuse = getTexture( getKtxPath( textureMap.at( Diffuse ) ).string() );
         if ( diffuse )

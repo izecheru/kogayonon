@@ -1,6 +1,10 @@
 #define GLM_ENABLE_EXPERIMENTAL
+#include "utilities/time_tracker/time_tracker.hpp"
+#include "core/input/mouse_events.hpp"
+#include "utilities/input/keyboard_state.hpp"
 #include "core/ecs/components/cubemap_component.hpp"
 #include "core/ecs/components/camera_component.hpp"
+#include "core/ecs/components/player_component.hpp"
 #include "rapidjson/istreamwrapper.h"
 #include "physics/jolt_physics.hpp"
 #include "core/asset_manager/asset_manager.hpp"
@@ -12,6 +16,7 @@
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
+#include "core/event/event_dispatcher.hpp"
 #include "tracy/Tracy.hpp"
 
 using namespace utilities;
@@ -22,6 +27,8 @@ core::Scene::Scene( const std::string& name )
     , m_pRegistry{ std::make_unique<Registry>() }
 
 {
+    core::EventDispatcher* eventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
+    eventDispatcher->addHandler<core::MouseMovedEvent, &Scene::onMouseMoved>( *this );
 }
 
 auto core::Scene::getRegistry() -> Registry*
@@ -67,7 +74,7 @@ auto core::Scene::addMeshToEntity( entt::entity entity, resources::Model* pMesh 
     m_registryModified = true;
     Entity ent{ m_pRegistry.get(), entity };
     ent.setType( EntityType::Object );
-    ent.replaceComponent<ModelComponent>( ModelComponent{ .pMesh = pMesh } );
+    ent.replaceComponent<ModelComponent>( ModelComponent{ .pModel = pMesh } );
 
     if ( !ent.hasComponent<TransformComponent>() )
         ent.addComponent<TransformComponent>();
@@ -121,16 +128,104 @@ auto core::Scene::onUpdate() -> void
     meshView.each( []( const entt::entity& entityId, core::ModelComponent& modelComp ) {
         core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();
 
-        if ( !modelComp.pMesh )
+        if ( !modelComp.pModel )
         {
-            resources::Model* mesh = assetManager->getMesh( modelComp.meshPath );
+            resources::Model* mesh = assetManager->getMesh( modelComp.modelPath );
             if ( !mesh )
             {
                 return;
             }
-            modelComp.pMesh = mesh;
+            modelComp.pModel = mesh;
         }
     } );
+
+    auto playerView = m_pRegistry->getRegistry().view<core::PerspectiveCameraComponent, core::PlayerComponent>();
+
+    physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
+
+    if ( jolt->isRunning() )
+    {
+        bool activePlayer{ false };
+        playerView.each( [&]( const entt::entity& entityId,
+                              core::PerspectiveCameraComponent& cameraComp,
+                              core::PlayerComponent& playerComp ) {
+            if ( !cameraComp.isUsed )
+                cameraComp.isUsed = true;
+
+            activePlayer = true;
+
+            JPH::Vec3 currentVelocity = playerComp.character->GetLinearVelocity();
+
+            JPH::Vec3 desiredVelocity{ 0, currentVelocity.GetY(), 0 };
+
+            utilities::TimeTracker* timeTracker = core::MainRegistry::getInstance().getTimeTracker();
+            float delta = timeTracker->getDurationInSeconds( DELTA_TIME );
+
+            constexpr float speed{ 4.0f };
+
+            if ( KeyboardState::getKeyState( KeyScanCode::W ) )
+            {
+                desiredVelocity.SetZ( -speed );
+            }
+
+            if ( KeyboardState::getKeyState( KeyScanCode::S ) )
+            {
+                desiredVelocity.SetZ( speed );
+            }
+
+            if ( KeyboardState::getKeyState( KeyScanCode::A ) )
+            {
+                desiredVelocity.SetX( -speed );
+            }
+
+            if ( KeyboardState::getKeyState( KeyScanCode::D ) )
+            {
+                desiredVelocity.SetX( speed );
+            }
+
+            if ( KeyboardState::getKeyState( KeyScanCode::Space ) )
+            {
+                desiredVelocity.SetY( 1.0f );
+            }
+
+            if ( playerComp.character->GetGroundState() != JPH::CharacterBase::EGroundState::OnGround )
+            {
+                desiredVelocity += jolt->getPhysicsSystem().GetGravity() * delta;
+            }
+
+            playerComp.character->SetLinearVelocity( desiredVelocity );
+
+            jolt->updateCharacter( playerComp.character, delta );
+
+            JPH::RVec3 newPos = playerComp.character->GetPosition();
+
+            // update camera to match character
+            cameraComp.props.eye = { newPos.GetX(), newPos.GetY(), newPos.GetZ() };
+
+            if ( m_mouseCoord.x != 0 || m_mouseCoord.y != 0 )
+            {
+                constexpr float sensitivity{ 0.6f };
+                cameraComp.props.yaw += m_mouseCoord.x * sensitivity;
+                cameraComp.props.pitch -= m_mouseCoord.y * sensitivity;
+                m_mouseCoord = { 0.0f, 0.0f };
+            }
+
+            // renderer will update this later
+            cameraComp.props.changed = true;
+        } );
+
+        // deactivate other cameras
+        if ( activePlayer )
+        {
+            auto cameraView = m_pRegistry->getRegistry().view<core::PerspectiveCameraComponent>(
+                entt::exclude<core::PlayerComponent> );
+
+            cameraView.each( []( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComp ) {
+                if ( cameraComp.isUsed )
+                    cameraComp.isUsed = false;
+            } );
+        }
+    }
 }
 
 auto core::Scene::deserialize( const std::filesystem::path& p ) -> void
@@ -181,10 +276,10 @@ auto core::Scene::deserialize( const std::filesystem::path& p ) -> void
 
         if ( e.HasMember( "mesh" ) )
         {
-            std::filesystem::path meshPath = e["mesh"]["path"].GetString();
-            resources::Model* mesh = assetManager->loadMesh( meshPath.stem().string(), meshPath.string() );
+            std::filesystem::path modelPath = e["mesh"]["path"].GetString();
+            resources::Model* mesh = assetManager->loadModel( modelPath.stem().string(), modelPath.string() );
             ent.addComponent<core::ModelComponent>(
-                core::ModelComponent{ .meshPath = meshPath.string(), .pMesh = mesh } );
+                core::ModelComponent{ .modelPath = modelPath.string(), .pModel = mesh } );
         }
 
         if ( e.HasMember( "cubemap" ) )
@@ -224,10 +319,10 @@ auto core::Scene::serialize() -> void
     };
 
     auto saveEntitymodelComponent = []( utilities::JsonSerializer* s, const core::ModelComponent& modelComponent ) {
-        if ( !modelComponent.pMesh )
+        if ( !modelComponent.pModel )
             return;
 
-        s->startObject( "mesh" ).addKeyValuePair( "path", modelComponent.pMesh->getPath() ).endObject();
+        s->startObject( "mesh" ).addKeyValuePair( "path", modelComponent.pModel->getPath() ).endObject();
     };
 
     std::string sceneFilename = m_name + ".kscene";
@@ -273,4 +368,9 @@ auto core::Scene::serialize() -> void
     } );
 
     serializer->endArray();
+}
+
+auto core::Scene::onMouseMoved( core::MouseMovedEvent& e ) -> void
+{
+    m_mouseCoord = { e.getXRel(), e.getYRel() };
 }

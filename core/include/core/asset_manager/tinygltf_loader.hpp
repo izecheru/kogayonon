@@ -20,8 +20,8 @@ class TinyGltfLoader
     explicit TinyGltfLoader( std::string_view modelPath );
     ~TinyGltfLoader();
 
-    auto processVertexData( resources::Model* pMesh ) -> void;
-    auto parseTextureData( resources::Model* pMesh )
+    auto processVertexData( resources::Model* pModel ) -> void;
+    auto parseTextureData( resources::Model* pModel )
         -> std::unordered_map<uint32_t, std::map<TextureType, std::string>>;
 
     auto imageIndexFromTexture( int textureIndex ) const -> int;

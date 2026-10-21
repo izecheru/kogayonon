@@ -9,8 +9,8 @@ namespace core
 
 struct ModelComponent
 {
-    std::string meshPath{ "" };
-    resources::Model* pMesh{ nullptr };
+    std::string modelPath{ "" };
+    resources::Model* pModel{ nullptr };
 };
 
 } // namespace core

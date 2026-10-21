@@ -20,10 +20,18 @@ struct CameraProps
      * @brief Which way is up, +Y is up
      */
     glm::vec3 up{ 0.0f, 1.0f, 0.0f };
+
+    /**
+     * @brief
+     */
+    glm::vec3 direction{ 0.0f, 0.0f, -1.0f };
     float fov{ 45.0f };
     glm::ivec2 extent;
     float nearView{ 0.01f };
     float farView{ 3000.0f };
+
+    float yaw{ -90.0f };
+    float pitch{ 0.0f };
 
     // If we modify the props, update the projection and the view
     bool changed{ false };
@@ -46,6 +54,18 @@ struct PerspectiveCameraComponent
     {
         if ( props.changed )
         {
+            if ( props.pitch > 89.0f )
+                props.pitch = 89.0f;
+
+            if ( props.pitch < -89.0f )
+                props.pitch = -89.0f;
+
+            props.direction.x = cos( glm::radians( props.yaw ) ) * cos( glm::radians( props.pitch ) );
+            props.direction.y = sin( glm::radians( props.pitch ) );
+            props.direction.z = sin( glm::radians( props.yaw ) ) * cos( glm::radians( props.pitch ) );
+
+            props.center = props.eye + glm::normalize( props.direction );
+
             ubo.view = glm::lookAt( props.eye, props.center, props.up );
             ubo.projection = glm::perspective(
                 glm::radians( props.fov ), props.extent.x / (float)props.extent.y, props.nearView, props.farView );

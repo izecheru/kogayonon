@@ -45,7 +45,7 @@ struct ParsedMaterials
     /**
      * @brief Owner of those materials
      */
-    resources::Model* pMesh{ nullptr };
+    resources::Model* pModel{ nullptr };
 
     std::unordered_map<uint32_t, std::map<TextureType, std::string>> parsedMaterialData;
 };
@@ -208,10 +208,10 @@ class AssetManager
     /**
      * @brief Load mesh if it is not already loaded
      * @param meshName Name of the mesh
-     * @param meshPath Absolute path to the mesh
+     * @param modelPath Absolute path to the mesh
      * @return
      */
-    auto loadMesh( const std::string& meshName, const std::string& meshPath ) -> resources::Model*;
+    auto loadModel( const std::string& meshName, const std::string& modelPath ) -> resources::Model*;
 
     /**
      * @brief Enqueue mesh for vertices and indices buffers creation

@@ -4,7 +4,6 @@
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/MotionType.h>
 #include <Jolt/Physics/EActivation.h>
-#include <entt/entt.hpp>
 
 namespace core
 {

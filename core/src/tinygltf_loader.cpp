@@ -196,8 +196,8 @@ auto core::TinyGltfLoader::parseTextureData( resources::Model* model )
 
         // relative to its parent
         std::filesystem::path p{ texturePathFromLoader };
-        std::filesystem::path meshPath{ model->getPath() };
-        std::filesystem::path path{ meshPath.parent_path() / "textures" / p.filename() };
+        std::filesystem::path modelPath{ model->getPath() };
+        std::filesystem::path path{ modelPath.parent_path() / "textures" / p.filename() };
 
         return path.string();
     };

@@ -6,6 +6,11 @@
 
 namespace core
 {
+class MouseMovedEvent;
+}
+
+namespace core
+{
 class Scene
 {
   public:
@@ -47,12 +52,14 @@ class Scene
      */
     auto addEntity() -> entt::entity;
 
+    auto onMouseMoved( core::MouseMovedEvent& e ) -> void;
+
     /**
      * @brief Adds a model to an already existing entity in the scene registry
      * @param entity The entity id
-     * @param pMesh The mesh weak_ptr from the asset manager
+     * @param pModel The mesh weak_ptr from the asset manager
      */
-    auto addMeshToEntity( entt::entity entity, resources::Model* pMesh ) -> void;
+    auto addMeshToEntity( entt::entity entity, resources::Model* pModel ) -> void;
 
     auto onUpdate() -> void;
 
@@ -76,6 +83,7 @@ class Scene
   private:
     // this bool should be used to prepare entities for rendering
     bool m_registryModified{ false };
+    glm::vec2 m_mouseCoord;
 
     std::mutex m_registryMutex;
     uint32_t m_entityCount;

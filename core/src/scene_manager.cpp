@@ -156,6 +156,8 @@ auto core::SceneManager::applyPendingSwitch() -> void
     m_scenes.erase( currentSceneName );
     newScene->deserialize( m_pendingScenePath );
 
+    m_pendingScenePath.clear();
+
     graphics::VulkanContext* ctx = core::MainRegistry::getInstance().getVulkanContext();
     VkExtent2D extent = ctx->swapchain->getSwapchainExtent();
 
