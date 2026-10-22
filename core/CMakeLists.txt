@@ -24,6 +24,7 @@ set(ECS_FILES
     "include/core/ecs/components/rigidbody_component.hpp"
     "include/core/ecs/components/outline_component.hpp"
     "include/core/ecs/components/player_component.hpp"
+    "include/core/ecs/components/player_input_component.hpp"
     "include/core/ecs/components/npc_component.hpp"
     "include/core/ecs/components/cubemap_component.hpp"
 
@@ -36,6 +37,7 @@ set(ECS_FILES
 
 set(HEADER_FILES
     "include/core/systems/undo_redo_system.hpp"
+    "include/core/systems/player_input_system.hpp"
     "include/core/scene/scene.hpp"
 
     ${ECS_FILES}
@@ -74,7 +76,7 @@ set(SOURCE_FILES
     "src/scene_event_handler.cpp"
     "src/tinygltf_loader.cpp"
     "src/directory_watcher.cpp"
-  "src/threadsafe_resource_manager.cpp")
+  "src/threadsafe_resource_manager.cpp" "src/player_input_system.cpp")
 
 add_library(core ${SOURCE_FILES} ${HEADER_FILES})
 

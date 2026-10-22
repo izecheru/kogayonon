@@ -3,11 +3,12 @@
 #include "core/ecs/entity.hpp"
 #include "resources/model.hpp"
 #include "core/ecs/registry.hpp"
+#include "core/systems/player_input_system.hpp"
 
 namespace core
 {
 class MouseMovedEvent;
-}
+} // namespace core
 
 namespace core
 {
@@ -52,8 +53,6 @@ class Scene
      */
     auto addEntity() -> entt::entity;
 
-    auto onMouseMoved( core::MouseMovedEvent& e ) -> void;
-
     /**
      * @brief Adds a model to an already existing entity in the scene registry
      * @param entity The entity id
@@ -89,5 +88,7 @@ class Scene
     uint32_t m_entityCount;
     std::string m_name;
     std::unique_ptr<Registry> m_pRegistry;
+
+    std::unique_ptr<PlayerInputSystem> m_inputSystem;
 };
 } // namespace core

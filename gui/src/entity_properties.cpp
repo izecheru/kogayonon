@@ -1,6 +1,6 @@
 #include "gui/imgui_windows/entity_properties.hpp"
 #include "utilities/time_tracker/time_tracker.hpp"
-#include "core/ecs/components/input_component.hpp"
+#include "core/ecs/components/player_input_component.hpp"
 #include "tinyfiledialogs/tinyfiledialogs.h"
 #include "core/ecs/components/player_component.hpp"
 #include "core/asset_manager/asset_manager.hpp"
@@ -122,7 +122,10 @@ void gui::EntityProperties::contextMenu()
                 if ( ImGui::MenuItem( "Player" ) )
                 {
                     physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
+
                     core::PlayerComponent playerComp{ .settings = JPH::CharacterVirtualSettings{} };
+                    core::PlayerInputComponent playerInputComp{};
+
                     playerComp.character = jolt->createCharacter( &playerComp.settings,
                                                                   JPH::RVec3Arg{ 0.0f, 1.0f, 0.0f },
                                                                   JPH::QuatArg{ 0.0f, 0.0f, 0.0f, 1.0f },
@@ -132,6 +135,7 @@ void gui::EntityProperties::contextMenu()
                         currentEntity, core::PerspectiveCameraComponent{} );
 
                     scene->getRegistry()->addComponent<core::PlayerComponent>( currentEntity, playerComp );
+                    scene->getRegistry()->addComponent<core::PlayerInputComponent>( currentEntity, playerInputComp );
                 }
             }
         }

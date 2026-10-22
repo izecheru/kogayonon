@@ -7,6 +7,7 @@ set(HEADER_FILES
   "include/utilities/task_manager/task.hpp"
   "include/utilities/math/math.hpp"
   "include/utilities/input/keyboard_state.hpp"
+  "include/utilities/input/mouse_state.hpp"
   "include/utilities/input/key_codes.hpp"
   "include/utilities/input/mouse_codes.hpp"
   "include/utilities/config_manager/config_manager.hpp"

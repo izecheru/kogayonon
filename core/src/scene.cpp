@@ -1,10 +1,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "utilities/time_tracker/time_tracker.hpp"
-#include "core/input/mouse_events.hpp"
-#include "utilities/input/keyboard_state.hpp"
 #include "core/ecs/components/cubemap_component.hpp"
 #include "core/ecs/components/camera_component.hpp"
-#include "core/ecs/components/player_component.hpp"
 #include "rapidjson/istreamwrapper.h"
 #include "physics/jolt_physics.hpp"
 #include "core/asset_manager/asset_manager.hpp"
@@ -16,7 +13,6 @@
 #include "core/ecs/components/transform_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
-#include "core/event/event_dispatcher.hpp"
 #include "tracy/Tracy.hpp"
 
 using namespace utilities;
@@ -25,10 +21,9 @@ core::Scene::Scene( const std::string& name )
     : m_entityCount{ 0 }
     , m_name{ name }
     , m_pRegistry{ std::make_unique<Registry>() }
+    , m_inputSystem{ std::make_unique<PlayerInputSystem>( core::MainRegistry::getInstance().getEventDispatcher() ) }
 
 {
-    core::EventDispatcher* eventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
-    eventDispatcher->addHandler<core::MouseMovedEvent, &Scene::onMouseMoved>( *this );
 }
 
 auto core::Scene::getRegistry() -> Registry*
@@ -139,129 +134,9 @@ auto core::Scene::onUpdate() -> void
         }
     } );
 
-    auto playerView = m_pRegistry->getRegistry().view<core::PerspectiveCameraComponent, core::PlayerComponent>();
+    utilities::TimeTracker* timeTracker = core::MainRegistry::getInstance().getTimeTracker();
 
-    physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
-
-    // get the camera entities without the one that also has a player
-    auto cameraView =
-        m_pRegistry->getRegistry().view<core::PerspectiveCameraComponent>( entt::exclude<core::PlayerComponent> );
-
-    cameraView.each( [&]( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComp ) {
-        // if we have enabled physics and have an active player entity, disable all other cameras
-        if ( jolt->isRunning() && m_pRegistry->getRegistry().view<core::PlayerComponent>().size() != 0 )
-        {
-            if ( cameraComp.isUsed )
-                cameraComp.isUsed = false;
-        }
-        else
-        {
-            if ( !cameraComp.isUsed )
-                cameraComp.isUsed = true;
-        }
-    } );
-
-    if ( jolt->isRunning() )
-    {
-        playerView.each( [&]( const entt::entity& entityId,
-                              core::PerspectiveCameraComponent& cameraComp,
-                              core::PlayerComponent& playerComp ) {
-            if ( !cameraComp.isUsed )
-                cameraComp.isUsed = true;
-
-            JPH::Vec3 currentVelocity = playerComp.character->GetLinearVelocity();
-
-            utilities::TimeTracker* timeTracker = core::MainRegistry::getInstance().getTimeTracker();
-            float delta = timeTracker->getDurationInSeconds( DELTA_TIME );
-
-            float yawRad = glm::radians( cameraComp.props.yaw );
-
-            glm::vec3 forward{ cos( yawRad ), 0.0f, sin( yawRad ) };
-            glm::vec3 right{ -sin( yawRad ), 0.0f, cos( yawRad ) };
-
-            glm::vec3 moveDir{ 0.0f };
-
-            if ( KeyboardState::getKeyState( KeyScanCode::W ) )
-                moveDir += forward;
-
-            if ( KeyboardState::getKeyState( KeyScanCode::S ) )
-                moveDir -= forward;
-
-            if ( KeyboardState::getKeyState( KeyScanCode::D ) )
-                moveDir += right;
-
-            if ( KeyboardState::getKeyState( KeyScanCode::A ) )
-                moveDir -= right;
-
-            constexpr float jumpSpeed{ 8.0f };
-            const float gravity{ jolt->getPhysicsSystem().GetGravity().GetY() * -1.0f };
-            constexpr float fallMultiplier{ 1.9f };
-
-            bool onGround = playerComp.isOnGround();
-            bool spaceDown = KeyboardState::getKeyState( KeyScanCode::Space );
-
-            float vy = currentVelocity.GetY();
-
-            if ( onGround )
-            {
-                vy = 0.0f;
-
-                if ( spaceDown )
-                    vy = jumpSpeed;
-            }
-            else
-            {
-                float g = gravity;
-
-                // as long as we still fall, increase the gravity
-                // the higher we go, the faster we hit the ground
-                if ( vy < 0.0f )
-                    g *= fallMultiplier;
-
-                vy -= g * delta;
-            }
-
-            if ( glm::length( moveDir ) > 0.001f )
-                moveDir = glm::normalize( moveDir );
-
-            float speed{ 4.0f };
-
-            const bool leftShiftDown = KeyboardState::getKeyState( KeyScanCode::LeftShift );
-
-            if ( leftShiftDown )
-                speed += 3.0f;
-
-            moveDir.x *= speed;
-            moveDir.z *= speed;
-
-            JPH::Vec3 desiredVelocity{ moveDir.x, vy, moveDir.z };
-
-            if ( playerComp.character->GetGroundState() != JPH::CharacterBase::EGroundState::OnGround )
-            {
-                desiredVelocity += jolt->getPhysicsSystem().GetGravity() * delta;
-            }
-
-            playerComp.character->SetLinearVelocity( desiredVelocity );
-
-            jolt->updateCharacter( playerComp.character, delta );
-
-            JPH::RVec3 newPos = playerComp.character->GetPosition();
-
-            // update camera to match character
-            cameraComp.props.eye = { newPos.GetX(), newPos.GetY(), newPos.GetZ() };
-
-            if ( m_mouseCoord.x != 0 || m_mouseCoord.y != 0 )
-            {
-                constexpr float sensitivity{ 0.3f };
-                cameraComp.props.yaw += m_mouseCoord.x * sensitivity;
-                cameraComp.props.pitch -= m_mouseCoord.y * sensitivity;
-                m_mouseCoord = { 0.0f, 0.0f };
-            }
-
-            // renderer will update this later
-            cameraComp.props.changed = true;
-        } );
-    }
+    m_inputSystem->update( getEnttRegistry(), timeTracker->getDurationInSeconds( DELTA_TIME ) );
 }
 
 auto core::Scene::deserialize( const std::filesystem::path& p ) -> void
@@ -404,9 +279,4 @@ auto core::Scene::serialize() -> void
     } );
 
     serializer->endArray();
-}
-
-auto core::Scene::onMouseMoved( core::MouseMovedEvent& e ) -> void
-{
-    m_mouseCoord = { e.getXRel(), e.getYRel() };
 }

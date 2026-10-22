@@ -47,12 +47,12 @@ utilities::TimeTracker::duration utilities::TimeTracker::getDuration( const std:
     return duration{ 0 };
 }
 
-float utilities::TimeTracker::getDurationInSeconds( const std::string& key )
+auto utilities::TimeTracker::getDurationInSeconds( const std::string& key ) -> double
 {
     return getDuration( key ).count();
 }
 
-float utilities::TimeTracker::getDurationMilliseconds( const std::string& key )
+auto utilities::TimeTracker::getDurationMilliseconds( const std::string& key ) -> double
 {
-    return static_cast<float>( getDuration( key ).count() * 1000.0 );
+    return static_cast<double>( getDuration( key ).count() * 1000.0 );
 }

@@ -80,6 +80,8 @@ void physics::JoltPhysics::onUpdate( float delta )
         return;
     }
 
+    updateCharacter( m_mainCharacter.get(), delta );
+
     m_timeAccumulator += delta;
 
     while ( m_timeAccumulator >= m_timeStep )
@@ -290,6 +292,9 @@ auto physics::JoltPhysics::getTempAlloc() -> JPH::TempAllocator*
 
 auto physics::JoltPhysics::updateCharacter( JPH::CharacterVirtual* character, float delta ) -> void
 {
+    if ( !character )
+        return;
+
     character->Update( delta,
                        m_physicsSystem.GetGravity(),
                        JPH::BroadPhaseLayerFilter{},

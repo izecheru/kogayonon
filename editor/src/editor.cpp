@@ -2,6 +2,7 @@
 #include <SDL3/SDL_error.h>
 #include <SDL3/SDL_vulkan.h>
 #include <imgui_impl_sdl3.h>
+#include "utilities/input/mouse_state.hpp"
 #include "core/asset_manager/asset_manager.hpp"
 #include "core/ecs/components/camera_component.hpp"
 #include "core/ecs/components/directional_light_component.hpp"
@@ -67,7 +68,8 @@ void editor::Editor::cleanup() const
 
 void editor::Editor::pollEvents()
 {
-    const auto& pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
+    core::EventDispatcher* pEventDispatcher{ nullptr };
+    pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
 
     SDL_Event e;
     while ( SDL_PollEvent( &e ) )
@@ -127,6 +129,8 @@ void editor::Editor::pollEvents()
                 double xRel = e.motion.xrel;
                 double yRel = e.motion.yrel;
                 pEventDispatcher->dispatchEvent( core::MouseMovedEvent{ x, y, xRel, yRel } );
+                utilities::MouseState::updateState( { x, y }, { xRel, yRel } );
+                utilities::MouseState::updateState( { xRel, yRel } );
                 break;
             }
             case SDL_EVENT_MOUSE_WHEEL:
@@ -206,9 +210,6 @@ auto editor::Editor::onUpdate() -> void
         if ( !cursorHidden )
         {
             SDL_SetWindowRelativeMouseMode( m_window->getWindow(), true );
-            int w, h;
-            SDL_GetWindowSize( m_window->getWindow(), &w, &h );
-            SDL_WarpMouseInWindow( m_window->getWindow(), w / 2, h / 2 );
             cursorHidden = true;
         }
     }
@@ -227,6 +228,8 @@ auto editor::Editor::onUpdate() -> void
     assetManager->onUpdate();
     sceneManager->getCurrentScene()->onUpdate();
     m_vulkanRenderer->onUpdate();
+
+    utilities::MouseState::resetState();
 
     timeTracker->update( DELTA_TIME );
 }

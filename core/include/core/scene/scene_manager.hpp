@@ -21,6 +21,7 @@ class SceneManager
     auto switchToScene( const std::filesystem::path& p ) -> void;
     auto getAvailableScenes() -> std::vector<std::filesystem::path>&;
     auto applyPendingSwitch() -> void;
+    auto getSceneEventDispatcher() -> EventDispatcher*;
 
     auto saveScenes() -> void;
 
@@ -39,5 +40,6 @@ class SceneManager
 
     std::filesystem::path m_pendingScenePath;
     bool m_pendingSwitch;
+    std::unique_ptr<EventDispatcher> m_sceneEventDispatcher;
 };
 } // namespace core

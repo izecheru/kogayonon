@@ -596,18 +596,21 @@ void gui::Viewport::onKeyPressed( const core::KeyPressedEvent& e )
 {
     auto pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
 
+    physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
     // Deactivate the Shift + A menu if Escape is pressed
     if ( e.getKeyScanCode() == KeyScanCode::Escape )
     {
         if ( m_entityMenu )
             m_entityMenu = false;
 
-        physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
         if ( jolt->isRunning() )
         {
             jolt->stop();
         }
     }
+
+    if ( jolt->isRunning() )
+        return;
 
     // Enable/ Disable Guizmo
     if ( KeyboardState::getKeyCombinationState( { KeyScanCode::LeftShift, KeyScanCode::G } ) )
