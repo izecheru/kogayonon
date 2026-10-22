@@ -3,9 +3,9 @@
 
 namespace utilities
 {
-enum class KeyScanCode
+enum KeyScanCode : uint32_t
 {
-    None,
+    NoCode,
     Space = SDL_SCANCODE_SPACE,
     Apostrophe = SDL_SCANCODE_APOSTROPHE,
     Comma = SDL_SCANCODE_COMMA,

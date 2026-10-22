@@ -14,6 +14,7 @@ class KeyEvent : public IEvent
         : m_scanCode{ code }
         , m_modifier{ modifier }
     {
+        m_type = EventType::KeyTyped;
     }
 
     inline KeyScanCode getKeyScanCode() const
@@ -48,6 +49,7 @@ class KeyPressedEvent : public KeyEvent
         : KeyEvent{ keycode, modifier, true }
         , m_RepeatCount{ repeatCount }
     {
+        m_type = EventType::KeyPressed;
     }
 
     inline int GetRepeatCount() const
@@ -65,14 +67,8 @@ class KeyReleasedEvent : public KeyEvent
     explicit KeyReleasedEvent( const KeyScanCode& keycode, const KeyScanCode& modifier )
         : KeyEvent{ keycode, modifier, false }
     {
+        m_type = EventType::KeyReleased;
     }
 };
 
-class KeyTypedEvent : public IEvent
-{
-  public:
-    explicit KeyTypedEvent( KeyScanCode keycode )
-    {
-    }
-};
 } // namespace core

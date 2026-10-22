@@ -1,4 +1,6 @@
 #include "gui/imgui_windows/entity_properties.hpp"
+#include "utilities/time_tracker/time_tracker.hpp"
+#include "core/ecs/components/input_component.hpp"
 #include "tinyfiledialogs/tinyfiledialogs.h"
 #include "core/ecs/components/player_component.hpp"
 #include "core/asset_manager/asset_manager.hpp"
@@ -109,23 +111,28 @@ void gui::EntityProperties::contextMenu()
             }
         }
 
-        bool hasPlayerComp = scene->getRegistry()->hasComponent<core::PlayerComponent>( currentEntity );
-
-        if ( !hasPlayerComp )
+        uint32_t playerCount = scene->getEnttRegistry().view<core::PlayerComponent>().size();
+        // we can only have a single player entity active at a time
+        if ( playerCount == 0 )
         {
-            if ( ImGui::MenuItem( "Player" ) )
+            bool hasPlayerComp = scene->getRegistry()->hasComponent<core::PlayerComponent>( currentEntity );
+
+            if ( !hasPlayerComp )
             {
-                physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
-                core::PlayerComponent playerComp{ .settings = JPH::CharacterVirtualSettings{} };
-                playerComp.character = jolt->createCharacter( &playerComp.settings,
-                                                              JPH::RVec3Arg{ 0.0f, 1.0f, 0.0f },
-                                                              JPH::QuatArg{ 0.0f, 0.0f, 0.0f, 1.0f },
-                                                              0 );
+                if ( ImGui::MenuItem( "Player" ) )
+                {
+                    physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
+                    core::PlayerComponent playerComp{ .settings = JPH::CharacterVirtualSettings{} };
+                    playerComp.character = jolt->createCharacter( &playerComp.settings,
+                                                                  JPH::RVec3Arg{ 0.0f, 1.0f, 0.0f },
+                                                                  JPH::QuatArg{ 0.0f, 0.0f, 0.0f, 1.0f },
+                                                                  0 );
 
-                scene->getRegistry()->addComponent<core::PerspectiveCameraComponent>(
-                    currentEntity, core::PerspectiveCameraComponent{} );
+                    scene->getRegistry()->addComponent<core::PerspectiveCameraComponent>(
+                        currentEntity, core::PerspectiveCameraComponent{} );
 
-                scene->getRegistry()->addComponent<core::PlayerComponent>( currentEntity, playerComp );
+                    scene->getRegistry()->addComponent<core::PlayerComponent>( currentEntity, playerComp );
+                }
             }
         }
 

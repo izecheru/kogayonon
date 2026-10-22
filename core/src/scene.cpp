@@ -143,16 +143,31 @@ auto core::Scene::onUpdate() -> void
 
     physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
 
+    // get the camera entities without the one that also has a player
+    auto cameraView =
+        m_pRegistry->getRegistry().view<core::PerspectiveCameraComponent>( entt::exclude<core::PlayerComponent> );
+
+    cameraView.each( [&]( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComp ) {
+        // if we have enabled physics and have an active player entity, disable all other cameras
+        if ( jolt->isRunning() && m_pRegistry->getRegistry().view<core::PlayerComponent>().size() != 0 )
+        {
+            if ( cameraComp.isUsed )
+                cameraComp.isUsed = false;
+        }
+        else
+        {
+            if ( !cameraComp.isUsed )
+                cameraComp.isUsed = true;
+        }
+    } );
+
     if ( jolt->isRunning() )
     {
-        bool activePlayer{ false };
         playerView.each( [&]( const entt::entity& entityId,
                               core::PerspectiveCameraComponent& cameraComp,
                               core::PlayerComponent& playerComp ) {
             if ( !cameraComp.isUsed )
                 cameraComp.isUsed = true;
-
-            activePlayer = true;
 
             JPH::Vec3 currentVelocity = playerComp.character->GetLinearVelocity();
 
@@ -182,7 +197,7 @@ auto core::Scene::onUpdate() -> void
             const float gravity{ jolt->getPhysicsSystem().GetGravity().GetY() * -1.0f };
             constexpr float fallMultiplier{ 1.9f };
 
-            bool onGround = playerComp.character->GetGroundState() == JPH::CharacterBase::EGroundState::OnGround;
+            bool onGround = playerComp.isOnGround();
             bool spaceDown = KeyboardState::getKeyState( KeyScanCode::Space );
 
             float vy = currentVelocity.GetY();
@@ -216,7 +231,10 @@ auto core::Scene::onUpdate() -> void
             if ( leftShiftDown )
                 speed += 3.0f;
 
-            JPH::Vec3 desiredVelocity{ moveDir.x * speed, vy, moveDir.z * speed };
+            moveDir.x *= speed;
+            moveDir.z *= speed;
+
+            JPH::Vec3 desiredVelocity{ moveDir.x, vy, moveDir.z };
 
             if ( playerComp.character->GetGroundState() != JPH::CharacterBase::EGroundState::OnGround )
             {
@@ -243,18 +261,6 @@ auto core::Scene::onUpdate() -> void
             // renderer will update this later
             cameraComp.props.changed = true;
         } );
-
-        // deactivate other cameras
-        if ( activePlayer )
-        {
-            auto cameraView = m_pRegistry->getRegistry().view<core::PerspectiveCameraComponent>(
-                entt::exclude<core::PlayerComponent> );
-
-            cameraView.each( []( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComp ) {
-                if ( cameraComp.isUsed )
-                    cameraComp.isUsed = false;
-            } );
-        }
     }
 }
 

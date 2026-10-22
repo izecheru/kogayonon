@@ -3,7 +3,7 @@
 namespace core
 {
 // THIS might not be needed since a listner listens to a certain event not a certain event TYPE
-enum class EventType
+enum EventType : uint32_t
 {
     None = 0,
 
@@ -56,7 +56,7 @@ class IEvent
         return m_type;
     }
 
-  private:
+  protected:
     EventType m_type{ EventType::None };
 };
 } // namespace core

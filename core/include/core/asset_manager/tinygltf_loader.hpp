@@ -8,7 +8,6 @@ namespace core
 {
 enum TextureType : uint8_t
 {
-    None,
     Emissive,
     Diffuse,
     Normal

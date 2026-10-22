@@ -97,7 +97,7 @@ void editor::Editor::pollEvents()
                 KeyboardState::updateState();
                 KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.scancode );
 
-                core::KeyPressedEvent keyPressEvent{ scanCode, KeyScanCode::None, 0 };
+                core::KeyPressedEvent keyPressEvent{ scanCode, KeyScanCode::NoCode, 0 };
 
                 if ( KeyboardState::getKeyState( KeyScanCode::LeftControl ) )
                 {
@@ -117,7 +117,7 @@ void editor::Editor::pollEvents()
             {
                 KeyboardState::updateState();
                 KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.scancode );
-                pEventDispatcher->dispatchEvent( core::KeyReleasedEvent{ scanCode, KeyScanCode::None } );
+                pEventDispatcher->dispatchEvent( core::KeyReleasedEvent{ scanCode, KeyScanCode::NoCode } );
                 break;
             }
             case SDL_EVENT_MOUSE_MOTION:

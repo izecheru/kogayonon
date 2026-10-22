@@ -11,6 +11,7 @@ class MouseEnteredEvent : public IEvent
     explicit MouseEnteredEvent( const bool entered )
         : m_entered{ entered }
     {
+        m_type = EventType::MouseEntered;
     }
 
     bool hasEntered() const
@@ -31,6 +32,7 @@ class MouseMovedEvent : public IEvent
         , m_xRel{ xRel }
         , m_yRel{ yRel }
     {
+        m_type = EventType::MouseMoved;
     }
 
     inline double getX() const
@@ -69,6 +71,7 @@ class MouseClickedEvent : public IEvent
         , m_action{ static_cast<utilities::MouseAction>( action ) }
         , m_mods{ static_cast<utilities::MouseModifier>( mods ) }
     {
+        m_type = EventType::MouseClicked;
     }
 
     utilities::MouseCode getButton() const
@@ -98,6 +101,7 @@ class MouseScrolledEvent : public IEvent
         : m_x_offset{ t_x_offset }
         , m_y_offset{ t_y_offset }
     {
+        m_type = EventType::MouseScrolled;
     }
 
     inline double getXOff() const

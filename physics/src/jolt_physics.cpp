@@ -263,9 +263,12 @@ auto physics::JoltPhysics::createCharacter( JPH::CharacterVirtualSettings* inSet
                                             uint64_t userData,
                                             JPH::PhysicsSystem* system ) -> JPH::CharacterVirtual*
 {
-    JPH::RefConst<JPH::Shape> capsuleShape = new JPH::CapsuleShape( 0.5f, 0.5f ); // Half height, radius
+    if ( !inSettings->mShape )
+    {
+        JPH::RefConst<JPH::Shape> capsuleShape = new JPH::CapsuleShape( 0.5f, 0.5f ); // Half height, radius
 
-    inSettings->mShape = capsuleShape;
+        inSettings->mShape = capsuleShape;
+    }
 
     if ( !system )
     {

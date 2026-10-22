@@ -1,4 +1,5 @@
 #include "gui/imgui_windows/viewport.hpp"
+#include "core/ecs/components/player_component.hpp"
 #include "gui/utils/imgui_dragdrop_defines.hpp"
 #include "utilities/task_manager/task_manager.hpp"
 #include "ImOGuizmo.hpp"
@@ -110,10 +111,10 @@ void gui::Viewport::render()
     // draw tool bar function above, we querry for the current scene again
     core::Scene* currentScene = sceneManager->getCurrentScene();
     entt::registry& sceneRegistry = currentScene->getEnttRegistry();
-    auto view = sceneRegistry.view<core::PerspectiveCameraComponent>();
+    auto cameraView = sceneRegistry.view<core::PerspectiveCameraComponent>( entt::exclude<core::PlayerComponent> );
 
     // Camera guizmo top right
-    view.each( [&]( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComp ) {
+    cameraView.each( [&]( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComp ) {
         if ( cameraComp.isUsed )
         {
             ImOGuizmo::SetDrawList( ImGui::GetWindowDrawList() );
