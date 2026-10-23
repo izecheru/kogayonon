@@ -21,7 +21,8 @@ core::Scene::Scene( const std::string& name )
     : m_entityCount{ 0 }
     , m_name{ name }
     , m_pRegistry{ std::make_unique<Registry>() }
-    , m_inputSystem{ std::make_unique<PlayerInputSystem>( core::MainRegistry::getInstance().getEventDispatcher() ) }
+    , m_inputSystem{ std::make_unique<PlayerInputSystem>( core::MainRegistry::getInstance().getEventDispatcher(),
+                                                          m_pRegistry.get() ) }
 
 {
 }

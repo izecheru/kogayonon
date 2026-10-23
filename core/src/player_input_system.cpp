@@ -3,6 +3,7 @@
 #include "utilities/time_tracker/time_tracker.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
+#include "core/input/key_map_manager.hpp"
 #include "core/ecs/registry.hpp"
 #include "utilities/input/keyboard_state.hpp"
 #include "core/ecs/main_registry.hpp"
@@ -10,11 +11,195 @@
 #include "core/ecs/components/player_component.hpp"
 #include "core/ecs/components/player_input_component.hpp"
 #include "physics/jolt_physics.hpp"
+#include "core/ecs/registry.hpp"
 #include "core/event/event_dispatcher.hpp"
 
-core::PlayerInputSystem::PlayerInputSystem( EventDispatcher* dispatcher )
+core::PlayerInputSystem::~PlayerInputSystem()
 {
-    // dispatcher->addHandler<core::MouseMovedEvent, &PlayerInputSystem::onMouseMove>( *this );
+}
+
+core::PlayerInputSystem::PlayerInputSystem( EventDispatcher* dispatcher, Registry* registry )
+    : m_keyMapManager{ std::make_unique<KeyMapManager>( dispatcher ) }
+    , m_registry{ registry }
+{
+    m_keyMapManager->registerAction( Jump, [this]() {
+        auto playerView =
+            m_registry->getRegistry()
+                .view<core::PerspectiveCameraComponent, core::PlayerComponent, core::PlayerInputComponent>();
+        entt::entity playerId{ entt::null };
+
+        uint32_t count{ 0u };
+        playerView.each( [&]( const entt::entity& entityId,
+                              core::PerspectiveCameraComponent&,
+                              core::PlayerComponent&,
+                              core::PlayerInputComponent& ) {
+            playerId = entityId;
+            ++count;
+        } );
+
+        if ( count > 1 )
+            throw std::runtime_error( "Somehow you have more than 1 player" );
+
+        if ( playerId == entt::null )
+            return;
+
+        core::PlayerInputComponent* inputComponent =
+            m_registry->tryGetComponent<core::PlayerInputComponent>( playerId );
+
+        if ( !inputComponent )
+        {
+            return;
+        }
+
+        if ( inputComponent->jump )
+        {
+            return;
+        }
+
+        inputComponent->jump = true;
+    } );
+
+    m_keyMapManager->bindAction( utilities::KeyScanCode::Space, EAction::Jump );
+
+    m_keyMapManager->registerAction( MoveBack, [this]() {
+        auto playerView =
+            m_registry->getRegistry()
+                .view<core::PerspectiveCameraComponent, core::PlayerComponent, core::PlayerInputComponent>();
+        entt::entity playerId{ entt::null };
+
+        uint32_t count{ 0u };
+        playerView.each( [&]( const entt::entity& entityId,
+                              core::PerspectiveCameraComponent&,
+                              core::PlayerComponent&,
+                              core::PlayerInputComponent& ) {
+            playerId = entityId;
+            ++count;
+        } );
+
+        if ( count > 1 )
+            throw std::runtime_error( "Somehow you have more than 1 player" );
+
+        if ( playerId == entt::null )
+            return;
+
+        core::PerspectiveCameraComponent* cameraComponent =
+            m_registry->tryGetComponent<core::PerspectiveCameraComponent>( playerId );
+
+        core::PlayerInputComponent* inputComponent =
+            m_registry->tryGetComponent<core::PlayerInputComponent>( playerId );
+
+        if ( !cameraComponent || !inputComponent )
+            return;
+
+        inputComponent->move -= cameraComponent->props.forward;
+    } );
+
+    m_keyMapManager->bindAction( utilities::KeyScanCode::S, EAction::MoveBack );
+
+    m_keyMapManager->registerAction( MoveForward, [this]() {
+        auto playerView =
+            m_registry->getRegistry()
+                .view<core::PerspectiveCameraComponent, core::PlayerComponent, core::PlayerInputComponent>();
+        entt::entity playerId{ entt::null };
+
+        uint32_t count{ 0u };
+        playerView.each( [&]( const entt::entity& entityId,
+                              core::PerspectiveCameraComponent&,
+                              core::PlayerComponent&,
+                              core::PlayerInputComponent& ) {
+            playerId = entityId;
+            ++count;
+        } );
+
+        if ( count > 1 )
+            throw std::runtime_error( "Somehow you have more than 1 player" );
+
+        if ( playerId == entt::null )
+            return;
+
+        core::PerspectiveCameraComponent* cameraComponent =
+            m_registry->tryGetComponent<core::PerspectiveCameraComponent>( playerId );
+
+        core::PlayerInputComponent* inputComponent =
+            m_registry->tryGetComponent<core::PlayerInputComponent>( playerId );
+
+        if ( !cameraComponent || !inputComponent )
+            return;
+
+        inputComponent->move += cameraComponent->props.forward;
+    } );
+
+    m_keyMapManager->bindAction( utilities::KeyScanCode::W, EAction::MoveForward );
+
+    m_keyMapManager->registerAction( MoveLeft, [this]() {
+        auto playerView =
+            m_registry->getRegistry()
+                .view<core::PerspectiveCameraComponent, core::PlayerComponent, core::PlayerInputComponent>();
+        entt::entity playerId{ entt::null };
+
+        uint32_t count{ 0u };
+        playerView.each( [&]( const entt::entity& entityId,
+                              core::PerspectiveCameraComponent&,
+                              core::PlayerComponent&,
+                              core::PlayerInputComponent& ) {
+            playerId = entityId;
+            ++count;
+        } );
+
+        if ( count > 1 )
+            throw std::runtime_error( "Somehow you have more than 1 player" );
+
+        if ( playerId == entt::null )
+            return;
+
+        core::PerspectiveCameraComponent* cameraComponent =
+            m_registry->tryGetComponent<core::PerspectiveCameraComponent>( playerId );
+
+        core::PlayerInputComponent* inputComponent =
+            m_registry->tryGetComponent<core::PlayerInputComponent>( playerId );
+
+        if ( !cameraComponent || !inputComponent )
+            return;
+
+        inputComponent->move += cameraComponent->props.right;
+    } );
+
+    m_keyMapManager->bindAction( utilities::KeyScanCode::A, EAction::MoveLeft );
+
+    m_keyMapManager->registerAction( MoveRight, [this]() {
+        auto playerView =
+            m_registry->getRegistry()
+                .view<core::PerspectiveCameraComponent, core::PlayerComponent, core::PlayerInputComponent>();
+        entt::entity playerId{ entt::null };
+
+        uint32_t count{ 0u };
+        playerView.each( [&]( const entt::entity& entityId,
+                              core::PerspectiveCameraComponent&,
+                              core::PlayerComponent&,
+                              core::PlayerInputComponent& ) {
+            playerId = entityId;
+            ++count;
+        } );
+
+        if ( count > 1 )
+            throw std::runtime_error( "Somehow you have more than 1 player" );
+
+        if ( playerId == entt::null )
+            return;
+
+        core::PerspectiveCameraComponent* cameraComponent =
+            m_registry->tryGetComponent<core::PerspectiveCameraComponent>( playerId );
+
+        core::PlayerInputComponent* inputComponent =
+            m_registry->tryGetComponent<core::PlayerInputComponent>( playerId );
+
+        if ( !cameraComponent || !inputComponent )
+            return;
+
+        inputComponent->move -= cameraComponent->props.right;
+    } );
+
+    m_keyMapManager->bindAction( utilities::KeyScanCode::D, EAction::MoveRight );
 }
 
 auto core::PlayerInputSystem::disableEditorCamera( entt::registry& reg ) -> void
@@ -43,6 +228,8 @@ auto core::PlayerInputSystem::disableEditorCamera( entt::registry& reg ) -> void
 
 auto core::PlayerInputSystem::update( entt::registry& reg, float delta ) -> void
 {
+    m_keyMapManager->update();
+
     physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
 
     auto playerView = reg.view<core::PerspectiveCameraComponent, core::PlayerComponent>();
@@ -80,64 +267,47 @@ auto core::PlayerInputSystem::update( entt::registry& reg, float delta ) -> void
     glm::vec3 forward{ cos( yawRad ), 0.0f, sin( yawRad ) };
     glm::vec3 right{ -sin( yawRad ), 0.0f, cos( yawRad ) };
 
-    glm::vec3 moveDir{ 0.0f };
+    double speed{ 6.5f };
 
-    using utilities::KeyScanCode;
+    core::PlayerInputComponent* inputComponent = m_registry->tryGetComponent<core::PlayerInputComponent>( playerId );
 
-    if ( utilities::KeyboardState::getKeyState( KeyScanCode::W ) )
-        moveDir += forward;
+    if ( !inputComponent )
+        return;
 
-    if ( utilities::KeyboardState::getKeyState( KeyScanCode::S ) )
-        moveDir -= forward;
+    constexpr float jumpSpeed{ 8.0f };
 
-    if ( utilities::KeyboardState::getKeyState( KeyScanCode::D ) )
-        moveDir += right;
+    if ( inputComponent->sprint )
+        speed += 10.0f;
 
-    if ( utilities::KeyboardState::getKeyState( KeyScanCode::A ) )
-        moveDir -= right;
+    inputComponent->move.x *= speed;
+    inputComponent->move.z *= speed;
 
-    constexpr float jumpSpeed{ 3.0f };
-    const float gravity{ jolt->getPhysicsSystem().GetGravity().GetY() * -1.0f };
-    constexpr float fallMultiplier{ 1.9f };
-
-    bool onGround = playerComponent->isOnGround();
-    bool spaceDown = utilities::KeyboardState::getKeyState( KeyScanCode::Space );
-
+    const bool onGround = playerComponent->isOnGround();
     float vy = currentVelocity.GetY();
+    const bool jumpRequested = inputComponent->jump;
 
-    if ( onGround )
+    inputComponent->jump = false;
+
+    if ( jumpRequested && onGround )
     {
-        vy = 0.0f;
-
-        if ( spaceDown )
-            vy = jumpSpeed;
+        vy = jumpSpeed;
     }
-    else
+    else if ( !onGround )
     {
-        float g = gravity;
 
-        // as long as we still fall, increase the gravity
-        // the higher we go, the faster we hit the ground
+        float g = -jolt->getPhysicsSystem().GetGravity().GetY();
+
         if ( vy < 0.0f )
-            g *= fallMultiplier;
+            g *= 1.5f;
 
         vy -= g * delta;
     }
+    else
+    {
+        vy = 0.0f;
+    }
 
-    if ( glm::length( moveDir ) > 0.001f )
-        moveDir = glm::normalize( moveDir );
-
-    double speed{ 6.5f };
-
-    const bool leftShiftDown = utilities::KeyboardState::getKeyState( KeyScanCode::LeftShift );
-
-    if ( leftShiftDown && onGround )
-        speed = 10.0f;
-
-    moveDir.x *= speed;
-    moveDir.z *= speed;
-
-    JPH::Vec3 desiredVelocity{ moveDir.x, vy, moveDir.z };
+    JPH::Vec3 desiredVelocity{ inputComponent->move.x, vy, inputComponent->move.z };
 
     if ( onGround )
     {
@@ -145,6 +315,7 @@ auto core::PlayerInputSystem::update( entt::registry& reg, float delta ) -> void
     }
 
     playerComponent->character->SetLinearVelocity( desiredVelocity );
+    inputComponent->move = { 0.0f, 0.0f, 0.0f };
 
     JPH::RVec3 newPos = playerComponent->character->GetPosition();
 
