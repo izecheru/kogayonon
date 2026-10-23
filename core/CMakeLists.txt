@@ -4,6 +4,7 @@ set(EVENT_FILES
     "include/core/event/event.hpp"
     "include/core/event/event_dispatcher.hpp"
     "include/core/input/keyboard_events.hpp"
+    "include/core/input/key_map_manager.hpp"
     "include/core/input/mouse_events.hpp"
 	"include/core/event/event_emitter.hpp"
 	"include/core/scene/scene_event_handler.hpp"
@@ -76,7 +77,7 @@ set(SOURCE_FILES
     "src/scene_event_handler.cpp"
     "src/tinygltf_loader.cpp"
     "src/directory_watcher.cpp"
-  "src/threadsafe_resource_manager.cpp" "src/player_input_system.cpp")
+  "src/threadsafe_resource_manager.cpp" "src/player_input_system.cpp" "src/key_map_manager.cpp")
 
 add_library(core ${SOURCE_FILES} ${HEADER_FILES})
 
