@@ -1,6 +1,6 @@
 #include "core/systems/player_input_system.hpp"
-#include "input/mouse_state.hpp"
-#include "time_tracker/time_tracker.hpp"
+#include "utilities/input/mouse_state.hpp"
+#include "utilities/time_tracker/time_tracker.hpp"
 #include "core/scene/scene.hpp"
 #include "core/scene/scene_manager.hpp"
 #include "core/ecs/registry.hpp"
@@ -152,9 +152,10 @@ auto core::PlayerInputSystem::update( entt::registry& reg, float delta ) -> void
     cameraComponent->props.eye = { newPos.GetX(), newPos.GetY(), newPos.GetZ() };
 
     double sensitivity{ 0.2f };
-    glm::vec2 accumulatedRel = utilities::MouseState::readAccumulated();
+    glm::vec2 accumulatedRel = utilities::MouseState::getRel();
     cameraComponent->props.yaw += accumulatedRel.x * sensitivity;
     cameraComponent->props.pitch -= accumulatedRel.y * sensitivity;
+    utilities::MouseState::resetRel();
 
     // renderer will update this later
     cameraComponent->props.changed = true;

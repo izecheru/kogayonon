@@ -129,8 +129,7 @@ void editor::Editor::pollEvents()
                 double xRel = e.motion.xrel;
                 double yRel = e.motion.yrel;
                 pEventDispatcher->dispatchEvent( core::MouseMovedEvent{ x, y, xRel, yRel } );
-                utilities::MouseState::updateState( { x, y }, { xRel, yRel } );
-                utilities::MouseState::updateState( { xRel, yRel } );
+                utilities::MouseState::updateRel( glm::vec2{ xRel, yRel } );
                 break;
             }
             case SDL_EVENT_MOUSE_WHEEL:
@@ -228,8 +227,6 @@ auto editor::Editor::onUpdate() -> void
     assetManager->onUpdate();
     sceneManager->getCurrentScene()->onUpdate();
     m_vulkanRenderer->onUpdate();
-
-    utilities::MouseState::resetState();
 
     timeTracker->update( DELTA_TIME );
 }
