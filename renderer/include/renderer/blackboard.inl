@@ -9,7 +9,7 @@ auto rendering::Blackboard::addToStorage( Args&&... args ) -> void
         return;
     }
 
-    m_storage[hash] = entt::meta_any( T( std::forward<Args>( args )... ) );
+    m_storage[hash] = entt::meta_any( T{ std::forward<Args>( args )... } );
 }
 
 template <typename T>

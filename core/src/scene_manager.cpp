@@ -1,4 +1,5 @@
 #include "core/scene/scene_manager.hpp"
+#include "physics/jolt_physics.hpp"
 #include "graphics/vulkan_context.hpp"
 #include "core/event/scene_events.hpp"
 #include "core/asset_manager/asset_manager.hpp"
@@ -15,6 +16,7 @@ core::SceneManager::SceneManager( EventDispatcher* pDispatcher, bool saveAllScen
     : m_eventHandler{ std::make_unique<core::SceneEventHandler>( pDispatcher ) }
     , m_saveAllScenes{ saveAllScenes }
     , m_pendingSwitch{ false }
+    , m_play{ false }
 {
     pDispatcher->addHandler<core::FileEvent, &SceneManager::onFileEvent>( *this );
     populateAvailableScenes();
@@ -182,4 +184,23 @@ auto core::SceneManager::applyPendingSwitch() -> void
 
     core::EventDispatcher* dispatcher = MainRegistry::getInstance().getEventDispatcher();
     dispatcher->dispatchEvent<core::SelectEntityEvent>( core::SelectEntityEvent() );
+}
+
+auto core::SceneManager::getPlaying() const -> bool
+{
+    return m_currentScene->getPlaying();
+}
+
+auto core::SceneManager::playScene() -> void
+{
+    physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
+    jolt->start();
+    m_currentScene->startPlaying();
+}
+
+auto core::SceneManager::stopScene() -> void
+{
+    physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
+    jolt->stop();
+    m_currentScene->stopPlaying();
 }

@@ -64,9 +64,10 @@ class MouseMovedEvent : public IEvent
 
 class MouseClickedEvent : public IEvent
 {
-
   public:
-    MouseClickedEvent( int button, int action, int mods )
+    MouseClickedEvent() = default;
+
+    explicit MouseClickedEvent( int button, int action, int mods )
         : m_button{ static_cast<utilities::MouseCode>( button ) }
         , m_action{ static_cast<utilities::MouseAction>( action ) }
         , m_mods{ static_cast<utilities::MouseModifier>( mods ) }

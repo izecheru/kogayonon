@@ -14,6 +14,8 @@ gui::EngineDataWindow::EngineDataWindow( const std::string& name,
     : ImGuiWindow{ name }
     , m_device{ device }
     , m_spec{ spec }
+    , m_smoothedDelta{ 0.0f }
+    , m_timeUpdate{ 0.0f }
 {
 }
 
@@ -72,8 +74,14 @@ auto gui::EngineDataWindow::render() -> void
     ImGui::SeparatorText( "Frame time" );
 
     gui_utils::renderWithSizedFont( m_spec.fonts->at( INTER ), 16.0f, [&]() {
-        ImGui::Text( "Number of vertices: %d", vertexOccupied / sizeof( resources::Vertex ) );
-        ImGui::Text( "%.2fms", timeTracker->getDurationMilliseconds( DELTA_TIME ) );
+        const double deltaMs = timeTracker->getDurationMilliseconds( DELTA_TIME );
+        const double deltaS = timeTracker->getDurationInSeconds( DELTA_TIME );
+
+        m_smoothedDelta = m_smoothedDelta * 0.95 + deltaS * 0.05;
+        const double fps = 1.0 / m_smoothedDelta;
+
+        ImGui::Text( "Vertices: %d", vertexOccupied / sizeof( resources::Vertex ) );
+        ImGui::Text( "Frame: %.2f ms  (%.1f FPS)", deltaMs, fps );
     } );
 
     core::AssetManager* assetManager = core::MainRegistry::getInstance().getAssetManager();

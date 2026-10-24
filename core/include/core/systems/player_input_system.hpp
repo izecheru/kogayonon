@@ -7,17 +7,27 @@
 
 namespace core
 {
+class KeyMapManager;
+class Registry;
+} // namespace core
+
+namespace core
+{
 class EventDispatcher;
 
 class PlayerInputSystem
 {
   public:
-    explicit PlayerInputSystem( EventDispatcher* dispatcher );
-    ~PlayerInputSystem() = default;
+    explicit PlayerInputSystem( EventDispatcher* dispatcher, Registry* registry );
+    ~PlayerInputSystem();
 
     auto update( entt::registry& reg, float delta ) -> void;
 
   private:
     auto disableEditorCamera( entt::registry& reg ) -> void;
+
+  private:
+    std::unique_ptr<KeyMapManager> m_keyMapManager;
+    Registry* m_registry;
 };
 } // namespace core

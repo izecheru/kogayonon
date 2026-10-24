@@ -69,17 +69,23 @@ class Scene
      */
     void removeMeshFromEntity( entt::entity entity );
 
-    inline auto getEntityCount() const -> uint32_t
+    auto startPlaying() -> void;
+    auto stopPlaying() -> void;
+    auto getPlaying() const -> bool;
+
+    auto getEntityCount() const -> uint32_t
     {
         return m_entityCount;
     }
 
-    inline void setRegistryModified( bool value )
+    auto setRegistryModified( bool value ) -> void
     {
         m_registryModified = value;
     }
 
   private:
+    bool m_playing;
+    bool m_enabledEditorCamera;
     // this bool should be used to prepare entities for rendering
     bool m_registryModified{ false };
     glm::vec2 m_mouseCoord;

@@ -11,6 +11,8 @@
 #include "core/ecs/components/model_component.hpp"
 #include "core/ecs/components/rigidbody_component.hpp"
 #include "core/ecs/components/transform_component.hpp"
+#include "core/ecs/components/player_component.hpp"
+#include "core/ecs/components/player_input_component.hpp"
 #include "core/ecs/main_registry.hpp"
 #include "core/ecs/registry.hpp"
 #include "tracy/Tracy.hpp"
@@ -21,10 +23,26 @@ core::Scene::Scene( const std::string& name )
     : m_entityCount{ 0 }
     , m_name{ name }
     , m_pRegistry{ std::make_unique<Registry>() }
-    , m_inputSystem{ std::make_unique<PlayerInputSystem>( core::MainRegistry::getInstance().getEventDispatcher(),
-                                                          m_pRegistry.get() ) }
+    , m_playing{ false }
+    , m_enabledEditorCamera{ true }
 
 {
+    physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
+
+    core::PlayerComponent playerComp{ .settings = JPH::CharacterVirtualSettings{} };
+    core::PlayerInputComponent playerInputComp{};
+
+    playerComp.character = jolt->createCharacter(
+        &playerComp.settings, JPH::RVec3Arg{ 0.0f, 1.0f, 0.0f }, JPH::QuatArg{ 0.0f, 0.0f, 0.0f, 1.0f }, 0 );
+
+    entt::entity player = m_pRegistry->createEntity();
+
+    m_pRegistry->addComponent<core::PerspectiveCameraComponent>( player, core::PerspectiveCameraComponent{} );
+    m_pRegistry->addComponent<core::PlayerComponent>( player, playerComp );
+    m_pRegistry->addComponent<core::PlayerInputComponent>( player, playerInputComp );
+
+    m_inputSystem = std::make_unique<PlayerInputSystem>( core::MainRegistry::getInstance().getEventDispatcher(),
+                                                         m_pRegistry.get() );
 }
 
 auto core::Scene::getRegistry() -> Registry*
@@ -89,6 +107,7 @@ void core::Scene::removeMeshFromEntity( entt::entity entity )
 auto core::Scene::onUpdate() -> void
 {
     ZoneScopedN( "Scene::onUpdate" );
+
     // update bodies
     auto rigidView = m_pRegistry->getRegistry().view<core::RigidbodyComponent, core::TransformComponent>();
     rigidView.each( []( const entt::entity& entityId,
@@ -137,7 +156,36 @@ auto core::Scene::onUpdate() -> void
 
     utilities::TimeTracker* timeTracker = core::MainRegistry::getInstance().getTimeTracker();
 
-    m_inputSystem->update( getEnttRegistry(), timeTracker->getDurationInSeconds( DELTA_TIME ) );
+    if ( m_playing )
+    {
+        m_inputSystem->update( getEnttRegistry(), timeTracker->getDurationInSeconds( DELTA_TIME ) );
+
+        if ( m_enabledEditorCamera )
+            m_enabledEditorCamera = false;
+    }
+    else
+    {
+        if ( !m_enabledEditorCamera )
+        {
+            auto cameraView = m_pRegistry->getRegistry().view<core::PerspectiveCameraComponent>();
+
+            cameraView.each( [&]( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComponent ) {
+                Entity entity{ m_pRegistry.get(), entityId };
+                if ( entity.hasComponent<core::PlayerComponent>() )
+                {
+                    if ( cameraComponent.isUsed )
+                        cameraComponent.isUsed = false;
+
+                    return;
+                }
+
+                if ( !cameraComponent.isUsed )
+                    cameraComponent.isUsed = true;
+            } );
+
+            m_enabledEditorCamera = true;
+        }
+    }
 }
 
 auto core::Scene::deserialize( const std::filesystem::path& p ) -> void
@@ -280,4 +328,19 @@ auto core::Scene::serialize() -> void
     } );
 
     serializer->endArray();
+}
+
+auto core::Scene::startPlaying() -> void
+{
+    m_playing = true;
+}
+
+auto core::Scene::stopPlaying() -> void
+{
+    m_playing = false;
+}
+
+auto core::Scene::getPlaying() const -> bool
+{
+    return m_playing;
 }

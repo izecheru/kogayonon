@@ -24,5 +24,7 @@ class EngineDataWindow : public ImGuiWindow
   private:
     graphics::VulkanDevice* m_device;
     EngineDataSpec m_spec;
+    double m_smoothedDelta;
+    double m_timeUpdate;
 };
 } // namespace gui

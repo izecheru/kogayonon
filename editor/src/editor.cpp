@@ -71,7 +71,7 @@ void editor::Editor::pollEvents()
     core::EventDispatcher* pEventDispatcher{ nullptr };
     pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
 
-    SDL_Event e;
+    SDL_Event e{};
     while ( SDL_PollEvent( &e ) )
     {
         ImGui_ImplSDL3_ProcessEvent( &e );
@@ -81,7 +81,6 @@ void editor::Editor::pollEvents()
             {
                 int newWidth = e.window.data1;
                 int newHeight = e.window.data2;
-                KINFO( "Resized wind" );
                 pEventDispatcher->dispatchEvent( core::WindowResizeEvent{ newWidth, newHeight } );
                 break;
             }
@@ -116,7 +115,20 @@ void editor::Editor::pollEvents()
             {
                 KeyboardState::updateState();
                 KeyScanCode scanCode = static_cast<KeyScanCode>( e.key.scancode );
-                pEventDispatcher->dispatchEvent( core::KeyReleasedEvent{ scanCode, KeyScanCode::NoCode } );
+
+                core::KeyReleasedEvent keyReleasedEvent{ scanCode, KeyScanCode::NoCode };
+
+                if ( KeyboardState::getKeyState( KeyScanCode::LeftControl ) )
+                {
+                    keyReleasedEvent.setKeyModifier( KeyScanCode::LeftControl );
+                }
+
+                if ( KeyboardState::getKeyState( KeyScanCode::LeftShift ) )
+                {
+                    keyReleasedEvent.setKeyModifier( KeyScanCode::LeftShift );
+                }
+
+                pEventDispatcher->dispatchEvent( keyReleasedEvent );
                 break;
             }
             case SDL_EVENT_MOUSE_MOTION:
@@ -139,34 +151,35 @@ void editor::Editor::pollEvents()
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
             {
                 uint32_t buttonState = SDL_MouseButtonFlags();
+                core::MouseClickedEvent mouseClicked{};
+
                 if ( buttonState & SDL_BUTTON_MASK( SDL_BUTTON_LEFT ) )
                 {
-                    core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_MIDDLE ),
-                                                          static_cast<int>( MouseAction::Press ),
-                                                          static_cast<int>( MouseModifier::None ) };
-
-                    pEventDispatcher->dispatchEvent( mouseClicked );
+                    mouseClicked = core::MouseClickedEvent{ static_cast<int>( MouseCode::BUTTON_MIDDLE ),
+                                                            static_cast<int>( MouseAction::Press ),
+                                                            static_cast<int>( MouseModifier::None ) };
                 }
+
                 if ( buttonState & SDL_BUTTON_MASK( SDL_BUTTON_LEFT ) )
                 {
-                    core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_LEFT ),
-                                                          static_cast<int>( MouseAction::Press ),
-                                                          static_cast<int>( MouseModifier::None ) };
-
-                    pEventDispatcher->dispatchEvent( mouseClicked );
+                    mouseClicked = core::MouseClickedEvent{ static_cast<int>( MouseCode::BUTTON_LEFT ),
+                                                            static_cast<int>( MouseAction::Press ),
+                                                            static_cast<int>( MouseModifier::None ) };
                 }
+
                 if ( buttonState & SDL_BUTTON_MASK( SDL_BUTTON_RIGHT ) )
                 {
-                    core::MouseClickedEvent mouseClicked{ static_cast<int>( MouseCode::BUTTON_RIGHT ),
-                                                          static_cast<int>( MouseAction::Press ),
-                                                          static_cast<int>( MouseModifier::None ) };
-
-                    pEventDispatcher->dispatchEvent( mouseClicked );
+                    mouseClicked = core::MouseClickedEvent{ static_cast<int>( MouseCode::BUTTON_RIGHT ),
+                                                            static_cast<int>( MouseAction::Press ),
+                                                            static_cast<int>( MouseModifier::None ) };
                 }
+
+                pEventDispatcher->dispatchEvent( mouseClicked );
                 break;
             }
             default:
             {
+                KERROR( "Event not handled!!!" );
                 break;
             }
         }

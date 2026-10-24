@@ -213,7 +213,6 @@ auto gui::Viewport::setViewport( VkImageView imageView ) -> void
 void gui::Viewport::drawToolbar()
 {
     ImGuiStyle& style = ImGui::GetStyle();
-    physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
 
     const ImVec2 avail = ImGui::GetContentRegionAvail();
 
@@ -286,18 +285,16 @@ void gui::Viewport::drawToolbar()
                             currentPos.y + ( avail.y - buttonSize ) * 0.5f };
         ImGui::SetCursorPos( start );
 
-        physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
-
         if ( ImGui::ImageButton( "##stopButton", m_spec.stopIcon, { buttonSize, buttonSize } ) )
         {
-            jolt->stop();
+            sceneManager->stopScene();
         }
 
         ImGui::SameLine( 0.0f, spacing );
 
         if ( ImGui::ImageButton( "##startButton", m_spec.playIcon, { buttonSize, buttonSize } ) )
         {
-            jolt->start();
+            sceneManager->playScene();
         }
     }
 
@@ -597,19 +594,21 @@ void gui::Viewport::onKeyPressed( const core::KeyPressedEvent& e )
     auto pEventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
 
     physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
-    // Deactivate the Shift + A menu if Escape is pressed
+
+    core::SceneManager* sceneManager = core::MainRegistry::getInstance().getSceneManager();
+
     if ( e.getKeyScanCode() == KeyScanCode::Escape )
     {
         if ( m_entityMenu )
             m_entityMenu = false;
 
-        if ( jolt->isRunning() )
+        if ( sceneManager->getPlaying() )
         {
-            jolt->stop();
+            sceneManager->stopScene();
         }
     }
 
-    if ( jolt->isRunning() )
+    if ( sceneManager->getPlaying() )
         return;
 
     // Enable/ Disable Guizmo

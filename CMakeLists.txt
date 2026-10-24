@@ -50,6 +50,13 @@ FetchContent_Declare(
   GIT_TAG master)
 FetchContent_MakeAvailable(msdf-atlas-gen)
 
+#FetchContent_Declare(
+#    EnTT
+#    GIT_REPOSITORY https://github.com/skypjack/entt.git
+#    GIT_TAG wip 
+#)
+#FetchContent_MakeAvailable(EnTT)
+
 if(KOGAYONON_ENABLE_TRACY)
   find_package(Tracy CONFIG REQUIRED)
 endif()

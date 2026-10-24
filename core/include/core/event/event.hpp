@@ -1,4 +1,5 @@
 #pragma once
+#include "entt/meta/meta.hpp"
 
 namespace core
 {
@@ -51,12 +52,25 @@ class IEvent
     IEvent() = default;
     virtual ~IEvent() = default;
 
-    inline virtual EventType getEventType()
+    auto getEventType() const -> EventType
     {
         return m_type;
     }
 
+    template <typename T, typename... Args>
+    auto addUserData( Args&&... args ) -> void
+    {
+        m_userData = entt::meta_any( T{ std::forward<Args>( args )... } );
+    }
+
+    template <typename T>
+    auto getUserData() -> T&
+    {
+        return m_userData.cast<T&>();
+    }
+
   protected:
+    entt::meta_any m_userData;
     EventType m_type{ EventType::None };
 };
 } // namespace core

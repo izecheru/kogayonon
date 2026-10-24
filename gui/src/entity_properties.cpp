@@ -111,35 +111,6 @@ void gui::EntityProperties::contextMenu()
             }
         }
 
-        uint32_t playerCount = scene->getEnttRegistry().view<core::PlayerComponent>().size();
-        // we can only have a single player entity active at a time
-        if ( playerCount == 0 )
-        {
-            bool hasPlayerComp = scene->getRegistry()->hasComponent<core::PlayerComponent>( currentEntity );
-
-            if ( !hasPlayerComp )
-            {
-                if ( ImGui::MenuItem( "Player" ) )
-                {
-                    physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
-
-                    core::PlayerComponent playerComp{ .settings = JPH::CharacterVirtualSettings{} };
-                    core::PlayerInputComponent playerInputComp{};
-
-                    playerComp.character = jolt->createCharacter( &playerComp.settings,
-                                                                  JPH::RVec3Arg{ 0.0f, 1.0f, 0.0f },
-                                                                  JPH::QuatArg{ 0.0f, 0.0f, 0.0f, 1.0f },
-                                                                  0 );
-
-                    scene->getRegistry()->addComponent<core::PerspectiveCameraComponent>(
-                        currentEntity, core::PerspectiveCameraComponent{} );
-
-                    scene->getRegistry()->addComponent<core::PlayerComponent>( currentEntity, playerComp );
-                    scene->getRegistry()->addComponent<core::PlayerInputComponent>( currentEntity, playerInputComp );
-                }
-            }
-        }
-
         bool hasRigidBody = scene->getRegistry()->hasComponent<core::RigidbodyComponent>( currentEntity );
 
         if ( !hasRigidBody && modelComp )
