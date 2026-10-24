@@ -24,9 +24,6 @@ class PlayerInputSystem
     auto update( entt::registry& reg, float delta ) -> void;
 
   private:
-    auto disableEditorCamera( entt::registry& reg ) -> void;
-
-  private:
     std::unique_ptr<KeyMapManager> m_keyMapManager;
     Registry* m_registry;
 };

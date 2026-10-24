@@ -161,7 +161,19 @@ auto core::Scene::onUpdate() -> void
         m_inputSystem->update( getEnttRegistry(), timeTracker->getDurationInSeconds( DELTA_TIME ) );
 
         if ( m_enabledEditorCamera )
+        {
+
+            // get the camera entities without the one that also has a player
+            auto cameraView = m_pRegistry->getRegistry().view<core::PerspectiveCameraComponent>(
+                entt::exclude<core::PlayerComponent> );
+
+            cameraView.each( [&]( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComponent ) {
+                if ( cameraComponent.isUsed )
+                    cameraComponent.isUsed = false;
+            } );
+
             m_enabledEditorCamera = false;
+        }
     }
     else
     {

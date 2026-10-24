@@ -39,12 +39,18 @@ core::PlayerInputSystem::PlayerInputSystem( EventDispatcher* dispatcher, Registr
         throw std::runtime_error( "Somehow you have more than 1 player" );
 
     if ( playerId == entt::null )
+    {
+        KERROR( "Input system could not register bindings and actions" );
         return;
+    }
 
     core::PlayerInputComponent* inputComponent = m_registry->tryGetComponent<core::PlayerInputComponent>( playerId );
 
     core::PerspectiveCameraComponent* cameraComponent =
         m_registry->tryGetComponent<core::PerspectiveCameraComponent>( playerId );
+
+    if ( !inputComponent || !cameraComponent )
+        throw std::runtime_error( "Player does not posses important components!!!" );
 
     m_keyMapManager->registerAction( "player", Sprint, [this, inputComponent]() {
         if ( inputComponent->sprint )
@@ -93,24 +99,6 @@ core::PlayerInputSystem::PlayerInputSystem( EventDispatcher* dispatcher, Registr
     m_keyMapManager->bindAction( "player", utilities::KeyScanCode::D, EAction::MoveRight );
 }
 
-auto core::PlayerInputSystem::disableEditorCamera( entt::registry& reg ) -> void
-{
-    physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
-
-    // get the camera entities without the one that also has a player
-    auto cameraView = reg.view<core::PerspectiveCameraComponent>( entt::exclude<core::PlayerComponent> );
-
-    const bool hasPlayer = reg.view<core::PlayerComponent>().size() != 0;
-    cameraView.each( [&]( const entt::entity& entityId, core::PerspectiveCameraComponent& cameraComponent ) {
-        // if we have an active player entity, disable all other cameras
-        if ( hasPlayer )
-        {
-            if ( cameraComponent.isUsed )
-                cameraComponent.isUsed = false;
-        }
-    } );
-}
-
 auto core::PlayerInputSystem::update( entt::registry& reg, float delta ) -> void
 {
     physics::JoltPhysics* jolt = core::MainRegistry::getInstance().getJoltPhysics();
@@ -137,8 +125,6 @@ auto core::PlayerInputSystem::update( entt::registry& reg, float delta ) -> void
 
     if ( !cameraComponent || !playerComponent )
         return;
-
-    disableEditorCamera( reg );
 
     if ( !cameraComponent->isUsed )
         cameraComponent->isUsed = true;
