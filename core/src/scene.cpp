@@ -35,11 +35,11 @@ core::Scene::Scene( const std::string& name )
     playerComp.character = jolt->createCharacter(
         &playerComp.settings, JPH::RVec3Arg{ 0.0f, 1.0f, 0.0f }, JPH::QuatArg{ 0.0f, 0.0f, 0.0f, 1.0f }, 0 );
 
-    entt::entity player = m_pRegistry->createEntity();
+    Entity player{ m_pRegistry.get(), "player" };
 
-    m_pRegistry->addComponent<core::PerspectiveCameraComponent>( player, core::PerspectiveCameraComponent{} );
-    m_pRegistry->addComponent<core::PlayerComponent>( player, playerComp );
-    m_pRegistry->addComponent<core::PlayerInputComponent>( player, playerInputComp );
+    player.addComponent<core::PerspectiveCameraComponent>( core::PerspectiveCameraComponent{} );
+    player.addComponent<core::PlayerComponent>( playerComp );
+    player.addComponent<core::PlayerInputComponent>( playerInputComp );
 
     m_inputSystem = std::make_unique<PlayerInputSystem>( core::MainRegistry::getInstance().getEventDispatcher(),
                                                          m_pRegistry.get() );

@@ -100,7 +100,7 @@ VertexOutput vertexMain( VertexInput input )
 
     float4 outPosition = mul( camera.projection, mul( viewMat, float4( localPos, 1.0 ) ) );
     output.position = outPosition.xyww;
-    output.viewDir = normalize(localPos);
+    output.viewDir = normalize( localPos );
 
     return output;
 }
