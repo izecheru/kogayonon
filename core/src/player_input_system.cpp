@@ -198,9 +198,10 @@ auto core::PlayerInputSystem::update( entt::registry& reg, float delta ) -> void
 
     double sensitivity{ 0.2f };
     glm::vec2 accumulatedRel = utilities::MouseState::getRel();
+    utilities::MouseState::resetRel();
+
     cameraComponent->props.yaw += accumulatedRel.x * sensitivity;
     cameraComponent->props.pitch -= accumulatedRel.y * sensitivity;
-    utilities::MouseState::resetRel();
 
     // renderer will update this later
     cameraComponent->props.changed = true;

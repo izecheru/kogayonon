@@ -1,4 +1,5 @@
 #include "renderer/modules/prepass_module.hpp"
+#include "core/ecs/components/rigidbody_component.hpp"
 #include "core/asset_manager/asset_manager.hpp"
 #include "graphics/vulkan_memory_allocator.hpp"
 #include "core/ecs/components/model_component.hpp"

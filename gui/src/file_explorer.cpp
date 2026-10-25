@@ -50,26 +50,32 @@ void gui::FileExplorerWindow::onFileEvent( FileEvent& e )
     core::EventDispatcher* eventDispatcher = core::MainRegistry::getInstance().getEventDispatcher();
     switch ( e.getType() )
     {
-        // handle all the modify functionality
-    case FileEventType::Modify: {
-        if ( e.getPath().find( "colorConfig" ) != std::string::npos )
+            // handle all the modify functionality
+        case FileEventType::Modify:
         {
-            eventDispatcher->dispatchEvent( core::ConfigChangedEvent{} );
+            if ( e.getPath().find( "colorConfig" ) != std::string::npos )
+            {
+                eventDispatcher->dispatchEvent( core::ConfigChangedEvent{} );
+            }
+            break;
         }
-    }
-    break;
-    case FileEventType::Create: {
-    }
-    break;
-    case FileEventType::Rename: {
-    }
-    break;
-    case FileEventType::Delete: {
-    }
-    break;
-    default:
-        KERROR( "something went wrong, enum FileEventType does not support this value" );
-        break;
+        case FileEventType::Create:
+        {
+            break;
+        }
+        case FileEventType::Rename:
+        {
+            break;
+        }
+        case FileEventType::Delete:
+        {
+            break;
+        }
+        default:
+        {
+            KERROR( "File explorer does not support this FileEventType" );
+            break;
+        }
     }
 }
 

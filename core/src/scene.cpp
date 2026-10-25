@@ -82,28 +82,6 @@ auto core::Scene::addEntity() -> entt::entity
     return ent.getEntityId();
 }
 
-auto core::Scene::addMeshToEntity( entt::entity entity, resources::Model* pMesh ) -> void
-{
-    std::lock_guard lock{ m_registryMutex };
-    m_registryModified = true;
-    Entity ent{ m_pRegistry.get(), entity };
-    ent.setType( EntityType::Object );
-    ent.replaceComponent<ModelComponent>( ModelComponent{ .pModel = pMesh } );
-
-    if ( !ent.hasComponent<TransformComponent>() )
-        ent.addComponent<TransformComponent>();
-}
-
-void core::Scene::removeMeshFromEntity( entt::entity entity )
-{
-    m_registryModified = true;
-    Entity ent{ m_pRegistry.get(), entity };
-
-    ent.removeComponent<ModelComponent>();
-    ent.removeComponent<IndexComponent>();
-    ent.removeComponent<TransformComponent>();
-}
-
 auto core::Scene::onUpdate() -> void
 {
     ZoneScopedN( "Scene::onUpdate" );
@@ -158,8 +136,6 @@ auto core::Scene::onUpdate() -> void
 
     if ( m_playing )
     {
-        m_inputSystem->update( getEnttRegistry(), timeTracker->getDurationInSeconds( DELTA_TIME ) );
-
         if ( m_enabledEditorCamera )
         {
 
@@ -174,6 +150,8 @@ auto core::Scene::onUpdate() -> void
 
             m_enabledEditorCamera = false;
         }
+
+        m_inputSystem->update( getEnttRegistry(), timeTracker->getDurationInSeconds( DELTA_TIME ) );
     }
     else
     {
@@ -207,10 +185,9 @@ auto core::Scene::deserialize( const std::filesystem::path& p ) -> void
     rapidjson::IStreamWrapper isw{ in };
     rapidjson::Document doc{};
     doc.ParseStream( isw );
+
     if ( doc.HasParseError() )
-    {
-        KERROR( "Error at parsing json file for default scene" );
-    }
+        throw std::runtime_error( "Error at parsing json file for default scene" );
 
     auto getVec3 = []( const rapidjson::Value& v ) -> glm::vec3 {
         if ( !v.IsArray() || v.Size() != 3 )

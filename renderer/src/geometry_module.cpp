@@ -112,7 +112,7 @@ auto rendering::GeometryModule::registerWireframePass() -> void
         .depthAttachmentFormat = VK_FORMAT_D32_SFLOAT,
         .vertexModule = vertex,
         .fragmentModule = fragment,
-        .pushConstantSize = sizeof( resources::MeshPushConstant ),
+        .pushConstantSize = sizeof( resources::FramePushConstant ),
         .pushConstantVisibility = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT };
 
     geometryInfo.wireframePipeline.create( wireframeSpec, m_vkCtx );

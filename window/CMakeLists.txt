@@ -13,5 +13,6 @@ target_include_directories(
 
 target_link_libraries(
   window
+  utilities
   SDL3::SDL3
 )

@@ -1,5 +1,7 @@
-#include <assert.h>
 #include "window/window.hpp"
+#include <assert.h>
+#include "utilities/utils/utils.hpp"
+#include <Windows.h>
 
 auto window_hit_test( SDL_Window* wnd, const SDL_Point* pos, void* ) -> SDL_HitTestResult
 {
@@ -135,7 +137,7 @@ auto Window::getWindow() -> SDL_Window*
 
 void Window::setWindow( SDL_Window* wnd )
 {
-    assert( wnd != nullptr && "SDL_Window* can't be nullptr" );
+    KASSERT( wnd != nullptr && "SDL_Window* can't be nullptr" );
     m_window = wnd;
 }
 

@@ -77,6 +77,37 @@ void editor::Editor::pollEvents()
         ImGui_ImplSDL3_ProcessEvent( &e );
         switch ( e.type )
         {
+            case SDL_EVENT_DROP_BEGIN:
+            {
+                KINFO( "Drop begin" );
+                break;
+            }
+
+            case SDL_EVENT_DROP_COMPLETE:
+            {
+                KINFO( "Drop end" );
+                break;
+            }
+
+            case SDL_EVENT_DROP_TEXT:
+            {
+                std::string text{ e.drop.data };
+                KINFO( "Drooped text {}", text );
+                break;
+            }
+
+            case SDL_EVENT_DROP_FILE:
+            {
+                if ( e.drop.data )
+                {
+                    // const std::string& path, const std::string& name, const FileEventType type
+                    std::filesystem::path filePath{ std::string{ e.drop.data } };
+                    core::FileEvent fileEvent{ filePath.string(), filePath.stem().string(), core::FileEventType::Drop };
+
+                    pEventDispatcher->dispatchEvent<core::FileEvent>( fileEvent );
+                }
+                break;
+            }
             case SDL_EVENT_WINDOW_RESIZED:
             {
                 int newWidth = e.window.data1;
@@ -179,7 +210,6 @@ void editor::Editor::pollEvents()
             }
             default:
             {
-                KERROR( "Event not handled!!!" );
                 break;
             }
         }

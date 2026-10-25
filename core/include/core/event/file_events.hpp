@@ -8,7 +8,8 @@ enum FileEventType
     Create = 1 << 0,
     Delete = 1 << 1,
     Modify = 1 << 2,
-    Rename = 1 << 3
+    Rename = 1 << 3,
+    Drop = 1 << 4
 };
 
 class FileEvent : public IEvent
@@ -23,17 +24,17 @@ class FileEvent : public IEvent
 
     ~FileEvent() = default;
 
-    inline auto getName() const -> std::string
+    auto getName() const -> std::string
     {
         return m_name;
     }
 
-    inline auto getPath() const -> std::string
+    auto getPath() const -> std::string
     {
         return m_path;
     }
 
-    inline auto getType() const -> FileEventType
+    auto getType() const -> FileEventType
     {
         return m_type;
     }

@@ -23,22 +23,30 @@ struct CameraProps
     glm::vec3 up{ 0.0f, 1.0f, 0.0f };
 
     /**
-     * @brief The difference from eye -> center
+     * @brief The difference from eye -> center,
+     * this is built after calculating yaw and pitch
      */
     glm::vec3 direction{ 0.0f, 0.0f, -1.0f };
 
     float fov{ 45.0f };
     glm::ivec2 extent{ 20, 20 };
+
     float nearView{ 0.01f };
     float farView{ 3000.0f };
 
+    /**
+     * @brief Those are built using the relative mouse movement accumulated
+     * since last frame
+     */
     float yaw{ -90.0f };
     float pitch{ 0.0f };
 
     glm::vec3 forward{};
     glm::vec3 right{};
 
-    // If we modify the props, update the projection and the view
+    /**
+     * @brief If this is true, matrices are rebuilt before sending the data to the shader
+     */
     bool changed{ false };
 };
 
@@ -60,12 +68,6 @@ struct PerspectiveCameraComponent
         ZoneScopedN( "Camera::updateUbo" );
         if ( props.changed )
         {
-            // if ( props.pitch > 89.0f )
-            //     props.pitch = 89.0f;
-
-            // if ( props.pitch < -89.0f )
-            //     props.pitch = -89.0f;
-
             props.pitch = std::clamp( props.pitch, -89.0f, 89.0f );
 
             props.direction.x = cos( glm::radians( props.yaw ) ) * cos( glm::radians( props.pitch ) );

@@ -53,21 +53,7 @@ class Scene
      */
     auto addEntity() -> entt::entity;
 
-    /**
-     * @brief Adds a model to an already existing entity in the scene registry
-     * @param entity The entity id
-     * @param pModel The mesh weak_ptr from the asset manager
-     */
-    auto addMeshToEntity( entt::entity entity, resources::Model* pModel ) -> void;
-
     auto onUpdate() -> void;
-
-    /**
-     * @brief Removes the ModelComponent from the entity and clears the related data in the instance data struct
-     * @param entity The entity we edit
-     * @param pModel The model weak_ptr from asset manager
-     */
-    void removeMeshFromEntity( entt::entity entity );
 
     auto startPlaying() -> void;
     auto stopPlaying() -> void;
