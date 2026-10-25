@@ -17,7 +17,8 @@ enum EAction : uint32_t
     MoveLeft,
     MoveRight,
     Jump,
-    Sprint
+    Sprint,
+    Crouch
 };
 
 using TActionMap = std::unordered_map<std::string, std::unordered_map<EAction, std::function<void()>>>;

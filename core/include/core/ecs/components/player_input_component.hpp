@@ -12,6 +12,7 @@ struct PlayerInputComponent
     bool left{ false };
     bool right{ false };
     bool back{ false };
+    bool crouch{ false };
     bool jump{ false };
     bool sprint{ false };
 };

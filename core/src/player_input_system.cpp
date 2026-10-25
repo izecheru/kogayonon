@@ -52,11 +52,18 @@ core::PlayerInputSystem::PlayerInputSystem( EventDispatcher* dispatcher, Registr
     if ( !inputComponent || !cameraComponent )
         throw std::runtime_error( "Player does not posses important components!!!" );
 
+    m_keyMapManager->registerAction( "player", Crouch, [this, inputComponent]() {
+        if ( inputComponent->crouch )
+            return;
+
+        inputComponent->crouch = true;
+    } );
+
+    m_keyMapManager->bindAction( "player", utilities::KeyScanCode::LeftControl, Crouch );
+
     m_keyMapManager->registerAction( "player", Sprint, [this, inputComponent]() {
         if ( inputComponent->sprint )
-        {
             return;
-        }
 
         inputComponent->sprint = true;
     } );
@@ -145,14 +152,23 @@ auto core::PlayerInputSystem::update( entt::registry& reg, float delta ) -> void
     if ( !inputComponent )
         return;
 
-    constexpr float jumpSpeed{ 8.0f };
+    const bool crouch = inputComponent->crouch;
+    const bool sprint = inputComponent->sprint;
+    const bool jump = inputComponent->jump;
     const bool onGround = playerComponent->isOnGround();
 
-    // sprint only on ground
-    if ( inputComponent->sprint && onGround )
-        speed += 10.0f;
-
+    inputComponent->crouch = false;
     inputComponent->sprint = false;
+    inputComponent->jump = false;
+
+    constexpr float jumpSpeed{ 8.0f };
+
+    if ( crouch && onGround )
+        speed /= 2.0f;
+
+    // sprint only on ground
+    if ( sprint && onGround && !crouch )
+        speed += 10.0f;
 
     inputComponent->move.x *= speed;
     inputComponent->move.z *= speed;
@@ -160,9 +176,7 @@ auto core::PlayerInputSystem::update( entt::registry& reg, float delta ) -> void
     float vy = currentVelocity.GetY();
     const bool jumpRequested = inputComponent->jump;
 
-    inputComponent->jump = false;
-
-    if ( jumpRequested && onGround )
+    if ( jump && onGround )
     {
         vy = jumpSpeed;
     }
@@ -193,10 +207,18 @@ auto core::PlayerInputSystem::update( entt::registry& reg, float delta ) -> void
 
     JPH::RVec3 newPos = playerComponent->character->GetPosition();
 
-    // update camera to match character
-    cameraComponent->props.eye = { newPos.GetX(), newPos.GetY(), newPos.GetZ() };
+    float y = newPos.GetY();
 
-    double sensitivity{ 0.2f };
+    if ( onGround && crouch )
+    {
+        y -= 0.5f;
+    }
+
+    // update camera to match character
+    cameraComponent->props.eye = { newPos.GetX(), y, newPos.GetZ() };
+
+    // this could sit in the camera component so we can easely change it in properties panel
+    constexpr double sensitivity{ 0.2f };
     glm::vec2 accumulatedRel = utilities::MouseState::getRel();
     utilities::MouseState::resetRel();
 
